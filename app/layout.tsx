@@ -1,5 +1,13 @@
 import "@/app/ui/global.css";
-import { inter } from "@/app/ui/fonts";
+import type { Metadata } from "next";
+import { PT_Mono } from "next/font/google";
+
+const inter = PT_Mono({ weight: "400", subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Hack a Byte",
+  description: "Created by Virexela",
+};
 
 export default function RootLayout({
   children,
@@ -8,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
