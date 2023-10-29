@@ -1,9 +1,20 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+// import { revalidatePath } from "next/cache";
+// import { redirect } from "next/navigation";
 import clientPromise from "../lib/mongodb";
+import { ObjectId } from "mongodb";
+
+function getRandomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}
+
+const TransferSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  amount: z.number(),
+});
 
 const HackerSchema = z.object({
   username: z.string(),
@@ -13,6 +24,7 @@ const HackerSchema = z.object({
 const SignUp = HackerSchema;
 const LogIn = HackerSchema;
 const Delete = HackerSchema;
+const Transfer = TransferSchema;
 
 export async function signup(data: { username: string; password: string }) {
   try {
@@ -23,12 +35,16 @@ export async function signup(data: { username: string; password: string }) {
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    let response = db.collection("hackers").insertOne({
+    const response = await db.collection("hackers").insertOne({
       username: username,
       password: password,
+      balance: 1000,
+      transactions: [],
+      storage: 0,
+      computerModel: "HackBook-L",
     });
 
-    return (await response).insertedId;
+    return response.insertedId.toJSON();
   } catch (e) {
     console.error(e);
     return false;
@@ -44,13 +60,12 @@ export async function login(data: { username: string; password: string }) {
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    let response = await db.collection("hackers").findOne({
+    const response = await db.collection("hackers").findOne({
       username: username,
       password: password,
     });
 
-    if (!response)
-    {
+    if (!response) {
       return false;
     }
 
@@ -70,12 +85,108 @@ export async function deleteUser(data: { username: string; password: string }) {
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    let response = await db.collection("hackers").deleteOne({
+    const response = await db.collection("hackers").deleteOne({
       username: username,
       password: password,
     });
 
-    return response.acknowledged;
+    return response.deletedCount;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+
+export async function access() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .aggregate([
+        { $addFields: { randomField: { $rand: {} } } },
+        { $sort: { randomField: 1 } },
+        { $limit: 1 },
+      ])
+      .toArray();
+
+    if (!response[0]) {
+      return false;
+    }
+
+    return response[0].username;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+
+export async function balance(id: string) {
+  try {
+    if (id == "0") return false;
+
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!response) {
+      return false;
+    }
+
+    return response.balance.toString();
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+
+export async function transfer(data: {
+  id: string;
+  username: string;
+  amount: number;
+}) {
+  try {
+    const { id, username, amount } = Transfer.parse({
+      id: data.id,
+      username: data.username,
+      amount: data.amount,
+    });
+
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!response || response.balance < amount) {
+      return false;
+    }
+
+    // Start a Client Session
+    const session = client.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const collection = db.collection("hackers");
+        // Important:: You must pass the session to the operations
+        await collection.findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $inc: { balance: -amount } },
+          { session }
+        );
+        await collection.findOneAndUpdate(
+          { username: username },
+          { $inc: { balance: amount } },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return true;
   } catch (e) {
     console.error(e);
     return false;

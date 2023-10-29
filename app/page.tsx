@@ -1,14 +1,22 @@
 "use client";
-import { deleteUser, login, signup } from "@/app/lib/actions";
 import { useState } from "react";
-import { handleDelete, handleLogIn, handleSignUp } from "./lib/commands";
+import {
+  handleAccess,
+  handleBalance,
+  handleDelete,
+  handleLogIn,
+  handleSignUp,
+  handleTransfer,
+} from "./lib/commands";
 
 export default function Page() {
   const diractory = "@HackBook-L ~ % "; // Present Working Diractory
 
-  let activeUser = "0.0.0.0"; // Username of the loggged in User
+  const DEFAULT_USER = "0.0.0.0"; // Username of the loggged in User
 
   const [command, setCommand] = useState(""); // User Command
+  const [activeUser, setActiveUser] = useState("0.0.0.0"); // Username of the loggged in User
+  const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
   async function handleCommand(e: any) {
     e.preventDefault(); // Avoid reload
@@ -19,22 +27,42 @@ export default function Page() {
 
     let output = document.createElement("li"); // Create a li element
 
+    let user = activeUser; // User
+
     switch (operation) {
       case "signup":
         let signUpResult = await handleSignUp(commands[1], commands[2]); // Run the operation
         output.innerHTML = signUpResult.output; // Display the output in the terminal
-        if (signUpResult.acknowledged) activeUser = commands[1]; // If the operation is successfull
+        if (signUpResult.acknowledged) {
+          // Set user
+          setActiveUser(commands[1]);
+          user = commands[1];
+          setUserId(signUpResult.id); // Set id
+        } // If the operation is successfull
         break;
 
       case "login":
         let logInResult = await handleLogIn(commands[1], commands[2]); // Run the operation
         output.innerHTML = logInResult.output; // Display the output in the terminal
-        if (logInResult.acknowledged) activeUser = commands[1]; // If the operation is successfull
+        // If the operation is successfull
+        if (logInResult.acknowledged) {
+          // Set user
+          setActiveUser(commands[1]);
+          user = commands[1];
+          setUserId(logInResult.id); // Set id
+        }
         break;
 
       case "logout":
-        output.innerHTML = `<h3 class="text-red-800">Logged Out Successfully!</h3>`; // Display the output in the terminal
-        activeUser = "0.0.0.0";  // Set user to default user
+        if (user === DEFAULT_USER) {
+          output.innerHTML = `<h3>Already Logged Out</h3>`; // Display the output in the terminal
+        } else {
+          output.innerHTML = `<h3>Logged Out Successfully!</h3>`; // Display the output in the terminal
+          setActiveUser(DEFAULT_USER); // Set user to default
+          user = DEFAULT_USER;
+          setUserId("0"); // Set id to default
+        }
+
         break;
 
       case "delete":
@@ -43,8 +71,30 @@ export default function Page() {
 
         // If the operation is successfull and the deleted user is logged in
         if (deleteResult.acknowledged && activeUser === commands[1]) {
-          activeUser = "0.0.0.0";
+          // Set user to default
+          setActiveUser(DEFAULT_USER);
+          user = DEFAULT_USER;
+          setUserId("0"); // Set id to default
         }
+        break;
+
+      case "access":
+        let accessResult = await handleAccess(); // Run the operation
+        output.innerHTML = accessResult.output; // Display the output in the terminal
+        break;
+
+      case "balance":
+        let balanceResult = await handleBalance(userId); // Run the operation
+        output.innerHTML = balanceResult.output; // Display the output in the terminal
+        break;
+
+      case "transfer":
+        let transferResult = await handleTransfer(
+          userId,
+          commands[1],
+          commands[2]
+        ); // Run the operation
+        output.innerHTML = transferResult.output; // Display the output in the terminal
         break;
 
       default:
@@ -62,7 +112,7 @@ export default function Page() {
     consoleElement?.appendChild(output); // Append output
 
     let commandLine = document.createElement("h3"); // Create a h3 element
-    commandLine.innerHTML = activeUser + diractory; // Copy the active user and the diractory to commandLine
+    commandLine.innerHTML = user + diractory; // Copy the active user and the diractory to commandLine
     commandPrompt && commandLine.appendChild(commandPrompt); // If commandPrompt is not null then append commandPrompt
 
     let ListElement = document.createElement("li"); // Create a li element
@@ -82,7 +132,7 @@ export default function Page() {
           </li>
           <li>
             <h3>
-              {activeUser + diractory}
+              {DEFAULT_USER + diractory}
               <input
                 className="bg-transparent outline-none w-[80vw]"
                 type="text"
