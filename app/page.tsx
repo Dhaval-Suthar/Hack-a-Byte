@@ -6,6 +6,7 @@ import {
   handleDelete,
   handleLogIn,
   handleSignUp,
+  handleTransfer,
 } from "./lib/commands";
 
 export default function Page() {
@@ -48,7 +49,7 @@ export default function Page() {
           // Set user
           setActiveUser(commands[1]);
           user = commands[1];
-          setUserId(logInResult.id); // Set id 
+          setUserId(logInResult.id); // Set id
         }
         break;
 
@@ -85,6 +86,15 @@ export default function Page() {
       case "balance":
         let balanceResult = await handleBalance(userId); // Run the operation
         output.innerHTML = balanceResult.output; // Display the output in the terminal
+        break;
+
+      case "transfer":
+        let transferResult = await handleTransfer(
+          userId,
+          commands[1],
+          commands[2]
+        ); // Run the operation
+        output.innerHTML = transferResult.output; // Display the output in the terminal
         break;
 
       default:

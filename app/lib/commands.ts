@@ -1,4 +1,11 @@
-import { access, balance, deleteUser, login, signup } from "./actions";
+import {
+  access,
+  balance,
+  deleteUser,
+  login,
+  signup,
+  transfer,
+} from "./actions";
 
 export async function handleSignUp(username: string, password: string) {
   // If password or username is not given
@@ -117,7 +124,7 @@ export async function handleAccess() {
   }
 }
 
-export async function handleBalance(id:string) {
+export async function handleBalance(id: string) {
   // Access response
   let balanceAmount = await balance(id);
 
@@ -131,6 +138,39 @@ export async function handleBalance(id:string) {
     // Return error
     return {
       output: `<h3 class="text-red-800">Sorry can't find your balance</h3>`,
+      acknowledged: false,
+    };
+  }
+}
+
+export async function handleTransfer(
+  id: string,
+  username: string,
+  amount: string
+) {
+  if (id == "0" || !username || !amount || !Number(amount))
+    return {
+      output: `<h3 class="text-red-800">Sorry operation was Unsuccessful</h3>`,
+      acknowledged: false,
+    };
+
+  // Access response
+  let transfered = await transfer({
+    id: id,
+    username: username,
+    amount: Number(amount),
+  });
+
+  if (transfered) {
+    // Return username
+    return {
+      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3> <h3>Transaction Code: #203487</h3>`,
+      acknowledged: true,
+    };
+  } else {
+    // Return error
+    return {
+      output: `<h3 class="text-red-800">Sorry operation was Unsuccessful</h3>`,
       acknowledged: false,
     };
   }
