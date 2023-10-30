@@ -175,3 +175,26 @@ export async function handleTransfer(
     };
   }
 }
+
+export function handleHelp() {
+  let output = `<h3>Commands:</h3>`; // title
+
+  output =
+    output + `<h3> - signup:         try signup [username] [password] </h3>`; // signup
+  output =
+    output + `<h3> - login:          try login [username] [password] </h3>`; // login
+  output = output + `<h3> - logout:         try logout</h3>`; // logout
+  output =
+    output + `<h3> - delete:         try delete [username] [password] </h3>`; // delete
+  output = output + `<h3> - access:         try access</h3>`; // access
+  output = output + `<h3> - balance:        try balance</h3>`; // balance
+  output =
+    output +
+    `<h3> - transfer:       try transfer [receiver's username] [amount]</h3>`; // transfer
+
+  // Return output
+  return {
+    output: output,
+    acknowledged: false,
+  };
+}

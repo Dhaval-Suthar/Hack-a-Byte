@@ -4,6 +4,7 @@ import {
   handleAccess,
   handleBalance,
   handleDelete,
+  handleHelp,
   handleLogIn,
   handleSignUp,
   handleTransfer,
@@ -30,6 +31,11 @@ export default function Page() {
     let user = activeUser; // User
 
     switch (operation) {
+      case "help":
+        let helpResult = handleHelp(); // Run the operation
+        output.innerHTML = helpResult.output; // Display the output in the terminal
+        break;
+
       case "signup":
         let signUpResult = await handleSignUp(commands[1], commands[2]); // Run the operation
         output.innerHTML = signUpResult.output; // Display the output in the terminal
@@ -129,12 +135,13 @@ export default function Page() {
         <ul id="consoleElement">
           <li>
             <h3>Last login: Fri Oct 13 18:22:24 on console</h3>
+            <h3> - type help - </h3>
           </li>
           <li>
             <h3>
               {DEFAULT_USER + diractory}
               <input
-                className="bg-transparent outline-none w-[40vw]"
+                className="bg-transparent outline-none w-[80vw]"
                 type="text"
                 name="command-prompt"
                 id="command-prompt"
