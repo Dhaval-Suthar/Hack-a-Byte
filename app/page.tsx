@@ -141,7 +141,7 @@ export default function Page() {
             <h3>
               {DEFAULT_USER + diractory}
               <input
-                className="bg-transparent outline-none w-[80vw]"
+                className="bg-transparent outline-none w-32"
                 type="text"
                 name="command-prompt"
                 id="command-prompt"
