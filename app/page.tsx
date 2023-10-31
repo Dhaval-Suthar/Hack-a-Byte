@@ -16,12 +16,11 @@ export default function Page() {
   const DEFAULT_USER = "0.0.0.0"; // Username of the loggged in User
 
   const [command, setCommand] = useState(""); // User Command
-  const [activeUser, setActiveUser] = useState("0.0.0.0"); // Username of the loggged in User
+  const [activeUser, setActiveUser] = useState(DEFAULT_USER); // Username of the loggged in User
+  const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
-  async function handleCommand(e: any) {
-    e.preventDefault(); // Avoid reload
-
+  async function handleCommand() {
     let commands = command.split(" "); // Separate commands and arguments from command
 
     const operation = commands[0]; // get operation to perform
@@ -108,52 +107,64 @@ export default function Page() {
         break;
     }
 
-    let commandElement = document.createElement("text"); // Creating text element
-    commandElement.innerHTML = command; // Set the value as the command given
-
-    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
-    commandPrompt?.parentNode?.appendChild(commandElement); // Appending commandElement to commandPrompt
-
-    let consoleElement = document.getElementById("consoleElement"); // Get the consoleElement element
-    consoleElement?.appendChild(output); // Append output
-
-    let commandLine = document.createElement("h3"); // Create a h3 element
-    commandLine.innerHTML = user + diractory; // Copy the active user and the diractory to commandLine
-    commandPrompt && commandLine.appendChild(commandPrompt); // If commandPrompt is not null then append commandPrompt
-
-    let ListElement = document.createElement("li"); // Create a li element
-    ListElement.appendChild(commandLine); // Append commandLine to ListElement
-    consoleElement?.appendChild(ListElement); // Append ListElement to consoleElement
-    commandPrompt?.focus(); // Focus the commandPrompt
+    // Print command
+    let commandElement = document.createElement("li"); // Creating li element
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`;
 
     setCommand(""); // Empty Command
+
+    // Print output
+    let consoleElement = document.getElementById("consoleElement");
+    consoleElement?.appendChild(commandElement);
+    consoleElement?.appendChild(output);
+
+    // Print commandPrompt
+    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    commandPrompt && consoleElement?.appendChild(commandPrompt);
+
+    let commandLine = document.getElementById("command-line");
+    commandLine?.focus(); // Focus the commandLine
   }
 
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
-      <form onSubmit={handleCommand}>
+      <div>
         <ul id="consoleElement">
           <li>
             <h3>Last login: Fri Oct 13 18:22:24 on console</h3>
             <h3> - type help - </h3>
           </li>
-          <li>
-            <h3>
-              {DEFAULT_USER + diractory}
-              <input
-                className="bg-transparent outline-none w-32"
-                type="text"
-                name="command-prompt"
-                id="command-prompt"
-                value={command}
+          <li id="command-prompt">
+            <div>
+              <textarea
+                className="bg-zinc-900 outline-none w-full absolute h-full"
+                value={activeUser + activeDiractory + command}
+                id="command-line"
                 onChange={(e) => {
-                  setCommand(e.target.value);
+                  if (e.target.value[e.target.value.length - 1] !== "\n") {
+                    setCommand(
+                      e.target.value.slice(
+                        (activeUser + activeDiractory).length
+                      )
+                    );
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    // If enter key is pressed
+                    handleCommand(); // Handle the command
+                  }
                 }}
               />
-            </h3>
+              <h3 className="absolute bg-transparent text-transparent select-none">
+                {activeUser + activeDiractory}
+              </h3>
+            </div>
           </li>
         </ul>
-      </form>
+      </div>
     </main>
   );
 }
