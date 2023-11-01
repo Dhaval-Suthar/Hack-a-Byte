@@ -6,10 +6,6 @@ import { z } from "zod";
 import clientPromise from "../lib/mongodb";
 import { ObjectId } from "mongodb";
 
-function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
-}
-
 const TransferSchema = z.object({
   id: z.string(),
   username: z.string(),
@@ -42,6 +38,7 @@ export async function signup(data: { username: string; password: string }) {
       transactions: [],
       storage: 0,
       computerModel: "HackBook-L",
+      lastLogin: new Date(),
     });
 
     return response.insertedId.toJSON();

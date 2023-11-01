@@ -19,6 +19,7 @@ export default function Page() {
   const [activeUser, setActiveUser] = useState(DEFAULT_USER); // Username of the loggged in User
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
+  const [lastLogIn, setLastLogIn] = useState(new Date().toDateString()); // Last loggged in info of the User
 
   async function handleCommand() {
     let commands = command.split(" "); // Separate commands and arguments from command
@@ -43,6 +44,7 @@ export default function Page() {
           setActiveUser(commands[1]);
           user = commands[1];
           setUserId(signUpResult.id); // Set id
+          setLastLogIn("never"); // Set last login
         } // If the operation is successfull
         break;
 
@@ -132,10 +134,7 @@ export default function Page() {
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
         <ul id="consoleElement">
-          <li>
-            <h3>Last login: Fri Oct 13 18:22:24 on console</h3>
-            <h3> - type help - </h3>
-          </li>
+          <h3> - type help - </h3>
           <li id="command-prompt">
             <div>
               <textarea

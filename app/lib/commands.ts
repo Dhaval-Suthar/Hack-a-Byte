@@ -38,9 +38,9 @@ export async function handleSignUp(username: string, password: string) {
   if (signedUp) {
     return {
       id: signedUp,
-      output: `<h3>Welcome ${username}</h3>`,
+      output: `<h3>Last login: never on console</h3> <h3>Welcome ${username}</h3>`, // Greet the user
       acknowledged: true,
-    }; // Greet the user
+    };
   } else {
     // Return error
     return {
