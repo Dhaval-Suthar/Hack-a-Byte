@@ -19,7 +19,6 @@ export default function Page() {
   const [activeUser, setActiveUser] = useState(DEFAULT_USER); // Username of the loggged in User
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
-  const [lastLogIn, setLastLogIn] = useState(new Date().toDateString()); // Last loggged in info of the User
 
   async function handleCommand() {
     let commands = command.split(" "); // Separate commands and arguments from command
@@ -44,7 +43,6 @@ export default function Page() {
           setActiveUser(commands[1]);
           user = commands[1];
           setUserId(signUpResult.id); // Set id
-          setLastLogIn("never"); // Set last login
         } // If the operation is successfull
         break;
 
