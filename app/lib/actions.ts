@@ -63,13 +63,24 @@ export async function login(data: { username: string; password: string }) {
     });
 
     if (!response) {
-      return false;
+      return {
+        id: "0",
+        lastLogin: "never",
+      };
     }
 
-    return response?._id.toJSON();
+    let returnData = {
+      id: response?._id.toJSON(),
+      lastLogin: response?.lastLogin,
+    };
+
+    return returnData;
   } catch (e) {
     console.error(e);
-    return false;
+    return {
+      id: "0",
+      lastLogin: "never",
+    };
   }
 }
 

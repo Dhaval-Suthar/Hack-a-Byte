@@ -68,10 +68,12 @@ export async function handleLogIn(username: string, password: string) {
     password: password,
   });
 
-  if (loggedIn) {
+  if (loggedIn.id != "0") {
     return {
-      id: loggedIn,
-      output: `<h3>Welcome ${username}</h3>`,
+      id: loggedIn.id,
+      output: `<h3>Last login: ${new Date(
+        loggedIn.lastLogin
+      ).toDateString()} on console</h3> <h3>Welcome ${username}</h3>`,
       acknowledged: true,
     }; // Greet the user
   } else {
