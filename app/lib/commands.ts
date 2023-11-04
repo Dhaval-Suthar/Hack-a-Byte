@@ -2,6 +2,7 @@ import {
   access,
   balance,
   deleteUser,
+  leaderboard,
   login,
   signup,
   transfer,
@@ -207,22 +208,56 @@ export async function handleTransfer(
   }
 }
 
+export async function handleleaderboard() {
+  let output = "";
+
+  // Access response
+  let leaderboardResponse = await leaderboard();
+
+  if (leaderboardResponse === "") {
+    return {
+      output: output,
+      acknowledged: false,
+    };
+  }
+
+  let leaderboardList = JSON.parse(leaderboardResponse); // Parse data
+
+  if (leaderboardList[0]) {
+    // Return all players in a h3 tag
+    leaderboardList.map(
+      (player: { username: string; balance: number }, index: number) => {
+        output =
+          output +
+          `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
+      }
+    );
+
+    // Return output
+    return {
+      output: output,
+      acknowledged: true,
+    };
+  } else {
+    // Return error
+    return {
+      output: `<h3>No one is at the top.</h3>`,
+      acknowledged: false,
+    };
+  }
+}
+
 export function handleHelp() {
   let output = `<h3>Commands:</h3>`; // title
 
-  output =
-    output +
-    `<h3> - signup:         try signup [username] [password -> only 4 digits] </h3>`; // signup
-  output =
-    output + `<h3> - login:          try login [username] [password] </h3>`; // login
-  output = output + `<h3> - logout:         try logout</h3>`; // logout
-  output =
-    output + `<h3> - delete:         try delete [username] [password] </h3>`; // delete
-  output = output + `<h3> - access:         try access</h3>`; // access
-  output = output + `<h3> - balance:        try balance</h3>`; // balance
-  output =
-    output +
-    `<h3> - transfer:       try transfer [receiver's username] [amount -> only numbers]</h3>`; // transfer
+  output = output + `<h3> - leaderboard: try leaderboard</h3>`; // leaderboard
+  output = output + `<h3> - signup: try signup [username] [password -> only 4 digits] </h3>`; // signup
+  output = output + `<h3> - login: try login [username] [password] </h3>`; // login
+  output = output + `<h3> - logout: try logout</h3>`; // logout
+  output = output + `<h3> - delete: try delete [username] [password] </h3>`; // delete
+  output = output + `<h3> - access: try access</h3>`; // access
+  output = output + `<h3> - balance: try balance</h3>`; // balance
+  output = output + `<h3> - transfer: try transfer [receiver's username] [amount -> only numbers]</h3>`; // transfer
 
   // Return output
   return {

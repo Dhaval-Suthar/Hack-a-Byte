@@ -8,6 +8,7 @@ import {
   handleLogIn,
   handleSignUp,
   handleTransfer,
+  handleleaderboard,
 } from "./lib/commands";
 
 export default function Page() {
@@ -136,6 +137,15 @@ export default function Page() {
           commands[2]
         ); // Run the operation
         output.innerHTML = transferResult.output; // Display the output in the terminal
+        break;
+
+      case "leaderboard":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+        
+        let leaderboardResult = await handleleaderboard(); // Run the operation
+        output.innerHTML = leaderboardResult.output; // Display the output in the terminal
         break;
 
       default:

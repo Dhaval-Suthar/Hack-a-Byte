@@ -200,3 +200,26 @@ export async function transfer(data: {
     return false;
   }
 }
+
+export async function leaderboard() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .find({})
+      .project({ _id:0, username: 1, balance: 1 })
+      .sort({ balance: -1 })
+      .limit(5)
+      .toArray();
+
+    if (!response[0]) {
+      return "";
+    }
+
+    return JSON.stringify(response);
+  } catch (e) {
+    console.error(e);
+    return "";
+  }
+}
