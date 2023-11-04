@@ -13,17 +13,24 @@ export async function handleSignUp(username: string, password: string) {
     // Return error
     return {
       id: "0",
-      output: `<h3>Usage: signup [username] [password -> only 4 characters max]</h3>`,
+      output: `<h3>Usage: signup [username] [password -> only 4 digits max]</h3>`,
       acknowledged: false,
     };
   }
+
+  if (!Number(password))
+    return {
+      id: "0",
+      output: `<h3 class="text-red-800">password should be only numbers</h3>`,
+      acknowledged: false,
+    };
 
   // If password is greater than 4 characters
   if (password.length > 4) {
     // Return error
     return {
       id: "0",
-      output: `<h3 class="text-red-800"> password should have less than 5 characters</h3>`,
+      output: `<h3 class="text-red-800"> password should have less than 5 digits</h3>`,
       acknowledged: false,
     };
   }
@@ -205,7 +212,7 @@ export function handleHelp() {
 
   output =
     output +
-    `<h3> - signup:         try signup [username] [password -> only 4 characters] </h3>`; // signup
+    `<h3> - signup:         try signup [username] [password -> only 4 digits] </h3>`; // signup
   output =
     output + `<h3> - login:          try login [username] [password] </h3>`; // login
   output = output + `<h3> - logout:         try logout</h3>`; // logout
