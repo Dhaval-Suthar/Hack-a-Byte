@@ -196,7 +196,7 @@ export async function handleTransfer(
   if (transfered) {
     // Return username
     return {
-      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3> <h3>Transaction Code: #203487</h3>`,
+      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3>`,
       acknowledged: true,
     };
   } else {
