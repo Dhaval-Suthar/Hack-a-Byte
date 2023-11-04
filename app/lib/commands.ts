@@ -1,5 +1,6 @@
 import {
   access,
+  admin,
   balance,
   deleteUser,
   leaderboard,
@@ -7,6 +8,39 @@ import {
   signup,
   transfer,
 } from "./actions";
+
+export async function handleAdmin(
+  username: string,
+  password: string,
+  secretCode: string
+) {
+  // If password is not given or username is not given or password is not number or password is too long
+  if (!username || !password || !Number(password) || password.length > 4) {
+    // Return error
+    return {
+      output: `<h3>command not found: admin </h3>`,
+    };
+  }
+
+  // Sign up response
+  let result = await admin({
+    username: username,
+    password: password,
+    secretCode: secretCode,
+  });
+
+  // If the account is created
+  if (result) {
+    return {
+      output: `<h3>Added Successfully. </h3>`,
+    };
+  } else {
+    // Return error
+    return {
+      output: `<h3>command not found: admin </h3>`,
+    };
+  }
+}
 
 export async function handleSignUp(username: string, password: string) {
   // If password or username is not given
@@ -251,13 +285,17 @@ export function handleHelp() {
   let output = `<h3>Commands:</h3>`; // title
 
   output = output + `<h3> - leaderboard: try leaderboard</h3>`; // leaderboard
-  output = output + `<h3> - signup: try signup [username] [password -> only 4 digits] </h3>`; // signup
+  output =
+    output +
+    `<h3> - signup: try signup [username] [password -> only 4 digits] </h3>`; // signup
   output = output + `<h3> - login: try login [username] [password] </h3>`; // login
   output = output + `<h3> - logout: try logout</h3>`; // logout
   output = output + `<h3> - delete: try delete [username] [password] </h3>`; // delete
   output = output + `<h3> - access: try access</h3>`; // access
   output = output + `<h3> - balance: try balance</h3>`; // balance
-  output = output + `<h3> - transfer: try transfer [receiver's username] [amount -> only numbers]</h3>`; // transfer
+  output =
+    output +
+    `<h3> - transfer: try transfer [receiver's username] [amount -> only numbers]</h3>`; // transfer
 
   // Return output
   return {
