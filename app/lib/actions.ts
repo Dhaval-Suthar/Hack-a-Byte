@@ -17,10 +17,46 @@ const HackerSchema = z.object({
   password: z.string(),
 });
 
+const AdminSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+  secretCode: z.string(),
+});
+
+const Admin = AdminSchema;
 const SignUp = HackerSchema;
 const LogIn = HackerSchema;
 const Delete = HackerSchema;
 const Transfer = TransferSchema;
+
+export async function admin(data: { username: string; password: string, secretCode: string }) {
+  try {
+    const { username, password, secretCode } = Admin.parse({
+      username: data.username,
+      password: data.password,
+      secretCode: data.secretCode,
+    });
+
+    if (secretCode !== "charger") return false;
+
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db.collection("hackers").insertOne({
+      username: username,
+      password: password,
+      balance: 100,
+      transactions: [],
+      storage: 0,
+      computerModel: "HackBook-L",
+      lastLogin: new Date(),
+    });
+
+    return response.acknowledged;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
 
 export async function signup(data: { username: string; password: string }) {
   try {
@@ -34,7 +70,7 @@ export async function signup(data: { username: string; password: string }) {
     const response = await db.collection("hackers").insertOne({
       username: username,
       password: password,
-      balance: 1000,
+      balance: 0,
       transactions: [],
       storage: 0,
       computerModel: "HackBook-L",

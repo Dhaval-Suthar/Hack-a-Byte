@@ -2,6 +2,7 @@
 import { useState } from "react";
 import {
   handleAccess,
+  handleAdmin,
   handleBalance,
   handleDelete,
   handleHelp,
@@ -47,6 +48,15 @@ export default function Page() {
       case "help":
         let helpResult = handleHelp(); // Run the operation
         output.innerHTML = helpResult.output; // Display the output in the terminal
+        break;
+
+      case "admin":
+        let adminResult = await handleAdmin(
+          commands[1],
+          commands[2],
+          commands[3]
+        ); // Run the operation
+        output.innerHTML = adminResult.output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -143,7 +153,7 @@ export default function Page() {
         // Start loading
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
-        
+
         let leaderboardResult = await handleleaderboard(); // Run the operation
         output.innerHTML = leaderboardResult.output; // Display the output in the terminal
         break;
