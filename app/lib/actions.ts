@@ -6,10 +6,6 @@ import { z } from "zod";
 import clientPromise from "../lib/mongodb";
 import { ObjectId } from "mongodb";
 
-function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
-}
-
 const TransferSchema = z.object({
   id: z.string(),
   username: z.string(),
@@ -42,6 +38,7 @@ export async function signup(data: { username: string; password: string }) {
       transactions: [],
       storage: 0,
       computerModel: "HackBook-L",
+      lastLogin: new Date(),
     });
 
     return response.insertedId.toJSON();
@@ -66,13 +63,24 @@ export async function login(data: { username: string; password: string }) {
     });
 
     if (!response) {
-      return false;
+      return {
+        id: "0",
+        lastLogin: "never",
+      };
     }
 
-    return response?._id.toJSON();
+    let returnData = {
+      id: response?._id.toJSON(),
+      lastLogin: response?.lastLogin,
+    };
+
+    return returnData;
   } catch (e) {
     console.error(e);
-    return false;
+    return {
+      id: "0",
+      lastLogin: "never",
+    };
   }
 }
 
@@ -190,5 +198,28 @@ export async function transfer(data: {
   } catch (e) {
     console.error(e);
     return false;
+  }
+}
+
+export async function leaderboard() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .find({})
+      .project({ _id:0, username: 1, balance: 1 })
+      .sort({ balance: -1 })
+      .limit(5)
+      .toArray();
+
+    if (!response[0]) {
+      return "";
+    }
+
+    return JSON.stringify(response);
+  } catch (e) {
+    console.error(e);
+    return "";
   }
 }

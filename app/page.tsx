@@ -8,6 +8,7 @@ import {
   handleLogIn,
   handleSignUp,
   handleTransfer,
+  handleleaderboard,
 } from "./lib/commands";
 
 export default function Page() {
@@ -26,8 +27,21 @@ export default function Page() {
     const operation = commands[0]; // get operation to perform
 
     let output = document.createElement("li"); // Create a li element
+    let loading = document.createElement("li"); // Create a li element
+    loading.innerHTML = "null";
 
     let user = activeUser; // User
+
+    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    commandPrompt && consoleElement?.removeChild(commandPrompt);
+
+    // Print command
+    let commandElement = document.createElement("li"); // Creating li element
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`;
+    consoleElement?.appendChild(commandElement);
 
     switch (operation) {
       case "help":
@@ -36,6 +50,10 @@ export default function Page() {
         break;
 
       case "signup":
+        // Start loading
+        loading.innerHTML = `<h3>SigningUp... </h3>`;
+        consoleElement?.appendChild(loading);
+
         let signUpResult = await handleSignUp(commands[1], commands[2]); // Run the operation
         output.innerHTML = signUpResult.output; // Display the output in the terminal
         if (signUpResult.acknowledged) {
@@ -47,6 +65,10 @@ export default function Page() {
         break;
 
       case "login":
+        // Start loading
+        loading.innerHTML = `<h3>Checking Credentials... </h3>`;
+        consoleElement?.appendChild(loading);
+
         let logInResult = await handleLogIn(commands[1], commands[2]); // Run the operation
         output.innerHTML = logInResult.output; // Display the output in the terminal
         // If the operation is successfull
@@ -71,6 +93,10 @@ export default function Page() {
         break;
 
       case "delete":
+        // Start loading
+        loading.innerHTML = `<h3>Checking Authentication... </h3>`;
+        consoleElement?.appendChild(loading);
+
         let deleteResult = await handleDelete(commands[1], commands[2]); // Run the operation
         output.innerHTML = deleteResult.output; // Display the output in the terminal
 
@@ -84,16 +110,27 @@ export default function Page() {
         break;
 
       case "access":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+
         let accessResult = await handleAccess(); // Run the operation
         output.innerHTML = accessResult.output; // Display the output in the terminal
         break;
 
       case "balance":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+
         let balanceResult = await handleBalance(userId); // Run the operation
         output.innerHTML = balanceResult.output; // Display the output in the terminal
         break;
 
       case "transfer":
+        // Start loading
+        loading.innerHTML = `<h3>Transfering... </h3>`;
+        consoleElement?.appendChild(loading);
         let transferResult = await handleTransfer(
           userId,
           commands[1],
@@ -102,26 +139,31 @@ export default function Page() {
         output.innerHTML = transferResult.output; // Display the output in the terminal
         break;
 
+      case "leaderboard":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+        
+        let leaderboardResult = await handleleaderboard(); // Run the operation
+        output.innerHTML = leaderboardResult.output; // Display the output in the terminal
+        break;
+
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message to unknown operations
         break;
     }
 
-    // Print command
-    let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${
-      activeUser + activeDiractory + command
-    }</h3>`;
+    if (loading.innerHTML !== "null") {
+      // End loading
+      consoleElement?.removeChild(loading);
+    }
 
     setCommand(""); // Empty Command
 
     // Print output
-    let consoleElement = document.getElementById("consoleElement");
-    consoleElement?.appendChild(commandElement);
     consoleElement?.appendChild(output);
 
     // Print commandPrompt
-    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     commandPrompt && consoleElement?.appendChild(commandPrompt);
 
     let commandLine = document.getElementById("command-line");
@@ -133,9 +175,9 @@ export default function Page() {
       <div>
         <ul id="consoleElement">
           <li>
-            <h3>Last login: Fri Oct 13 18:22:24 on console</h3>
             <h3> - type help - </h3>
           </li>
+
           <li id="command-prompt">
             <div>
               <textarea
