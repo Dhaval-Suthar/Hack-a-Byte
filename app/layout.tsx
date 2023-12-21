@@ -2,6 +2,10 @@
 import { Analytics } from "@vercel/analytics/react";
 // For Site Analytics
 
+// For Site SpeedInsights
+import { SpeedInsights } from "@vercel/speed-insights/next";
+// For Site SpeedInsights
+
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
 import { PT_Mono } from "next/font/google";
@@ -21,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-zinc-900`}>
-        {children} <Analytics />
+        {children} <Analytics /> <SpeedInsights />
       </body>
     </html>
   );
