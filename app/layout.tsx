@@ -1,3 +1,7 @@
+// For Site Analytics
+import { Analytics } from "@vercel/analytics/react";
+// For Site Analytics
+
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
 import { PT_Mono } from "next/font/google";
@@ -16,7 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-zinc-900`}>{children}</body>
+      <body className={`${inter.className} bg-zinc-900`}>
+        {children} <Analytics />
+      </body>
     </html>
   );
 }
