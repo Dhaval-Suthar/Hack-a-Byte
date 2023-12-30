@@ -22,7 +22,18 @@ export default function Page() {
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
-  async function handleCommand() {
+  function printCommand() {
+    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+
+    // Print command
+    let commandElement = document.createElement("li"); // Creating li element
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`; // Setting the innnerhtml of li element to the command
+    consoleElement?.appendChild(commandElement); // Appending to consoleElement
+  }
+
+  async function handleCommand(password = "") {
     let commands = command.split(" "); // Separate commands and arguments from command
 
     const operation = commands[0]; // get operation to perform
@@ -37,13 +48,6 @@ export default function Page() {
     let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     commandPrompt && consoleElement?.removeChild(commandPrompt);
 
-    // Print command
-    let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${
-      activeUser + activeDiractory + command
-    }</h3>`;
-    consoleElement?.appendChild(commandElement);
-
     switch (operation) {
       case "help":
         let helpResult = handleHelp(); // Run the operation
@@ -51,11 +55,7 @@ export default function Page() {
         break;
 
       case "admin":
-        let adminResult = await handleAdmin(
-          commands[1],
-          commands[2],
-          commands[3]
-        ); // Run the operation
+        let adminResult = await handleAdmin(commands[1], commands[2], password); // Run the operation
         output.innerHTML = adminResult.output; // Display the output in the terminal
         break;
 
@@ -64,7 +64,7 @@ export default function Page() {
         loading.innerHTML = `<h3>SigningUp... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let signUpResult = await handleSignUp(commands[1], commands[2]); // Run the operation
+        let signUpResult = await handleSignUp(commands[1], password); // Run the operation
         output.innerHTML = signUpResult.output; // Display the output in the terminal
         if (signUpResult.acknowledged) {
           // Set user
@@ -79,7 +79,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Checking Credentials... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let logInResult = await handleLogIn(commands[1], commands[2]); // Run the operation
+        let logInResult = await handleLogIn(commands[1], password); // Run the operation
         output.innerHTML = logInResult.output; // Display the output in the terminal
         // If the operation is successfull
         if (logInResult.acknowledged) {
@@ -107,7 +107,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Checking Authentication... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let deleteResult = await handleDelete(commands[1], commands[2]); // Run the operation
+        let deleteResult = await handleDelete(commands[1], password); // Run the operation
         output.innerHTML = deleteResult.output; // Display the output in the terminal
 
         // If the operation is successfull and the deleted user is logged in
@@ -180,6 +180,54 @@ export default function Page() {
     commandLine?.focus(); // Focus the commandLine
   }
 
+  function handlePassword() {
+    let output = document.createElement("li"); // Create a li element
+
+    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+
+    let input = document.createElement("input"); // Input for password
+
+    const focusInput = () => {
+      input.focus(); // Focus the input
+    };
+
+    // Properties of input
+    input.type = "password";
+    input.style.background = "transparent";
+    input.style.color = "transparent";
+    input.style.width = "20px";
+    input.style.outline = "none";
+
+    // Key listener
+    input.onkeydown = (e) => {
+      // If enter key is pressed
+      if (e.key === "Enter") {
+        window.removeEventListener("keydown", focusInput); // Remove the event listener
+
+        consoleElement?.removeChild(output); // Remove output
+
+        commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+
+        handleCommand(input.value); // Handle the command
+      }
+    };
+    // Properties of output
+    output.style.display = "flex";
+    output.innerHTML = `<h3 class="flex">Password: <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
+  <path fill-rule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clip-rule="evenodd" />
+</svg> </div>
+</h3>`;
+
+    // Print output
+    output.appendChild(input);
+    consoleElement?.appendChild(output);
+
+    // Focus input for every key down
+    window.addEventListener("keydown", focusInput);
+  }
+
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
@@ -204,9 +252,21 @@ export default function Page() {
                   }
                 }}
                 onKeyDown={(e) => {
+                  // If enter key is pressed
                   if (e.key === "Enter") {
-                    // If enter key is pressed
-                    handleCommand(); // Handle the command
+                    printCommand();
+
+                    let commands = command.split(" "); // Separate commands and arguments from command
+                    let operation = commands[0]; // get operation to perform
+
+                    // If commands requires password
+                    if (
+                      ["login", "signup", "delete", "admin"].includes(operation)
+                    ) {
+                      handlePassword(); // Ask for password
+                    } else {
+                      handleCommand(); // Handle the command
+                    }
                   }
                 }}
               />
