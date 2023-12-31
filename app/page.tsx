@@ -197,7 +197,7 @@ export default function Page() {
     input.type = "password";
     input.style.background = "transparent";
     input.style.color = "transparent";
-    input.style.width = "20px";
+    input.style.width = "0px";
     input.style.outline = "none";
 
     // Key listener
@@ -205,6 +205,7 @@ export default function Page() {
       // If enter key is pressed
       if (e.key === "Enter") {
         window.removeEventListener("keydown", focusInput); // Remove the event listener
+        window.removeEventListener("click", focusInput); // Remove the event listener
 
         consoleElement?.removeChild(output); // Remove output
 
@@ -226,6 +227,7 @@ export default function Page() {
 
     // Focus input for every key down
     window.addEventListener("keydown", focusInput);
+    window.addEventListener("click", focusInput);
   }
 
   return (
@@ -261,7 +263,10 @@ export default function Page() {
 
                     // If commands requires password
                     if (
-                      ["login", "signup", "delete", "admin"].includes(operation)
+                      ["login", "signup", "delete", "admin"].includes(
+                        operation
+                      ) &&
+                      commands[1]
                     ) {
                       handlePassword(); // Ask for password
                     } else {
