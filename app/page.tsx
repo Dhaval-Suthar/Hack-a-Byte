@@ -197,7 +197,7 @@ export default function Page() {
     input.type = "password";
     input.style.background = "transparent";
     input.style.color = "transparent";
-    input.style.width = "20px";
+    input.style.width = "0px";
     input.style.outline = "none";
 
     // Key listener
