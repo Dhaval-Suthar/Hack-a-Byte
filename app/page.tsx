@@ -261,7 +261,10 @@ export default function Page() {
 
                     // If commands requires password
                     if (
-                      ["login", "signup", "delete", "admin"].includes(operation)
+                      ["login", "signup", "delete", "admin"].includes(
+                        operation
+                      ) &&
+                      commands[1]
                     ) {
                       handlePassword(); // Ask for password
                     } else {
