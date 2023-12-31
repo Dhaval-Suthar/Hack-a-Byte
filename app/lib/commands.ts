@@ -44,11 +44,11 @@ export async function handleAdmin(
 
 export async function handleSignUp(username: string, password: string) {
   // If password or username is not given
-  if (!username || !password) {
+  if (!username) {
     // Return error
     return {
       id: "0",
-      output: `<h3>Usage: signup [username] [password -> only 4 digits max]</h3>`,
+      output: `<h3>Usage: signup [username]</h3>`,
       acknowledged: false,
     };
   }
@@ -95,11 +95,11 @@ export async function handleSignUp(username: string, password: string) {
 
 export async function handleLogIn(username: string, password: string) {
   // If password or username is not given
-  if (!username || !password) {
+  if (!username) {
     // Return error
     return {
       id: "0",
-      output: `<h3>Usage: login [username] [password]</h3>`,
+      output: `<h3>Usage: login [username]</h3>`,
       acknowledged: false,
     };
   }
@@ -130,10 +130,10 @@ export async function handleLogIn(username: string, password: string) {
 
 export async function handleDelete(username: string, password: string) {
   // If password or username is not given
-  if (!username || !password) {
+  if (!username) {
     // Return error
     return {
-      output: `<h3>Usage: delete [username] [password]</h3>`,
+      output: `<h3>Usage: delete [username]</h3>`,
       acknowledged: false,
     };
   }
@@ -287,10 +287,10 @@ export function handleHelp() {
   output = output + `<h3> - leaderboard: try leaderboard</h3>`; // leaderboard
   output =
     output +
-    `<h3> - signup: try signup [username] [password -> only 4 digits] </h3>`; // signup
-  output = output + `<h3> - login: try login [username] [password] </h3>`; // login
+    `<h3> - signup: try signup [username] </h3>`; // signup
+  output = output + `<h3> - login: try login [username] </h3>`; // login
   output = output + `<h3> - logout: try logout</h3>`; // logout
-  output = output + `<h3> - delete: try delete [username] [password] </h3>`; // delete
+  output = output + `<h3> - delete: try delete [username] </h3>`; // delete
   output = output + `<h3> - access: try access</h3>`; // access
   output = output + `<h3> - balance: try balance</h3>`; // balance
   output =
