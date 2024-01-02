@@ -230,6 +230,70 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
+  function handleConformation() {
+    let output = document.createElement("li"); // Create a li element
+
+    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+
+    let input = document.createElement("input"); // Input for confirmation
+
+    const focusInput = () => {
+      input.focus(); // Focus the input
+    };
+
+    // Properties of input
+    input.type = "text";
+    input.style.background = "transparent";
+    input.style.marginLeft = "10px";
+    input.style.width = "30px";
+    input.maxLength = 3;
+    input.style.outline = "none";
+
+    // Key listener
+    input.onkeydown = (e) => {
+      // If enter key is pressed
+      if (e.key === "Enter") {
+        window.removeEventListener("keydown", focusInput); // Remove the event listener
+        window.removeEventListener("click", focusInput); // Remove the event listener
+
+        switch (input.value) {
+          case "yes":
+            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+            consoleElement?.removeChild(output); // Remove output
+            handleCommand(); // Handle the command
+            break;
+
+          case "no":
+            output.innerHTML = `<h3 class="flex text-red-800">Transfer Cancelled</h3>`; // Display the output in the terminal
+            consoleElement?.appendChild(output);
+            setCommand(""); // Empty Command
+            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+            break;
+
+          default:
+            output.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`; // Display the output in the terminal
+            consoleElement?.appendChild(output);
+            setCommand(""); // Empty Command
+            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+            break;
+        }
+      }
+    };
+    // Properties of output
+    output.style.display = "flex";
+    output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : `;
+
+    // Print output
+    output.appendChild(input);
+    consoleElement?.appendChild(output);
+
+    // Focus input for every key down
+    window.addEventListener("keydown", focusInput);
+    window.addEventListener("click", focusInput);
+  }
+
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
@@ -269,6 +333,8 @@ export default function Page() {
                       commands[1]
                     ) {
                       handlePassword(); // Ask for password
+                    } else if (operation === "transfer") {
+                      handleConformation(); // Handle confirmation
                     } else {
                       handleCommand(); // Handle the command
                     }
