@@ -10,6 +10,7 @@ import {
   handleSignUp,
   handleTransfer,
   handleleaderboard,
+  handletransactions,
 } from "./lib/commands";
 
 export default function Page() {
@@ -158,6 +159,15 @@ export default function Page() {
         output.innerHTML = leaderboardResult.output; // Display the output in the terminal
         break;
 
+      case "transactions":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+
+        let transactionResult = await handletransactions(activeUser); // Run the operation
+        output.innerHTML = transactionResult.output; // Display the output in the terminal
+        break;
+
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message to unknown operations
         break;
@@ -281,7 +291,7 @@ export default function Page() {
         }
       }
     };
-    
+
     // Properties of output
     output.style.display = "flex";
     output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : `;

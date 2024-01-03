@@ -215,14 +215,14 @@ export async function transfer(data: {
     // Start a Client Session
     const session = client.startSession();
 
+    const transactionId = new ObjectId();
+
     try {
       await session.withTransaction(async () => {
         const collection = db.collection("hackers");
         const sender = await collection.findOne({ _id: new ObjectId(id) });
 
         if (!sender) return false;
-
-        const transactionId = new ObjectId();
 
         db.collection("transactions").insertOne({
           _id: transactionId,
@@ -253,7 +253,7 @@ export async function transfer(data: {
       await session.endSession();
     }
 
-    return true;
+    return transactionId;
   } catch (e) {
     console.error(e);
     return false;
@@ -270,6 +270,31 @@ export async function leaderboard() {
       .project({ _id: 0, username: 1, balance: 1 })
       .sort({ balance: -1 })
       .limit(5)
+      .toArray();
+
+    if (!response[0]) {
+      return "";
+    }
+
+    return JSON.stringify(response);
+  } catch (e) {
+    console.error(e);
+    return "";
+  }
+}
+
+export async function transactions(data: {
+  name: string;
+}) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const response = await db
+      .collection("transactions")
+      .find({$or: [{from: data.name}, {to: data.name}]})
+      .sort({ date: -1 })
+      .limit(10)
       .toArray();
 
     if (!response[0]) {
