@@ -220,6 +220,14 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
+  let balanceAmount = await balance(id);
+
+  if (balanceAmount < Number(amount))
+    return {
+      output: `<h3 class="text-red-800">Insufficient balance!</h3>`,
+      acknowledged: false,
+    };
+
   // Access response
   let transfered = await transfer({
     id: id,
