@@ -6,6 +6,7 @@ import {
   leaderboard,
   login,
   signup,
+  transactions,
   transfer,
 } from "./actions";
 
@@ -198,11 +199,11 @@ export async function handleBalance(id: string) {
 }
 
 export async function handleTransfer(
-  id: string,
+  sender: string,
   username: string,
   amount: string
 ) {
-  if (id == "0")
+  if (sender == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
@@ -213,6 +214,12 @@ export async function handleTransfer(
       output: `<h3>Usage: transfer [receiver's username] [amount -> only numbers]</h3>`,
       acknowledged: false,
     };
+
+    if (username == sender)
+      return {
+        output: `<h3>Can't transfer to self</h3>`,
+        acknowledged: false,
+      };
 
   if (Number(amount) <= 0)
     return {
@@ -226,7 +233,7 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
-  let balanceAmount = await balance(id);
+  let balanceAmount = await balance(sender);
 
   if (balanceAmount < Number(amount))
     return {
@@ -236,7 +243,7 @@ export async function handleTransfer(
 
   // Access response
   let transfered = await transfer({
-    id: id,
+    sender: sender,
     username: username,
     amount: Number(amount),
   });
@@ -244,7 +251,7 @@ export async function handleTransfer(
   if (transfered) {
     // Return username
     return {
-      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3>`,
+      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3> <h3>transaction code: ${transfered}</h3>`,
       acknowledged: true,
     };
   } else {
@@ -295,13 +302,67 @@ export async function handleleaderboard() {
   }
 }
 
+export async function handletransactions(name: string) {
+  if (name == "0.0.0.0")
+    return {
+      output: `<h3 class="text-red-800">login first</h3>`,
+      acknowledged: false,
+    };
+
+  let output = "";
+
+  // Access response
+  let transactionResponse = await transactions({ name: name });
+
+  if (transactionResponse === "") {
+    return {
+      output: output,
+      acknowledged: false,
+    };
+  }
+
+  let transactionList = JSON.parse(transactionResponse); // Parse data
+
+  if (transactionList[0]) {
+    // Return all players in a h3 tag
+    transactionList.map(
+      (
+        player: {
+          _id: any;
+          from: String;
+          to: String;
+          amount: number;
+          date: Date;
+        },
+        index: number
+      ) => {
+        output =
+          output +
+          `<h3> [${player._id.toString()}] - Transferred ${player.amount} from ${
+            player.from === name ? "You" : player.from
+          } to ${player.to === name ? "You" : player.to} on ${new Date(player.date).toDateString()}</h3>`;
+      }
+    );
+
+    // Return output
+    return {
+      output: output,
+      acknowledged: true,
+    };
+  } else {
+    // Return error
+    return {
+      output: `<h3>No transactions done yet.</h3>`,
+      acknowledged: false,
+    };
+  }
+}
+
 export function handleHelp() {
   let output = `<h3>Commands:</h3>`; // title
 
   output = output + `<h3> - leaderboard: try leaderboard</h3>`; // leaderboard
-  output =
-    output +
-    `<h3> - signup: try signup [username] </h3>`; // signup
+  output = output + `<h3> - signup: try signup [username] </h3>`; // signup
   output = output + `<h3> - login: try login [username] </h3>`; // login
   output = output + `<h3> - logout: try logout</h3>`; // logout
   output = output + `<h3> - delete: try delete [username] </h3>`; // delete
