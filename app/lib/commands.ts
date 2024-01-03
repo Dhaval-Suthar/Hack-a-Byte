@@ -199,11 +199,11 @@ export async function handleBalance(id: string) {
 }
 
 export async function handleTransfer(
-  id: string,
+  sender: string,
   username: string,
   amount: string
 ) {
-  if (id == "0")
+  if (sender == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
@@ -214,6 +214,12 @@ export async function handleTransfer(
       output: `<h3>Usage: transfer [receiver's username] [amount -> only numbers]</h3>`,
       acknowledged: false,
     };
+
+    if (username == sender)
+      return {
+        output: `<h3>Can't transfer to self</h3>`,
+        acknowledged: false,
+      };
 
   if (Number(amount) <= 0)
     return {
@@ -227,7 +233,7 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
-  let balanceAmount = await balance(id);
+  let balanceAmount = await balance(sender);
 
   if (balanceAmount < Number(amount))
     return {
@@ -237,11 +243,10 @@ export async function handleTransfer(
 
   // Access response
   let transfered = await transfer({
-    id: id,
+    sender: sender,
     username: username,
     amount: Number(amount),
   });
-
 
   if (transfered) {
     // Return username

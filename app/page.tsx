@@ -143,7 +143,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
         let transferResult = await handleTransfer(
-          userId,
+          user,
           commands[1],
           commands[2]
         ); // Run the operation
@@ -164,7 +164,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let transactionResult = await handletransactions(activeUser); // Run the operation
+        let transactionResult = await handletransactions(user); // Run the operation
         output.innerHTML = transactionResult.output; // Display the output in the terminal
         break;
 

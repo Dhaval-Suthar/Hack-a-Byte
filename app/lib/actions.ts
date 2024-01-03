@@ -7,7 +7,7 @@ import clientPromise from "../lib/mongodb";
 import { ObjectId } from "mongodb";
 
 const TransferSchema = z.object({
-  id: z.string(),
+  sender: z.string(),
   username: z.string(),
   amount: z.number(),
 });
@@ -169,15 +169,13 @@ export async function access() {
   }
 }
 
-export async function balance(id: string) {
+export async function balance(user: string) {
   try {
-    if (id == "0") return false;
+    if (user == "0.0.0.0") return false;
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db
-      .collection("hackers")
-      .findOne({ _id: new ObjectId(id) });
+    const response = await db.collection("hackers").findOne({ username: user });
 
     if (!response) {
       return false;
@@ -191,13 +189,13 @@ export async function balance(id: string) {
 }
 
 export async function transfer(data: {
-  id: string;
+  sender: string;
   username: string;
   amount: number;
 }) {
   try {
-    const { id, username, amount } = Transfer.parse({
-      id: data.id,
+    const { sender, username, amount } = Transfer.parse({
+      sender: data.sender,
       username: data.username,
       amount: data.amount,
     });
@@ -206,7 +204,7 @@ export async function transfer(data: {
     const db = client.db("Hack-a-Byte");
     const response = await db
       .collection("hackers")
-      .findOne({ _id: new ObjectId(id) });
+      .findOne({ username: sender });
 
     if (!response || response.balance < amount) {
       return false;
@@ -220,32 +218,29 @@ export async function transfer(data: {
     try {
       await session.withTransaction(async () => {
         const collection = db.collection("hackers");
-        const sender = await collection.findOne({ _id: new ObjectId(id) });
 
         if (!sender) return false;
 
         db.collection("transactions").insertOne({
           _id: transactionId,
-          from: sender.username,
+          from: sender,
           to: username,
           amount: amount,
           date: new Date(),
         });
 
         await collection.findOneAndUpdate(
-          { _id: new ObjectId(id) },
+          { username: sender },
           {
             $inc: { balance: -amount },
-            $push: { transactions: transactionId }
+            $push: { transactions: transactionId },
           },
           { session }
         );
 
         await collection.findOneAndUpdate(
           { username: username },
-          { $inc: { balance: amount }, 
-            $push: { transactions: transactionId } 
-        },
+          { $inc: { balance: amount }, $push: { transactions: transactionId } },
           { session }
         );
       });
@@ -283,16 +278,14 @@ export async function leaderboard() {
   }
 }
 
-export async function transactions(data: {
-  name: string;
-}) {
+export async function transactions(data: { name: string }) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
     const response = await db
       .collection("transactions")
-      .find({$or: [{from: data.name}, {to: data.name}]})
+      .find({ $or: [{ from: data.name }, { to: data.name }] })
       .sort({ date: -1 })
       .limit(10)
       .toArray();
