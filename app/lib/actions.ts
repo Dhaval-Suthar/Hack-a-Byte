@@ -4,7 +4,7 @@ import { z } from "zod";
 // import { revalidatePath } from "next/cache";
 // import { redirect } from "next/navigation";
 import clientPromise from "../lib/mongodb";
-import { ObjectId } from "mongodb";
+import { ObjectId, PushOperator } from "mongodb";
 
 const TransferSchema = z.object({
   sender: z.string(),
@@ -233,14 +233,21 @@ export async function transfer(data: {
           { username: sender },
           {
             $inc: { balance: -amount },
-            $push: { transactions: transactionId },
+            $push: {
+              transactions: transactionId,
+            } as unknown as PushOperator<Document>,
           },
           { session }
         );
 
         await collection.findOneAndUpdate(
           { username: username },
-          { $inc: { balance: amount }, $push: { transactions: transactionId } },
+          {
+            $inc: { balance: amount },
+            $push: {
+              transactions: transactionId,
+            } as unknown as PushOperator<Document>,
+          },
           { session }
         );
       });
