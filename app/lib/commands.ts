@@ -214,9 +214,23 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
+  if (Number(amount) <= 0)
+    return {
+      output: `<h3>amount should be greater than 0</h3>`,
+      acknowledged: false,
+    };
+
   if (!Number(amount))
     return {
       output: `<h3>amount should be only numbers</h3>`,
+      acknowledged: false,
+    };
+
+  let balanceAmount = await balance(id);
+
+  if (balanceAmount < Number(amount))
+    return {
+      output: `<h3 class="text-red-800">Insufficient balance!</h3>`,
       acknowledged: false,
     };
 

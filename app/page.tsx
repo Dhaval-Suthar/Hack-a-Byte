@@ -281,6 +281,7 @@ export default function Page() {
         }
       }
     };
+    
     // Properties of output
     output.style.display = "flex";
     output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : `;
