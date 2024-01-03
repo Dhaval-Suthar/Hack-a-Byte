@@ -29,7 +29,11 @@ const LogIn = HackerSchema;
 const Delete = HackerSchema;
 const Transfer = TransferSchema;
 
-export async function admin(data: { username: string; password: string, secretCode: string }) {
+export async function admin(data: {
+  username: string;
+  password: string;
+  secretCode: string;
+}) {
   try {
     const { username, password, secretCode } = Admin.parse({
       username: data.username,
@@ -214,15 +218,34 @@ export async function transfer(data: {
     try {
       await session.withTransaction(async () => {
         const collection = db.collection("hackers");
-        // Important:: You must pass the session to the operations
+        const sender = await collection.findOne({ _id: new ObjectId(id) });
+
+        if (!sender) return false;
+
+        const transactionId = new ObjectId();
+
+        db.collection("transactions").insertOne({
+          _id: transactionId,
+          from: sender.username,
+          to: username,
+          amount: amount,
+          date: new Date(),
+        });
+
         await collection.findOneAndUpdate(
           { _id: new ObjectId(id) },
-          { $inc: { balance: -amount } },
+          {
+            $inc: { balance: -amount },
+            $push: { transactions: transactionId }
+          },
           { session }
         );
+
         await collection.findOneAndUpdate(
           { username: username },
-          { $inc: { balance: amount } },
+          { $inc: { balance: amount }, 
+            $push: { transactions: transactionId } 
+        },
           { session }
         );
       });
@@ -244,7 +267,7 @@ export async function leaderboard() {
     const response = await db
       .collection("hackers")
       .find({})
-      .project({ _id:0, username: 1, balance: 1 })
+      .project({ _id: 0, username: 1, balance: 1 })
       .sort({ balance: -1 })
       .limit(5)
       .toArray();
