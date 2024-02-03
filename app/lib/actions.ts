@@ -169,13 +169,13 @@ export async function access() {
   }
 }
 
-export async function balance(user: string) {
+export async function balance(id: string) {
   try {
-    if (user == "0.0.0.0") return false;
+    if (id == "0") return false;
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db.collection("hackers").findOne({ username: user });
+    const response = await db.collection("hackers").findOne({ _id: new ObjectId(id) });
 
     if (!response) {
       return false;
