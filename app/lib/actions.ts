@@ -76,7 +76,11 @@ export async function signup(data: { username: string; password: string }) {
       password: password,
       balance: 0,
       transactions: [],
-      storage: 0,
+      storage: {
+        used: 1 * 1024 * 1024,
+        system: 1 * 1024 * 1024,
+        total: 10 * 1024 * 1024,
+      },
       computerModel: "HackBook-L",
       lastLogin: new Date(),
     });
@@ -182,6 +186,27 @@ export async function balance(id: string) {
     }
 
     return response.balance.toString();
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+
+export async function storage(id: string) {
+  try {
+    if (id == "0") return false;
+
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("hackers")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!response) {
+      return false;
+    }
+
+    return response.storage;
   } catch (e) {
     console.error(e);
     return false;

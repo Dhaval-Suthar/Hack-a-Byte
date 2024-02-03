@@ -2,6 +2,7 @@ import {
   access,
   admin,
   balance,
+  storage,
   deleteUser,
   leaderboard,
   login,
@@ -198,6 +199,44 @@ export async function handleBalance(id: string) {
   }
 }
 
+export async function handleStorage(id: string) {
+  // Access response
+  let storageData = await storage(id);
+
+  if (storageData) {
+    const totalSpace = storageData.total;
+    const usedSpace = storageData.used;
+    const systemSpace = storageData.system;
+    const freeSpace = storageData.total - storageData.used;
+
+    const convertToMegaBytes = (bytes: number) => {
+      return bytes / (1024 * 1024);
+    };
+
+    return {
+      output: `<h3> Total Space: ${convertToMegaBytes(totalSpace).toFixed(
+        2
+      )} MB</h3>
+                 <h3> Used Space: ${convertToMegaBytes(usedSpace).toFixed(
+                   2
+                 )} MB</h3>
+                 <h3> System Space: ${convertToMegaBytes(systemSpace).toFixed(
+                   2
+                 )} MB</h3>
+                 <h3> Free Space: ${convertToMegaBytes(freeSpace).toFixed(
+                   2
+                 )} MB</h3>`,
+      acknowledged: true,
+    };
+  } else {
+    // Return error
+    return {
+      output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
+      acknowledged: false,
+    };
+  }
+}
+
 export async function handleTransfer(
   sender: string,
   username: string,
@@ -215,11 +254,11 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
-    if (username == sender)
-      return {
-        output: `<h3>Can't transfer to self</h3>`,
-        acknowledged: false,
-      };
+  if (username == sender)
+    return {
+      output: `<h3>Can't transfer to self</h3>`,
+      acknowledged: false,
+    };
 
   if (Number(amount) <= 0)
     return {
@@ -338,9 +377,11 @@ export async function handletransactions(name: string) {
       ) => {
         output =
           output +
-          `<h3> [${player._id.toString()}] - Transferred ${player.amount} from ${
-            player.from === name ? "You" : player.from
-          } to ${player.to === name ? "You" : player.to} on ${new Date(player.date).toDateString()}</h3>`;
+          `<h3> [${player._id.toString()}] - Transferred ${
+            player.amount
+          } from ${player.from === name ? "You" : player.from} to ${
+            player.to === name ? "You" : player.to
+          } on ${new Date(player.date).toDateString()}</h3>`;
       }
     );
 

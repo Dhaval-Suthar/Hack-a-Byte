@@ -4,6 +4,7 @@ import {
   handleAccess,
   handleAdmin,
   handleBalance,
+  handleStorage,
   handleDelete,
   handleHelp,
   handleLogIn,
@@ -136,6 +137,15 @@ export default function Page() {
 
         let balanceResult = await handleBalance(userId); // Run the operation
         output.innerHTML = balanceResult.output; // Display the output in the terminal
+        break;
+
+      case "storage":
+        // Start loading
+        loading.innerHTML = `<h3>Fetching... </h3>`;
+        consoleElement?.appendChild(loading);
+
+        let storageResult = await handleStorage(userId); // Run the operation
+        output.innerHTML = storageResult.output; // Display the output in the terminal
         break;
 
       case "transfer":
