@@ -1,11 +1,5 @@
-// For Site Analytics
 import { Analytics } from "@vercel/analytics/react";
-// For Site Analytics
-
-// For Site SpeedInsights
 import { SpeedInsights } from "@vercel/speed-insights/next";
-// For Site SpeedInsights
-
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
 import { PT_Mono } from "next/font/google";

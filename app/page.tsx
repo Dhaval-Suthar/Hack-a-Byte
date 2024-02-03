@@ -29,15 +29,12 @@ export default function Page() {
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${
-      activeUser + activeDiractory + command
-    }</h3>`; // Setting the innnerhtml of li element to the command
+    commandElement.innerHTML = `<h3>${activeUser + activeDiractory + command}</h3>`; // Setting the innerHTML of li element to the command
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
   async function handleCommand(password = "") {
-    let commands = command.split(" "); // Separate commands and arguments from command
-
+    const commands = command.split(" "); // Separate commands and arguments from command
     const operation = commands[0]; // get operation to perform
 
     let output = document.createElement("li"); // Create a li element
@@ -46,19 +43,17 @@ export default function Page() {
 
     let user = activeUser; // User
 
-    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     commandPrompt && consoleElement?.removeChild(commandPrompt);
 
     switch (operation) {
       case "help":
-        let helpResult = handleHelp(); // Run the operation
-        output.innerHTML = helpResult.output; // Display the output in the terminal
+        output.innerHTML = handleHelp().output; // Display the output in the terminal
         break;
 
       case "admin":
-        let adminResult = await handleAdmin(commands[1], commands[2], password); // Run the operation
-        output.innerHTML = adminResult.output; // Display the output in the terminal
+        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -66,14 +61,15 @@ export default function Page() {
         loading.innerHTML = `<h3>SigningUp... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let signUpResult = await handleSignUp(commands[1], password); // Run the operation
+        const signUpResult = await handleSignUp(commands[1], password); // Run the operation
         output.innerHTML = signUpResult.output; // Display the output in the terminal
+
         if (signUpResult.acknowledged) {
           // Set user
           setActiveUser(commands[1]);
           user = commands[1];
           setUserId(signUpResult.id); // Set id
-        } // If the operation is successfull
+        }
         break;
 
       case "login":
@@ -81,9 +77,9 @@ export default function Page() {
         loading.innerHTML = `<h3>Checking Credentials... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let logInResult = await handleLogIn(commands[1], password); // Run the operation
+        const logInResult = await handleLogIn(commands[1], password); // Run the operation
         output.innerHTML = logInResult.output; // Display the output in the terminal
-        // If the operation is successfull
+
         if (logInResult.acknowledged) {
           // Set user
           setActiveUser(commands[1]);
@@ -101,7 +97,6 @@ export default function Page() {
           user = DEFAULT_USER;
           setUserId("0"); // Set id to default
         }
-
         break;
 
       case "delete":
@@ -109,13 +104,12 @@ export default function Page() {
         loading.innerHTML = `<h3>Checking Authentication... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let deleteResult = await handleDelete(commands[1], password); // Run the operation
+        const deleteResult = await handleDelete(commands[1], password); // Run the operation
         output.innerHTML = deleteResult.output; // Display the output in the terminal
 
-        // If the operation is successfull and the deleted user is logged in
         if (deleteResult.acknowledged && activeUser === commands[1]) {
-          // Set user to default
-          setActiveUser(DEFAULT_USER);
+          // If the operation is successful and the deleted user is logged in
+          setActiveUser(DEFAULT_USER); // Set user to default
           user = DEFAULT_USER;
           setUserId("0"); // Set id to default
         }
@@ -126,8 +120,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let accessResult = await handleAccess(); // Run the operation
-        output.innerHTML = accessResult.output; // Display the output in the terminal
+        output.innerHTML = (await handleAccess()).output; // Display the output in the terminal
         break;
 
       case "balance":
@@ -135,8 +128,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let balanceResult = await handleBalance(userId); // Run the operation
-        output.innerHTML = balanceResult.output; // Display the output in the terminal
+        output.innerHTML = (await handleBalance(userId)).output; // Display the output in the terminal
         break;
 
       case "storage":
@@ -144,20 +136,15 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let storageResult = await handleStorage(userId); // Run the operation
-        output.innerHTML = storageResult.output; // Display the output in the terminal
+        output.innerHTML = (await handleStorage(userId)).output; // Display the output in the terminal
         break;
 
       case "transfer":
         // Start loading
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
-        let transferResult = await handleTransfer(
-          user,
-          commands[1],
-          commands[2]
-        ); // Run the operation
-        output.innerHTML = transferResult.output; // Display the output in the terminal
+
+        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
         break;
 
       case "leaderboard":
@@ -165,8 +152,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let leaderboardResult = await handleleaderboard(); // Run the operation
-        output.innerHTML = leaderboardResult.output; // Display the output in the terminal
+        output.innerHTML = (await handleleaderboard()).output; // Display the output in the terminal
         break;
 
       case "transactions":
@@ -174,12 +160,11 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        let transactionResult = await handletransactions(user); // Run the operation
-        output.innerHTML = transactionResult.output; // Display the output in the terminal
+        output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
 
       default:
-        output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message to unknown operations
+        output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
     }
 
@@ -196,18 +181,20 @@ export default function Page() {
     // Print commandPrompt
     commandPrompt && consoleElement?.appendChild(commandPrompt);
 
-    let commandLine = document.getElementById("command-line");
+    const commandLine = document.getElementById("command-line");
     commandLine?.focus(); // Focus the commandLine
   }
 
   function handlePassword() {
-    let output = document.createElement("li"); // Create a li element
+    const output = document.createElement("li"); // Create a li element
+    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
 
-    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
-    commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    if (commandPrompt) {
+      consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    }
 
-    let input = document.createElement("input"); // Input for password
+    const input = document.createElement("input"); // Input for password
 
     const focusInput = () => {
       input.focus(); // Focus the input
@@ -229,17 +216,24 @@ export default function Page() {
 
         consoleElement?.removeChild(output); // Remove output
 
-        commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+        if (commandPrompt) {
+          consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+        }
 
         handleCommand(input.value); // Handle the command
       }
     };
+
     // Properties of output
     output.style.display = "flex";
-    output.innerHTML = `<h3 class="flex">Password: <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
-  <path fill-rule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clip-rule="evenodd" />
-</svg> </div>
-</h3>`;
+    output.innerHTML = `
+      <h3 class="flex">Password:
+        <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
+            <path fill-rule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </h3>`;
 
     // Print output
     output.appendChild(input);
@@ -251,13 +245,13 @@ export default function Page() {
   }
 
   function handleConformation() {
-    let output = document.createElement("li"); // Create a li element
+    const output = document.createElement("li"); // Create a li element
+    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
 
-    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    let commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
 
-    let input = document.createElement("input"); // Input for confirmation
+    const input = document.createElement("input"); // Input for confirmation
 
     const focusInput = () => {
       input.focus(); // Focus the input

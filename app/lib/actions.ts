@@ -1,8 +1,6 @@
 "use server";
 
 import { z } from "zod";
-// import { revalidatePath } from "next/cache";
-// import { redirect } from "next/navigation";
 import clientPromise from "../lib/mongodb";
 import { ObjectId, PushOperator } from "mongodb";
 
@@ -35,19 +33,15 @@ export async function admin(data: {
   secretCode: string;
 }) {
   try {
-    const { username, password, secretCode } = Admin.parse({
-      username: data.username,
-      password: data.password,
-      secretCode: data.secretCode,
-    });
+    const { username, password, secretCode } = Admin.parse(data);
 
     if (secretCode !== "charger") return false;
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
     const response = await db.collection("hackers").insertOne({
-      username: username,
-      password: password,
+      username,
+      password,
       balance: 100,
       transactions: [],
       storage: 0,
@@ -64,16 +58,13 @@ export async function admin(data: {
 
 export async function signup(data: { username: string; password: string }) {
   try {
-    const { username, password } = SignUp.parse({
-      username: data.username,
-      password: data.password,
-    });
+    const { username, password } = SignUp.parse(data);
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
     const response = await db.collection("hackers").insertOne({
-      username: username,
-      password: password,
+      username,
+      password,
       balance: 0,
       transactions: [],
       storage: {
@@ -94,16 +85,13 @@ export async function signup(data: { username: string; password: string }) {
 
 export async function login(data: { username: string; password: string }) {
   try {
-    const { username, password } = LogIn.parse({
-      username: data.username,
-      password: data.password,
-    });
+    const { username, password } = LogIn.parse(data);
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
     const response = await db.collection("hackers").findOne({
-      username: username,
-      password: password,
+      username,
+      password,
     });
 
     if (!response) {
@@ -130,16 +118,13 @@ export async function login(data: { username: string; password: string }) {
 
 export async function deleteUser(data: { username: string; password: string }) {
   try {
-    const { username, password } = Delete.parse({
-      username: data.username,
-      password: data.password,
-    });
+    const { username, password } = Delete.parse(data);
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
     const response = await db.collection("hackers").deleteOne({
-      username: username,
-      password: password,
+      username,
+      password,
     });
 
     return response.deletedCount;
@@ -219,11 +204,7 @@ export async function transfer(data: {
   amount: number;
 }) {
   try {
-    const { sender, username, amount } = Transfer.parse({
-      sender: data.sender,
-      username: data.username,
-      amount: data.amount,
-    });
+    const { sender, username, amount } = Transfer.parse(data);
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
@@ -250,7 +231,7 @@ export async function transfer(data: {
           _id: transactionId,
           from: sender,
           to: username,
-          amount: amount,
+          amount,
           date: new Date(),
         });
 
@@ -266,7 +247,7 @@ export async function transfer(data: {
         );
 
         await collection.findOneAndUpdate(
-          { username: username },
+          { username },
           {
             $inc: { balance: amount },
             $push: {
