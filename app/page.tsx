@@ -4,6 +4,7 @@ import {
   handleAccess,
   handleAdmin,
   handleBalance,
+  handleClear,
   handleDelete,
   handleHelp,
   handleLogIn,
@@ -157,7 +158,11 @@ export default function Page() {
         let leaderboardResult = await handleleaderboard(); // Run the operation
         output.innerHTML = leaderboardResult.output; // Display the output in the terminal
         break;
-
+      case "clear": 
+        if (consoleElement !== null) { 
+          handleClear(consoleElement);
+        }
+        break;
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message to unknown operations
         break;
