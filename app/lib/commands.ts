@@ -290,6 +290,7 @@ export function handleHelp() {
     `<h3> - signup: try signup [username] [password -> only 4 digits] </h3>`; // signup
   output = output + `<h3> - login: try login [username] [password] </h3>`; // login
   output = output + `<h3> - logout: try logout</h3>`; // logout
+  output = output + `<h3> - clear: clears terminal history</h3>`; // logout
   output = output + `<h3> - delete: try delete [username] [password] </h3>`; // delete
   output = output + `<h3> - access: try access</h3>`; // access
   output = output + `<h3> - balance: try balance</h3>`; // balance
@@ -302,4 +303,12 @@ export function handleHelp() {
     output: output,
     acknowledged: false,
   };
+}
+
+export function handleClear(consoleElement: HTMLElement) {
+  
+  while ( consoleElement.childNodes.length > 2 ) { // so that it doesnt clear the top line and command line 
+    consoleElement.removeChild(consoleElement.children[1])
+  }
+  consoleElement.removeChild(consoleElement.children[1]) // clears the 'clear' command 
 }
