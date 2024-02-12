@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   handleAccess,
   handleAdmin,
@@ -25,12 +25,17 @@ export default function Page() {
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
+  const [historyIndex, setHistoryIndex] = useState(0); // current history index
+  const [prevCommands, setPrevCommands] = useState<string[]>([]); // stores previous commands
+
   function printCommand() {
     let consoleElement = document.getElementById("consoleElement"); // Getting the console element
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${activeUser + activeDiractory + command}</h3>`; // Setting the innerHTML of li element to the command
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`; // Setting the innerHTML of li element to the command
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
@@ -54,7 +59,9 @@ export default function Page() {
         break;
 
       case "admin":
-        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleAdmin(commands[1], commands[2], password)
+        ).output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -145,7 +152,9 @@ export default function Page() {
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleTransfer(user, commands[1], commands[2])
+        ).output; // Display the output in the terminal
         break;
 
       case "leaderboard":
@@ -164,8 +173,8 @@ export default function Page() {
         output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
       case "clear":
-        handleClear(consoleElement)
-        break; 
+        handleClear(consoleElement);
+        break;
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
@@ -175,6 +184,8 @@ export default function Page() {
       // End loading
       consoleElement?.removeChild(loading);
     }
+
+    setPrevCommands((prevCmds) => [...prevCmds, operation]); // saves command
 
     setCommand(""); // Empty Command
 
@@ -343,6 +354,7 @@ export default function Page() {
                     let commands = command.split(" "); // Separate commands and arguments from command
                     let operation = commands[0]; // get operation to perform
 
+                    setHistoryIndex(0); // reset history index
                     // If commands requires password
                     if (
                       ["login", "signup", "delete", "admin"].includes(
@@ -355,6 +367,20 @@ export default function Page() {
                       handleConformation(); // Handle confirmation
                     } else {
                       handleCommand(); // Handle the command
+                    }
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    let index = prevCommands.length - 1 - historyIndex;
+                    if (index >= 0) {
+                      setCommand(prevCommands[index]);
+                      setHistoryIndex(historyIndex + 1);
+                    }
+                  } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    let index = prevCommands.length - (historyIndex - 1);
+                    if (index <= prevCommands.length - 1) {
+                      setCommand(prevCommands[index]);
+                      setHistoryIndex(historyIndex - 1);
                     }
                   }
                 }}
