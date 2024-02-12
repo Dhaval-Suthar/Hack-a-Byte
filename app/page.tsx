@@ -12,6 +12,7 @@ import {
   handleTransfer,
   handleleaderboard,
   handletransactions,
+  handleClear,
 } from "./lib/commands";
 
 export default function Page() {
@@ -162,7 +163,9 @@ export default function Page() {
 
         output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
-
+      case "clear":
+        handleClear(consoleElement)
+        break; 
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
