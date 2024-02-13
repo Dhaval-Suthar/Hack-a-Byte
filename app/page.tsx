@@ -58,11 +58,14 @@ export default function Page() {
 
     switch (operation) {
       case "help":
-        output.innerHTML = handleHelp().output; // Display the output in the terminal
+        output.innerHTML = handleHelp(commands[1]).output; // Display the output in the terminal
+        output.style.color = "#c3bcbc";
         break;
 
       case "admin":
-        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleAdmin(commands[1], commands[2], password)
+        ).output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -153,7 +156,9 @@ export default function Page() {
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleTransfer(user, commands[1], commands[2])
+        ).output; // Display the output in the terminal
         break;
 
       case "leaderboard":
@@ -172,8 +177,8 @@ export default function Page() {
         output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
       case "clear":
-        handleClear(consoleElement)
-        break; 
+        handleClear(consoleElement);
+        break;
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
