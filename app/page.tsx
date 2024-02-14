@@ -25,20 +25,22 @@ export default function Page() {
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
-    const [assist, setAssist] = useState(false);
-    const [required, setRequired] = useState("");
+  const [assist, setAssist] = useState(false);
+  const [required, setRequired] = useState("");
 
-    function focusCommandLine() {
-      const commandLine = document.getElementById("command-line");
-      commandLine?.focus(); // Focus the commandLine
-    }
+  function focusCommandLine() {
+    const commandLine = document.getElementById("command-line");
+    commandLine?.focus(); // Focus the commandLine
+  }
 
   function printCommand() {
     let consoleElement = document.getElementById("consoleElement"); // Getting the console element
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${activeUser + activeDiractory + command}</h3>`; // Setting the innerHTML of li element to the command
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`; // Setting the innerHTML of li element to the command
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
@@ -177,7 +179,7 @@ export default function Page() {
         output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
       case "clear":
-        handleClear(consoleElement);
+        handleClear();
         break;
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
@@ -334,6 +336,8 @@ export default function Page() {
     "access",
     "balance",
     "help",
+    "transactions",
+    "clear",
   ];
 
   const suggest = (inputCommand: string, addSpace: boolean = true) => {
@@ -431,15 +435,15 @@ export default function Page() {
             </div>
           </li>
         </ul>
-        <div className="h-20 w-20 fixed right-0 bottom-0 m-10 z-20 ">
+        <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
           <button onClick={() => setAssist(!assist)}>
-            <img src="./image.png" alt="assitant" className="absolute z-10" />
+            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
           </button>
-          <div className="absolute h-20 w-20">
+          <div className="absolute w-20">
             <div
-              className={`absolute h-16 ${
+              className={`absolute ${
                 assist && "rotate-180"
-              } w-60 duration-1000 transition-all right-0 mr-1 origin-top text-black bg-transparent`}
+              } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
             >
               {commands
                 .filter((inputCommand) => inputCommand !== "help")
@@ -452,7 +456,7 @@ export default function Page() {
                   >
                     <h1
                       onClick={() => suggest(inputCommand)}
-                      className="w-32 h-10 p-1 text-xl rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
+                      className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                     >
                       {inputCommand}
                     </h1>

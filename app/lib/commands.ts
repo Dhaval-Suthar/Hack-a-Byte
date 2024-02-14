@@ -437,6 +437,12 @@ export function handleHelp(command: string) {
     case "transfer":
       output = `<h3> - transfer money from one account to another </h3>`;
       break;
+    case "transactions":
+      output = `<h3> - shows your transaction history </h3>`;
+      break;
+    case "clear":
+      output = `<h3> - clears terminal history </h3>`;
+      break;
     default:
       output = `<h3> Unknown command </h3>`;
       break;
@@ -449,11 +455,17 @@ export function handleHelp(command: string) {
   };
 }
 
-export function handleClear(consoleElement: HTMLElement | null) {
+export function handleClear() {
+  const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+
   if (consoleElement === null) return;
 
-  while ( consoleElement.childNodes.length > 2 ) { // so that it doesnt clear the top line and command line 
-    consoleElement.removeChild(consoleElement.children[1])
+  while (consoleElement.childNodes.length > 1) {
+    // so that it doesnt clear the top line and command line
+    consoleElement.removeChild(consoleElement.children[1]);
   }
-  consoleElement.removeChild(consoleElement.children[1]) // clears the 'clear' command 
+
+  consoleElement.appendChild(document.createElement("h1")); // Adds a h1 tag as the console should have atleast one line
+
+  consoleElement.removeChild(consoleElement.children[0]); // clears the 'clear' command
 }
