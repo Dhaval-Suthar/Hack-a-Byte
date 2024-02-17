@@ -2,9 +2,9 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
-import { PT_Mono } from "next/font/google";
+import { Noto_Sans_Tamil_Supplement } from "next/font/google";
 
-const inter = PT_Mono({ weight: "400", subsets: ["latin"] });
+const inter = Noto_Sans_Tamil_Supplement({ weight: "400", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Hack a Byte",

@@ -399,33 +399,73 @@ export async function handletransactions(name: string) {
   }
 }
 
-export function handleHelp() {
-  let output = `<h3>Commands:</h3>`; // title
+export function handleHelp(command: string) {
+  if (!command) {
+    return {
+      output: `
+      <h3> - Hack-a-Byte is a platform to present your talent around the world. </h3> 
+      <h3> - You can try various type of hackings on this platform</h3>
+              `,
+      acknowledged: true,
+    };
+  }
 
-  output = output + `<h3> - leaderboard: try leaderboard</h3>`; // leaderboard
-  output = output + `<h3> - signup: try signup [username] </h3>`; // signup
-  output = output + `<h3> - login: try login [username] </h3>`; // login
-  output = output + `<h3> - logout: try logout</h3>`; // logout
-  output = output + `<h3> - clear: try clear</h3>`; // clear
-  output = output + `<h3> - delete: try delete [username] </h3>`; // delete
-  output = output + `<h3> - access: try access</h3>`; // access
-  output = output + `<h3> - balance: try balance</h3>`; // balance
-  output =
-    output +
-    `<h3> - transfer: try transfer [receiver's username] [amount -> only numbers]</h3>`; // transfer
+  let output = "";
+
+  switch (command) {
+    case "leaderboard":
+      output = `<h3> - Gives a list of top 10 hackers all over the world. </h3>`;
+      break;
+    case "signup":
+      output = `<h3> - creates a new account </h3>`;
+      break;
+    case "login":
+      output = `<h3> - logs you in to your existing account </h3>`;
+      break;
+    case "logout":
+      output = `<h3> - logs you out of your account </h3>`;
+      break;
+    case "delete":
+      output = `<h3> - permanently deletes your account </h3>`;
+      break;
+    case "access":
+      output = `<h3> - gives a random account you could try to hack</h3>`;
+      break;
+    case "balance":
+      output = `<h3> - gets your account balance </h3>`;
+      break;
+    case "transfer":
+      output = `<h3> - transfer money from one account to another </h3>`;
+      break;
+    case "transactions":
+      output = `<h3> - shows your transaction history </h3>`;
+      break;
+    case "clear":
+      output = `<h3> - clears terminal history </h3>`;
+      break;
+    default:
+      output = `<h3> Unknown command </h3>`;
+      break;
+  }
 
   // Return output
   return {
     output: output,
-    acknowledged: false,
+    acknowledged: true,
   };
 }
 
-export function handleClear(consoleElement: HTMLElement | null) {
+export function handleClear() {
+  const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+
   if (consoleElement === null) return;
 
-  while ( consoleElement.childNodes.length > 2 ) { // so that it doesnt clear the top line and command line 
-    consoleElement.removeChild(consoleElement.children[1])
+  while (consoleElement.childNodes.length > 1) {
+    // so that it doesnt clear the top line and command line
+    consoleElement.removeChild(consoleElement.children[1]);
   }
-  consoleElement.removeChild(consoleElement.children[1]) // clears the 'clear' command 
+
+  consoleElement.appendChild(document.createElement("h1")); // Adds a h1 tag as the console should have atleast one line
+
+  consoleElement.removeChild(consoleElement.children[0]); // clears the 'clear' command
 }

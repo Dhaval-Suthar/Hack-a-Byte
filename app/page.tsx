@@ -25,12 +25,22 @@ export default function Page() {
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
+  const [assist, setAssist] = useState(false);
+  const [required, setRequired] = useState("");
+
+  function focusCommandLine() {
+    const commandLine = document.getElementById("command-line");
+    commandLine?.focus(); // Focus the commandLine
+  }
+
   function printCommand() {
     let consoleElement = document.getElementById("consoleElement"); // Getting the console element
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${activeUser + activeDiractory + command}</h3>`; // Setting the innerHTML of li element to the command
+    commandElement.innerHTML = `<h3>${
+      activeUser + activeDiractory + command
+    }</h3>`; // Setting the innerHTML of li element to the command
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
@@ -50,11 +60,14 @@ export default function Page() {
 
     switch (operation) {
       case "help":
-        output.innerHTML = handleHelp().output; // Display the output in the terminal
+        output.innerHTML = handleHelp(commands[1]).output; // Display the output in the terminal
+        output.style.color = "#c3bcbc";
         break;
 
       case "admin":
-        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleAdmin(commands[1], commands[2], password)
+        ).output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -145,7 +158,9 @@ export default function Page() {
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
+        output.innerHTML = (
+          await handleTransfer(user, commands[1], commands[2])
+        ).output; // Display the output in the terminal
         break;
 
       case "leaderboard":
@@ -164,8 +179,8 @@ export default function Page() {
         output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
         break;
       case "clear":
-        handleClear(consoleElement)
-        break; 
+        handleClear();
+        break;
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
@@ -184,8 +199,7 @@ export default function Page() {
     // Print commandPrompt
     commandPrompt && consoleElement?.appendChild(commandPrompt);
 
-    const commandLine = document.getElementById("command-line");
-    commandLine?.focus(); // Focus the commandLine
+    focusCommandLine();
   }
 
   function handlePassword() {
@@ -247,7 +261,7 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
-  function handleConformation() {
+  function handleConfirmation() {
     const output = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("consoleElement"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
@@ -312,14 +326,54 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
+  const commands = [
+    "login",
+    "signup",
+    "delete",
+    "transfer",
+    "leaderboard",
+    "logout",
+    "access",
+    "balance",
+    "help",
+    "transactions",
+    "clear",
+  ];
+
+  const suggest = (inputCommand: string, addSpace: boolean = true) => {
+    if (["login", "delete", "signup"].includes(inputCommand)) {
+      setRequired(`username`);
+      if (addSpace) inputCommand = inputCommand + " ";
+    } else {
+      setRequired("");
+    }
+
+    switch (inputCommand) {
+      case "transfer":
+        setRequired("receiver amount");
+        if (addSpace) inputCommand = inputCommand + " ";
+        break;
+      case "help":
+        setRequired("command");
+        if (addSpace) inputCommand = inputCommand + " ";
+        break;
+      default:
+        break;
+    }
+
+    setCommand(inputCommand);
+    focusCommandLine();
+  };
+
+  const help = (inputCommand: string) => {
+    setCommand("help " + inputCommand);
+    focusCommandLine();
+  };
+
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
         <ul id="consoleElement">
-          <li>
-            <h3> - type help - </h3>
-          </li>
-
           <li id="command-prompt">
             <div>
               <textarea
@@ -336,6 +390,16 @@ export default function Page() {
                   }
                 }}
                 onKeyDown={(e) => {
+                  // If user changes the value of the command and required is not empty
+                  if (required !== "") {
+                    setRequired("");
+                  }
+
+                  // if the user types a command suggest its completion
+                  if (commands.includes(command) && e.key === " ") {
+                    suggest(command, false);
+                  }
+
                   // If enter key is pressed
                   if (e.key === "Enter") {
                     printCommand();
@@ -352,19 +416,80 @@ export default function Page() {
                     ) {
                       handlePassword(); // Ask for password
                     } else if (operation === "transfer") {
-                      handleConformation(); // Handle confirmation
+                      handleConfirmation(); // Handle confirmation
                     } else {
                       handleCommand(); // Handle the command
                     }
                   }
                 }}
               />
+              <div className="absolute text-zinc-400 flex ml-1">
+                <h3 className="text-transparent">
+                  {activeUser + activeDiractory + command}
+                </h3>
+                <h3>{required}</h3>
+              </div>
               <h3 className="absolute bg-transparent text-transparent select-none">
                 {activeUser + activeDiractory}
               </h3>
             </div>
           </li>
         </ul>
+        <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
+          <button onClick={() => setAssist(!assist)}>
+            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
+          </button>
+          <div className="absolute w-20">
+            <div
+              className={`absolute ${
+                assist && "rotate-180"
+              } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
+            >
+              {commands
+                .filter((inputCommand) => inputCommand !== "help")
+                .map((inputCommand) => (
+                  <div
+                    key={inputCommand}
+                    className={`${
+                      !assist && "scale-0"
+                    } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
+                  >
+                    <h1
+                      onClick={() => suggest(inputCommand)}
+                      className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
+                    >
+                      {inputCommand}
+                    </h1>
+                    <div className="h-2 flex flex-col mx-1">
+                      <h3
+                        onClick={() => help(inputCommand)}
+                        className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                      >
+                        i
+                      </h3>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            {/* <div
+              className={`absolute h-16 ${
+                help ? "w-80" : "w-16"
+              } duration-500 transition-all right-0 mr-1 text-black bg-white rounded-full `}
+            >
+              <div
+                className={`${
+                  !help && "hidden"
+                } text-center flex justify-start my-4 text-2xl transition-all duration-1000`}
+              >
+                <div className="h-2 flex flex-col mx-8">
+                  <h3 className="w-5 h-5">^</h3>
+                  <h3 className="rotate-180 w-5 h-5">^</h3>
+                </div>
+                <h1 className="w-32 h-10 p-1 rounded-full bg-green-600 shadow-lg shadow-green-700 back text-zinc-100">Signup</h1>
+              </div>
+            </div> */}
+          </div>
+        </div>
       </div>
     </main>
   );
