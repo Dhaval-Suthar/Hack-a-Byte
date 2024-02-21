@@ -134,7 +134,7 @@ export async function deleteUser(data: { username: string; password: string }) {
   }
 }
 
-export async function access() {
+export async function search() {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");

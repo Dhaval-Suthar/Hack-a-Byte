@@ -1,5 +1,5 @@
 import {
-  access,
+  search,
   admin,
   balance,
   storage,
@@ -161,9 +161,9 @@ export async function handleDelete(username: string, password: string) {
   }
 }
 
-export async function handleAccess() {
-  // Access response
-  let username = await access();
+export async function handleSearch() {
+  // Search response
+  let username = await search();
 
   if (username) {
     // Return username
@@ -181,7 +181,7 @@ export async function handleAccess() {
 }
 
 export async function handleBalance(id: string) {
-  // Access response
+  // Search response
   let balanceAmount = await balance(id);
 
   if (balanceAmount) {
@@ -200,7 +200,7 @@ export async function handleBalance(id: string) {
 }
 
 export async function handleStorage(id: string) {
-  // Access response
+  // Search response
   let storageData = await storage(id);
 
   if (storageData) {
@@ -280,7 +280,7 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
-  // Access response
+  // Search response
   let transfered = await transfer({
     sender: sender,
     username: username,
@@ -302,10 +302,10 @@ export async function handleTransfer(
   }
 }
 
-export async function handleleaderboard() {
+export async function handleLeaderboard() {
   let output = "";
 
-  // Access response
+  // Search response
   let leaderboardResponse = await leaderboard();
 
   if (leaderboardResponse === "") {
@@ -341,7 +341,7 @@ export async function handleleaderboard() {
   }
 }
 
-export async function handletransactions(name: string) {
+export async function handleTransactions(name: string) {
   if (name == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
@@ -350,7 +350,7 @@ export async function handletransactions(name: string) {
 
   let output = "";
 
-  // Access response
+  // Search response
   let transactionResponse = await transactions({ name: name });
 
   if (transactionResponse === "") {
@@ -428,7 +428,7 @@ export function handleHelp(command: string) {
     case "delete":
       output = `<h3> - permanently deletes your account </h3>`;
       break;
-    case "access":
+    case "search":
       output = `<h3> - gives a random account you could try to hack</h3>`;
       break;
     case "balance":

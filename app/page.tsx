@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import {
-  handleAccess,
+  handleSearch,
   handleAdmin,
   handleBalance,
   handleStorage,
@@ -10,8 +10,8 @@ import {
   handleLogIn,
   handleSignUp,
   handleTransfer,
-  handleleaderboard,
-  handletransactions,
+  handleLeaderboard,
+  handleTransactions,
   handleClear,
 } from "./lib/commands";
 
@@ -129,12 +129,12 @@ export default function Page() {
         }
         break;
 
-      case "access":
+      case "search":
         // Start loading
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleAccess()).output; // Display the output in the terminal
+        output.innerHTML = (await handleSearch()).output; // Display the output in the terminal
         break;
 
       case "balance":
@@ -168,7 +168,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleleaderboard()).output; // Display the output in the terminal
+        output.innerHTML = (await handleLeaderboard()).output; // Display the output in the terminal
         break;
 
       case "transactions":
@@ -176,11 +176,13 @@ export default function Page() {
         loading.innerHTML = `<h3>Fetching... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handletransactions(user)).output; // Display the output in the terminal
+        output.innerHTML = (await handleTransactions(user)).output; // Display the output in the terminal
         break;
+
       case "clear":
         handleClear();
         break;
+
       default:
         output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
         break;
@@ -333,7 +335,7 @@ export default function Page() {
     "transfer",
     "leaderboard",
     "logout",
-    "access",
+    "search",
     "balance",
     "help",
     "transactions",
