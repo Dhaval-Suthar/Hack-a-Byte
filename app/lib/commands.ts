@@ -9,6 +9,8 @@ import {
   signup,
   transactions,
   transfer,
+  browse,
+  browser,
 } from "./actions";
 
 export async function handleAdmin(
@@ -399,6 +401,70 @@ export async function handleTransactions(name: string) {
   }
 }
 
+export async function handleBrowser(
+  name: string,
+  process: string,
+  link: string
+) {
+  if (name == "0.0.0.0")
+    return {
+      output: `<h3 class="text-red-800">login first</h3>`,
+      acknowledged: false,
+    };
+
+  // Search response
+  let browserResponse = await browser({
+    name: name,
+    process: process,
+    link: link,
+  });
+
+  return {
+    output: browserResponse,
+    acknowledged: true,
+  };
+}
+
+export async function handleBrowse() {
+  let output = "";
+
+  // Search response
+  let browseResponse = await browse();
+
+  if (browseResponse === "") {
+    return {
+      output: "Some Error Occured!",
+      acknowledged: false,
+    };
+  }
+
+  let browseList = JSON.parse(browseResponse); // Parse data
+
+  if (browseList[0]) {
+    // Return all websites
+    browseList.map(
+      (
+        website: {
+          _id: any;
+        },
+        index: number
+      ) => {
+        output =
+          output +
+          `<h3> ${
+            index + 1
+          }. https://hack-a-byte.vercel.app/${website._id.toString()}</h3>`;
+      }
+    );
+  }
+
+  // Return output
+  return {
+    output: output,
+    acknowledged: true,
+  };
+}
+
 export function handleHelp(command: string) {
   if (!command) {
     return {
@@ -439,6 +505,12 @@ export function handleHelp(command: string) {
       break;
     case "transactions":
       output = `<h3> - shows your transaction history </h3>`;
+      break;
+    case "browser":
+      output = `<h3> - Used to hack websites and to install malwares on websites</h3>`;
+      break;
+    case "browse":
+      output = `<h3> - Gives random 10 website links </h3>`;
       break;
     case "clear":
       output = `<h3> - clears terminal history </h3>`;
