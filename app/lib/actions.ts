@@ -63,8 +63,8 @@ export async function signup(data: { username: string; password: string }) {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
     const response = await db.collection("hackers").insertOne({
-      username,
-      password,
+      username: username,
+      password: password,
       balance: 0,
       transactions: [],
       storage: {
@@ -74,6 +74,11 @@ export async function signup(data: { username: string; password: string }) {
       },
       computerModel: "HackBook-L",
       lastLogin: new Date(),
+    });
+
+    db.collection("websites").insertOne({
+      owner: username,
+      type: "money",
     });
 
     return response.insertedId.toJSON();
@@ -164,7 +169,9 @@ export async function balance(id: string) {
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db.collection("hackers").findOne({ _id: new ObjectId(id) });
+    const response = await db
+      .collection("hackers")
+      .findOne({ _id: new ObjectId(id) });
 
     if (!response) {
       return false;
@@ -306,6 +313,72 @@ export async function transactions(data: { name: string }) {
     if (!response[0]) {
       return "";
     }
+
+    return JSON.stringify(response);
+  } catch (e) {
+    console.error(e);
+    return "";
+  }
+}
+
+export async function browser(data: {
+  name: string;
+  process: string;
+  link: string;
+}) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    if (data.link === "none" || data.link === "") return "No link is provided!";
+
+    if (data.link.length <= 31) return "Invalid link!";
+
+    let link = data.link.slice(31,); // Removes "https://hack-a-byte.vercel.app/"
+
+    switch (data.process) {
+      case "hack":
+        const response = await db
+          .collection("websites")
+          .findOne({ _id: new ObjectId(link) });
+
+        if (response?._id) {
+          if (response.owner === data.name)
+            return "You can't hack your own website!"
+
+          switch (response?.type) {
+            case "money":
+              await db
+                .collection("websites")
+                .updateOne(response, { $set: { owner: data.name } });
+              return "The website have been hacked";
+
+            default:
+              return `Can't Hack ${response.owner}'s website!`;
+          }
+        }
+
+        return "Invalid link!";
+
+      default:
+        return "Invalid process!";
+    }
+  } catch (e) {
+    console.error(e);
+    return "";
+  }
+}
+
+export async function browse() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const response = await db
+      .collection("websites")
+      .aggregate([{ $sample: { size: 10 } }])
+      .toArray();
+
+    if (!response[0]) return "";
 
     return JSON.stringify(response);
   } catch (e) {

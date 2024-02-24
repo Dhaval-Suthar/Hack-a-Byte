@@ -10,6 +10,8 @@ import {
   handleLogIn,
   handleSignUp,
   handleTransfer,
+  handleBrowser,
+  handleBrowse,
   handleLeaderboard,
   handleTransactions,
   handleClear,
@@ -179,6 +181,33 @@ export default function Page() {
         output.innerHTML = (await handleTransactions(user)).output; // Display the output in the terminal
         break;
 
+      case "browser":
+        switch (commands[1]) {
+          case "hack":
+            loading.innerHTML = `<h3>Hacking... </h3>`;
+            break;
+          default:
+            loading.innerHTML = `<h3>Processing... </h3>`;
+            break;
+        }
+
+        consoleElement?.appendChild(loading); // Start loading
+
+        output.innerHTML = (
+          await handleBrowser(user, commands[1], commands[2] ?? "none")
+        ).output; // Display the output in the terminal
+        break;
+
+      case "browse":
+        // Start loading
+        loading.innerHTML = `<h3>Browsing... </h3>`;
+        consoleElement?.appendChild(loading);
+
+        output.innerHTML = (
+          await handleBrowse()
+        ).output; // Display the output in the terminal
+        break;
+
       case "clear":
         handleClear();
         break;
@@ -340,6 +369,8 @@ export default function Page() {
     "help",
     "transactions",
     "clear",
+    "browser",
+    "browse",
   ];
 
   const suggest = (inputCommand: string, addSpace: boolean = true) => {
@@ -353,6 +384,10 @@ export default function Page() {
     switch (inputCommand) {
       case "transfer":
         setRequired("receiver amount");
+        if (addSpace) inputCommand = inputCommand + " ";
+        break;
+      case "browser":
+        setRequired("hack link");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "help":
