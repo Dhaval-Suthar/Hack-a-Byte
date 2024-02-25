@@ -83,9 +83,9 @@ export async function handleSignUp(username: string, password: string) {
   });
 
   // If the account is created
-  if (signedUp) {
+  if (signedUp.success) {
     return {
-      id: signedUp,
+      id: signedUp.id,
       output: `<h3>Last login: never on console</h3> <h3>Welcome ${username}</h3>`, // Greet the user
       acknowledged: true,
     };
@@ -93,7 +93,7 @@ export async function handleSignUp(username: string, password: string) {
     // Return error
     return {
       id: "0",
-      output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
+      output: `<h3 class="text-red-800">${signedUp.error}!</h3>`,
       acknowledged: false,
     };
   }
