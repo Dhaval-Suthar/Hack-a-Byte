@@ -19,22 +19,30 @@ import {
   handleDeploy,
 } from "./lib/commands";
 
+// Default Values
 const DEFAULT_USERNAME = "0.0.0.0";
+const DEFAULT_USER_ID = "0";
 const DEFAULT_COMPUTER_MODEL = "HackBook-L";
 const ROOT_DIRECTORY = "~";
 
 export default function Page() {
+  // User Information
   const [username, setUsername] = useState(DEFAULT_USERNAME);
+  const [userId, setUserId] = useState(DEFAULT_USER_ID);
+
+  // Computer Information
   const [computerModel, setComputerModel] = useState(DEFAULT_COMPUTER_MODEL);
   const [presentWorkingDiractory, setPresentWorkingDiractory] = useState(ROOT_DIRECTORY);
 
-  let prompt = `${username}@${computerModel} ${presentWorkingDiractory} % `;
+  // Terminal Information
+  const prompt = `${username}@${computerModel} ${presentWorkingDiractory} % `;
+  const [command, setCommand] = useState("");
 
-  const [command, setCommand] = useState(""); // User Command
-  const [userId, setUserId] = useState("0"); // Username of the loggged in User
-
-  const [assist, setAssist] = useState(false);
-  const [required, setRequired] = useState("");
+  // Bot Information
+  const [activeBot, setActiveBot] = useState(false);
+  
+  // Other Information
+  const [argumentSuggestion, setArgumentSuggestion] = useState("");
 
   function focusCommandLine() {
     const commandLine = document.getElementById("command-line");
@@ -415,31 +423,31 @@ export default function Page() {
 
   const suggest = (inputCommand: string, addSpace: boolean = true) => {
     if (["login", "delete", "signup"].includes(inputCommand)) {
-      setRequired(`username`);
+      setArgumentSuggestion(`username`);
       if (addSpace) inputCommand = inputCommand + " ";
     } else {
-      setRequired("");
+      setArgumentSuggestion("");
     }
 
     switch (inputCommand) {
       case "transfer":
-        setRequired("receiver amount");
+        setArgumentSuggestion("receiver amount");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "browser":
-        setRequired("hack link");
+        setArgumentSuggestion("hack link");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "ham":
-        setRequired("install software");
+        setArgumentSuggestion("install software");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "deploy":
-        setRequired("your-website-link software-id");
+        setArgumentSuggestion("your-website-link software-id");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "help":
-        setRequired("command");
+        setArgumentSuggestion("command");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       default:
@@ -467,15 +475,13 @@ export default function Page() {
                 id="command-line"
                 onChange={(e) => {
                   if (e.target.value[e.target.value.length - 1] !== "\n") {
-                    setCommand(
-                      e.target.value.slice(prompt.length)
-                    );
+                    setCommand(e.target.value.slice(prompt.length));
                   }
                 }}
                 onKeyDown={(e) => {
-                  // If user changes the value of the command and required is not empty
-                  if (required !== "") {
-                    setRequired("");
+                  // If user changes the value of the command and argumentSuggestion is not empty
+                  if (argumentSuggestion !== "") {
+                    setArgumentSuggestion("");
                   }
 
                   // if the user types a command suggest its completion
@@ -506,20 +512,20 @@ export default function Page() {
               />
               <div className="absolute text-zinc-400 flex ml-1">
                 <h3 className="text-transparent">{prompt + command}</h3>
-                <h3>{required}</h3>
+                <h3>{argumentSuggestion}</h3>
               </div>
               <h3 className="absolute bg-transparent text-transparent select-none">{prompt}</h3>
             </div>
           </li>
         </ul>
         <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
-          <button onClick={() => setAssist(!assist)}>
+          <button onClick={() => setActiveBot(!activeBot)}>
             <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
           </button>
           <div className="absolute w-20">
             <div
               className={`absolute ${
-                assist && "rotate-180"
+                activeBot && "rotate-180"
               } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
             >
               {commands
@@ -528,7 +534,7 @@ export default function Page() {
                   <div
                     key={inputCommand}
                     className={`${
-                      !assist && "scale-0"
+                      !activeBot && "scale-0"
                     } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
                   >
                     <h1
