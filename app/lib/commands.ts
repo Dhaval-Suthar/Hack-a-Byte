@@ -11,6 +11,8 @@ import {
   transfer,
   browse,
   browser,
+  ham,
+  deploy,
 } from "./actions";
 
 export async function handleAdmin(
@@ -465,6 +467,46 @@ export async function handleBrowse() {
   };
 }
 
+export async function handleHam(username: string, process: string) {
+  if (username == "0.0.0.0")
+    return {
+      output: `<h3 class="text-red-800">login first</h3>`,
+      acknowledged: false,
+    };
+
+  // Search response
+  let hamResponse = await ham({user:username, process: process});
+
+  // Return output
+  return {
+    output: '<h3> - ' + hamResponse + '</h3>',
+    acknowledged: true,
+  };
+}
+
+export async function handleDeploy(username: string, websiteLink: string, softwareId: string) {
+  if (username == "0.0.0.0")
+    return {
+      output: `<h3 class="text-red-800">login first</h3>`,
+      acknowledged: false,
+    };
+
+  if (websiteLink == "" || softwareId == "")
+    return {
+      output: `<h3 >Usage: deploy [website-link] [software-id] </h3>`,
+      acknowledged: false,
+    };
+
+  // Search response
+  let deployResponse = await deploy({user:username, websiteLink: websiteLink, softwareId: softwareId});
+
+  // Return output
+  return {
+    output: "<h3> - " + deployResponse + "</h3>",
+    acknowledged: true,
+  };
+}
+
 export function handleHelp(command: string) {
   if (!command) {
     return {
@@ -511,6 +553,8 @@ export function handleHelp(command: string) {
       break;
     case "browse":
       output = `<h3> - Gives random 10 website links </h3>`;
+    case "ham":
+      output = `<h3> - ham is a package manager which let you install various softwares and malwares </h3>`;
       break;
     case "clear":
       output = `<h3> - clears terminal history </h3>`;
