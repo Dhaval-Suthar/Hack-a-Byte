@@ -62,6 +62,13 @@ export async function signup(data: { username: string; password: string }) {
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
+    // checking if user with same username exist and sending error
+    let isUser = await db.collection("hackers").findOne({username: username});
+    if (isUser) { 
+      return {success: false, error: "Username not available", id: "0"}
+    }
+
     const response = await db.collection("hackers").insertOne({
       username: username,
       password: password,
@@ -82,10 +89,10 @@ export async function signup(data: { username: string; password: string }) {
       malwareId: 0,
     });
 
-    return response.insertedId.toJSON();
+    return {success: true, id:response.insertedId.toJSON()};
   } catch (e) {
     console.error(e);
-    return false;
+    return {success: false, error: "Unknown error occurred", id: "0"};
   }
 }
 
