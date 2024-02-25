@@ -12,9 +12,11 @@ import {
   handleTransfer,
   handleBrowser,
   handleBrowse,
+  handleHam,
   handleLeaderboard,
   handleTransactions,
   handleClear,
+  handleDeploy,
 } from "./lib/commands";
 
 export default function Page() {
@@ -203,13 +205,32 @@ export default function Page() {
         loading.innerHTML = `<h3>Browsing... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (
-          await handleBrowse()
-        ).output; // Display the output in the terminal
+        output.innerHTML = (await handleBrowse()).output; // Display the output in the terminal
         break;
 
       case "clear":
         handleClear();
+        break;
+
+      case "ham":
+        if (commands[1] !== "install") {
+          output.innerHTML = `<h3>Usage: ham install [software's name]</h3>`;
+          break;
+        }
+
+        // Start loading
+        loading.innerHTML = `<h3>Installing... </h3>`;
+        consoleElement?.appendChild(loading);
+
+        output.innerHTML = (await handleHam(user, commands[2])).output; // Display the output in the terminal
+        break;
+
+      case "deploy":
+        // Start loading
+        loading.innerHTML = `<h3>Deploying... </h3>`;
+        consoleElement?.appendChild(loading);
+
+        output.innerHTML = (await handleDeploy(user, commands[1] ?? "", commands[2] ?? "")).output; // Display the output in the terminal
         break;
 
       default:
@@ -294,8 +315,10 @@ export default function Page() {
 
   function handleConfirmation() {
     const output = document.createElement("li"); // Create a li element
+    const info = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("consoleElement"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    const commands = command.split(" "); // Separate commands and arguments from command
 
     commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
 
@@ -320,6 +343,8 @@ export default function Page() {
         window.removeEventListener("keydown", focusInput); // Remove the event listener
         window.removeEventListener("click", focusInput); // Remove the event listener
 
+        consoleElement?.removeChild(info); // Remove info
+
         switch (input.value) {
           case "yes":
             commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
@@ -328,7 +353,7 @@ export default function Page() {
             break;
 
           case "no":
-            output.innerHTML = `<h3 class="flex text-red-800">Transfer Cancelled</h3>`; // Display the output in the terminal
+            output.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`; // Display the output in the terminal
             consoleElement?.appendChild(output);
             setCommand(""); // Empty Command
             commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
@@ -346,7 +371,24 @@ export default function Page() {
 
     // Properties of output
     output.style.display = "flex";
-    output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : `;
+
+    if (commands[0] === "ham") {
+      switch (commands[2]) {
+        case "virus":
+          info.innerHTML = `<h3>That will be 1000 rupee</h3>`; // Display the output in the terminal
+          consoleElement?.appendChild(info);
+          break;
+        default:
+          setCommand(""); // Empty Command
+          output.innerHTML = `<h3>Software does not exists.</h3>`; // Display the output in the terminal
+          consoleElement?.appendChild(output);
+          commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+          focusCommandLine();
+          return;
+      }
+    }
+
+    output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`; // Display the output in the terminal
 
     // Print output
     output.appendChild(input);
@@ -371,6 +413,8 @@ export default function Page() {
     "clear",
     "browser",
     "browse",
+    "ham",
+    "deploy",
   ];
 
   const suggest = (inputCommand: string, addSpace: boolean = true) => {
@@ -388,6 +432,14 @@ export default function Page() {
         break;
       case "browser":
         setRequired("hack link");
+        if (addSpace) inputCommand = inputCommand + " ";
+        break;
+      case "ham":
+        setRequired("install software");
+        if (addSpace) inputCommand = inputCommand + " ";
+        break;
+      case "deploy":
+        setRequired("your-website-link software-id");
         if (addSpace) inputCommand = inputCommand + " ";
         break;
       case "help":
@@ -452,7 +504,12 @@ export default function Page() {
                       commands[1]
                     ) {
                       handlePassword(); // Ask for password
-                    } else if (operation === "transfer") {
+                    } else if (
+                      operation === "transfer" ||
+                      (operation === "ham" &&
+                        commands[1] === "install" &&
+                        commands[2])
+                    ) {
                       handleConfirmation(); // Handle confirmation
                     } else {
                       handleCommand(); // Handle the command
@@ -474,7 +531,11 @@ export default function Page() {
         </ul>
         <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
           <button onClick={() => setAssist(!assist)}>
-            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
+            <img
+              src="./image.png"
+              alt="assitant"
+              className="absolute z-10 hover:scale-110 duration-500"
+            />
           </button>
           <div className="absolute w-20">
             <div

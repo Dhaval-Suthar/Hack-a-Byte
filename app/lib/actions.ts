@@ -79,6 +79,7 @@ export async function signup(data: { username: string; password: string }) {
     db.collection("websites").insertOne({
       owner: username,
       type: "money",
+      malwareId: 0,
     });
 
     return response.insertedId.toJSON();
@@ -334,7 +335,7 @@ export async function browser(data: {
 
     if (data.link.length <= 31) return "Invalid link!";
 
-    let link = data.link.slice(31,); // Removes "https://hack-a-byte.vercel.app/"
+    let link = data.link.slice(31); // Removes "https://hack-a-byte.vercel.app/"
 
     switch (data.process) {
       case "hack":
@@ -344,7 +345,7 @@ export async function browser(data: {
 
         if (response?._id) {
           if (response.owner === data.name)
-            return "You can't hack your own website!"
+            return "You can't hack your own website!";
 
           switch (response?.type) {
             case "money":
@@ -352,6 +353,11 @@ export async function browser(data: {
                 .collection("websites")
                 .updateOne(response, { $set: { owner: data.name } });
               return "The website have been hacked";
+            case "virus":
+              await db
+                .collection("hackers")
+                .updateOne({ username: data.name }, { $set: { balance: 0 } });
+              return "You have been hacked";
 
             default:
               return `Can't Hack ${response.owner}'s website!`;
@@ -384,5 +390,103 @@ export async function browse() {
   } catch (e) {
     console.error(e);
     return "";
+  }
+}
+
+export async function ham(data: { user: string; process: string }) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    switch (data.process) {
+      case "virus":
+        // Start a Client Session
+        const session = client.startSession();
+
+        const user = await db
+          .collection("hackers")
+          .findOne({ username: data.user });
+
+        if (!user) return "User not found!";
+
+        if (user.balance < 1000) return "Not enough balance!";
+
+        const virusId = new ObjectId();
+
+        try {
+          await session.withTransaction(async () => {
+            db.collection("malwares").insertOne({
+              _id: virusId,
+              owner: data.user,
+              type: "virus",
+            });
+
+            await db
+              .collection("hackers")
+              .updateOne(user, { $inc: { balance: -1000 } }, { session });
+
+          });
+        } finally {
+          await session.endSession();
+        }
+
+        return "Your Virus id is " + virusId.toJSON();
+      default:
+        return "Invalid process!";
+    }
+  } catch (e) {
+    console.error(e);
+    return "";
+  }
+}
+
+export async function deploy(data: { user: string, websiteLink: string, softwareId: string }) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db
+      .collection("hackers")
+      .findOne({ username: data.user });
+
+    if (!user) return "User not found!";
+
+    if (data.websiteLink === "") return "No link is provided!";
+
+    if (data.websiteLink.length <= 31) return "Invalid link!";
+
+    let link = data.websiteLink.slice(31); // Removes "https://hack-a-byte.vercel.app/"
+
+    const website = await db
+      .collection("websites")
+      .findOne({ _id: new ObjectId(link) });
+
+    if (!website?._id) return "Invalid website link!";
+    if (website?.owner !== data.user) return "Not your website!";
+
+    const software = await db
+      .collection("malwares")
+      .findOne({ _id: new ObjectId(data.softwareId) });
+
+    if (!software?._id) return "Invalid software id!";
+
+
+    await db.collection("websites").updateOne(website, {
+      $set: { type: "virus", malwareId: data.softwareId },
+    });
+
+    setTimeout(async () => {
+      const client = await clientPromise;
+      const db = client.db("Hack-a-Byte");
+      await db.collection("websites").updateOne(website, {
+        $set: { type: "money", malwareId: 0 },
+      });
+      await db.collection("malwares").deleteOne({ _id: new ObjectId(data.softwareId) });
+    }, 24 * 60 * 60 * 1000);
+
+    return "Deployed Successfully!";
+  } catch (e) {
+    console.error(e);
+    return "Some Error Occured!";
   }
 }
