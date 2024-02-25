@@ -19,13 +19,13 @@ import {
   handleDeploy,
 } from "./lib/commands";
 
+const DEFAULT_USERNAME = "0.0.0.0";
+
 export default function Page() {
   const diractory = "@HackBook-L ~ % "; // Present Working Diractory
 
-  const DEFAULT_USER = "0.0.0.0"; // Username of the loggged in User
-
   const [command, setCommand] = useState(""); // User Command
-  const [activeUser, setActiveUser] = useState(DEFAULT_USER); // Username of the loggged in User
+  const [activeUser, setActiveUser] = useState(DEFAULT_USERNAME); // Username of the loggged in User
   const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
@@ -107,12 +107,12 @@ export default function Page() {
         break;
 
       case "logout":
-        if (user === DEFAULT_USER) {
+        if (user === DEFAULT_USERNAME) {
           output.innerHTML = `<h3>Already Logged Out</h3>`; // Display the output in the terminal
         } else {
           output.innerHTML = `<h3>Logged Out Successfully!</h3>`; // Display the output in the terminal
-          setActiveUser(DEFAULT_USER); // Set user to default
-          user = DEFAULT_USER;
+          setActiveUser(DEFAULT_USERNAME); // Set user to default
+          user = DEFAULT_USERNAME;
           setUserId("0"); // Set id to default
         }
         break;
@@ -127,8 +127,8 @@ export default function Page() {
 
         if (deleteResult.acknowledged && activeUser === commands[1]) {
           // If the operation is successful and the deleted user is logged in
-          setActiveUser(DEFAULT_USER); // Set user to default
-          user = DEFAULT_USER;
+          setActiveUser(DEFAULT_USERNAME); // Set user to default
+          user = DEFAULT_USERNAME;
           setUserId("0"); // Set id to default
         }
         break;
