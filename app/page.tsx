@@ -20,13 +20,17 @@ import {
 } from "./lib/commands";
 
 const DEFAULT_USERNAME = "0.0.0.0";
+const DEFAULT_COMPUTER_MODEL = "HackBook-L";
+const ROOT_DIRECTORY = "~";
 
 export default function Page() {
-  const diractory = "@HackBook-L ~ % "; // Present Working Diractory
+  const [username, setUsername] = useState(DEFAULT_USERNAME);
+  const [computerModel, setComputerModel] = useState(DEFAULT_COMPUTER_MODEL);
+  const [presentWorkingDiractory, setPresentWorkingDiractory] = useState(ROOT_DIRECTORY);
+
+  let prompt = `${username}@${computerModel} ${presentWorkingDiractory} % `;
 
   const [command, setCommand] = useState(""); // User Command
-  const [activeUser, setActiveUser] = useState(DEFAULT_USERNAME); // Username of the loggged in User
-  const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
   const [userId, setUserId] = useState("0"); // Username of the loggged in User
 
   const [assist, setAssist] = useState(false);
@@ -42,9 +46,7 @@ export default function Page() {
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${
-      activeUser + activeDiractory + command
-    }</h3>`; // Setting the innerHTML of li element to the command
+    commandElement.innerHTML = prompt + command; // Setting the innerHTML of li element to the command
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
@@ -56,7 +58,7 @@ export default function Page() {
     let loading = document.createElement("li"); // Create a li element
     loading.innerHTML = "null";
 
-    let user = activeUser; // User
+    let user = username; // User
 
     const consoleElement = document.getElementById("consoleElement"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
@@ -69,9 +71,7 @@ export default function Page() {
         break;
 
       case "admin":
-        output.innerHTML = (
-          await handleAdmin(commands[1], commands[2], password)
-        ).output; // Display the output in the terminal
+        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
         break;
 
       case "signup":
@@ -84,7 +84,7 @@ export default function Page() {
 
         if (signUpResult.acknowledged) {
           // Set user
-          setActiveUser(commands[1]);
+          setUsername(commands[1]);
           user = commands[1];
           setUserId(signUpResult.id); // Set id
         }
@@ -100,7 +100,7 @@ export default function Page() {
 
         if (logInResult.acknowledged) {
           // Set user
-          setActiveUser(commands[1]);
+          setUsername(commands[1]);
           user = commands[1];
           setUserId(logInResult.id); // Set id
         }
@@ -111,7 +111,7 @@ export default function Page() {
           output.innerHTML = `<h3>Already Logged Out</h3>`; // Display the output in the terminal
         } else {
           output.innerHTML = `<h3>Logged Out Successfully!</h3>`; // Display the output in the terminal
-          setActiveUser(DEFAULT_USERNAME); // Set user to default
+          setUsername(DEFAULT_USERNAME); // Set user to default
           user = DEFAULT_USERNAME;
           setUserId("0"); // Set id to default
         }
@@ -125,9 +125,9 @@ export default function Page() {
         const deleteResult = await handleDelete(commands[1], password); // Run the operation
         output.innerHTML = deleteResult.output; // Display the output in the terminal
 
-        if (deleteResult.acknowledged && activeUser === commands[1]) {
+        if (deleteResult.acknowledged && username === commands[1]) {
           // If the operation is successful and the deleted user is logged in
-          setActiveUser(DEFAULT_USERNAME); // Set user to default
+          setUsername(DEFAULT_USERNAME); // Set user to default
           user = DEFAULT_USERNAME;
           setUserId("0"); // Set id to default
         }
@@ -162,9 +162,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Transfering... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (
-          await handleTransfer(user, commands[1], commands[2])
-        ).output; // Display the output in the terminal
+        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
         break;
 
       case "leaderboard":
@@ -195,9 +193,7 @@ export default function Page() {
 
         consoleElement?.appendChild(loading); // Start loading
 
-        output.innerHTML = (
-          await handleBrowser(user, commands[1], commands[2] ?? "none")
-        ).output; // Display the output in the terminal
+        output.innerHTML = (await handleBrowser(user, commands[1], commands[2] ?? "none")).output; // Display the output in the terminal
         break;
 
       case "browse":
@@ -467,14 +463,12 @@ export default function Page() {
             <div>
               <textarea
                 className="bg-zinc-900 outline-none w-full absolute h-full"
-                value={activeUser + activeDiractory + command}
+                value={prompt + command}
                 id="command-line"
                 onChange={(e) => {
                   if (e.target.value[e.target.value.length - 1] !== "\n") {
                     setCommand(
-                      e.target.value.slice(
-                        (activeUser + activeDiractory).length
-                      )
+                      e.target.value.slice(prompt.length)
                     );
                   }
                 }}
@@ -497,18 +491,11 @@ export default function Page() {
                     let operation = commands[0]; // get operation to perform
 
                     // If commands requires password
-                    if (
-                      ["login", "signup", "delete", "admin"].includes(
-                        operation
-                      ) &&
-                      commands[1]
-                    ) {
+                    if (["login", "signup", "delete", "admin"].includes(operation) && commands[1]) {
                       handlePassword(); // Ask for password
                     } else if (
                       operation === "transfer" ||
-                      (operation === "ham" &&
-                        commands[1] === "install" &&
-                        commands[2])
+                      (operation === "ham" && commands[1] === "install" && commands[2])
                     ) {
                       handleConfirmation(); // Handle confirmation
                     } else {
@@ -518,24 +505,16 @@ export default function Page() {
                 }}
               />
               <div className="absolute text-zinc-400 flex ml-1">
-                <h3 className="text-transparent">
-                  {activeUser + activeDiractory + command}
-                </h3>
+                <h3 className="text-transparent">{prompt + command}</h3>
                 <h3>{required}</h3>
               </div>
-              <h3 className="absolute bg-transparent text-transparent select-none">
-                {activeUser + activeDiractory}
-              </h3>
+              <h3 className="absolute bg-transparent text-transparent select-none">{prompt}</h3>
             </div>
           </li>
         </ul>
         <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
           <button onClick={() => setAssist(!assist)}>
-            <img
-              src="./image.png"
-              alt="assitant"
-              className="absolute z-10 hover:scale-110 duration-500"
-            />
+            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
           </button>
           <div className="absolute w-20">
             <div
