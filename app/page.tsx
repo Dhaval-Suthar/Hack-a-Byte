@@ -237,7 +237,7 @@ export default function Page() {
         loading.innerHTML = `<h3>Deploying... </h3>`;
         consoleElement?.appendChild(loading);
 
-        output.innerHTML = (await handleDeploy(user, commands[1] ?? "", commands[2] ?? "")).output; // Display the output in the terminal
+        output.innerHTML = (await handleDeploy(user, commands[2] ?? "", commands[1] ?? "")).output; // Display the output in the terminal
         break;
 
       default:
@@ -406,40 +406,9 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
-  function suggestArguments(commandName: string, addSpace: boolean = true) {
-    if (["login", "delete", "signup"].includes(commandName)) {
-      setArgumentSuggestion(`username`);
-      if (addSpace) commandName = commandName + " ";
-    } else {
-      setArgumentSuggestion("");
-    }
+  function suggestArguments(commandName: string) {
+    setArgumentSuggestion(COMMANDS[commandName as keyof typeof COMMANDS]?.argumentsRequired);
 
-    switch (commandName) {
-      case "transfer":
-        setArgumentSuggestion("receiver amount");
-        if (addSpace) commandName = commandName + " ";
-        break;
-      case "browser":
-        setArgumentSuggestion("hack link");
-        if (addSpace) commandName = commandName + " ";
-        break;
-      case "ham":
-        setArgumentSuggestion("install software");
-        if (addSpace) commandName = commandName + " ";
-        break;
-      case "deploy":
-        setArgumentSuggestion("your-website-link software-id");
-        if (addSpace) commandName = commandName + " ";
-        break;
-      case "help":
-        setArgumentSuggestion("command");
-        if (addSpace) commandName = commandName + " ";
-        break;
-      default:
-        break;
-    }
-
-    setCommand(commandName);
     focusCommandLine();
   }
 
@@ -473,7 +442,7 @@ export default function Page() {
 
                   // Suggest it's arguments
                   if (COMMANDS[commandToPerform as keyof typeof COMMANDS] && e.key === " ") {
-                    suggestArguments(command, false);
+                    suggestArguments(command);
                   }
 
                   // If enter key is pressed
@@ -521,7 +490,11 @@ export default function Page() {
                     } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
                   >
                     <h1
-                      onClick={() => suggestArguments(commandName)}
+                      onClick={() => {
+                        setCommand(commandName + " ");
+                        suggestArguments(commandName);
+                        setActiveBot(false);
+                      }}
                       className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                     >
                       {commandName}
@@ -546,20 +519,20 @@ export default function Page() {
 
 class Command {
   description: string;
-  Usage: string;
+  argumentsRequired: string;
   requiresPassword: boolean;
   requiresConfirmation: boolean;
   hidden: boolean;
 
   constructor({
     description = "",
-    Usage = "",
+    argumentsRequired = "",
     requiresPassword = false,
     requiresConfirmation = false,
     hidden = false,
   }) {
     this.description = description;
-    this.Usage = Usage;
+    this.argumentsRequired = argumentsRequired;
     this.requiresPassword = requiresPassword;
     this.requiresConfirmation = requiresConfirmation;
     this.hidden = hidden;
@@ -568,19 +541,24 @@ class Command {
 
 // List of commands
 const COMMANDS = {
-  login: new Command({ description: "", Usage: "", requiresPassword: true }),
-  admin: new Command({ description: "", Usage: "", requiresPassword: true, hidden: true}),
-  balance: new Command({ description: "", Usage: ""}),
-  storage: new Command({ description: "", Usage: ""}),
-  delete: new Command({ description: "", Usage: "", requiresPassword: true }),
-  help: new Command({ description: "", Usage: ""}),
-  signup: new Command({ description: "", Usage: "", requiresPassword: true }),
-  transfer: new Command({ description: "", Usage: "", requiresPassword: true, requiresConfirmation: true }),
-  browser: new Command({ description: "", Usage: "" }),
-  browse: new Command({ description: "", Usage: "" }),
-  ham: new Command({ description: "", Usage: "", requiresConfirmation: true }),
-  leaderboard: new Command({ description: "", Usage: "" }),
-  transactions: new Command({ description: "", Usage: "" }),
-  clear: new Command({ description: "", Usage: "" }),
-  deploy: new Command({ description: "", Usage: ""}),
+  login: new Command({ description: "", argumentsRequired: "[username]", requiresPassword: true }),
+  admin: new Command({ description: "", argumentsRequired: "", requiresPassword: true, hidden: true }),
+  balance: new Command({ description: "" }),
+  storage: new Command({ description: "" }),
+  delete: new Command({ description: "", argumentsRequired: "[username]", requiresPassword: true }),
+  help: new Command({ description: "", argumentsRequired: "[command]" }),
+  signup: new Command({ description: "", argumentsRequired: "[username]", requiresPassword: true }),
+  transfer: new Command({
+    description: "",
+    argumentsRequired: "[receiver] [amount]",
+    requiresPassword: true,
+    requiresConfirmation: true,
+  }),
+  browser: new Command({ description: "", argumentsRequired: "hack [website link]" }),
+  browse: new Command({ description: "" }),
+  ham: new Command({ description: "", argumentsRequired: "install [software id]", requiresConfirmation: true }),
+  leaderboard: new Command({ description: "", argumentsRequired: "" }),
+  transactions: new Command({ description: "", argumentsRequired: "" }),
+  clear: new Command({ description: "", argumentsRequired: "" }),
+  deploy: new Command({ description: "", argumentsRequired: "[software id] [your website link]" }),
 };
