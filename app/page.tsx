@@ -40,17 +40,18 @@ export default function Page() {
 
   // Bot Information
   const [activeBot, setActiveBot] = useState(false);
-  
+
   // Other Information
   const [argumentSuggestion, setArgumentSuggestion] = useState("");
 
+  // Functions
   function focusCommandLine() {
     const commandLine = document.getElementById("command-line");
-    commandLine?.focus(); // Focus the commandLine
+    commandLine?.focus();
   }
 
   function printCommand() {
-    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    let consoleElement = document.getElementById("console-element"); // Getting the console element
 
     // Print command
     let commandElement = document.createElement("li"); // Creating li element
@@ -68,7 +69,7 @@ export default function Page() {
 
     let user = username; // User
 
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const consoleElement = document.getElementById("console-element"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     commandPrompt && consoleElement?.removeChild(commandPrompt);
 
@@ -260,7 +261,7 @@ export default function Page() {
 
   function handlePassword() {
     const output = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const consoleElement = document.getElementById("console-element"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
 
     if (commandPrompt) {
@@ -320,7 +321,7 @@ export default function Page() {
   function handleConfirmation() {
     const output = document.createElement("li"); // Create a li element
     const info = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const consoleElement = document.getElementById("console-element"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
     const commands = command.split(" "); // Separate commands and arguments from command
 
@@ -403,25 +404,7 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
-  const commands = [
-    "login",
-    "signup",
-    "delete",
-    "transfer",
-    "leaderboard",
-    "logout",
-    "search",
-    "balance",
-    "help",
-    "transactions",
-    "clear",
-    "browser",
-    "browse",
-    "ham",
-    "deploy",
-  ];
-
-  const suggest = (inputCommand: string, addSpace: boolean = true) => {
+  function suggest(inputCommand: string, addSpace: boolean = true) {
     if (["login", "delete", "signup"].includes(inputCommand)) {
       setArgumentSuggestion(`username`);
       if (addSpace) inputCommand = inputCommand + " ";
@@ -456,17 +439,17 @@ export default function Page() {
 
     setCommand(inputCommand);
     focusCommandLine();
-  };
+  }
 
-  const help = (inputCommand: string) => {
+  function help(inputCommand: string) {
     setCommand("help " + inputCommand);
     focusCommandLine();
-  };
+  }
 
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
-        <ul id="consoleElement">
+        <ul id="console-element">
           <li id="command-prompt">
             <div>
               <textarea
@@ -485,7 +468,7 @@ export default function Page() {
                   }
 
                   // if the user types a command suggest its completion
-                  if (commands.includes(command) && e.key === " ") {
+                  if (COMMANDS.includes(command) && e.key === " ") {
                     suggest(command, false);
                   }
 
@@ -528,31 +511,29 @@ export default function Page() {
                 activeBot && "rotate-180"
               } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
             >
-              {commands
-                .filter((inputCommand) => inputCommand !== "help")
-                .map((inputCommand) => (
-                  <div
-                    key={inputCommand}
-                    className={`${
-                      !activeBot && "scale-0"
-                    } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
+              {COMMANDS.filter((inputCommand) => inputCommand !== "help").map((inputCommand) => (
+                <div
+                  key={inputCommand}
+                  className={`${
+                    !activeBot && "scale-0"
+                  } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
+                >
+                  <h1
+                    onClick={() => suggest(inputCommand)}
+                    className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                   >
-                    <h1
-                      onClick={() => suggest(inputCommand)}
-                      className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
+                    {inputCommand}
+                  </h1>
+                  <div className="h-2 flex flex-col mx-1">
+                    <h3
+                      onClick={() => help(inputCommand)}
+                      className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                     >
-                      {inputCommand}
-                    </h1>
-                    <div className="h-2 flex flex-col mx-1">
-                      <h3
-                        onClick={() => help(inputCommand)}
-                        className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                      >
-                        i
-                      </h3>
-                    </div>
+                      i
+                    </h3>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
             {/* <div
               className={`absolute h-16 ${
@@ -577,3 +558,22 @@ export default function Page() {
     </main>
   );
 }
+
+// List of commands
+const COMMANDS = [
+  "login",
+  "signup",
+  "delete",
+  "transfer",
+  "leaderboard",
+  "logout",
+  "search",
+  "balance",
+  "help",
+  "transactions",
+  "clear",
+  "browser",
+  "browse",
+  "ham",
+  "deploy",
+];
