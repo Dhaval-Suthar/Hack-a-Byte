@@ -544,112 +544,43 @@ export default function Page() {
   );
 }
 
+class Command {
+  description: string;
+  Usage: string;
+  requiresPassword: boolean;
+  requiresConfirmation: boolean;
+  hidden: boolean;
+
+  constructor({
+    description = "",
+    Usage = "",
+    requiresPassword = false,
+    requiresConfirmation = false,
+    hidden = false,
+  }) {
+    this.description = description;
+    this.Usage = Usage;
+    this.requiresPassword = requiresPassword;
+    this.requiresConfirmation = requiresConfirmation;
+    this.hidden = hidden;
+  }
+}
 
 // List of commands
 const COMMANDS = {
-  login: {
-    description: "",
-    Usage: "login [username]",
-    requiresPassword: true,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  admin: {
-    description: "Access admin panel",
-    Usage: "admin",
-    requiresPassword: true,
-    requiresConfirmation: false,
-    hidden: true,
-  },
-  balance: {
-    description: "Check account balance",
-    Usage: "balance",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  storage: {
-    description: "Check storage usage",
-    Usage: "storage",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  delete: {
-    description: "Delete a file or directory",
-    Usage: "delete [path]",
-    requiresPassword: true,
-    requiresConfirmation: true,
-    hidden: false,
-  },
-  help: {
-    description: "Show help menu",
-    Usage: "help",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: true,
-  },
-  signup: {
-    description: "Create a new account",
-    Usage: "signup [username]",
-    requiresPassword: true,
-    requiresConfirmation: true,
-    hidden: false,
-  },
-  transfer: {
-    description: "Transfer funds to another account",
-    Usage: "transfer [amount] [recipient]",
-    requiresPassword: true,
-    requiresConfirmation: true,
-    hidden: false,
-  },
-  browser: {
-    description: "Open web browser",
-    Usage: "browser [url]",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  browse: {
-    description: "Browse files and directories",
-    Usage: "browse [path]",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  ham: {
-    description: "Make a sandwich",
-    Usage: "ham [ingredients]",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  leaderboard: {
-    description: "View leaderboard",
-    Usage: "leaderboard",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  transactions: {
-    description: "View transaction history",
-    Usage: "transactions",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  clear: {
-    description: "Clear the console",
-    Usage: "clear",
-    requiresPassword: false,
-    requiresConfirmation: false,
-    hidden: false,
-  },
-  deploy: {
-    description: "Deploy application",
-    Usage: "deploy",
-    requiresPassword: true,
-    requiresConfirmation: true,
-    hidden: false,
-  },
+  login: new Command({ description: "", Usage: "", requiresPassword: true }),
+  admin: new Command({ description: "", Usage: "", requiresPassword: true, hidden: true}),
+  balance: new Command({ description: "", Usage: ""}),
+  storage: new Command({ description: "", Usage: ""}),
+  delete: new Command({ description: "", Usage: "", requiresPassword: true }),
+  help: new Command({ description: "", Usage: ""}),
+  signup: new Command({ description: "", Usage: "", requiresPassword: true }),
+  transfer: new Command({ description: "", Usage: "", requiresPassword: true, requiresConfirmation: true }),
+  browser: new Command({ description: "", Usage: "" }),
+  browse: new Command({ description: "", Usage: "" }),
+  ham: new Command({ description: "", Usage: "", requiresConfirmation: true }),
+  leaderboard: new Command({ description: "", Usage: "" }),
+  transactions: new Command({ description: "", Usage: "" }),
+  clear: new Command({ description: "", Usage: "" }),
+  deploy: new Command({ description: "", Usage: ""}),
 };
