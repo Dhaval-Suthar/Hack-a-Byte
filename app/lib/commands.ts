@@ -572,7 +572,7 @@ export function handleHelp(command: string) {
 }
 
 export function handleClear() {
-  const consoleElement = document.getElementById("consoleElement"); // Getting the console element
+  const consoleElement = document.getElementById("console-element"); // Getting the console element
 
   if (consoleElement === null) return;
 

@@ -37,6 +37,8 @@ export default function Page() {
   // Terminal Information
   const prompt = `${username}@${computerModel} ${presentWorkingDiractory} % `;
   const [command, setCommand] = useState("");
+  const commandToPerform = command.split(" ")[0];
+  const argumentList = command.split(" ").slice(1);
 
   // Bot Information
   const [activeBot, setActiveBot] = useState(false);
@@ -59,7 +61,7 @@ export default function Page() {
     consoleElement?.appendChild(commandElement); // Appending to consoleElement
   }
 
-  async function handleCommand(password = "") {
+  async function executeCommand(password = "") {
     const commands = command.split(" "); // Separate commands and arguments from command
     const operation = commands[0]; // get operation to perform
 
@@ -259,7 +261,7 @@ export default function Page() {
     focusCommandLine();
   }
 
-  function handlePassword() {
+  function askForPassword() {
     const output = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("console-element"); // Getting the console element
     const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
@@ -294,7 +296,7 @@ export default function Page() {
           consoleElement?.appendChild(commandPrompt); // Print commandPrompt
         }
 
-        handleCommand(input.value); // Handle the command
+        executeCommand(input.value); // Handle the command
       }
     };
 
@@ -318,7 +320,7 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
-  function handleConfirmation() {
+  function askConfirmation() {
     const output = document.createElement("li"); // Create a li element
     const info = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("console-element"); // Getting the console element
@@ -354,7 +356,7 @@ export default function Page() {
           case "yes":
             commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
             consoleElement?.removeChild(output); // Remove output
-            handleCommand(); // Handle the command
+            executeCommand(); // Handle the command
             break;
 
           case "no":
@@ -404,45 +406,46 @@ export default function Page() {
     window.addEventListener("click", focusInput);
   }
 
-  function suggest(inputCommand: string, addSpace: boolean = true) {
-    if (["login", "delete", "signup"].includes(inputCommand)) {
+  function suggestArguments(commandName: string, addSpace: boolean = true) {
+    if (["login", "delete", "signup"].includes(commandName)) {
       setArgumentSuggestion(`username`);
-      if (addSpace) inputCommand = inputCommand + " ";
+      if (addSpace) commandName = commandName + " ";
     } else {
       setArgumentSuggestion("");
     }
 
-    switch (inputCommand) {
+    switch (commandName) {
       case "transfer":
         setArgumentSuggestion("receiver amount");
-        if (addSpace) inputCommand = inputCommand + " ";
+        if (addSpace) commandName = commandName + " ";
         break;
       case "browser":
         setArgumentSuggestion("hack link");
-        if (addSpace) inputCommand = inputCommand + " ";
+        if (addSpace) commandName = commandName + " ";
         break;
       case "ham":
         setArgumentSuggestion("install software");
-        if (addSpace) inputCommand = inputCommand + " ";
+        if (addSpace) commandName = commandName + " ";
         break;
       case "deploy":
         setArgumentSuggestion("your-website-link software-id");
-        if (addSpace) inputCommand = inputCommand + " ";
+        if (addSpace) commandName = commandName + " ";
         break;
       case "help":
         setArgumentSuggestion("command");
-        if (addSpace) inputCommand = inputCommand + " ";
+        if (addSpace) commandName = commandName + " ";
         break;
       default:
         break;
     }
 
-    setCommand(inputCommand);
+    setCommand(commandName);
     focusCommandLine();
   }
 
-  function help(inputCommand: string) {
-    setCommand("help " + inputCommand);
+  function getCommandInfo(commandName: string) {
+    setCommand("help " + commandName);
+    setActiveBot(false);
     focusCommandLine();
   }
 
@@ -461,34 +464,31 @@ export default function Page() {
                     setCommand(e.target.value.slice(prompt.length));
                   }
                 }}
+                // If user changes the value of the command
                 onKeyDown={(e) => {
-                  // If user changes the value of the command and argumentSuggestion is not empty
+                  // make argumentSuggestion empty
                   if (argumentSuggestion !== "") {
                     setArgumentSuggestion("");
                   }
 
-                  // if the user types a command suggest its completion
-                  if (COMMANDS.includes(command) && e.key === " ") {
-                    suggest(command, false);
+                  // Suggest it's arguments
+                  if (COMMANDS[commandToPerform as keyof typeof COMMANDS] && e.key === " ") {
+                    suggestArguments(command, false);
                   }
 
                   // If enter key is pressed
                   if (e.key === "Enter") {
                     printCommand();
 
-                    let commands = command.split(" "); // Separate commands and arguments from command
-                    let operation = commands[0]; // get operation to perform
-
-                    // If commands requires password
-                    if (["login", "signup", "delete", "admin"].includes(operation) && commands[1]) {
-                      handlePassword(); // Ask for password
+                    if (COMMANDS[commandToPerform as keyof typeof COMMANDS]?.requiresPassword && argumentList.length) {
+                      askForPassword();
                     } else if (
-                      operation === "transfer" ||
-                      (operation === "ham" && commands[1] === "install" && commands[2])
+                      COMMANDS[commandToPerform as keyof typeof COMMANDS]?.requiresConfirmation &&
+                      argumentList.length
                     ) {
-                      handleConfirmation(); // Handle confirmation
+                      askConfirmation();
                     } else {
-                      handleCommand(); // Handle the command
+                      executeCommand();
                     }
                   }
                 }}
@@ -511,47 +511,32 @@ export default function Page() {
                 activeBot && "rotate-180"
               } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
             >
-              {COMMANDS.filter((inputCommand) => inputCommand !== "help").map((inputCommand) => (
-                <div
-                  key={inputCommand}
-                  className={`${
-                    !activeBot && "scale-0"
-                  } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
-                >
-                  <h1
-                    onClick={() => suggest(inputCommand)}
-                    className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
+              {Object.keys(COMMANDS)
+                .filter((commandName) => !COMMANDS[commandName as keyof typeof COMMANDS]?.hidden)
+                .map((commandName) => (
+                  <div
+                    key={commandName}
+                    className={`${
+                      !activeBot && "scale-0"
+                    } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
                   >
-                    {inputCommand}
-                  </h1>
-                  <div className="h-2 flex flex-col mx-1">
-                    <h3
-                      onClick={() => help(inputCommand)}
-                      className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                    <h1
+                      onClick={() => suggestArguments(commandName)}
+                      className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                     >
-                      i
-                    </h3>
+                      {commandName}
+                    </h1>
+                    <div className="h-2 flex flex-col mx-1">
+                      <h3
+                        onClick={() => getCommandInfo(commandName)}
+                        className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                      >
+                        i
+                      </h3>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
-            {/* <div
-              className={`absolute h-16 ${
-                help ? "w-80" : "w-16"
-              } duration-500 transition-all right-0 mr-1 text-black bg-white rounded-full `}
-            >
-              <div
-                className={`${
-                  !help && "hidden"
-                } text-center flex justify-start my-4 text-2xl transition-all duration-1000`}
-              >
-                <div className="h-2 flex flex-col mx-8">
-                  <h3 className="w-5 h-5">^</h3>
-                  <h3 className="rotate-180 w-5 h-5">^</h3>
-                </div>
-                <h1 className="w-32 h-10 p-1 rounded-full bg-green-600 shadow-lg shadow-green-700 back text-zinc-100">Signup</h1>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
@@ -559,21 +544,112 @@ export default function Page() {
   );
 }
 
+
 // List of commands
-const COMMANDS = [
-  "login",
-  "signup",
-  "delete",
-  "transfer",
-  "leaderboard",
-  "logout",
-  "search",
-  "balance",
-  "help",
-  "transactions",
-  "clear",
-  "browser",
-  "browse",
-  "ham",
-  "deploy",
-];
+const COMMANDS = {
+  login: {
+    description: "",
+    Usage: "login [username]",
+    requiresPassword: true,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  admin: {
+    description: "Access admin panel",
+    Usage: "admin",
+    requiresPassword: true,
+    requiresConfirmation: false,
+    hidden: true,
+  },
+  balance: {
+    description: "Check account balance",
+    Usage: "balance",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  storage: {
+    description: "Check storage usage",
+    Usage: "storage",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  delete: {
+    description: "Delete a file or directory",
+    Usage: "delete [path]",
+    requiresPassword: true,
+    requiresConfirmation: true,
+    hidden: false,
+  },
+  help: {
+    description: "Show help menu",
+    Usage: "help",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: true,
+  },
+  signup: {
+    description: "Create a new account",
+    Usage: "signup [username]",
+    requiresPassword: true,
+    requiresConfirmation: true,
+    hidden: false,
+  },
+  transfer: {
+    description: "Transfer funds to another account",
+    Usage: "transfer [amount] [recipient]",
+    requiresPassword: true,
+    requiresConfirmation: true,
+    hidden: false,
+  },
+  browser: {
+    description: "Open web browser",
+    Usage: "browser [url]",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  browse: {
+    description: "Browse files and directories",
+    Usage: "browse [path]",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  ham: {
+    description: "Make a sandwich",
+    Usage: "ham [ingredients]",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  leaderboard: {
+    description: "View leaderboard",
+    Usage: "leaderboard",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  transactions: {
+    description: "View transaction history",
+    Usage: "transactions",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  clear: {
+    description: "Clear the console",
+    Usage: "clear",
+    requiresPassword: false,
+    requiresConfirmation: false,
+    hidden: false,
+  },
+  deploy: {
+    description: "Deploy application",
+    Usage: "deploy",
+    requiresPassword: true,
+    requiresConfirmation: true,
+    hidden: false,
+  },
+};
