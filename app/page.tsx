@@ -104,47 +104,40 @@ export default function Page() {
   }
 
   function askForPassword() {
-    const outputElement = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("console-element"); // Getting the console element
-    const promptElement = document.getElementById("command-prompt"); // Getting the command prompt element
+    const passwordElement = document.createElement("li");
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const passwordInputElement = document.createElement("input");
 
-    if (promptElement) {
-      consoleElement?.removeChild(promptElement); // Remove promptElement
+    function focusInput() {
+      passwordInputElement.focus();
     }
 
-    const input = document.createElement("input"); // Input for password
-
-    const focusInput = () => {
-      input.focus(); // Focus the input
-    };
-
-    // Properties of input
-    input.type = "password";
-    input.style.background = "transparent";
-    input.style.color = "transparent";
-    input.style.width = "0px";
-    input.style.outline = "none";
-
-    // Key listener
-    input.onkeydown = (e) => {
-      // If enter key is pressed
+    // Properties of passwordInputElement
+    passwordInputElement.type = "password";
+    passwordInputElement.style.background = "transparent";
+    passwordInputElement.style.color = "transparent";
+    passwordInputElement.style.width = "0px";
+    passwordInputElement.style.outline = "none";
+    passwordInputElement.onkeydown = (e) => {
       if (e.key === "Enter") {
-        window.removeEventListener("keydown", focusInput); // Remove the event listener
-        window.removeEventListener("click", focusInput); // Remove the event listener
+        // Remove the event listeners
+        window.removeEventListener("keydown", focusInput);
+        window.removeEventListener("click", focusInput);
 
-        consoleElement?.removeChild(outputElement); // Remove output
+        // Remove passwordInputElement
+        consoleElement?.removeChild(passwordElement);
 
-        if (promptElement) {
-          consoleElement?.appendChild(promptElement); // Print promptElement
-        }
+        // Add the prompt back
+        promptElement && consoleElement?.appendChild(promptElement);
 
-        executeCommand(input.value); // Handle the command
+        executeCommand(passwordInputElement.value);
       }
     };
 
-    // Properties of output
-    outputElement.style.display = "flex";
-    outputElement.innerHTML = `
+    // Properties of passwordElement
+    passwordElement.style.display = "flex";
+    passwordElement.innerHTML = `
       <h3 class="flex">Password:
         <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
@@ -153,97 +146,100 @@ export default function Page() {
         </div>
       </h3>`;
 
-    // Print output
-    outputElement.appendChild(input);
-    consoleElement?.appendChild(outputElement);
+    // Remove promptElement
+    if (promptElement) consoleElement?.removeChild(promptElement);
 
-    // Focus input for every key down
+    // Add passwordInputElement
+    passwordElement.appendChild(passwordInputElement);
+    consoleElement?.appendChild(passwordElement);
+
+    // Focus passwordInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
   }
 
   function askForConfirmation() {
-    const outputElement = document.createElement("li"); // Create a li element
-    const info = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("console-element"); // Getting the console element
-    const promptElement = document.getElementById("command-prompt"); // Getting the command prompt element
-    const commands = command.split(" "); // Separate commands and arguments from command
+    const confirmationElement = document.createElement("li");
+    const confirmationInfoElement = document.createElement("li");
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const confirmationInputElement = document.createElement("input");
 
-    promptElement && consoleElement?.removeChild(promptElement); // Remove promptElement
+    function focusInput() {
+      confirmationInputElement.focus(); // Focus the input
+    }
 
-    const input = document.createElement("input"); // Input for confirmation
-
-    const focusInput = () => {
-      input.focus(); // Focus the input
-    };
-
-    // Properties of input
-    input.type = "text";
-    input.style.background = "transparent";
-    input.style.marginLeft = "10px";
-    input.style.width = "30px";
-    input.maxLength = 3;
-    input.style.outline = "none";
-
-    // Key listener
-    input.onkeydown = (e) => {
-      // If enter key is pressed
+    // Properties of confirmationInputElement
+    confirmationInputElement.type = "text";
+    confirmationInputElement.style.background = "transparent";
+    confirmationInputElement.style.marginLeft = "10px";
+    confirmationInputElement.style.width = "30px";
+    confirmationInputElement.maxLength = 3;
+    confirmationInputElement.style.outline = "none";
+    confirmationInputElement.onkeydown = (e) => {
       if (e.key === "Enter") {
-        window.removeEventListener("keydown", focusInput); // Remove the event listener
-        window.removeEventListener("click", focusInput); // Remove the event listener
+        // Remove the event listeners
+        window.removeEventListener("keydown", focusInput);
+        window.removeEventListener("click", focusInput);
 
-        consoleElement?.removeChild(info); // Remove info
+        // Remove confirmationInfoElement
+        consoleElement?.removeChild(confirmationInfoElement);
 
-        switch (input.value) {
+        switch (confirmationInputElement.value) {
           case "yes":
-            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
-            consoleElement?.removeChild(outputElement); // Remove output
-            executeCommand(); // Handle the command
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            // Remove confirmationElement
+            consoleElement?.removeChild(confirmationElement);
+            executeCommand();
             break;
 
           case "no":
-            outputElement.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(outputElement);
+            // Change the innerHTML of confirmationElement
+            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`;
+            consoleElement?.appendChild(confirmationElement);
             setCommand(""); // Empty Command
-            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            focusCommandLine();
             break;
 
           default:
-            outputElement.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(outputElement);
+            // Change the innerHTML of confirmationElement
+            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`;
+            consoleElement?.appendChild(confirmationElement);
             setCommand(""); // Empty Command
-            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            focusCommandLine();
             break;
         }
+
       }
     };
 
-    // Properties of output
-    outputElement.style.display = "flex";
+    // Properties of confirmationElement
+    confirmationElement.style.display = "flex";
+    confirmationInfoElement.innerHTML = COMMANDS[commandToPerform as keyof typeof COMMANDS]?.info; 
 
-    if (commands[0] === "ham") {
-      switch (argumentList[1]) {
-        case "virus":
-          info.innerHTML = `<h3>That will be 1000 rupee</h3>`; // Display the output in the terminal
-          consoleElement?.appendChild(info);
-          break;
-        default:
-          setCommand(""); // Empty Command
-          outputElement.innerHTML = `<h3>Software does not exists.</h3>`; // Display the output in the terminal
-          consoleElement?.appendChild(outputElement);
-          promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
-          focusCommandLine();
-          return;
-      }
-    }
+    // Properties of confirmationInfoElement
+    confirmationElement.style.display = "flex";
+    confirmationElement.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`;
 
-    outputElement.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`; // Display the output in the terminal
+    // Remove promptElement
+    promptElement && consoleElement?.removeChild(promptElement);
 
-    // Print output
-    outputElement.appendChild(input);
-    consoleElement?.appendChild(outputElement);
+    // Add confirmationInputElement and confirmationInfoElement
+    confirmationElement.appendChild(confirmationInputElement);
+    consoleElement?.appendChild(confirmationInfoElement);
+    consoleElement?.appendChild(confirmationElement);
 
-    // Focus input for every key down
+    // // Focus confirmationInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
   }

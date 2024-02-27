@@ -25,6 +25,7 @@ class Command {
   requiresConfirmation: boolean;
   hidden: boolean;
   loadingText: string;
+  info: string;
   action: Function;
 
   constructor({
@@ -34,6 +35,7 @@ class Command {
     requiresConfirmation = false,
     hidden = false,
     loadingText = "Processing...",
+    info = "",
     action = ({ userId = "", username = "", password = "", command = "", argumentsList = [] }) => {},
   }) {
     this.description = description;
@@ -42,6 +44,7 @@ class Command {
     this.requiresConfirmation = requiresConfirmation;
     this.hidden = hidden;
     this.loadingText = loadingText;
+    this.info = info;
     this.action = action;
   }
 }
@@ -55,7 +58,11 @@ export const COMMANDS = {
     loadingText: "Logging in...",
     action: handleLogIn,
   }),
-  logout: new Command({ description: "Logs you out of your account", loadingText: "Logging out...", action: handleLogOut }),
+  logout: new Command({
+    description: "Logs you out of your account",
+    loadingText: "Logging out...",
+    action: handleLogOut,
+  }),
   search: new Command({
     description: "Gives a random account you could try to hack",
     loadingText: "Searching...",
@@ -68,8 +75,16 @@ export const COMMANDS = {
     hidden: true,
     action: handleAdmin,
   }),
-  balance: new Command({ description: "Gets your account balance", loadingText: "Fetching balance...", action: handleBalance}),
-  storage: new Command({ description: "Gets your computer storage", loadingText: "Fetching storage...", action: handleStorage }),
+  balance: new Command({
+    description: "Gets your account balance",
+    loadingText: "Fetching balance...",
+    action: handleBalance,
+  }),
+  storage: new Command({
+    description: "Gets your computer storage",
+    loadingText: "Fetching storage...",
+    action: handleStorage,
+  }),
   delete: new Command({
     description: "Permanently deletes your account",
     requiresPassword: true,
@@ -103,17 +118,30 @@ export const COMMANDS = {
     loadingText: "Hacking...",
     action: handleBrowser,
   }),
-  browse: new Command({ description: "Gives random 10 website links", loadingText: "Fetching websites...", action: handleBrowse}),
+  browse: new Command({
+    description: "Gives random 10 website links",
+    loadingText: "Fetching websites...",
+    action: handleBrowse,
+  }),
   ham: new Command({
     description: "ham is a package manager which let you install various softwares and malwares",
     argumentsRequired: "install [software id]",
     requiresConfirmation: true,
     loadingText: "Installing...",
+    info: `<h3> - Virus: @1000</h3>`,
     action: handleHam,
   }),
-  leaderboard: new Command({ description: "Gives a list of top 10 hackers all over the world", loadingText: "Fetching Top 10 Hackers...", action: handleLeaderboard }),
-  transactions: new Command({ description: "Shows your transaction history", loadingText: "Fetching transactions...", action: handleTransactions }),
-  clear: new Command({ description: "Clears terminal history", loadingText:"Clearing", action: handleClear }),
+  leaderboard: new Command({
+    description: "Gives a list of top 10 hackers all over the world",
+    loadingText: "Fetching Top 10 Hackers...",
+    action: handleLeaderboard,
+  }),
+  transactions: new Command({
+    description: "Shows your transaction history",
+    loadingText: "Fetching transactions...",
+    action: handleTransactions,
+  }),
+  clear: new Command({ description: "Clears terminal history", loadingText: "Clearing", action: handleClear }),
   deploy: new Command({
     description: "Used to deploy a malware on a website you own",
     argumentsRequired: "[software id] [your website link]",
