@@ -1,3 +1,4 @@
+import { DEFAULT_USER_ID, DEFAULT_USERNAME } from "../page";
 import {
   search,
   admin,
@@ -15,11 +16,7 @@ import {
   deploy,
 } from "./actions";
 
-export async function handleAdmin(
-  username: string,
-  password: string,
-  secretCode: string
-) {
+export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   // If password is not given or username is not given or password is not number or password is too long
   if (!username || !password || !Number(password) || password.length > 4) {
     // Return error
@@ -30,9 +27,9 @@ export async function handleAdmin(
 
   // Sign up response
   let result = await admin({
-    username: username,
-    password: password,
-    secretCode: secretCode,
+    username: argumentList[0],
+    password: argumentList[1],
+    secretCode: password,
   });
 
   // If the account is created
@@ -48,12 +45,13 @@ export async function handleAdmin(
   }
 }
 
-export async function handleSignUp(username: string, password: string) {
+export async function handleSignUp({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const inputUsername = argumentList[0];
+
   // If password or username is not given
-  if (!username) {
+  if (!inputUsername) {
     // Return error
     return {
-      id: "0",
       output: `<h3>Usage: signup [username]</h3>`,
       acknowledged: false,
     };
@@ -61,7 +59,6 @@ export async function handleSignUp(username: string, password: string) {
 
   if (!Number(password))
     return {
-      id: "0",
       output: `<h3 class="text-red-800">password should be only numbers</h3>`,
       acknowledged: false,
     };
@@ -70,7 +67,6 @@ export async function handleSignUp(username: string, password: string) {
   if (password.length > 4) {
     // Return error
     return {
-      id: "0",
       output: `<h3 class="text-red-800"> password should have less than 5 digits</h3>`,
       acknowledged: false,
     };
@@ -78,33 +74,33 @@ export async function handleSignUp(username: string, password: string) {
 
   // Sign up response
   let signedUp = await signup({
-    username: username,
+    username: inputUsername,
     password: password,
   });
 
   // If the account is created
   if (signedUp.success) {
     return {
-      id: signedUp.id,
-      output: `<h3>Last login: never on console</h3> <h3>Welcome ${username}</h3>`, // Greet the user
+      userData: { id: signedUp.id, username: inputUsername },
+      output: `<h3>Last login: never on console</h3> <h3>Welcome ${inputUsername}</h3>`, // Greet the user
       acknowledged: true,
     };
   } else {
     // Return error
     return {
-      id: "0",
       output: `<h3 class="text-red-800">${signedUp.error}!</h3>`,
       acknowledged: false,
     };
   }
 }
 
-export async function handleLogIn(username: string, password: string) {
+export async function handleLogIn({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const inputUsername = argumentList[0];
+
   // If password or username is not given
-  if (!username) {
+  if (!inputUsername) {
     // Return error
     return {
-      id: "0",
       output: `<h3>Usage: login [username]</h3>`,
       acknowledged: false,
     };
@@ -112,34 +108,50 @@ export async function handleLogIn(username: string, password: string) {
 
   // Log in response
   let loggedIn = await login({
-    username: username,
+    username: inputUsername,
     password: password,
   });
 
   if (loggedIn.id != "0") {
     return {
-      id: loggedIn.id,
+      userData: { id: loggedIn.id, username: inputUsername },
       output: `<h3>Last login: ${new Date(
         loggedIn.lastLogin
-      ).toDateString()} on console</h3> <h3>Welcome ${username}</h3>`,
+      ).toDateString()} on console</h3> <h3>Welcome ${inputUsername}</h3>`,
       acknowledged: true,
     }; // Greet the user
   } else {
     // Return error
     return {
-      id: "0",
       output: `<h3 class="text-red-800">Sorry Invalid Credentials!</h3>`,
       acknowledged: false,
     };
   }
 }
 
-export async function handleDelete(username: string, password: string) {
-  // If password or username is not given
-  if (!username) {
+export async function handleLogOut({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  // If already logged out
+  if (userId === DEFAULT_USER_ID) {
     // Return error
     return {
-      output: `<h3>Usage: delete [username]</h3>`,
+      output: `<h3>Already Logged Out</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  return {
+    userData: { id: DEFAULT_USER_ID, username: DEFAULT_USERNAME },
+      output: `<h3>Logged Out Successfully!</h3>`,
+      acknowledged: true,
+    };
+}
+
+export async function handleDelete({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  // If password or username is not given
+  if (userId === DEFAULT_USER_ID) {
+    // Return error
+    return {
+      output: `<h3>Login First</h3>`,
       acknowledged: false,
     };
   }
@@ -151,8 +163,8 @@ export async function handleDelete(username: string, password: string) {
   });
 
   if (deleted) {
-    // Greet the user
     return {
+      userData: { id: DEFAULT_USER_ID, username: DEFAULT_USERNAME },
       output: `<h3>${username} Deleted Successfully</h3>`,
       acknowledged: true,
     };
@@ -165,14 +177,14 @@ export async function handleDelete(username: string, password: string) {
   }
 }
 
-export async function handleSearch() {
+export async function handleSearch({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   // Search response
-  let username = await search();
+  let result = await search();
 
-  if (username) {
+  if (result) {
     // Return username
     return {
-      output: `<h3> - ${username}</h3>`,
+      output: `<h3> - ${result}</h3>`,
       acknowledged: true,
     };
   } else {
@@ -184,9 +196,9 @@ export async function handleSearch() {
   }
 }
 
-export async function handleBalance(id: string) {
+export async function handleBalance({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   // Search response
-  let balanceAmount = await balance(id);
+  let balanceAmount = await balance(userId);
 
   if (balanceAmount) {
     // Return username
@@ -203,9 +215,9 @@ export async function handleBalance(id: string) {
   }
 }
 
-export async function handleStorage(id: string) {
+export async function handleStorage({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   // Search response
-  let storageData = await storage(id);
+  let storageData = await storage(userId);
 
   if (storageData) {
     const totalSpace = storageData.total;
@@ -218,18 +230,10 @@ export async function handleStorage(id: string) {
     };
 
     return {
-      output: `<h3> Total Space: ${convertToMegaBytes(totalSpace).toFixed(
-        2
-      )} MB</h3>
-                 <h3> Used Space: ${convertToMegaBytes(usedSpace).toFixed(
-                   2
-                 )} MB</h3>
-                 <h3> System Space: ${convertToMegaBytes(systemSpace).toFixed(
-                   2
-                 )} MB</h3>
-                 <h3> Free Space: ${convertToMegaBytes(freeSpace).toFixed(
-                   2
-                 )} MB</h3>`,
+      output: `<h3> Total Space: ${convertToMegaBytes(totalSpace).toFixed(2)} MB</h3>
+                 <h3> Used Space: ${convertToMegaBytes(usedSpace).toFixed(2)} MB</h3>
+                 <h3> System Space: ${convertToMegaBytes(systemSpace).toFixed(2)} MB</h3>
+                 <h3> Free Space: ${convertToMegaBytes(freeSpace).toFixed(2)} MB</h3>`,
       acknowledged: true,
     };
   } else {
@@ -241,24 +245,23 @@ export async function handleStorage(id: string) {
   }
 }
 
-export async function handleTransfer(
-  sender: string,
-  username: string,
-  amount: string
-) {
-  if (sender == "0.0.0.0")
+export async function handleTransfer({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const receiver = argumentList[0];
+  const amount = argumentList[1];
+
+  if (username == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
     };
 
-  if (!username || !amount)
+  if (!receiver || !amount)
     return {
       output: `<h3>Usage: transfer [receiver's username] [amount -> only numbers]</h3>`,
       acknowledged: false,
     };
 
-  if (username == sender)
+  if (receiver == username)
     return {
       output: `<h3>Can't transfer to self</h3>`,
       acknowledged: false,
@@ -276,7 +279,7 @@ export async function handleTransfer(
       acknowledged: false,
     };
 
-  let balanceAmount = await balance(sender);
+  let balanceAmount = await balance(username);
 
   if (balanceAmount < Number(amount))
     return {
@@ -286,27 +289,33 @@ export async function handleTransfer(
 
   // Search response
   let transfered = await transfer({
-    sender: sender,
-    username: username,
+    sender: username,
+    username: receiver,
     amount: Number(amount),
   });
 
   if (transfered) {
     // Return username
     return {
-      output: `<h3> - @${amount} is Successfully transferred to ${username}</h3> <h3>transaction code: ${transfered}</h3>`,
+      output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>transaction code: ${transfered}</h3>`,
       acknowledged: true,
     };
   } else {
     // Return error
     return {
-      output: `<h3 class="text-red-800">User - ${username} might not exists</h3>`,
+      output: `<h3 class="text-red-800">User - ${receiver} might not exists</h3>`,
       acknowledged: false,
     };
   }
 }
 
-export async function handleLeaderboard() {
+export async function handleLeaderboard({
+  userId = "",
+  username = "",
+  password = "",
+  command = "",
+  argumentList = [],
+}) {
   let output = "";
 
   // Search response
@@ -323,13 +332,9 @@ export async function handleLeaderboard() {
 
   if (leaderboardList[0]) {
     // Return all players in a h3 tag
-    leaderboardList.map(
-      (player: { username: string; balance: number }, index: number) => {
-        output =
-          output +
-          `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
-      }
-    );
+    leaderboardList.map((player: { username: string; balance: number }, index: number) => {
+      output = output + `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
+    });
 
     // Return output
     return {
@@ -345,8 +350,14 @@ export async function handleLeaderboard() {
   }
 }
 
-export async function handleTransactions(name: string) {
-  if (name == "0.0.0.0")
+export async function handleTransactions({
+  userId = "",
+  username = "",
+  password = "",
+  command = "",
+  argumentList = [],
+}) {
+  if (username == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
@@ -355,7 +366,7 @@ export async function handleTransactions(name: string) {
   let output = "";
 
   // Search response
-  let transactionResponse = await transactions({ name: name });
+  let transactionResponse = await transactions({ name: username });
 
   if (transactionResponse === "") {
     return {
@@ -381,11 +392,9 @@ export async function handleTransactions(name: string) {
       ) => {
         output =
           output +
-          `<h3> [${player._id.toString()}] - Transferred ${
-            player.amount
-          } from ${player.from === name ? "You" : player.from} to ${
-            player.to === name ? "You" : player.to
-          } on ${new Date(player.date).toDateString()}</h3>`;
+          `<h3> [${player._id.toString()}] - Transferred ${player.amount} from ${
+            player.from === username ? "You" : player.from
+          } to ${player.to === username ? "You" : player.to} on ${new Date(player.date).toDateString()}</h3>`;
       }
     );
 
@@ -403,12 +412,11 @@ export async function handleTransactions(name: string) {
   }
 }
 
-export async function handleBrowser(
-  name: string,
-  process: string,
-  link: string
-) {
-  if (name == "0.0.0.0")
+export async function handleBrowser({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const process = argumentList[0];
+  const link = argumentList[1];
+
+  if (username == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
@@ -416,7 +424,7 @@ export async function handleBrowser(
 
   // Search response
   let browserResponse = await browser({
-    name: name,
+    name: username,
     process: process,
     link: link,
   });
@@ -427,7 +435,7 @@ export async function handleBrowser(
   };
 }
 
-export async function handleBrowse() {
+export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   let output = "";
 
   // Search response
@@ -451,11 +459,7 @@ export async function handleBrowse() {
         },
         index: number
       ) => {
-        output =
-          output +
-          `<h3> ${
-            index + 1
-          }. https://hack-a-byte.vercel.app/${website._id.toString()}</h3>`;
+        output = output + `<h3> ${index + 1}. https://hack-a-byte.vercel.app/${website._id.toString()}</h3>`;
       }
     );
   }
@@ -467,24 +471,36 @@ export async function handleBrowse() {
   };
 }
 
-export async function handleHam(username: string, process: string) {
+export async function handleHam({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const process = argumentList[0];
+
   if (username == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
       acknowledged: false,
     };
 
+  if (argumentList[0] !== "install") {
+    return {
+      output: `<h3>Usage: ham install [software's name]</h3>`,
+      acknowledged: false,
+    };
+  }
+
   // Search response
-  let hamResponse = await ham({user:username, process: process});
+  let hamResponse = await ham({ user: username, process: process });
 
   // Return output
   return {
-    output: '<h3> - ' + hamResponse + '</h3>',
+    output: "<h3> - " + hamResponse + "</h3>",
     acknowledged: true,
   };
 }
 
-export async function handleDeploy(username: string, websiteLink: string, softwareId: string) {
+export async function handleDeploy({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const softwareId = argumentList[0];
+  const websiteLink = argumentList[1];
+
   if (username == "0.0.0.0")
     return {
       output: `<h3 class="text-red-800">login first</h3>`,
@@ -498,7 +514,7 @@ export async function handleDeploy(username: string, websiteLink: string, softwa
     };
 
   // Search response
-  let deployResponse = await deploy({user:username, websiteLink: websiteLink, softwareId: softwareId});
+  let deployResponse = await deploy({ user: username, websiteLink: websiteLink, softwareId: softwareId });
 
   // Return output
   return {
@@ -507,11 +523,11 @@ export async function handleDeploy(username: string, websiteLink: string, softwa
   };
 }
 
-export function handleHelp(command: string) {
+export function handleHelp({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   if (!command) {
     return {
       output: `
-      <h3> - Hack-a-Byte is a platform to present your talent around the world. </h3> 
+      <h3 class="text-[#c3bcbc]"> - Hack-a-Byte is a platform to present your talent around the world. </h3> 
       <h3> - You can try various type of hackings on this platform</h3>
               `,
       acknowledged: true,
@@ -571,7 +587,7 @@ export function handleHelp(command: string) {
   };
 }
 
-export function handleClear() {
+export function handleClear({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const consoleElement = document.getElementById("console-element"); // Getting the console element
 
   if (consoleElement === null) return;
@@ -584,4 +600,10 @@ export function handleClear() {
   consoleElement.appendChild(document.createElement("h1")); // Adds a h1 tag as the console should have atleast one line
 
   consoleElement.removeChild(consoleElement.children[0]); // clears the 'clear' command
+
+  // Return output
+  return {
+    output: "",
+    acknowledged: true,
+  };
 }

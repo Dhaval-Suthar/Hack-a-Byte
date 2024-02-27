@@ -1,29 +1,12 @@
 "use client";
 import { useState } from "react";
-import {
-  handleSearch,
-  handleAdmin,
-  handleBalance,
-  handleStorage,
-  handleDelete,
-  handleHelp,
-  handleLogIn,
-  handleSignUp,
-  handleTransfer,
-  handleBrowser,
-  handleBrowse,
-  handleHam,
-  handleLeaderboard,
-  handleTransactions,
-  handleClear,
-  handleDeploy,
-} from "./lib/commands";
+import { COMMANDS } from "./lib/Command";
 
 // Default Values
-const DEFAULT_USERNAME = "0.0.0.0";
-const DEFAULT_USER_ID = "0";
-const DEFAULT_COMPUTER_MODEL = "HackBook-L";
-const ROOT_DIRECTORY = "~";
+export const DEFAULT_USERNAME = "0.0.0.0";
+export const DEFAULT_USER_ID = "0";
+export const DEFAULT_COMPUTER_MODEL = "HackBook-L";
+export const ROOT_DIRECTORY = "~";
 
 export default function Page() {
   // User Information
@@ -53,221 +36,80 @@ export default function Page() {
   }
 
   function printCommand() {
-    let consoleElement = document.getElementById("console-element"); // Getting the console element
+    const consoleElement = document.getElementById("console-element");
+    const commandElement = document.createElement("li");
 
-    // Print command
-    let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = prompt + command; // Setting the innerHTML of li element to the command
-    consoleElement?.appendChild(commandElement); // Appending to consoleElement
+    commandElement.innerHTML = prompt + command;
+    consoleElement?.appendChild(commandElement);
   }
 
   async function executeCommand(password = "") {
-    const commands = command.split(" "); // Separate commands and arguments from command
-    const operation = commands[0]; // get operation to perform
+    // Loading Information
+    let loading = false;
+    const loadingElement = document.createElement("li");
+    loadingElement.innerHTML = "processing";
 
-    let output = document.createElement("li"); // Create a li element
-    let loading = document.createElement("li"); // Create a li element
-    loading.innerHTML = "null";
+    // Document Elements
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const outputElement = document.createElement("li");
 
-    let user = username; // User
+    // Remove prompt
+    promptElement && consoleElement?.removeChild(promptElement);
 
-    const consoleElement = document.getElementById("console-element"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
-    commandPrompt && consoleElement?.removeChild(commandPrompt);
+    const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
-    switch (operation) {
-      case "help":
-        output.innerHTML = handleHelp(commands[1]).output; // Display the output in the terminal
-        output.style.color = "#c3bcbc";
-        break;
+    if (commandInfo) {
+      // Get the result of the command
+      const result = await commandInfo.action({
+        userId: userId,
+        username: username,
+        password: password,
+        command: commandToPerform,
+        argumentList: argumentList,
+      });
 
-      case "admin":
-        output.innerHTML = (await handleAdmin(commands[1], commands[2], password)).output; // Display the output in the terminal
-        break;
+      // Set the innerHTML of outputElement to the output of the command
+      outputElement.innerHTML = result.output;
 
-      case "signup":
-        // Start loading
-        loading.innerHTML = `<h3>SigningUp... </h3>`;
-        consoleElement?.appendChild(loading);
+      // Set userData if provided
+      if (result.userData) {
+        setUsername(result.userData.username);
+        setUserId(result.userData.id);
+      }
 
-        const signUpResult = await handleSignUp(commands[1], password); // Run the operation
-        output.innerHTML = signUpResult.output; // Display the output in the terminal
-
-        if (signUpResult.acknowledged) {
-          // Set user
-          setUsername(commands[1]);
-          user = commands[1];
-          setUserId(signUpResult.id); // Set id
-        }
-        break;
-
-      case "login":
-        // Start loading
-        loading.innerHTML = `<h3>Checking Credentials... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        const logInResult = await handleLogIn(commands[1], password); // Run the operation
-        output.innerHTML = logInResult.output; // Display the output in the terminal
-
-        if (logInResult.acknowledged) {
-          // Set user
-          setUsername(commands[1]);
-          user = commands[1];
-          setUserId(logInResult.id); // Set id
-        }
-        break;
-
-      case "logout":
-        if (user === DEFAULT_USERNAME) {
-          output.innerHTML = `<h3>Already Logged Out</h3>`; // Display the output in the terminal
-        } else {
-          output.innerHTML = `<h3>Logged Out Successfully!</h3>`; // Display the output in the terminal
-          setUsername(DEFAULT_USERNAME); // Set user to default
-          user = DEFAULT_USERNAME;
-          setUserId("0"); // Set id to default
-        }
-        break;
-
-      case "delete":
-        // Start loading
-        loading.innerHTML = `<h3>Checking Authentication... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        const deleteResult = await handleDelete(commands[1], password); // Run the operation
-        output.innerHTML = deleteResult.output; // Display the output in the terminal
-
-        if (deleteResult.acknowledged && username === commands[1]) {
-          // If the operation is successful and the deleted user is logged in
-          setUsername(DEFAULT_USERNAME); // Set user to default
-          user = DEFAULT_USERNAME;
-          setUserId("0"); // Set id to default
-        }
-        break;
-
-      case "search":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleSearch()).output; // Display the output in the terminal
-        break;
-
-      case "balance":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleBalance(userId)).output; // Display the output in the terminal
-        break;
-
-      case "storage":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleStorage(userId)).output; // Display the output in the terminal
-        break;
-
-      case "transfer":
-        // Start loading
-        loading.innerHTML = `<h3>Transfering... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleTransfer(user, commands[1], commands[2])).output; // Display the output in the terminal
-        break;
-
-      case "leaderboard":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleLeaderboard()).output; // Display the output in the terminal
-        break;
-
-      case "transactions":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleTransactions(user)).output; // Display the output in the terminal
-        break;
-
-      case "browser":
-        switch (commands[1]) {
-          case "hack":
-            loading.innerHTML = `<h3>Hacking... </h3>`;
-            break;
-          default:
-            loading.innerHTML = `<h3>Processing... </h3>`;
-            break;
-        }
-
-        consoleElement?.appendChild(loading); // Start loading
-
-        output.innerHTML = (await handleBrowser(user, commands[1], commands[2] ?? "none")).output; // Display the output in the terminal
-        break;
-
-      case "browse":
-        // Start loading
-        loading.innerHTML = `<h3>Browsing... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleBrowse()).output; // Display the output in the terminal
-        break;
-
-      case "clear":
-        handleClear();
-        break;
-
-      case "ham":
-        if (commands[1] !== "install") {
-          output.innerHTML = `<h3>Usage: ham install [software's name]</h3>`;
-          break;
-        }
-
-        // Start loading
-        loading.innerHTML = `<h3>Installing... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleHam(user, commands[2])).output; // Display the output in the terminal
-        break;
-
-      case "deploy":
-        // Start loading
-        loading.innerHTML = `<h3>Deploying... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleDeploy(user, commands[2] ?? "", commands[1] ?? "")).output; // Display the output in the terminal
-        break;
-
-      default:
-        output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
-        break;
+      // Start loading
+      loadingElement.innerHTML = `<h3>SigningUp... </h3>`;
+      consoleElement?.appendChild(loadingElement);
+      loading = true;
+    } else {
+      outputElement.innerHTML = `<h3>command not found: ${commandToPerform} </h3>`; // Default message for unknown command
     }
 
-    if (loading.innerHTML !== "null") {
+    if (loading) {
       // End loading
-      consoleElement?.removeChild(loading);
+      consoleElement?.removeChild(loadingElement);
     }
 
-    setCommand(""); // Empty Command
+    // Clear Command
+    setCommand("");
 
     // Print output
-    consoleElement?.appendChild(output);
+    consoleElement?.appendChild(outputElement);
 
-    // Print commandPrompt
-    commandPrompt && consoleElement?.appendChild(commandPrompt);
+    // Print prompt
+    promptElement && consoleElement?.appendChild(promptElement);
 
     focusCommandLine();
   }
 
   function askForPassword() {
-    const output = document.createElement("li"); // Create a li element
+    const outputElement = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("console-element"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    const promptElement = document.getElementById("command-prompt"); // Getting the command prompt element
 
-    if (commandPrompt) {
-      consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    if (promptElement) {
+      consoleElement?.removeChild(promptElement); // Remove promptElement
     }
 
     const input = document.createElement("input"); // Input for password
@@ -290,10 +132,10 @@ export default function Page() {
         window.removeEventListener("keydown", focusInput); // Remove the event listener
         window.removeEventListener("click", focusInput); // Remove the event listener
 
-        consoleElement?.removeChild(output); // Remove output
+        consoleElement?.removeChild(outputElement); // Remove output
 
-        if (commandPrompt) {
-          consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+        if (promptElement) {
+          consoleElement?.appendChild(promptElement); // Print promptElement
         }
 
         executeCommand(input.value); // Handle the command
@@ -301,8 +143,8 @@ export default function Page() {
     };
 
     // Properties of output
-    output.style.display = "flex";
-    output.innerHTML = `
+    outputElement.style.display = "flex";
+    outputElement.innerHTML = `
       <h3 class="flex">Password:
         <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
@@ -312,22 +154,22 @@ export default function Page() {
       </h3>`;
 
     // Print output
-    output.appendChild(input);
-    consoleElement?.appendChild(output);
+    outputElement.appendChild(input);
+    consoleElement?.appendChild(outputElement);
 
     // Focus input for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
   }
 
-  function askConfirmation() {
-    const output = document.createElement("li"); // Create a li element
+  function askForConfirmation() {
+    const outputElement = document.createElement("li"); // Create a li element
     const info = document.createElement("li"); // Create a li element
     const consoleElement = document.getElementById("console-element"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+    const promptElement = document.getElementById("command-prompt"); // Getting the command prompt element
     const commands = command.split(" "); // Separate commands and arguments from command
 
-    commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    promptElement && consoleElement?.removeChild(promptElement); // Remove promptElement
 
     const input = document.createElement("input"); // Input for confirmation
 
@@ -354,52 +196,52 @@ export default function Page() {
 
         switch (input.value) {
           case "yes":
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
-            consoleElement?.removeChild(output); // Remove output
+            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
+            consoleElement?.removeChild(outputElement); // Remove output
             executeCommand(); // Handle the command
             break;
 
           case "no":
-            output.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(output);
+            outputElement.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`; // Display the output in the terminal
+            consoleElement?.appendChild(outputElement);
             setCommand(""); // Empty Command
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
             break;
 
           default:
-            output.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(output);
+            outputElement.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`; // Display the output in the terminal
+            consoleElement?.appendChild(outputElement);
             setCommand(""); // Empty Command
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+            promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
             break;
         }
       }
     };
 
     // Properties of output
-    output.style.display = "flex";
+    outputElement.style.display = "flex";
 
     if (commands[0] === "ham") {
-      switch (commands[2]) {
+      switch (argumentList[1]) {
         case "virus":
           info.innerHTML = `<h3>That will be 1000 rupee</h3>`; // Display the output in the terminal
           consoleElement?.appendChild(info);
           break;
         default:
           setCommand(""); // Empty Command
-          output.innerHTML = `<h3>Software does not exists.</h3>`; // Display the output in the terminal
-          consoleElement?.appendChild(output);
-          commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+          outputElement.innerHTML = `<h3>Software does not exists.</h3>`; // Display the output in the terminal
+          consoleElement?.appendChild(outputElement);
+          promptElement && consoleElement?.appendChild(promptElement); // Print promptElement
           focusCommandLine();
           return;
       }
     }
 
-    output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`; // Display the output in the terminal
+    outputElement.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`; // Display the output in the terminal
 
     // Print output
-    output.appendChild(input);
-    consoleElement?.appendChild(output);
+    outputElement.appendChild(input);
+    consoleElement?.appendChild(outputElement);
 
     // Focus input for every key down
     window.addEventListener("keydown", focusInput);
@@ -435,13 +277,15 @@ export default function Page() {
                 }}
                 // If user changes the value of the command
                 onKeyDown={(e) => {
+                  const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
+
                   // make argumentSuggestion empty
                   if (argumentSuggestion !== "") {
                     setArgumentSuggestion("");
                   }
 
                   // Suggest it's arguments
-                  if (COMMANDS[commandToPerform as keyof typeof COMMANDS] && e.key === " ") {
+                  if (commandInfo && e.key === " ") {
                     suggestArguments(command);
                   }
 
@@ -449,13 +293,13 @@ export default function Page() {
                   if (e.key === "Enter") {
                     printCommand();
 
-                    if (COMMANDS[commandToPerform as keyof typeof COMMANDS]?.requiresPassword && argumentList.length) {
+                    if (commandInfo.requiresPassword && argumentList.length) {
                       askForPassword();
                     } else if (
-                      COMMANDS[commandToPerform as keyof typeof COMMANDS]?.requiresConfirmation &&
+                      commandInfo.requiresConfirmation &&
                       argumentList.length
                     ) {
-                      askConfirmation();
+                      askForConfirmation();
                     } else {
                       executeCommand();
                     }
@@ -516,70 +360,3 @@ export default function Page() {
     </main>
   );
 }
-
-class Command {
-  description: string;
-  argumentsRequired: string;
-  requiresPassword: boolean;
-  requiresConfirmation: boolean;
-  hidden: boolean;
-
-  constructor({
-    description = "",
-    argumentsRequired = "",
-    requiresPassword = false,
-    requiresConfirmation = false,
-    hidden = false,
-  }) {
-    this.description = description;
-    this.argumentsRequired = argumentsRequired;
-    this.requiresPassword = requiresPassword;
-    this.requiresConfirmation = requiresConfirmation;
-    this.hidden = hidden;
-  }
-}
-
-// List of commands
-const COMMANDS = {
-  login: new Command({
-    description: "Logs you into your existing account",
-    argumentsRequired: "[username]",
-    requiresPassword: true,
-  }),
-  logout: new Command({ description: "Logs you out of your account" }),
-  search: new Command({ description: "Gives a random account you could try to hack" }),
-  admin: new Command({ description: "Secret command to do admin tasks", argumentsRequired: "[username] [secret code]", requiresPassword: true, hidden: true }),
-  balance: new Command({ description: "Gets your account balance" }),
-  storage: new Command({ description: "Gets your computer storage" }),
-  delete: new Command({
-    description: "Permanently deletes your account",
-    argumentsRequired: "[username]",
-    requiresPassword: true,
-  }),
-  help: new Command({ description: "Shows description of the command you pass as argument", argumentsRequired: "[command]" }),
-  signup: new Command({
-    description: "Creates a new account",
-    argumentsRequired: "[username]",
-    requiresPassword: true,
-  }),
-  transfer: new Command({
-    description: "Transfer money from one user to another",
-    argumentsRequired: "[receiver] [amount]",
-    requiresPassword: true,
-    requiresConfirmation: true,
-  }),
-  browser: new Command({
-    description: "Used to hack websites and to install malwares on websites",
-    argumentsRequired: "hack [website link]",
-  }),
-  browse: new Command({ description: "Gives random 10 website links" }),
-  ham: new Command({
-    description: "ham is a package manager which let you install various softwares and malwares",
-    argumentsRequired: "install [software id]",
-    requiresConfirmation: true,
-  }),
-  leaderboard: new Command({ description: "Gives a list of top 10 hackers all over the world" }),
-  transactions: new Command({ description: "Shows your transaction history" }),
-  clear: new Command({ description: "Clears terminal history" }),
-  deploy: new Command({ description: "Used to deploy a malware on a website you own", argumentsRequired: "[software id] [your website link]" }),
-};
