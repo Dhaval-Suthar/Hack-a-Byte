@@ -18,11 +18,12 @@ import {
   handleDeploy,
 } from "./commands";
 
-class Command {
+export class Command {
   description: string;
   argumentsRequired: string;
   requiresPassword: boolean;
   requiresConfirmation: boolean;
+  requiresLogin: boolean;
   hidden: boolean;
   loadingText: string;
   info: string;
@@ -33,6 +34,7 @@ class Command {
     argumentsRequired = "",
     requiresPassword = false,
     requiresConfirmation = false,
+    requiresLogin = false,
     hidden = false,
     loadingText = "Processing...",
     info = "",
@@ -42,6 +44,7 @@ class Command {
     this.argumentsRequired = argumentsRequired;
     this.requiresPassword = requiresPassword;
     this.requiresConfirmation = requiresConfirmation;
+    this.requiresLogin = requiresLogin;
     this.hidden = hidden;
     this.loadingText = loadingText;
     this.info = info;
@@ -77,18 +80,20 @@ export const COMMANDS = {
   }),
   balance: new Command({
     description: "Gets your account balance",
+    requiresLogin: true,
     loadingText: "Fetching balance...",
     action: handleBalance,
   }),
   storage: new Command({
     description: "Gets your computer storage",
+    requiresLogin: true,
     loadingText: "Fetching storage...",
     action: handleStorage,
   }),
   delete: new Command({
     description: "Permanently deletes your account",
     requiresPassword: true,
-    requiresConfirmation: true,
+    requiresLogin: true,
     loadingText: "Deleting...",
     action: handleDelete,
   }),
@@ -109,17 +114,20 @@ export const COMMANDS = {
     argumentsRequired: "[receiver] [amount]",
     requiresPassword: true,
     requiresConfirmation: true,
+    requiresLogin: true,
     loadingText: "Transferring...",
     action: handleTransfer,
   }),
   browser: new Command({
     description: "Used to hack websites and to install malwares on websites",
     argumentsRequired: "hack [website link]",
+    requiresLogin: true,
     loadingText: "Hacking...",
     action: handleBrowser,
   }),
   browse: new Command({
     description: "Gives random 10 website links",
+    requiresLogin: true,
     loadingText: "Fetching websites...",
     action: handleBrowse,
   }),
@@ -127,6 +135,7 @@ export const COMMANDS = {
     description: "ham is a package manager which let you install various softwares and malwares",
     argumentsRequired: "install [software id]",
     requiresConfirmation: true,
+    requiresLogin: true,
     loadingText: "Installing...",
     info: `<h3> - Virus: @1000</h3>`,
     action: handleHam,
@@ -138,6 +147,7 @@ export const COMMANDS = {
   }),
   transactions: new Command({
     description: "Shows your transaction history",
+    requiresLogin: true,
     loadingText: "Fetching transactions...",
     action: handleTransactions,
   }),
@@ -145,6 +155,7 @@ export const COMMANDS = {
   deploy: new Command({
     description: "Used to deploy a malware on a website you own",
     argumentsRequired: "[software id] [your website link]",
+    requiresLogin: true,
     loadingText: "Deploying...",
     action: handleDeploy,
   }),

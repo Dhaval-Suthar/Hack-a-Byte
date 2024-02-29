@@ -7,6 +7,7 @@ export const DEFAULT_USERNAME = "0.0.0.0";
 export const DEFAULT_USER_ID = "0";
 export const DEFAULT_COMPUTER_MODEL = "HackBook-L";
 export const ROOT_DIRECTORY = "~";
+export const DEFAULT_PASSWORD = "1000";
 
 export default function Page() {
   // User Information
@@ -26,8 +27,9 @@ export default function Page() {
   // Bot Information
   const [activeBot, setActiveBot] = useState(false);
 
-  // Other Information
+  // Command Information
   const [argumentSuggestion, setArgumentSuggestion] = useState("");
+  let password = DEFAULT_PASSWORD;
 
   // Functions
   function focusCommandLine() {
@@ -43,7 +45,7 @@ export default function Page() {
     consoleElement?.appendChild(commandElement);
   }
 
-  async function executeCommand(password = "") {
+  async function executeCommand() {
     // Loading Information
     let loading = false;
     const loadingElement = document.createElement("li");
@@ -59,7 +61,58 @@ export default function Page() {
 
     const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
-    if (commandInfo) {
+    async function checkInputs() {
+      if (!commandInfo) {
+        return `<h3>command not found: ${commandToPerform} </h3>`;
+      }
+
+      const argumentRequiredList = commandInfo.argumentsRequired === "" ? [] : commandInfo.argumentsRequired.split(" ");
+
+      if (userId === DEFAULT_USER_ID && commandInfo.requiresLogin) return `<h3>Login First</h3>`;
+
+      if (argumentList.length < argumentRequiredList.length)
+        return `<h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
+
+      if (argumentList.length > argumentRequiredList.length)
+        return `<h3> - Extra Argument </h3><h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
+
+      if (argumentRequiredList.includes("[amount]") && !Number(argumentList[argumentRequiredList.indexOf("[amount]")]))
+        return `<h3 class="text-red-800">amount should be only numbers</h3>`;
+
+      if (
+        argumentRequiredList.includes("[amount]") &&
+        argumentList[argumentRequiredList.indexOf("[amount]")].length < 1
+      )
+        return `<h3>amount should be greater than 0</h3>`;
+
+      if (commandInfo.requiresConfirmation) {
+        askForConfirmation();
+      }
+
+      if (commandInfo.requiresPassword) {
+        await askForPassword();
+      }
+
+      if (commandInfo.hidden)
+        return (
+          await commandInfo.action({
+            userId: userId,
+            username: username,
+            password: password,
+            command: commandToPerform,
+            argumentList: argumentList,
+          })
+        ).output;
+
+      if (!Number(password)) return `<h3 class="text-red-800">password should be only numbers</h3>`;
+
+      if (password.length !== 4) return `<h3 class="text-red-800"> password should have 4 digits</h3>`;
+
+      // Start loading
+      loadingElement.innerHTML = `<h3>${commandInfo.loadingText}</h3>`;
+      consoleElement?.appendChild(loadingElement);
+      loading = true;
+
       // Get the result of the command
       const result = await commandInfo.action({
         userId: userId,
@@ -69,22 +122,18 @@ export default function Page() {
         argumentList: argumentList,
       });
 
-      // Set the innerHTML of outputElement to the output of the command
-      outputElement.innerHTML = result.output;
-
       // Set userData if provided
       if (result.userData) {
         setUsername(result.userData.username);
         setUserId(result.userData.id);
       }
 
-      // Start loading
-      loadingElement.innerHTML = `<h3>SigningUp... </h3>`;
-      consoleElement?.appendChild(loadingElement);
-      loading = true;
-    } else {
-      outputElement.innerHTML = `<h3>command not found: ${commandToPerform} </h3>`; // Default message for unknown command
+      password = DEFAULT_PASSWORD;
+
+      return result.output;
     }
+
+    outputElement.innerHTML = await checkInputs();
 
     if (loading) {
       // End loading
@@ -103,7 +152,7 @@ export default function Page() {
     focusCommandLine();
   }
 
-  function askForPassword() {
+  async function askForPassword() {
     const passwordElement = document.createElement("li");
     const consoleElement = document.getElementById("console-element");
     const promptElement = document.getElementById("command-prompt");
@@ -119,21 +168,6 @@ export default function Page() {
     passwordInputElement.style.color = "transparent";
     passwordInputElement.style.width = "0px";
     passwordInputElement.style.outline = "none";
-    passwordInputElement.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        // Remove the event listeners
-        window.removeEventListener("keydown", focusInput);
-        window.removeEventListener("click", focusInput);
-
-        // Remove passwordInputElement
-        consoleElement?.removeChild(passwordElement);
-
-        // Add the prompt back
-        promptElement && consoleElement?.appendChild(promptElement);
-
-        executeCommand(passwordInputElement.value);
-      }
-    };
 
     // Properties of passwordElement
     passwordElement.style.display = "flex";
@@ -146,9 +180,6 @@ export default function Page() {
         </div>
       </h3>`;
 
-    // Remove promptElement
-    if (promptElement) consoleElement?.removeChild(promptElement);
-
     // Add passwordInputElement
     passwordElement.appendChild(passwordInputElement);
     consoleElement?.appendChild(passwordElement);
@@ -156,6 +187,28 @@ export default function Page() {
     // Focus passwordInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
+
+    // Wait till user enters the password
+    await new Promise<void>(
+      (resolve) =>
+        (passwordInputElement.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            // Remove the event listeners
+            window.removeEventListener("keydown", focusInput);
+            window.removeEventListener("click", focusInput);
+
+            // Remove passwordInputElement
+            passwordElement && consoleElement?.removeChild(passwordElement);
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            password = passwordInputElement.value;
+
+            resolve();
+          }
+        })
+    );
   }
 
   function askForConfirmation() {
@@ -219,13 +272,12 @@ export default function Page() {
             focusCommandLine();
             break;
         }
-
       }
     };
 
     // Properties of confirmationElement
     confirmationElement.style.display = "flex";
-    confirmationInfoElement.innerHTML = COMMANDS[commandToPerform as keyof typeof COMMANDS]?.info; 
+    confirmationInfoElement.innerHTML = COMMANDS[commandToPerform as keyof typeof COMMANDS]?.info;
 
     // Properties of confirmationInfoElement
     confirmationElement.style.display = "flex";
@@ -288,17 +340,7 @@ export default function Page() {
                   // If enter key is pressed
                   if (e.key === "Enter") {
                     printCommand();
-
-                    if (commandInfo.requiresPassword && argumentList.length) {
-                      askForPassword();
-                    } else if (
-                      commandInfo.requiresConfirmation &&
-                      argumentList.length
-                    ) {
-                      askForConfirmation();
-                    } else {
-                      executeCommand();
-                    }
+                    executeCommand();
                   }
                 }}
               />
@@ -331,7 +373,10 @@ export default function Page() {
                   >
                     <h1
                       onClick={() => {
-                        setCommand(commandName + " ");
+                        setCommand(
+                          commandName +
+                            (COMMANDS[commandName as keyof typeof COMMANDS].argumentsRequired === "" ? "" : " ")
+                        );
                         suggestArguments(commandName);
                         setActiveBot(false);
                       }}
