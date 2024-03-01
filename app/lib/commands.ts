@@ -420,7 +420,7 @@ export async function handleDeploy({ userId = "", username = "", password = "", 
   const softwareId = argumentList[0];
   const websiteLink = argumentList[1];
 
-  let response = await deploy(username, websiteLink, softwareId);
+  let response = await deploy(userId, websiteLink, softwareId);
 
   if (response.error) {
     return {

@@ -391,7 +391,7 @@ export async function deploy(userId: string, websiteLink: string, softwareId: st
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    const user = await db.collection("hackers").findOne({ _id: ObjectId(userId) });
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
 
     if (!user) return { error: "Login first!" };
 
