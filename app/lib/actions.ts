@@ -1,44 +1,18 @@
 "use server";
 
-import { z } from "zod";
 import clientPromise from "../lib/mongodb";
 import { ObjectId, PushOperator } from "mongodb";
+import { DEFAULT_USER_ID, ERRORS } from "./constants";
 
-const TransferSchema = z.object({
-  sender: z.string(),
-  username: z.string(),
-  amount: z.number(),
-});
+const SECRET_PASSWORD = "charger";
 
-const HackerSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-});
-
-const AdminSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-  secretCode: z.string(),
-});
-
-const Admin = AdminSchema;
-const SignUp = HackerSchema;
-const LogIn = HackerSchema;
-const Delete = HackerSchema;
-const Transfer = TransferSchema;
-
-export async function admin(data: {
-  username: string;
-  password: string;
-  secretCode: string;
-}) {
+export async function admin(username: string, password: string, secretCode: string) {
   try {
-    const { username, password, secretCode } = Admin.parse(data);
-
-    if (secretCode !== "charger") return false;
+    if (secretCode !== SECRET_PASSWORD) return { error: ERRORS.INVALID_CREDENTIALS };
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
     const response = await db.collection("hackers").insertOne({
       username,
       password,
@@ -49,25 +23,23 @@ export async function admin(data: {
       lastLogin: new Date(),
     });
 
-    return response.acknowledged;
+    if (!response) return { error: ERRORS.SOME_ERROR };
+
+    return { added: true };
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function signup(data: { username: string; password: string }) {
+export async function signup(username: string, password: string) {
   try {
-    const { username, password } = SignUp.parse(data);
-
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
     // checking if user with same username exist and sending error
-    let isUser = await db.collection("hackers").findOne({username: username});
-    if (isUser) { 
-      return {success: false, error: "Username not available", id: "0"}
-    }
+    const isUnique = await db.collection("hackers").findOne({ username: username });
+    if (!isUnique) return { error: ERRORS.USER_ALREADY_EXISTS };
 
     const response = await db.collection("hackers").insertOne({
       username: username,
@@ -83,67 +55,58 @@ export async function signup(data: { username: string; password: string }) {
       lastLogin: new Date(),
     });
 
+    // Add a user website
     db.collection("websites").insertOne({
       owner: username,
       type: "money",
       malwareId: 0,
     });
 
-    return {success: true, id:response.insertedId.toJSON()};
+    return { id: response.insertedId.toJSON() };
   } catch (e) {
     console.error(e);
-    return {success: false, error: "Unknown error occurred", id: "0"};
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function login(data: { username: string; password: string }) {
+export async function login(username: string, password: string) {
   try {
-    const { username, password } = LogIn.parse(data);
-
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
     const response = await db.collection("hackers").findOne({
       username,
       password,
     });
 
-    if (!response) {
-      return {
-        id: "0",
-        lastLogin: "never",
-      };
-    }
+    if (!response) return { error: ERRORS.INVALID_CREDENTIALS };
 
-    let returnData = {
+    return {
       id: response?._id.toJSON(),
       lastLogin: response?.lastLogin,
     };
-
-    return returnData;
   } catch (e) {
     console.error(e);
-    return {
-      id: "0",
-      lastLogin: "never",
-    };
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function deleteUser(data: { username: string; password: string }) {
+export async function deleteUser(username: string, password: string) {
   try {
-    const { username, password } = Delete.parse(data);
-
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
     const response = await db.collection("hackers").deleteOne({
       username,
       password,
     });
 
-    return response.deletedCount;
+    if (!response.acknowledged) return { error: ERRORS.INVALID_CREDENTIALS };
+
+    return { deleted: true };
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
@@ -151,85 +114,70 @@ export async function search() {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
     const response = await db
       .collection("hackers")
-      .aggregate([
-        { $addFields: { randomField: { $rand: {} } } },
-        { $sort: { randomField: 1 } },
-        { $limit: 1 },
-      ])
+      .aggregate([{ $addFields: { randomField: { $rand: {} } } }, { $sort: { randomField: 1 } }, { $limit: 1 }])
       .toArray();
 
-    if (!response[0]) {
-      return false;
-    }
+    if (!response[0]) return { error: ERRORS.NO_USER_FOUND };
 
-    return response[0].username;
+    return { username: response[0].username };
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
 export async function balance(id: string) {
   try {
-    if (id == "0") return false;
+    if (id === DEFAULT_USER_ID) return { error: ERRORS.LOGIN_REQUIRED };
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db
-      .collection("hackers")
-      .findOne({ _id: new ObjectId(id) });
 
-    if (!response) {
-      return false;
-    }
+    const response = await db.collection("hackers").findOne({ _id: new ObjectId(id) });
 
-    return response.balance.toString();
+    if (!response) return { error: ERRORS.SERVER_ERROR };
+
+    return { balance: response.balance.toString() };
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
 export async function storage(id: string) {
   try {
-    if (id == "0") return false;
+    if (id === DEFAULT_USER_ID) return { error: ERRORS.LOGIN_REQUIRED };
 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db
-      .collection("hackers")
-      .findOne({ _id: new ObjectId(id) });
 
-    if (!response) {
-      return false;
-    }
+    const response = await db.collection("hackers").findOne({ _id: new ObjectId(id) });
+
+    if (!response) return { error: ERRORS.INVALID_LOGIN };
 
     return response.storage;
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function transfer(data: {
-  sender: string;
-  username: string;
-  amount: number;
-}) {
+export async function transfer(senderId: string, username: string, amount: number) {
   try {
-    const { sender, username, amount } = Transfer.parse(data);
-
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db
-      .collection("hackers")
-      .findOne({ username: sender });
 
-    if (!response || response.balance < amount) {
-      return false;
-    }
+    const sender = await db.collection("hackers").findOne({ _id: new ObjectId(senderId) });
+    const receiver = await db.collection("hackers").findOne({ username: username });
+
+    if (!sender) return { error: ERRORS.INVALID_LOGIN };
+
+    if (!receiver) return { error: ERRORS.NO_USER_FOUND };
+
+    if (sender.balance < amount) return { error: ERRORS.INSUFFICIENT_BALANCE };
 
     // Start a Client Session
     const session = client.startSession();
@@ -240,18 +188,16 @@ export async function transfer(data: {
       await session.withTransaction(async () => {
         const collection = db.collection("hackers");
 
-        if (!sender) return false;
-
         db.collection("transactions").insertOne({
           _id: transactionId,
-          from: sender,
+          from: sender.username,
           to: username,
           amount,
           date: new Date(),
         });
 
         await collection.findOneAndUpdate(
-          { username: sender },
+          sender,
           {
             $inc: { balance: -amount },
             $push: {
@@ -262,7 +208,7 @@ export async function transfer(data: {
         );
 
         await collection.findOneAndUpdate(
-          { username },
+          receiver,
           {
             $inc: { balance: amount },
             $push: {
@@ -276,10 +222,10 @@ export async function transfer(data: {
       await session.endSession();
     }
 
-    return transactionId;
+    return { id: transactionId };
   } catch (e) {
     console.error(e);
-    return false;
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
@@ -287,6 +233,7 @@ export async function leaderboard() {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+
     const response = await db
       .collection("hackers")
       .find({})
@@ -295,90 +242,77 @@ export async function leaderboard() {
       .limit(5)
       .toArray();
 
-    if (!response[0]) {
-      return "";
-    }
+    if (!response[0]) return { error: ERRORS.NO_USER_FOUND };
 
-    return JSON.stringify(response);
+    return { data: JSON.stringify(response) };
   } catch (e) {
     console.error(e);
-    return "";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function transactions(data: { name: string }) {
+export async function transactions(name: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
     const response = await db
       .collection("transactions")
-      .find({ $or: [{ from: data.name }, { to: data.name }] })
+      .find({ $or: [{ from: name }, { to: name }] })
       .sort({ date: -1 })
       .limit(10)
       .toArray();
 
-    if (!response[0]) {
-      return "";
-    }
+    if (!response[0]) return { error: ERRORS.NO_TRANSACTIONS_FOUND };
 
-    return JSON.stringify(response);
+    return { data: JSON.stringify(response) };
   } catch (e) {
     console.error(e);
-    return "";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function browser(data: {
-  name: string;
-  process: string;
-  link: string;
-}) {
+export async function browser(userId: string, process: string, link: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    if (data.link === "none" || data.link === "") return "No link is provided!";
+    if (link.length <= 31) return { error: ERRORS.INVALID_LINK };
 
-    if (data.link.length <= 31) return "Invalid link!";
+    const websiteId = link.slice(31); // Removes "https://hack-a-byte.vercel.app/"
 
-    let link = data.link.slice(31); // Removes "https://hack-a-byte.vercel.app/"
-
-    switch (data.process) {
+    switch (process) {
       case "hack":
-        const response = await db
-          .collection("websites")
-          .findOne({ _id: new ObjectId(link) });
+        const response = await db.collection("websites").findOne({ _id: new ObjectId(websiteId) });
+
+        const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+
+        if (!user) return { error: ERRORS.INVALID_LOGIN };
 
         if (response?._id) {
-          if (response.owner === data.name)
-            return "You can't hack your own website!";
+          if (response.owner === user.username) return { error: "You can't hack your own website!" };
 
           switch (response?.type) {
             case "money":
-              await db
-                .collection("websites")
-                .updateOne(response, { $set: { owner: data.name } });
-              return "The website have been hacked";
+              await db.collection("websites").updateOne(response, { $set: { owner: name } });
+              return { success: "The website have been hacked" };
             case "virus":
-              await db
-                .collection("hackers")
-                .updateOne({ username: data.name }, { $set: { balance: 0 } });
-              return "You have been hacked";
+              await db.collection("hackers").updateOne({ username: name }, { $set: { balance: 0 } });
+              return { success: "You have been hacked" };
 
             default:
-              return `Can't Hack ${response.owner}'s website!`;
+              return { error: `Can't Hack ${response.owner}'s website!` };
           }
         }
 
-        return "Invalid link!";
+        return { error: ERRORS.INVALID_LINK };
 
       default:
-        return "Invalid process!";
+        return { error: ERRORS.INVALID_PROCESS };
     }
   } catch (e) {
     console.error(e);
-    return "";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
@@ -391,32 +325,30 @@ export async function browse() {
       .aggregate([{ $sample: { size: 10 } }])
       .toArray();
 
-    if (!response[0]) return "";
+    if (!response[0]) return { error: ERRORS.NO_WEBSITES_FOUND };
 
-    return JSON.stringify(response);
+    return { data: JSON.stringify(response) };
   } catch (e) {
     console.error(e);
-    return "";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function ham(data: { user: string; process: string }) {
+export async function ham(userId: string, process: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    switch (data.process) {
+    switch (process) {
       case "virus":
         // Start a Client Session
         const session = client.startSession();
 
-        const user = await db
-          .collection("hackers")
-          .findOne({ username: data.user });
+        const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
 
-        if (!user) return "User not found!";
+        if (!user) return { error: ERRORS.INVALID_LOGIN };
 
-        if (user.balance < 1000) return "Not enough balance!";
+        if (user.balance < 1000) return { error: ERRORS.INSUFFICIENT_BALANCE };
 
         const virusId = new ObjectId();
 
@@ -424,76 +356,69 @@ export async function ham(data: { user: string; process: string }) {
           await session.withTransaction(async () => {
             db.collection("malwares").insertOne({
               _id: virusId,
-              owner: data.user,
+              owner: user.username,
               type: "virus",
             });
 
-            await db
-              .collection("hackers")
-              .updateOne(user, { $inc: { balance: -1000 } }, { session });
-
+            await db.collection("hackers").updateOne(user, { $inc: { balance: -1000 } }, { session });
           });
         } finally {
           await session.endSession();
         }
 
-        return "Your Virus id is " + virusId.toJSON();
+        return { success: "Your Virus id is " + virusId.toJSON() };
       default:
-        return "Invalid process!";
+        return { error: ERRORS.INVALID_PROCESS };
     }
   } catch (e) {
     console.error(e);
-    return "";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
-export async function deploy(data: { user: string, websiteLink: string, softwareId: string }) {
+export async function deploy(userId: string, websiteLink: string, softwareId: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    const user = await db
-      .collection("hackers")
-      .findOne({ username: data.user });
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
 
-    if (!user) return "User not found!";
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
 
-    if (data.websiteLink === "") return "No link is provided!";
+    if (websiteLink.length <= 31) return { error: ERRORS.INVALID_LINK };
 
-    if (data.websiteLink.length <= 31) return "Invalid link!";
+    const link = websiteLink.slice(31); // Removes "https://hack-a-byte.vercel.app/"
 
-    let link = data.websiteLink.slice(31); // Removes "https://hack-a-byte.vercel.app/"
+    const website = await db.collection("websites").findOne({ _id: new ObjectId(link) });
 
-    const website = await db
-      .collection("websites")
-      .findOne({ _id: new ObjectId(link) });
+    if (!website?._id) return { error: ERRORS.INVALID_LINK };
 
-    if (!website?._id) return "Invalid website link!";
-    if (website?.owner !== data.user) return "Not your website!";
+    if (website?.owner !== user.username) return { error: ERRORS.NOT_YOUR_WEBSITE };
 
-    const software = await db
-      .collection("malwares")
-      .findOne({ _id: new ObjectId(data.softwareId) });
+    const software = await db.collection("malwares").findOne({ _id: new ObjectId(softwareId) });
 
-    if (!software?._id) return "Invalid software id!";
-
+    if (!software?._id) return { error: ERRORS.INVALID_SOFTWARE_ID };
 
     await db.collection("websites").updateOne(website, {
-      $set: { type: "virus", malwareId: data.softwareId },
+      $set: { type: "virus", malwareId: softwareId },
     });
 
-    setTimeout(async () => {
-      const client = await clientPromise;
-      const db = client.db("Hack-a-Byte");
-      await db.collection("websites").updateOne(website, {
-        $set: { type: "money", malwareId: 0 },
-      });
-      await db.collection("malwares").deleteOne({ _id: new ObjectId(data.softwareId) });
-    }, 24 * 60 * 60 * 1000);
+    // Remove the virus after 24 hours and also delete it
+    setTimeout(
+      async () => {
+        const client = await clientPromise;
+        const db = client.db("Hack-a-Byte");
+        await db.collection("websites").updateOne(website, {
+          $set: { type: "money", malwareId: 0 },
+        });
+        await db.collection("malwares").deleteOne({ _id: new ObjectId(softwareId) });
+      },
+      24 * 60 * 60 * 1000
+    );
 
-    return "Deployed Successfully!";
+    return { success: "Deployed Successfully!" };
   } catch (e) {
     console.error(e);
-    return "Some Error Occured!";
+    return { error: ERRORS.SERVER_ERROR };
   }
 }

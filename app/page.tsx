@@ -1,301 +1,177 @@
 "use client";
 import { useState } from "react";
+import { COMMANDS } from "./lib/Command";
 import {
-  handleSearch,
-  handleAdmin,
-  handleBalance,
-  handleStorage,
-  handleDelete,
-  handleHelp,
-  handleLogIn,
-  handleSignUp,
-  handleTransfer,
-  handleBrowser,
-  handleBrowse,
-  handleHam,
-  handleLeaderboard,
-  handleTransactions,
-  handleClear,
-  handleDeploy,
-} from "./lib/commands";
+  DEFAULT_USERNAME,
+  DEFAULT_USER_ID,
+  DEFAULT_COMPUTER_MODEL,
+  ROOT_DIRECTORY,
+  DEFAULT_PASSWORD,
+} from "./lib/constants";
 
 export default function Page() {
-  const diractory = "@HackBook-L ~ % "; // Present Working Diractory
+  // User Information
+  const [username, setUsername] = useState(DEFAULT_USERNAME);
+  const [userId, setUserId] = useState(DEFAULT_USER_ID);
 
-  const DEFAULT_USER = "0.0.0.0"; // Username of the loggged in User
+  // Computer Information
+  const [computerModel, setComputerModel] = useState(DEFAULT_COMPUTER_MODEL);
+  const [presentWorkingDiractory, setPresentWorkingDiractory] = useState(ROOT_DIRECTORY);
 
-  const [command, setCommand] = useState(""); // User Command
-  const [activeUser, setActiveUser] = useState(DEFAULT_USER); // Username of the loggged in User
-  const [activeDiractory, setActiveDiractory] = useState(diractory); // Directory of the loggged in User
-  const [userId, setUserId] = useState("0"); // Username of the loggged in User
+  // Terminal Information
+  const prompt = `${username}@${computerModel} ${presentWorkingDiractory} % `;
+  const [command, setCommand] = useState("");
+  const commandToPerform = command.split(" ")[0];
+  const argumentList = command.split(" ").slice(1);
 
-  const [assist, setAssist] = useState(false);
-  const [required, setRequired] = useState("");
+  // Bot Information
+  const [activeBot, setActiveBot] = useState(false);
 
+  // Command Information
+  const [argumentSuggestion, setArgumentSuggestion] = useState("");
+  let password = DEFAULT_PASSWORD;
+
+  // Functions
   function focusCommandLine() {
     const commandLine = document.getElementById("command-line");
-    commandLine?.focus(); // Focus the commandLine
+    commandLine?.focus();
   }
 
   function printCommand() {
-    let consoleElement = document.getElementById("consoleElement"); // Getting the console element
+    const consoleElement = document.getElementById("console-element");
+    const commandElement = document.createElement("li");
 
-    // Print command
-    let commandElement = document.createElement("li"); // Creating li element
-    commandElement.innerHTML = `<h3>${
-      activeUser + activeDiractory + command
-    }</h3>`; // Setting the innerHTML of li element to the command
-    consoleElement?.appendChild(commandElement); // Appending to consoleElement
+    commandElement.innerHTML = prompt + command;
+    consoleElement?.appendChild(commandElement);
   }
 
-  async function handleCommand(password = "") {
-    const commands = command.split(" "); // Separate commands and arguments from command
-    const operation = commands[0]; // get operation to perform
+  async function executeCommand() {
+    // Loading Information
+    let loading = false;
+    const loadingElement = document.createElement("li");
+    loadingElement.innerHTML = "processing";
 
-    let output = document.createElement("li"); // Create a li element
-    let loading = document.createElement("li"); // Create a li element
-    loading.innerHTML = "null";
+    // Document Elements
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const outputElement = document.createElement("li");
 
-    let user = activeUser; // User
+    // Remove prompt
+    promptElement && consoleElement?.removeChild(promptElement);
 
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
-    commandPrompt && consoleElement?.removeChild(commandPrompt);
+    const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
-    switch (operation) {
-      case "help":
-        output.innerHTML = handleHelp(commands[1]).output; // Display the output in the terminal
-        output.style.color = "#c3bcbc";
-        break;
+    async function checkInputs() {
+      if (!commandInfo) {
+        return `<h3>command not found: ${commandToPerform} </h3>`;
+      }
 
-      case "admin":
-        output.innerHTML = (
-          await handleAdmin(commands[1], commands[2], password)
-        ).output; // Display the output in the terminal
-        break;
+      const argumentRequiredList = commandInfo.argumentsRequired === "" ? [] : commandInfo.argumentsRequired.split(" ");
 
-      case "signup":
-        // Start loading
-        loading.innerHTML = `<h3>SigningUp... </h3>`;
-        consoleElement?.appendChild(loading);
+      if (userId === DEFAULT_USER_ID && commandInfo.requiresLogin) return `<h3>Login First</h3>`;
 
-        const signUpResult = await handleSignUp(commands[1], password); // Run the operation
-        output.innerHTML = signUpResult.output; // Display the output in the terminal
+      if (argumentList.length < argumentRequiredList.length)
+        return `<h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
 
-        if (signUpResult.acknowledged) {
-          // Set user
-          setActiveUser(commands[1]);
-          user = commands[1];
-          setUserId(signUpResult.id); // Set id
-        }
-        break;
+      if (argumentList.length > argumentRequiredList.length)
+        return `<h3> - Extra Argument </h3><h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
 
-      case "login":
-        // Start loading
-        loading.innerHTML = `<h3>Checking Credentials... </h3>`;
-        consoleElement?.appendChild(loading);
+      if (argumentRequiredList.includes("[amount]") && !Number(argumentList[argumentRequiredList.indexOf("[amount]")]))
+        return `<h3 class="text-red-800">amount should be only numbers</h3>`;
 
-        const logInResult = await handleLogIn(commands[1], password); // Run the operation
-        output.innerHTML = logInResult.output; // Display the output in the terminal
+      if (
+        argumentRequiredList.includes("[amount]") &&
+        argumentList[argumentRequiredList.indexOf("[amount]")].length < 1
+      )
+        return `<h3>amount should be greater than 0</h3>`;
 
-        if (logInResult.acknowledged) {
-          // Set user
-          setActiveUser(commands[1]);
-          user = commands[1];
-          setUserId(logInResult.id); // Set id
-        }
-        break;
+      if (commandInfo.requiresConfirmation) {
+        askForConfirmation();
+      }
 
-      case "logout":
-        if (user === DEFAULT_USER) {
-          output.innerHTML = `<h3>Already Logged Out</h3>`; // Display the output in the terminal
-        } else {
-          output.innerHTML = `<h3>Logged Out Successfully!</h3>`; // Display the output in the terminal
-          setActiveUser(DEFAULT_USER); // Set user to default
-          user = DEFAULT_USER;
-          setUserId("0"); // Set id to default
-        }
-        break;
+      if (commandInfo.requiresPassword) {
+        await askForPassword();
+      }
 
-      case "delete":
-        // Start loading
-        loading.innerHTML = `<h3>Checking Authentication... </h3>`;
-        consoleElement?.appendChild(loading);
+      if (commandInfo.hidden)
+        return (
+          await commandInfo.action({
+            userId: userId,
+            username: username,
+            password: password,
+            command: commandToPerform,
+            argumentList: argumentList,
+          })
+        ).output;
 
-        const deleteResult = await handleDelete(commands[1], password); // Run the operation
-        output.innerHTML = deleteResult.output; // Display the output in the terminal
+      if (!Number(password)) return `<h3 class="text-red-800">password should be only numbers</h3>`;
 
-        if (deleteResult.acknowledged && activeUser === commands[1]) {
-          // If the operation is successful and the deleted user is logged in
-          setActiveUser(DEFAULT_USER); // Set user to default
-          user = DEFAULT_USER;
-          setUserId("0"); // Set id to default
-        }
-        break;
+      if (password.length !== 4) return `<h3 class="text-red-800"> password should have 4 digits</h3>`;
 
-      case "search":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
+      // Start loading
+      loadingElement.innerHTML = `<h3>${commandInfo.loadingText}</h3>`;
+      consoleElement?.appendChild(loadingElement);
+      loading = true;
 
-        output.innerHTML = (await handleSearch()).output; // Display the output in the terminal
-        break;
+      // Get the result of the command
+      const result = await commandInfo.action({
+        userId: userId,
+        username: username,
+        password: password,
+        command: commandToPerform,
+        argumentList: argumentList,
+      });
 
-      case "balance":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
+      // Set userData if provided
+      if (result.userData) {
+        setUsername(result.userData.username);
+        setUserId(result.userData.id);
+      }
 
-        output.innerHTML = (await handleBalance(userId)).output; // Display the output in the terminal
-        break;
+      password = DEFAULT_PASSWORD;
 
-      case "storage":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleStorage(userId)).output; // Display the output in the terminal
-        break;
-
-      case "transfer":
-        // Start loading
-        loading.innerHTML = `<h3>Transfering... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (
-          await handleTransfer(user, commands[1], commands[2])
-        ).output; // Display the output in the terminal
-        break;
-
-      case "leaderboard":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleLeaderboard()).output; // Display the output in the terminal
-        break;
-
-      case "transactions":
-        // Start loading
-        loading.innerHTML = `<h3>Fetching... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleTransactions(user)).output; // Display the output in the terminal
-        break;
-
-      case "browser":
-        switch (commands[1]) {
-          case "hack":
-            loading.innerHTML = `<h3>Hacking... </h3>`;
-            break;
-          default:
-            loading.innerHTML = `<h3>Processing... </h3>`;
-            break;
-        }
-
-        consoleElement?.appendChild(loading); // Start loading
-
-        output.innerHTML = (
-          await handleBrowser(user, commands[1], commands[2] ?? "none")
-        ).output; // Display the output in the terminal
-        break;
-
-      case "browse":
-        // Start loading
-        loading.innerHTML = `<h3>Browsing... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleBrowse()).output; // Display the output in the terminal
-        break;
-
-      case "clear":
-        handleClear();
-        break;
-
-      case "ham":
-        if (commands[1] !== "install") {
-          output.innerHTML = `<h3>Usage: ham install [software's name]</h3>`;
-          break;
-        }
-
-        // Start loading
-        loading.innerHTML = `<h3>Installing... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleHam(user, commands[2])).output; // Display the output in the terminal
-        break;
-
-      case "deploy":
-        // Start loading
-        loading.innerHTML = `<h3>Deploying... </h3>`;
-        consoleElement?.appendChild(loading);
-
-        output.innerHTML = (await handleDeploy(user, commands[1] ?? "", commands[2] ?? "")).output; // Display the output in the terminal
-        break;
-
-      default:
-        output.innerHTML = `<h3>command not found: ${operation} </h3>`; // Default message for unknown operations
-        break;
+      return result.output;
     }
 
-    if (loading.innerHTML !== "null") {
+    outputElement.innerHTML = await checkInputs();
+
+    if (loading) {
       // End loading
-      consoleElement?.removeChild(loading);
+      consoleElement?.removeChild(loadingElement);
     }
 
-    setCommand(""); // Empty Command
+    // Clear Command
+    setCommand("");
 
     // Print output
-    consoleElement?.appendChild(output);
+    consoleElement?.appendChild(outputElement);
 
-    // Print commandPrompt
-    commandPrompt && consoleElement?.appendChild(commandPrompt);
+    // Print prompt
+    promptElement && consoleElement?.appendChild(promptElement);
 
     focusCommandLine();
   }
 
-  function handlePassword() {
-    const output = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
+  async function askForPassword() {
+    const passwordElement = document.createElement("li");
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const passwordInputElement = document.createElement("input");
 
-    if (commandPrompt) {
-      consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    function focusInput() {
+      passwordInputElement.focus();
     }
 
-    const input = document.createElement("input"); // Input for password
+    // Properties of passwordInputElement
+    passwordInputElement.type = "password";
+    passwordInputElement.style.background = "transparent";
+    passwordInputElement.style.color = "transparent";
+    passwordInputElement.style.width = "0px";
+    passwordInputElement.style.outline = "none";
 
-    const focusInput = () => {
-      input.focus(); // Focus the input
-    };
-
-    // Properties of input
-    input.type = "password";
-    input.style.background = "transparent";
-    input.style.color = "transparent";
-    input.style.width = "0px";
-    input.style.outline = "none";
-
-    // Key listener
-    input.onkeydown = (e) => {
-      // If enter key is pressed
-      if (e.key === "Enter") {
-        window.removeEventListener("keydown", focusInput); // Remove the event listener
-        window.removeEventListener("click", focusInput); // Remove the event listener
-
-        consoleElement?.removeChild(output); // Remove output
-
-        if (commandPrompt) {
-          consoleElement?.appendChild(commandPrompt); // Print commandPrompt
-        }
-
-        handleCommand(input.value); // Handle the command
-      }
-    };
-
-    // Properties of output
-    output.style.display = "flex";
-    output.innerHTML = `
+    // Properties of passwordElement
+    passwordElement.style.display = "flex";
+    passwordElement.innerHTML = `
       <h3 class="flex">Password:
         <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
@@ -304,263 +180,213 @@ export default function Page() {
         </div>
       </h3>`;
 
-    // Print output
-    output.appendChild(input);
-    consoleElement?.appendChild(output);
+    // Add passwordInputElement
+    passwordElement.appendChild(passwordInputElement);
+    consoleElement?.appendChild(passwordElement);
 
-    // Focus input for every key down
+    // Focus passwordInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
+
+    // Wait till user enters the password
+    await new Promise<void>(
+      (resolve) =>
+        (passwordInputElement.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            // Remove the event listeners
+            window.removeEventListener("keydown", focusInput);
+            window.removeEventListener("click", focusInput);
+
+            // Remove passwordInputElement
+            passwordElement && consoleElement?.removeChild(passwordElement);
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            password = passwordInputElement.value;
+
+            resolve();
+          }
+        })
+    );
   }
 
-  function handleConfirmation() {
-    const output = document.createElement("li"); // Create a li element
-    const info = document.createElement("li"); // Create a li element
-    const consoleElement = document.getElementById("consoleElement"); // Getting the console element
-    const commandPrompt = document.getElementById("command-prompt"); // Getting the command prompt element
-    const commands = command.split(" "); // Separate commands and arguments from command
+  function askForConfirmation() {
+    const confirmationElement = document.createElement("li");
+    const confirmationInfoElement = document.createElement("li");
+    const consoleElement = document.getElementById("console-element");
+    const promptElement = document.getElementById("command-prompt");
+    const confirmationInputElement = document.createElement("input");
 
-    commandPrompt && consoleElement?.removeChild(commandPrompt); // Remove commandPrompt
+    function focusInput() {
+      confirmationInputElement.focus(); // Focus the input
+    }
 
-    const input = document.createElement("input"); // Input for confirmation
-
-    const focusInput = () => {
-      input.focus(); // Focus the input
-    };
-
-    // Properties of input
-    input.type = "text";
-    input.style.background = "transparent";
-    input.style.marginLeft = "10px";
-    input.style.width = "30px";
-    input.maxLength = 3;
-    input.style.outline = "none";
-
-    // Key listener
-    input.onkeydown = (e) => {
-      // If enter key is pressed
+    // Properties of confirmationInputElement
+    confirmationInputElement.type = "text";
+    confirmationInputElement.style.background = "transparent";
+    confirmationInputElement.style.marginLeft = "10px";
+    confirmationInputElement.style.width = "30px";
+    confirmationInputElement.maxLength = 3;
+    confirmationInputElement.style.outline = "none";
+    confirmationInputElement.onkeydown = (e) => {
       if (e.key === "Enter") {
-        window.removeEventListener("keydown", focusInput); // Remove the event listener
-        window.removeEventListener("click", focusInput); // Remove the event listener
+        // Remove the event listeners
+        window.removeEventListener("keydown", focusInput);
+        window.removeEventListener("click", focusInput);
 
-        consoleElement?.removeChild(info); // Remove info
+        // Remove confirmationInfoElement
+        consoleElement?.removeChild(confirmationInfoElement);
 
-        switch (input.value) {
+        switch (confirmationInputElement.value) {
           case "yes":
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
-            consoleElement?.removeChild(output); // Remove output
-            handleCommand(); // Handle the command
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            // Remove confirmationElement
+            consoleElement?.removeChild(confirmationElement);
+            executeCommand();
             break;
 
           case "no":
-            output.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(output);
+            // Change the innerHTML of confirmationElement
+            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`;
+            consoleElement?.appendChild(confirmationElement);
             setCommand(""); // Empty Command
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            focusCommandLine();
             break;
 
           default:
-            output.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`; // Display the output in the terminal
-            consoleElement?.appendChild(output);
+            // Change the innerHTML of confirmationElement
+            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`;
+            consoleElement?.appendChild(confirmationElement);
             setCommand(""); // Empty Command
-            commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
+
+            // Add the prompt back
+            promptElement && consoleElement?.appendChild(promptElement);
+
+            focusCommandLine();
             break;
         }
       }
     };
 
-    // Properties of output
-    output.style.display = "flex";
+    // Properties of confirmationElement
+    confirmationElement.style.display = "flex";
+    confirmationInfoElement.innerHTML = COMMANDS[commandToPerform as keyof typeof COMMANDS]?.info;
 
-    if (commands[0] === "ham") {
-      switch (commands[2]) {
-        case "virus":
-          info.innerHTML = `<h3>That will be 1000 rupee</h3>`; // Display the output in the terminal
-          consoleElement?.appendChild(info);
-          break;
-        default:
-          setCommand(""); // Empty Command
-          output.innerHTML = `<h3>Software does not exists.</h3>`; // Display the output in the terminal
-          consoleElement?.appendChild(output);
-          commandPrompt && consoleElement?.appendChild(commandPrompt); // Print commandPrompt
-          focusCommandLine();
-          return;
-      }
-    }
+    // Properties of confirmationInfoElement
+    confirmationElement.style.display = "flex";
+    confirmationElement.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`;
 
-    output.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`; // Display the output in the terminal
+    // Remove promptElement
+    promptElement && consoleElement?.removeChild(promptElement);
 
-    // Print output
-    output.appendChild(input);
-    consoleElement?.appendChild(output);
+    // Add confirmationInputElement and confirmationInfoElement
+    confirmationElement.appendChild(confirmationInputElement);
+    consoleElement?.appendChild(confirmationInfoElement);
+    consoleElement?.appendChild(confirmationElement);
 
-    // Focus input for every key down
+    // // Focus confirmationInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
   }
 
-  const commands = [
-    "login",
-    "signup",
-    "delete",
-    "transfer",
-    "leaderboard",
-    "logout",
-    "search",
-    "balance",
-    "help",
-    "transactions",
-    "clear",
-    "browser",
-    "browse",
-    "ham",
-    "deploy",
-  ];
+  function suggestArguments(commandName: string) {
+    setArgumentSuggestion(COMMANDS[commandName as keyof typeof COMMANDS]?.argumentsRequired);
 
-  const suggest = (inputCommand: string, addSpace: boolean = true) => {
-    if (["login", "delete", "signup"].includes(inputCommand)) {
-      setRequired(`username`);
-      if (addSpace) inputCommand = inputCommand + " ";
-    } else {
-      setRequired("");
-    }
-
-    switch (inputCommand) {
-      case "transfer":
-        setRequired("receiver amount");
-        if (addSpace) inputCommand = inputCommand + " ";
-        break;
-      case "browser":
-        setRequired("hack link");
-        if (addSpace) inputCommand = inputCommand + " ";
-        break;
-      case "ham":
-        setRequired("install software");
-        if (addSpace) inputCommand = inputCommand + " ";
-        break;
-      case "deploy":
-        setRequired("your-website-link software-id");
-        if (addSpace) inputCommand = inputCommand + " ";
-        break;
-      case "help":
-        setRequired("command");
-        if (addSpace) inputCommand = inputCommand + " ";
-        break;
-      default:
-        break;
-    }
-
-    setCommand(inputCommand);
     focusCommandLine();
-  };
+  }
 
-  const help = (inputCommand: string) => {
-    setCommand("help " + inputCommand);
+  function getCommandInfo(commandName: string) {
+    setCommand("help " + commandName);
+    setActiveBot(false);
     focusCommandLine();
-  };
+  }
 
   return (
     <main className="min-h-screen min-w-full bg-zinc-900 text-white">
       <div>
-        <ul id="consoleElement">
+        <ul id="console-element">
           <li id="command-prompt">
             <div>
               <textarea
                 className="bg-zinc-900 outline-none w-full absolute h-full"
-                value={activeUser + activeDiractory + command}
+                value={prompt + command}
                 id="command-line"
                 onChange={(e) => {
                   if (e.target.value[e.target.value.length - 1] !== "\n") {
-                    setCommand(
-                      e.target.value.slice(
-                        (activeUser + activeDiractory).length
-                      )
-                    );
+                    setCommand(e.target.value.slice(prompt.length));
                   }
                 }}
+                // If user changes the value of the command
                 onKeyDown={(e) => {
-                  // If user changes the value of the command and required is not empty
-                  if (required !== "") {
-                    setRequired("");
+                  const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
+
+                  // make argumentSuggestion empty
+                  if (argumentSuggestion !== "") {
+                    setArgumentSuggestion("");
                   }
 
-                  // if the user types a command suggest its completion
-                  if (commands.includes(command) && e.key === " ") {
-                    suggest(command, false);
+                  // Suggest it's arguments
+                  if (commandInfo && e.key === " ") {
+                    suggestArguments(command);
                   }
 
                   // If enter key is pressed
                   if (e.key === "Enter") {
                     printCommand();
-
-                    let commands = command.split(" "); // Separate commands and arguments from command
-                    let operation = commands[0]; // get operation to perform
-
-                    // If commands requires password
-                    if (
-                      ["login", "signup", "delete", "admin"].includes(
-                        operation
-                      ) &&
-                      commands[1]
-                    ) {
-                      handlePassword(); // Ask for password
-                    } else if (
-                      operation === "transfer" ||
-                      (operation === "ham" &&
-                        commands[1] === "install" &&
-                        commands[2])
-                    ) {
-                      handleConfirmation(); // Handle confirmation
-                    } else {
-                      handleCommand(); // Handle the command
-                    }
+                    executeCommand();
                   }
                 }}
               />
               <div className="absolute text-zinc-400 flex ml-1">
-                <h3 className="text-transparent">
-                  {activeUser + activeDiractory + command}
-                </h3>
-                <h3>{required}</h3>
+                <h3 className="text-transparent">{prompt + command}</h3>
+                <h3>{argumentSuggestion}</h3>
               </div>
-              <h3 className="absolute bg-transparent text-transparent select-none">
-                {activeUser + activeDiractory}
-              </h3>
+              <h3 className="absolute bg-transparent text-transparent select-none">{prompt}</h3>
             </div>
           </li>
         </ul>
         <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
-          <button onClick={() => setAssist(!assist)}>
-            <img
-              src="./image.png"
-              alt="assitant"
-              className="absolute z-10 hover:scale-110 duration-500"
-            />
+          <button onClick={() => setActiveBot(!activeBot)}>
+            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
           </button>
           <div className="absolute w-20">
             <div
               className={`absolute ${
-                assist && "rotate-180"
+                activeBot && "rotate-180"
               } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
             >
-              {commands
-                .filter((inputCommand) => inputCommand !== "help")
-                .map((inputCommand) => (
+              {Object.keys(COMMANDS)
+                .filter((commandName) => !COMMANDS[commandName as keyof typeof COMMANDS]?.hidden)
+                .map((commandName) => (
                   <div
-                    key={inputCommand}
+                    key={commandName}
                     className={`${
-                      !assist && "scale-0"
+                      !activeBot && "scale-0"
                     } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
                   >
                     <h1
-                      onClick={() => suggest(inputCommand)}
+                      onClick={() => {
+                        setCommand(
+                          commandName +
+                            (COMMANDS[commandName as keyof typeof COMMANDS].argumentsRequired === "" ? "" : " ")
+                        );
+                        suggestArguments(commandName);
+                        setActiveBot(false);
+                      }}
                       className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                     >
-                      {inputCommand}
+                      {commandName}
                     </h1>
                     <div className="h-2 flex flex-col mx-1">
                       <h3
-                        onClick={() => help(inputCommand)}
+                        onClick={() => getCommandInfo(commandName)}
                         className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                       >
                         i
@@ -569,23 +395,6 @@ export default function Page() {
                   </div>
                 ))}
             </div>
-            {/* <div
-              className={`absolute h-16 ${
-                help ? "w-80" : "w-16"
-              } duration-500 transition-all right-0 mr-1 text-black bg-white rounded-full `}
-            >
-              <div
-                className={`${
-                  !help && "hidden"
-                } text-center flex justify-start my-4 text-2xl transition-all duration-1000`}
-              >
-                <div className="h-2 flex flex-col mx-8">
-                  <h3 className="w-5 h-5">^</h3>
-                  <h3 className="rotate-180 w-5 h-5">^</h3>
-                </div>
-                <h1 className="w-32 h-10 p-1 rounded-full bg-green-600 shadow-lg shadow-green-700 back text-zinc-100">Signup</h1>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
