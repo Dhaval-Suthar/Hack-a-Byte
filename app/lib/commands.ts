@@ -1,4 +1,4 @@
-import { DEFAULT_USER_ID, DEFAULT_USERNAME } from "../page";
+import { DEFAULT_USER_ID, DEFAULT_USERNAME } from "./constants";
 import { COMMANDS, Command } from "./Command";
 import {
   search,
