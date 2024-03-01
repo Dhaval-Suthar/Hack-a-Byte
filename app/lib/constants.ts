@@ -21,4 +21,5 @@ export const ERRORS = {
   INVALID_PROCESS: "Invalid process",
   INVALID_SOFTWARE_ID: "Invalid software id",
   NOT_YOUR_WEBSITE: "Not your website",
+  NO_EMAILS_FOUND: "No emails found!",
 };

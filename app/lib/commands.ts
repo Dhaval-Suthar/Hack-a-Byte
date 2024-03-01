@@ -1,4 +1,4 @@
-import { DEFAULT_USER_ID, DEFAULT_USERNAME } from "./constants";
+import { DEFAULT_USER_ID, DEFAULT_USERNAME, ERRORS } from "./constants";
 import { COMMANDS, Command } from "./Command";
 import {
   search,
@@ -15,6 +15,8 @@ import {
   browser,
   ham,
   deploy,
+  email,
+  inbox,
 } from "./actions";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
@@ -475,6 +477,62 @@ export function handleClear({ userId = "", username = "", password = "", command
 
   return {
     output: "",
+    acknowledged: true,
+  };
+}
+
+export async function handleEmail({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const response = await email(userId, argumentList[0], argumentList[1], argumentList[2]);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success)
+    return {
+      output: `<h3>${ERRORS.SERVER_ERROR}</h3>`,
+      acknowledged: false,
+    };
+
+  return {
+    output: response.success,
+    acknowledged: true,
+  };
+}
+
+export async function handleInbox({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const response = await inbox(userId);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.data)
+    return {
+      output: `<h3>No emails received yet</h3>`,
+      acknowledged: false,
+    };
+
+  const emailList = JSON.parse(response.data);
+
+  let output = "";
+
+  // Return all new emails
+  emailList.map((mail: { sender: string; receiver: string; username: string; link: string }, index: number) => {
+    output += `<h3> ${index + 1}. ${mail.username}: Your daily price:- Visit ${mail.link}</h3>`;
+  });
+
+  // Add a warning at last
+  output += `<h3 class="text-yellow-300">Note: Once Fetched, the mails are automatically deleted.</h3>`;
+
+  return {
+    output: output,
     acknowledged: true,
   };
 }
