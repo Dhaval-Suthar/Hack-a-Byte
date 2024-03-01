@@ -38,8 +38,8 @@ export async function signup(username: string, password: string) {
     const db = client.db("Hack-a-Byte");
 
     // checking if user with same username exist and sending error
-    const isUnique = await db.collection("hackers").findOne({ username: username });
-    if (!isUnique) return { error: ERRORS.USER_ALREADY_EXISTS };
+    const exists = await db.collection("hackers").findOne({ username: username });
+    if (exists) return { error: ERRORS.USER_ALREADY_EXISTS };
 
     const response = await db.collection("hackers").insertOne({
       username: username,
