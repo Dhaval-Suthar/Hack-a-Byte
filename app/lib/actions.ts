@@ -422,3 +422,58 @@ export async function deploy(userId: string, websiteLink: string, softwareId: st
     return { error: ERRORS.SERVER_ERROR };
   }
 }
+
+export async function email(userId: string, receiverUsername: string, websiteLink: string, fakeUsername: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    if (fakeUsername === "hack-a-byte") return { error: "Can't use hack-a-byte username" };
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    const receiver = await db.collection("hackers").findOne({ username: receiverUsername });
+    if (!receiver) return { error: ERRORS.NO_USER_FOUND };
+
+    if (websiteLink.length <= 31) return { error: ERRORS.INVALID_LINK };
+    const link = websiteLink.slice(31); // Removes "https://hack-a-byte.vercel.app/"
+
+    const website = await db.collection("websites").findOne({ _id: new ObjectId(link) });
+    if (!website?._id) return { error: ERRORS.INVALID_LINK };
+
+    const response = await db.collection("emails").insertOne({
+      sender: user.username,
+      receiver: receiverUsername,
+      username: fakeUsername,
+      link: websiteLink,
+    });
+
+    if (!response) return { error: ERRORS.SERVER_ERROR };
+
+    return { success: "Sent Successfully!" };
+  } catch (e) {
+    console.error(e);
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function inbox(userId: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    const response = await db.collection("emails").find({ receiver: user.username }).toArray();
+
+    if (!response[0]) return { error: ERRORS.NO_EMAILS_FOUND };
+
+    db.collection("emails").deleteMany({ receiver: user.username });
+
+    return { data: JSON.stringify(response) };
+  } catch (e) {
+    console.error(e);
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}

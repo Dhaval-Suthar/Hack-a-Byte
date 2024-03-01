@@ -16,6 +16,8 @@ import {
   handleTransactions,
   handleClear,
   handleDeploy,
+  handleEmail,
+  handleInbox,
 } from "./commands";
 
 export class Command {
@@ -120,7 +122,7 @@ export const COMMANDS = {
   }),
   browser: new Command({
     description: "Used to hack websites and to install malwares on websites",
-    argumentsRequired: "hack [website link]",
+    argumentsRequired: "hack [website-link]",
     requiresLogin: true,
     loadingText: "Hacking...",
     action: handleBrowser,
@@ -133,7 +135,7 @@ export const COMMANDS = {
   }),
   ham: new Command({
     description: "ham is a package manager which let you install various softwares and malwares",
-    argumentsRequired: "install [software id]",
+    argumentsRequired: "install [software-id]",
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Installing...",
@@ -154,9 +156,22 @@ export const COMMANDS = {
   clear: new Command({ description: "Clears terminal history", loadingText: "Clearing", action: handleClear }),
   deploy: new Command({
     description: "Used to deploy a malware on a website you own",
-    argumentsRequired: "[software id] [your website link]",
+    argumentsRequired: "[software-id] [your-website-link]",
     requiresLogin: true,
     loadingText: "Deploying...",
     action: handleDeploy,
+  }),
+  inbox: new Command({
+    description: "Gives you a list of emails",
+    requiresLogin: true,
+    loadingText: "Fetching...",
+    action: handleInbox,
+  }),
+  email: new Command({
+    description: "Sends an scam email to a user",
+    argumentsRequired: "[receiver] [website-link] [fake-username]",
+    requiresLogin: true,
+    loadingText: "Sending...",
+    action: handleEmail,
   }),
 };
