@@ -18,16 +18,17 @@ import {
 } from "./actions";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const result = await admin({
-    username: argumentList[0],
-    password: argumentList[1],
-    secretCode: password,
-  });
+  const response = await admin(argumentList[0], argumentList[1], password);
 
-  // If the account is created
-  if (!result) {
+  if (response.error) {
     return {
-      output: `<h3>command not found: admin </h3>`,
+      output: `<h3>${response.error}</h3>`,
+    };
+  }
+
+  if (!response.added) {
+    return {
+      output: `<h3>command not found: admin</h3>`,
     };
   }
 
@@ -39,20 +40,24 @@ export async function handleAdmin({ userId = "", username = "", password = "", c
 export async function handleSignUp({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const inputUsername = argumentList[0];
 
-  const signedUp = await signup({
-    username: inputUsername,
-    password: password,
-  });
+  const response = await signup(inputUsername, password);
 
-  if (signedUp.id === DEFAULT_USER_ID) {
+  if (response.error) {
     return {
-      output: `<h3 class="text-red-800">${signedUp.error}!</h3>`,
+      output: `<h3 class="text-red-800">${response.error}!</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.id) {
+    return {
+      output: `<h3>Sorry! Some Error Occured!</h3> `,
       acknowledged: false,
     };
   }
 
   return {
-    userData: { id: signedUp.id, username: inputUsername },
+    userData: { id: response.id, username: inputUsername },
     output: `<h3>Last login: never on console</h3> <h3>Welcome ${inputUsername}</h3>`,
     acknowledged: true,
   };
@@ -61,22 +66,26 @@ export async function handleSignUp({ userId = "", username = "", password = "", 
 export async function handleLogIn({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const inputUsername = argumentList[0];
 
-  const loggedIn = await login({
-    username: inputUsername,
-    password: password,
-  });
+  const response = await login(inputUsername, password);
 
-  if (loggedIn.id === DEFAULT_USER_ID) {
+  if (response.error) {
     return {
-      output: `<h3 class="text-red-800">Sorry Invalid Credentials!</h3>`,
+      output: `<h3 class="text-red-800">${response.error}!</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.id) {
+    return {
+      output: `<h3>Sorry! Some Error Occured!</h3> `,
       acknowledged: false,
     };
   }
 
   return {
-    userData: { id: loggedIn.id, username: inputUsername },
+    userData: { id: response.id, username: inputUsername },
     output: `<h3>Last login: ${new Date(
-      loggedIn.lastLogin
+      response.lastLogin
     ).toDateString()} on console</h3> <h3>Welcome ${inputUsername}</h3>`,
     acknowledged: true,
   };
@@ -98,17 +107,22 @@ export async function handleLogOut({ userId = "", username = "", password = "", 
 }
 
 export async function handleDelete({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const deleted = await deleteUser({
-    username: username,
-    password: password,
-  });
+  const response = await deleteUser(username, password);
 
-  if (!deleted) {
+  if (response.error) {
     return {
-      output: `<h3 class="text-red-800">Sorry Invalid Credentials!</h3>`,
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
       acknowledged: false,
     };
   }
+
+  if (!response.deleted) {
+    return {
+      output: `<h3 class="text-red-800">Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
+
   return {
     userData: { id: DEFAULT_USER_ID, username: DEFAULT_USERNAME },
     output: `<h3>${username} Deleted Successfully</h3>`,
@@ -117,9 +131,16 @@ export async function handleDelete({ userId = "", username = "", password = "", 
 }
 
 export async function handleSearch({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const result = await search();
+  const response = await search();
 
-  if (!result) {
+  if (response.error) {
+    return {
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response) {
     return {
       output: `<h3 class="text-red-800">Sorry can't find any user</h3>`,
       acknowledged: false,
@@ -127,15 +148,22 @@ export async function handleSearch({ userId = "", username = "", password = "", 
   }
 
   return {
-    output: `<h3> - ${result}</h3>`,
+    output: `<h3> - ${response.username}</h3>`,
     acknowledged: true,
   };
 }
 
 export async function handleBalance({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const balanceAmount = await balance(userId);
+  const response = await balance(userId);
 
-  if (!balanceAmount) {
+  if (response.error) {
+    return {
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response) {
     return {
       output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
       acknowledged: false,
@@ -143,25 +171,32 @@ export async function handleBalance({ userId = "", username = "", password = "",
   }
 
   return {
-    output: `<h3> - @${balanceAmount}</h3>`,
+    output: `<h3> - @${response.balance}</h3>`,
     acknowledged: true,
   };
 }
 
 export async function handleStorage({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const storageData = await storage(userId);
+  const response = await storage(userId);
 
-  if (!storageData) {
+  if (response.error) {
+    return {
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response) {
     return {
       output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
       acknowledged: false,
     };
   }
 
-  const totalSpace = storageData.total;
-  const usedSpace = storageData.used;
-  const systemSpace = storageData.system;
-  const freeSpace = storageData.total - storageData.used;
+  const totalSpace = response.total;
+  const usedSpace = response.used;
+  const systemSpace = response.system;
+  const freeSpace = response.total - response.used;
 
   function convertToMegaBytes(bytes: number) {
     return bytes / (1024 * 1024);
@@ -186,29 +221,24 @@ export async function handleTransfer({ userId = "", username = "", password = ""
       acknowledged: false,
     };
 
-  const balanceAmount = await balance(username);
+  const transfered = await transfer(userId, receiver, Number(amount));
 
-  if (balanceAmount < Number(amount))
+  if (transfered.error) {
     return {
-      output: `<h3 class="text-red-800">Insufficient balance!</h3>`,
+      output: `<h3 class="text-red-800">${transfered.error}</h3>`,
       acknowledged: false,
     };
+  }
 
-  const transfered = await transfer({
-    sender: username,
-    username: receiver,
-    amount: Number(amount),
-  });
-
-  if (!transfered) {
+  if (!transfered.id) {
     return {
-      output: `<h3 class="text-red-800">User - ${receiver} might not exists</h3>`,
+      output: `<h3 class="text-red-800">Sorry! Some Error Occured!</h3>`,
       acknowledged: false,
     };
   }
 
   return {
-    output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>transaction code: ${transfered}</h3>`,
+    output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>transaction code: ${transfered.id}</h3>`,
     acknowledged: true,
   };
 }
@@ -220,28 +250,27 @@ export async function handleLeaderboard({
   command = "",
   argumentList = [],
 }) {
-  const leaderboardResponse = await leaderboard();
+  const response = await leaderboard();
 
-  if (leaderboardResponse === "") {
+  if (response.error) {
     return {
-      output: "<h3>Lack of Users</h3>",
+      output: `<h3>${response.error}</h3>`,
       acknowledged: false,
     };
   }
 
-  const leaderboardList = JSON.parse(leaderboardResponse);
-
-  if (!leaderboardList[0]) {
+  if (!response.data)
     return {
-      output: "<h3>Lack of Users</h3>",
+      output: `<h3>Lack of Users</h3>`,
       acknowledged: false,
     };
-  }
+
+  const playerList = JSON.parse(response.data);
 
   let output = "";
 
-  // Return Top players
-  leaderboardList.map((player: { username: string; balance: number }, index: number) => {
+  // Return players
+  playerList.map((player: { username: string; balance: number }, index: number) => {
     output = output + `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
   });
 
@@ -258,31 +287,30 @@ export async function handleTransactions({
   command = "",
   argumentList = [],
 }) {
-  const transactionResponse = await transactions({ name: username });
+  const response = await transactions(username);
 
-  if (transactionResponse === "") {
+  if (response.error) {
     return {
-      output: "Sorry, Some Error Occured!",
+      output: `<h3>${response.error}</h3>`,
       acknowledged: false,
     };
   }
 
-  const transactionList = JSON.parse(transactionResponse);
-
-  if (!transactionList[0]) {
+  if (!response.data)
     return {
-      output: "No Transactions Found!",
+      output: `<h3>Lack of Users</h3>`,
       acknowledged: false,
     };
-  }
+
+  const transactionList = JSON.parse(response.data);
 
   let output = "";
 
   // Return all transactions
-  transactionList.map((player: { _id: any; from: String; to: String; amount: number; date: Date }) => {
-    output += `<h3> [${player._id.toString()}] - Transferred ${player.amount} from ${
-      player.from === username ? "You" : player.from
-    } to ${player.to === username ? "You" : player.to} on ${new Date(player.date).toDateString()}</h3>`;
+  transactionList.map((transaction: { _id: any; from: String; to: String; amount: number; date: Date }) => {
+    output += `<h3> [${transaction._id.toString()}] - Transferred ${transaction.amount} from ${
+      transaction.from === username ? "You" : transaction.from
+    } to ${transaction.to === username ? "You" : transaction.to} on ${new Date(transaction.date).toDateString()}</h3>`;
   });
 
   return {
@@ -295,41 +323,50 @@ export async function handleBrowser({ userId = "", username = "", password = "",
   const process = argumentList[0];
   const link = argumentList[1];
 
-  const browserResponse = await browser({
-    name: username,
-    process: process,
-    link: link,
-  });
+  const response = await browser(userId, process, link);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success) {
+    return {
+      output: `<h3>Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
 
   return {
-    output: browserResponse,
+    output: `<h3>${response.error}</h3>`,
     acknowledged: true,
   };
 }
 
 export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const browseResponse = await browse();
+  const response = await browse();
 
-  if (browseResponse === "") {
+  if (response.error) {
     return {
-      output: "Sorry, Some Error Occured!",
+      output: `<h3>${response.error}</h3>`,
       acknowledged: false,
     };
   }
 
-  const browseList = JSON.parse(browseResponse); // Parse data
-
-  if (!browseList[0]) {
+  if (!response.data)
     return {
-      output: "No website found!",
+      output: `<h3>No website found</h3>`,
       acknowledged: false,
     };
-  }
+
+  const websiteList = JSON.parse(response.data);
 
   let output = "";
 
-  // Return Random websites
-  browseList.map(
+  // Return websites
+  websiteList.map(
     (
       website: {
         _id: any;
@@ -357,10 +394,24 @@ export async function handleHam({ userId = "", username = "", password = "", com
     };
   }
 
-  const hamResponse = await ham({ user: username, process: process });
+  const response = await ham(userId, process);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success) {
+    return {
+      output: `<h3>Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
 
   return {
-    output: `<h3> - ${hamResponse} </h3>`,
+    output: `<h3> - ${response.success} </h3>`,
     acknowledged: true,
   };
 }
@@ -369,10 +420,24 @@ export async function handleDeploy({ userId = "", username = "", password = "", 
   const softwareId = argumentList[0];
   const websiteLink = argumentList[1];
 
-  let deployResponse = await deploy({ user: username, websiteLink: websiteLink, softwareId: softwareId });
+  let response = await deploy(username, websiteLink, softwareId);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success) {
+    return {
+      output: `<h3>Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
 
   return {
-    output: `<h3> - ${deployResponse} </h3>`,
+    output: `<h3> - ${response.success} </h3>`,
     acknowledged: true,
   };
 }
