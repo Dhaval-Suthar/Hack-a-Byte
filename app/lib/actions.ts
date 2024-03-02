@@ -47,10 +47,11 @@ export async function signup(username: string, password: string) {
       username: username,
       password: password,
       balance: 0,
-      transactions: [],
       encrypted: false,
       encryptedBy: "none",
       decryptionMoney: 0,
+      spyware: false,
+      spywareBy: "none",
       storage: {
         used: 1 * 1024 * 1024,
         system: 1 * 1024 * 1024,
@@ -189,8 +190,7 @@ export async function transfer(senderId: string, username: string, amount: numbe
     if (sender.encrypted) {
       if (sender.encryptedBy !== receiver.username)
         return { error: "You can't transfer your money to anyone other than the hacker" };
-      if (amount < sender.decryptionMoney)
-        return { error: "Less amount than asked by the hacker" };
+      if (amount < sender.decryptionMoney) return { error: "Less amount than asked by the hacker" };
     }
 
     // Start a Client Session
@@ -214,9 +214,6 @@ export async function transfer(senderId: string, username: string, amount: numbe
           sender,
           {
             $inc: { balance: -amount },
-            $push: {
-              transactions: transactionId,
-            } as unknown as PushOperator<Document>,
           },
           { session }
         );
@@ -225,9 +222,6 @@ export async function transfer(senderId: string, username: string, amount: numbe
           receiver,
           {
             $inc: { balance: amount },
-            $push: {
-              transactions: transactionId,
-            } as unknown as PushOperator<Document>,
           },
           { session }
         );
@@ -237,7 +231,9 @@ export async function transfer(senderId: string, username: string, amount: numbe
     }
 
     if (sender.encrypted) {
-      await db.collection("hackers").updateOne(sender, { $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 } });
+      await db
+        .collection("hackers")
+        .updateOne(sender, { $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 } });
       return { success: `Your data has been decrypted` };
     }
 
@@ -315,7 +311,7 @@ export async function browser(userId: string, process: string, link: string) {
 
           switch (website?.type) {
             case "normal":
-              await db.collection("websites").updateOne(website, { $set: { owner: name } });
+              await db.collection("websites").updateOne(website, { $set: { owner: user.username } });
               return { success: "The website have been hacked" };
             case "virus":
               const session = client.startSession();
@@ -366,6 +362,48 @@ export async function browser(userId: string, process: string, link: string) {
                 encrypted: true,
                 money: website.money,
               };
+            case "spyware":
+              await db.collection("hackers").updateOne(user, {
+                $set: { spyware: true, spywareBy: website.owner },
+              });
+
+              // Remove spyware after 7 days
+              setTimeout(
+                async () => {
+                  if (user.spyware && user.spywareBy === website.owner) {
+                    await session.withTransaction(async () => {
+                      await db.collection("hackers").updateOne(user, {
+                        $set: { spyware: false },
+                      });
+
+                      
+
+                      if (user.balance < 7000) {
+                        await db
+                          .collection("hackers")
+                          .updateOne({ username: website.owner }, { $inc: { balance: user.balance } });
+                          await db.collection("hackers").updateOne(user, { $set: { balance: 0 } });
+                      } else {
+                        await db.collection("hackers").updateOne(user, { $inc: { balance: -7000 } });
+                        await db
+                          .collection("hackers")
+                          .updateOne({ username: website.owner }, { $inc: { balance: 7000 } });
+                      }
+                      await db.collection("transactions").insertOne({
+                        from: "admin",
+                        to: user.username,
+                        amount: 7000,
+                        date: new Date(),
+                      });
+                    });
+                  }
+                },
+                7 * 24 * 60 * 60 * 1000
+              );
+
+              await db.collection("websites").updateOne(website, { $set: { owner: user.username } });
+              return { success: "The website have been hacked" };
+
             case "money":
               const existingTransaction = await db.collection("transactions").findOne({
                 from: website._id,
@@ -416,7 +454,7 @@ export async function browse(username: string) {
   }
 }
 
-export async function ham(userId: string, process: string) {
+export async function ham(userId: string, software: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
@@ -430,7 +468,7 @@ export async function ham(userId: string, process: string) {
     // Start a Client Session
     const session = client.startSession();
 
-    switch (process) {
+    switch (software) {
       case "virus":
         if (user.balance < 1000) return { error: ERRORS.INSUFFICIENT_BALANCE };
 
@@ -477,8 +515,29 @@ export async function ham(userId: string, process: string) {
         });
 
         return { success: "Your Ransomware id is " + softwareId.toJSON() };
+      case "spyware":
+        if (user.balance < 200) return { error: ERRORS.INSUFFICIENT_BALANCE };
+
+        await session.withTransaction(async () => {
+          await db.collection("malwares").insertOne({
+            _id: softwareId,
+            owner: user.username,
+            type: "spyware",
+          });
+
+          await db.collection("hackers").updateOne(user, { $inc: { balance: -200 } }, { session });
+
+          await db.collection("transactions").insertOne({
+            from: user.username,
+            to: "admin",
+            amount: 200,
+            date: new Date(),
+          });
+        });
+
+        return { success: "Your Spyware id is " + softwareId.toJSON() };
       default:
-        return { error: ERRORS.INVALID_PROCESS };
+        return { error: ERRORS.INVALID_SOFTWARE };
     }
   } catch (e) {
     console.error(e);
@@ -492,21 +551,16 @@ export async function deploy(userId: string, websiteLink: string, softwareId: st
     const db = client.db("Hack-a-Byte");
 
     const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
-
     if (!user) return { error: ERRORS.INVALID_LOGIN };
 
     if (websiteLink.length <= 31) return { error: ERRORS.INVALID_LINK };
-
     const link = websiteLink.slice(31); // Removes "https://hack-a-byte.vercel.app/"
 
     const website = await db.collection("websites").findOne({ _id: new ObjectId(link) });
-
     if (!website?._id) return { error: ERRORS.INVALID_LINK };
-
     if (website?.owner !== user.username) return { error: ERRORS.NOT_YOUR_WEBSITE };
 
     const software = await db.collection("malwares").findOne({ _id: new ObjectId(softwareId) });
-
     if (!software?._id) return { error: ERRORS.INVALID_SOFTWARE_ID };
 
     if (software.type === "ransomware") {
@@ -591,6 +645,52 @@ export async function inbox(userId: string) {
     db.collection("emails").deleteMany({ receiver: user.username });
 
     return { data: JSON.stringify(response) };
+  } catch (e) {
+    console.error(e);
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function detect(userId: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    if (user.spyware) {
+      await db.collection("hackers").updateOne(user, { $set: { spyware: false, spywareBy: "none" } });
+      return { success: "Spyware detected!, and have been Removed." };
+    }
+
+    // Start a Client Session
+    const session = client.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const collection = db.collection("hackers");
+
+        await db.collection("transactions").insertOne({
+          from: user.username,
+          to: "admin",
+          amount: 100,
+          date: new Date(),
+        });
+
+        await collection.findOneAndUpdate(
+          user,
+          {
+            $inc: { balance: -100 },
+          },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { error: "No spyware detected, $100 will be taken as fine" };
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };

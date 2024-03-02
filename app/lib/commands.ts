@@ -17,6 +17,7 @@ import {
   deploy,
   email,
   inbox,
+  detect,
 } from "./actions";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
@@ -393,17 +394,18 @@ export async function handleBrowse({ userId = "", username = "", password = "", 
 }
 
 export async function handleHam({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[1];
+  const process = argumentList[0];
+  const software = argumentList[1];
   const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
 
-  if (argumentList[0] !== "install") {
+  if (process !== "install") {
     return {
       output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
       acknowledged: false,
     };
   }
 
-  const response = await ham(userId, process);
+  const response = await ham(userId, software);
 
   if (response.error) {
     return {
@@ -541,6 +543,39 @@ export async function handleInbox({ userId = "", username = "", password = "", c
 
   return {
     output: output,
+    acknowledged: true,
+  };
+}
+
+export async function handleDetect({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const process = argumentList[0];
+  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
+
+  if (process !== "spyware") {
+    return {
+      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  const response = await detect(userId);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response) {
+    return {
+      output: `<h3 class="text-red-800">Sorry can't detect any spyware</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  return {
+    output: `<h3> - ${response.success}</h3>`,
     acknowledged: true,
   };
 }
