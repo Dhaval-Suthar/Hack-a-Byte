@@ -224,7 +224,7 @@ export async function transfer(senderId: string, username: string, amount: numbe
       await session.endSession();
     }
 
-    return { id: transactionId };
+    return { success: `transaction code: ${transactionId}` };
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };
