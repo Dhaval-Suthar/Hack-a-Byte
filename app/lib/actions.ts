@@ -48,6 +48,9 @@ export async function signup(username: string, password: string) {
       password: password,
       balance: 0,
       transactions: [],
+      encrypted: false,
+      encryptedBy: "none",
+      decryptionMoney: 0,
       storage: {
         used: 1 * 1024 * 1024,
         system: 1 * 1024 * 1024,
@@ -82,6 +85,8 @@ export async function login(username: string, password: string) {
     });
 
     if (!response) return { error: ERRORS.INVALID_CREDENTIALS };
+
+    if (response.encrypted) return { error: "Sorry, your data have been encrypted. Can't access it." };
 
     return {
       id: response?._id.toJSON(),
@@ -181,6 +186,13 @@ export async function transfer(senderId: string, username: string, amount: numbe
 
     if (sender.balance < amount) return { error: ERRORS.INSUFFICIENT_BALANCE };
 
+    if (sender.encrypted) {
+      if (sender.encryptedBy !== receiver.username)
+        return { error: "You can't transfer your money to anyone other than the hacker" };
+      if (amount < sender.decryptionMoney)
+        return { error: "Less amount than asked by the hacker" };
+    }
+
     // Start a Client Session
     const session = client.startSession();
 
@@ -222,6 +234,11 @@ export async function transfer(senderId: string, username: string, amount: numbe
       });
     } finally {
       await session.endSession();
+    }
+
+    if (sender.encrypted) {
+      await db.collection("hackers").updateOne(sender, { $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 } });
+      return { success: `Your data has been decrypted` };
     }
 
     return { success: `transaction code: ${transactionId}` };
@@ -287,18 +304,18 @@ export async function browser(userId: string, process: string, link: string) {
 
     switch (process) {
       case "hack":
-        const response = await db.collection("websites").findOne({ _id: new ObjectId(websiteId) });
+        const website = await db.collection("websites").findOne({ _id: new ObjectId(websiteId) });
 
         const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
 
         if (!user) return { error: ERRORS.INVALID_LOGIN };
 
-        if (response?._id) {
-          if (response.owner === user.username) return { error: "You can't hack your own website!" };
+        if (website?._id) {
+          if (website.owner === user.username) return { error: "You can't hack your own website!" };
 
-          switch (response?.type) {
+          switch (website?.type) {
             case "normal":
-              await db.collection("websites").updateOne(response, { $set: { owner: name } });
+              await db.collection("websites").updateOne(website, { $set: { owner: name } });
               return { success: "The website have been hacked" };
             case "virus":
               const session = client.startSession();
@@ -307,11 +324,11 @@ export async function browser(userId: string, process: string, link: string) {
               try {
                 await db
                   .collection("hackers")
-                  .updateOne({ username: response.owner }, { $inc: { balance: user.balance } }, { session });
+                  .updateOne({ username: website.owner }, { $inc: { balance: user.balance } }, { session });
                 await db.collection("transactions").insertOne(
                   {
                     from: user.username,
-                    to: response.owner,
+                    to: website.owner,
                     amount: user.balance,
                     date: new Date(),
                   },
@@ -329,9 +346,29 @@ export async function browser(userId: string, process: string, link: string) {
               }
 
               return { success: "You have been hacked" };
+            case "ransomware":
+              await db.collection("hackers").updateOne(user, {
+                $set: { encrypted: true, encryptedBy: website.owner, decryptionMoney: website.money },
+              });
+
+              // Deencrpyt after 2 days
+              setTimeout(
+                async () => {
+                  await db
+                    .collection("hackers")
+                    .updateOne(user, { $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 } });
+                },
+                2 * 24 * 60 * 60 * 1000
+              );
+
+              return {
+                success: `Your data have been encrypted by ${website.owner}`,
+                encrypted: true,
+                money: website.money,
+              };
             case "money":
               const existingTransaction = await db.collection("transactions").findOne({
-                from: response._id,
+                from: website._id,
                 to: user.username,
               });
               if (existingTransaction?._id) {
@@ -341,7 +378,7 @@ export async function browser(userId: string, process: string, link: string) {
               const randomAmount = Math.floor(Math.random() * (1000 - 100 + 1) + 100);
               await db.collection("hackers").updateOne(user, { $inc: { balance: randomAmount } });
               await db.collection("transactions").insertOne({
-                from: response._id,
+                from: website._id,
                 to: user.username,
                 amount: user.balance,
                 date: new Date(),
@@ -349,7 +386,7 @@ export async function browser(userId: string, process: string, link: string) {
               return { success: `You have received ₹${randomAmount}!` };
 
             default:
-              return { error: `Can't Hack ${response.owner}'s website!` };
+              return { error: `Can't Hack ${website.owner}'s website!` };
           }
         }
 
@@ -384,23 +421,23 @@ export async function ham(userId: string, process: string) {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    const softwareId = new ObjectId();
+
+    // Start a Client Session
+    const session = client.startSession();
+
     switch (process) {
       case "virus":
-        // Start a Client Session
-        const session = client.startSession();
-
-        const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
-
-        if (!user) return { error: ERRORS.INVALID_LOGIN };
-
         if (user.balance < 1000) return { error: ERRORS.INSUFFICIENT_BALANCE };
-
-        const virusId = new ObjectId();
 
         try {
           await session.withTransaction(async () => {
             db.collection("malwares").insertOne({
-              _id: virusId,
+              _id: softwareId,
               owner: user.username,
               type: "virus",
             });
@@ -418,7 +455,28 @@ export async function ham(userId: string, process: string) {
           await session.endSession();
         }
 
-        return { success: "Your Virus id is " + virusId.toJSON() };
+        return { success: "Your Virus id is " + softwareId.toJSON() };
+      case "ransomware":
+        if (user.balance < 500) return { error: ERRORS.INSUFFICIENT_BALANCE };
+
+        await session.withTransaction(async () => {
+          await db.collection("malwares").insertOne({
+            _id: softwareId,
+            owner: user.username,
+            type: "ransomware",
+          });
+
+          await db.collection("hackers").updateOne(user, { $inc: { balance: -500 } }, { session });
+
+          await db.collection("transactions").insertOne({
+            from: user.username,
+            to: "admin",
+            amount: 500,
+            date: new Date(),
+          });
+        });
+
+        return { success: "Your Ransomware id is " + softwareId.toJSON() };
       default:
         return { error: ERRORS.INVALID_PROCESS };
     }
@@ -428,7 +486,7 @@ export async function ham(userId: string, process: string) {
   }
 }
 
-export async function deploy(userId: string, websiteLink: string, softwareId: string) {
+export async function deploy(userId: string, websiteLink: string, softwareId: string, money: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
@@ -451,11 +509,20 @@ export async function deploy(userId: string, websiteLink: string, softwareId: st
 
     if (!software?._id) return { error: ERRORS.INVALID_SOFTWARE_ID };
 
-    await db.collection("websites").updateOne(website, {
-      $set: { type: "virus", malwareId: softwareId },
-    });
+    if (software.type === "ransomware") {
+      if (!Number(money)) return { error: "Amount should be a number" };
+      if (Number(money) < 0) return { error: "Amount should be greater than 0" };
 
-    // Remove the virus after 24 hours and also delete it
+      await db.collection("websites").updateOne(website, {
+        $set: { type: software.type, malwareId: softwareId, money: money },
+      });
+    } else {
+      await db.collection("websites").updateOne(website, {
+        $set: { type: software.type, malwareId: softwareId },
+      });
+    }
+
+    // Remove the software after 24 hours and also delete it
     setTimeout(
       async () => {
         const client = await clientPromise;

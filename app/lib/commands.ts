@@ -341,6 +341,13 @@ export async function handleBrowser({ userId = "", username = "", password = "",
     };
   }
 
+  if (response.encrypted) {
+    return {
+      output: `<h3>${response.success}</h3><h3>Transfer $${response.money} to hacker to decrypt the data</h3><h3>If failed to do so, you won't be able to login for 2 days</h3><h3 class="text-yellow-300">Warning: Do not log out.</h3>`,
+      acknowledged: true,
+    };
+  }
+
   return {
     output: `<h3>${response.success}</h3>`,
     acknowledged: true,
@@ -421,8 +428,9 @@ export async function handleHam({ userId = "", username = "", password = "", com
 export async function handleDeploy({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const softwareId = argumentList[0];
   const websiteLink = argumentList[1];
+  const money = argumentList[2] || "1000";
 
-  let response = await deploy(userId, websiteLink, softwareId);
+  let response = await deploy(userId, websiteLink, softwareId, money);
 
   if (response.error) {
     return {

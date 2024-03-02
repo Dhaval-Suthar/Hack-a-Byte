@@ -87,16 +87,10 @@ export default function Page() {
       if (argumentList.length < argumentRequiredList.length)
         return `<h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
 
-      if (argumentList.length > argumentRequiredList.length)
-        return `<h3> - Extra Argument </h3><h3> - Usage: ${commandToPerform} ${commandInfo.argumentsRequired}</h3>`;
-
-      if (argumentRequiredList.includes("[amount]") && !Number(argumentList[argumentRequiredList.indexOf("[amount]")]))
+      if (commandInfo.containsNumberAt && !Number(argumentList[commandInfo.containsNumberAt - 1]))
         return `<h3 class="text-red-800">amount should be only numbers</h3>`;
 
-      if (
-        argumentRequiredList.includes("[amount]") &&
-        argumentList[argumentRequiredList.indexOf("[amount]")].length < 1
-      )
+      if (commandInfo.containsNumberAt && argumentList[commandInfo.containsNumberAt - 1].length < 1)
         return `<h3>amount should be greater than 0</h3>`;
 
       if (commandInfo.requiresConfirmation) {
@@ -230,7 +224,6 @@ export default function Page() {
     const confirmationElement = document.createElement("li");
     const confirmationInfoElement = document.createElement("li");
     const consoleElement = document.getElementById("console-element");
-    const promptElement = document.getElementById("command-prompt");
     const confirmationInputElement = document.createElement("input");
 
     function focusInput() {
@@ -288,7 +281,9 @@ export default function Page() {
   }
 
   function suggestArguments(commandName: string) {
-    setArgumentSuggestion(COMMANDS[commandName as keyof typeof COMMANDS]?.argumentsRequired);
+    const commandInfo = COMMANDS[commandName as keyof typeof COMMANDS];
+
+    if (commandInfo) setArgumentSuggestion(commandInfo.argumentsRequired + " " + commandInfo.optionalArguments);
 
     focusCommandLine();
   }
@@ -404,7 +399,7 @@ export default function Page() {
       >
         <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
         {topPlayers.map((player, index) => (
-          <h3 id={player.username} key={player.username}>
+          <h3 className="mx-2" id={player.username} key={player.username}>
             {index + 1}. {player.username} - {player.balance}
           </h3>
         ))}

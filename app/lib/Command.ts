@@ -29,6 +29,8 @@ export class Command {
   hidden: boolean;
   loadingText: string;
   info: string;
+  containsNumberAt: number;
+  optionalArguments: string;
   action: Function;
 
   constructor({
@@ -39,7 +41,9 @@ export class Command {
     requiresLogin = false,
     hidden = false,
     loadingText = "Processing...",
+    containsNumberAt = 0,
     info = "",
+    optionalArguments = "",
     action = ({ userId = "", username = "", password = "", command = "", argumentsList = [] }) => {},
   }) {
     this.description = description;
@@ -49,7 +53,9 @@ export class Command {
     this.requiresLogin = requiresLogin;
     this.hidden = hidden;
     this.loadingText = loadingText;
+    this.containsNumberAt = containsNumberAt;
     this.info = info;
+    this.optionalArguments = optionalArguments;
     this.action = action;
   }
 }
@@ -116,6 +122,7 @@ export const COMMANDS = {
     argumentsRequired: "[receiver] [amount]",
     requiresConfirmation: true,
     requiresLogin: true,
+    containsNumberAt: 2,
     loadingText: "Transferring...",
     action: handleTransfer,
   }),
@@ -138,7 +145,7 @@ export const COMMANDS = {
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Installing...",
-    info: `<h3> - Virus: @1000</h3>`,
+    info: `<h3> - Virus: @1000</h3><h3> - Ransomware: @500</h3>`,
     action: handleHam,
   }),
   leaderboard: new Command({
@@ -156,6 +163,7 @@ export const COMMANDS = {
   deploy: new Command({
     description: "Used to deploy a malware on a website you own",
     argumentsRequired: "[software-id] [your-website-link]",
+    optionalArguments: "[money](only-for-ransomware)",
     requiresLogin: true,
     loadingText: "Deploying...",
     action: handleDeploy,
