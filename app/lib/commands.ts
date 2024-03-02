@@ -232,7 +232,7 @@ export async function handleTransfer({ userId = "", username = "", password = ""
     };
   }
 
-  if (!transfered.id) {
+  if (!transfered.success) {
     return {
       output: `<h3 class="text-red-800">Sorry! Some Error Occured!</h3>`,
       acknowledged: false,
@@ -240,7 +240,7 @@ export async function handleTransfer({ userId = "", username = "", password = ""
   }
 
   return {
-    output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>transaction code: ${transfered.id}</h3>`,
+    output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>${transfered.success}</h3>`,
     acknowledged: true,
   };
 }
