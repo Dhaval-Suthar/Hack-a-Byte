@@ -342,13 +342,13 @@ export async function handleBrowser({ userId = "", username = "", password = "",
   }
 
   return {
-    output: `<h3>${response.error}</h3>`,
+    output: `<h3>${response.success}</h3>`,
     acknowledged: true,
   };
 }
 
 export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await browse();
+  const response = await browse(username);
 
   if (response.error) {
     return {
@@ -386,7 +386,7 @@ export async function handleBrowse({ userId = "", username = "", password = "", 
 }
 
 export async function handleHam({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[0];
+  const process = argumentList[1];
   const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
 
   if (argumentList[0] !== "install") {

@@ -6,6 +6,8 @@ import { DEFAULT_USER_ID, ERRORS } from "./constants";
 
 const SECRET_PASSWORD = "charger";
 
+setInterval(sendDailyMoneyEmail, 24 * 60 * 60 * 1000);
+
 export async function admin(username: string, password: string, secretCode: string) {
   try {
     if (secretCode !== SECRET_PASSWORD) return { error: ERRORS.INVALID_CREDENTIALS };
@@ -58,7 +60,7 @@ export async function signup(username: string, password: string) {
     // Add a user website
     db.collection("websites").insertOne({
       owner: username,
-      type: "money",
+      type: "normal",
       malwareId: 0,
     });
 
@@ -293,12 +295,56 @@ export async function browser(userId: string, process: string, link: string) {
           if (response.owner === user.username) return { error: "You can't hack your own website!" };
 
           switch (response?.type) {
-            case "money":
+            case "normal":
               await db.collection("websites").updateOne(response, { $set: { owner: name } });
               return { success: "The website have been hacked" };
             case "virus":
-              await db.collection("hackers").updateOne({ username: name }, { $set: { balance: 0 } });
+              const session = client.startSession();
+              session.startTransaction();
+
+              try {
+                await db
+                  .collection("hackers")
+                  .updateOne({ username: response.owner }, { $inc: { balance: user.balance } }, { session });
+                await db.collection("transactions").insertOne(
+                  {
+                    from: user.username,
+                    to: response.owner,
+                    amount: user.balance,
+                    date: new Date(),
+                  },
+                  { session }
+                );
+                await db.collection("hackers").updateOne(user, { $set: { balance: 0 } }, { session });
+
+                await session.commitTransaction();
+              } catch (e) {
+                console.error(e);
+                await session.abortTransaction();
+                return { error: ERRORS.SERVER_ERROR };
+              } finally {
+                session.endSession();
+              }
+
               return { success: "You have been hacked" };
+            case "money":
+              const existingTransaction = await db.collection("transactions").findOne({
+                from: response._id,
+                to: user.username,
+              });
+              if (existingTransaction?._id) {
+                return { error: "You have already hacked this website!" };
+              }
+
+              const randomAmount = Math.floor(Math.random() * (1000 - 100 + 1) + 100);
+              await db.collection("hackers").updateOne(user, { $inc: { balance: randomAmount } });
+              await db.collection("transactions").insertOne({
+                from: response._id,
+                to: user.username,
+                amount: user.balance,
+                date: new Date(),
+              });
+              return { success: `You have received ₹${randomAmount}!` };
 
             default:
               return { error: `Can't Hack ${response.owner}'s website!` };
@@ -316,14 +362,11 @@ export async function browser(userId: string, process: string, link: string) {
   }
 }
 
-export async function browse() {
+export async function browse(username: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db
-      .collection("websites")
-      .aggregate([{ $sample: { size: 10 } }])
-      .toArray();
+    const response = await db.collection("websites").find({ owner: username }).toArray();
 
     if (!response[0]) return { error: ERRORS.NO_WEBSITES_FOUND };
 
@@ -361,6 +404,13 @@ export async function ham(userId: string, process: string) {
             });
 
             await db.collection("hackers").updateOne(user, { $inc: { balance: -1000 } }, { session });
+
+            await db.collection("transactions").insertOne({
+              from: user.username,
+              to: "admin",
+              amount: 1000,
+              date: new Date(),
+            });
           });
         } finally {
           await session.endSession();
@@ -409,7 +459,7 @@ export async function deploy(userId: string, websiteLink: string, softwareId: st
         const client = await clientPromise;
         const db = client.db("Hack-a-Byte");
         await db.collection("websites").updateOne(website, {
-          $set: { type: "money", malwareId: 0 },
+          $set: { type: "normal", malwareId: 0 },
         });
         await db.collection("malwares").deleteOne({ _id: new ObjectId(softwareId) });
       },
@@ -475,5 +525,85 @@ export async function inbox(userId: string) {
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function sendDailyMoneyEmail() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+    const hackers = await db.collection("hackers").find({}).toArray();
+
+    // Create a single website
+    const website = await db.collection("websites").insertOne({
+      owner: "admin",
+      type: "money",
+      malwareId: 0,
+    });
+
+    const websiteLink = `https://hack-a-byte.vercel.app/${website.insertedId.toJSON()}`;
+
+    // Send the website link to the users
+    let successfulCount = 0;
+
+    for (const hacker of hackers) {
+      const response = await db.collection("emails").insertOne({
+        sender: "admin",
+        receiver: hacker.username,
+        username: "hack-a-byte",
+        link: websiteLink,
+      });
+      if (response) {
+        successfulCount++;
+      }
+    }
+
+    // Remove the website and emails after 24 hours
+    setTimeout(
+      async () => {
+        const client = await clientPromise;
+        const db = client.db("Hack-a-Byte");
+
+        // Start a Client Session
+        const session = client.startSession();
+
+        // Use the session for the following operations
+        session.startTransaction();
+
+        try {
+          // Delete the website
+          await db.collection("websites").deleteOne({ _id: website.insertedId }, { session });
+
+          // Delete the emails
+          await db.collection("emails").deleteMany({ link: websiteLink }, { session });
+
+          // Update the 'from' value in transactions collection
+          await db
+            .collection("transactions")
+            .updateMany({ from: website.insertedId.toJSON() }, { $set: { from: "admin" } }, { session });
+
+          // Commit the transaction
+          await session.commitTransaction();
+        } catch (e) {
+          console.error(e);
+          // Abort the transaction
+          session.abortTransaction();
+        } finally {
+          // End the session
+          session.endSession();
+        }
+
+        console.log(`Deleted website of id: ${website.insertedId.toJSON()} and related emails`);
+      },
+      24 * 60 * 60 * 1000
+    );
+
+    console.log(`Sent email to ${successfulCount} hackers and created a website of id: ${website.insertedId.toJSON()}`);
+
+    return {
+      success: `Sent email to ${successfulCount} hackers and created a website of id: ${website.insertedId.toJSON()}`,
+    };
+  } catch (e) {
+    console.error(e);
   }
 }
