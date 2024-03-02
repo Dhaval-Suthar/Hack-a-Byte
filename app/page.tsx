@@ -86,7 +86,8 @@ export default function Page() {
         return `<h3>amount should be greater than 0</h3>`;
 
       if (commandInfo.requiresConfirmation) {
-        askForConfirmation();
+        const confirmed = await askForConfirmation();
+        if (!confirmed) return `<h3 class="text-red-800">Operation Cancelled.</h3>`;
       }
 
       if (commandInfo.requiresPassword) {
@@ -211,7 +212,7 @@ export default function Page() {
     );
   }
 
-  function askForConfirmation() {
+  async function askForConfirmation() {
     const confirmationElement = document.createElement("li");
     const confirmationInfoElement = document.createElement("li");
     const consoleElement = document.getElementById("console-element");
@@ -229,51 +230,6 @@ export default function Page() {
     confirmationInputElement.style.width = "30px";
     confirmationInputElement.maxLength = 3;
     confirmationInputElement.style.outline = "none";
-    confirmationInputElement.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        // Remove the event listeners
-        window.removeEventListener("keydown", focusInput);
-        window.removeEventListener("click", focusInput);
-
-        // Remove confirmationInfoElement
-        consoleElement?.removeChild(confirmationInfoElement);
-
-        switch (confirmationInputElement.value) {
-          case "yes":
-            // Add the prompt back
-            promptElement && consoleElement?.appendChild(promptElement);
-
-            // Remove confirmationElement
-            consoleElement?.removeChild(confirmationElement);
-            executeCommand();
-            break;
-
-          case "no":
-            // Change the innerHTML of confirmationElement
-            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Operation Cancelled</h3>`;
-            consoleElement?.appendChild(confirmationElement);
-            setCommand(""); // Empty Command
-
-            // Add the prompt back
-            promptElement && consoleElement?.appendChild(promptElement);
-
-            focusCommandLine();
-            break;
-
-          default:
-            // Change the innerHTML of confirmationElement
-            confirmationElement.innerHTML = `<h3 class="flex text-red-800">Invalid Input</h3>`;
-            consoleElement?.appendChild(confirmationElement);
-            setCommand(""); // Empty Command
-
-            // Add the prompt back
-            promptElement && consoleElement?.appendChild(promptElement);
-
-            focusCommandLine();
-            break;
-        }
-      }
-    };
 
     // Properties of confirmationElement
     confirmationElement.style.display = "flex";
@@ -283,9 +239,6 @@ export default function Page() {
     confirmationElement.style.display = "flex";
     confirmationElement.innerHTML = `<h3 class="flex">Are You Sure? (yes/no) : </h3>`;
 
-    // Remove promptElement
-    promptElement && consoleElement?.removeChild(promptElement);
-
     // Add confirmationInputElement and confirmationInfoElement
     confirmationElement.appendChild(confirmationInputElement);
     consoleElement?.appendChild(confirmationInfoElement);
@@ -294,6 +247,30 @@ export default function Page() {
     // // Focus confirmationInputElement for every key down
     window.addEventListener("keydown", focusInput);
     window.addEventListener("click", focusInput);
+
+    // Wait till user enters the password
+    return await new Promise<boolean>(
+      (resolve) =>
+        (confirmationInputElement.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            // Remove the event listeners
+            window.removeEventListener("keydown", focusInput);
+            window.removeEventListener("click", focusInput);
+
+            // Remove confirmationInfoElement
+            consoleElement?.removeChild(confirmationInfoElement);
+
+            // Remove confirmationElement
+            consoleElement?.removeChild(confirmationElement);
+
+            if (confirmationInputElement.value === "yes") {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          }
+        })
+    );
   }
 
   function suggestArguments(commandName: string) {
