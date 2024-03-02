@@ -19,6 +19,7 @@ export const ERRORS = {
   NO_TRANSACTIONS_FOUND: "No transactions found!",
   NO_WEBSITES_FOUND: "No websites found!",
   INVALID_PROCESS: "Invalid process",
+  INVALID_SOFTWARE: "Invalid software",
   INVALID_SOFTWARE_ID: "Invalid software id",
   NOT_YOUR_WEBSITE: "Not your website",
   NO_EMAILS_FOUND: "No emails found!",
