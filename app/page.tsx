@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { COMMANDS } from "./lib/Command";
 import {
   DEFAULT_USERNAME,
@@ -8,6 +8,7 @@ import {
   ROOT_DIRECTORY,
   DEFAULT_PASSWORD,
 } from "./lib/constants";
+import { leaderboard } from "./lib/actions";
 
 export default function Page() {
   // User Information
@@ -31,10 +32,23 @@ export default function Page() {
   const [argumentSuggestion, setArgumentSuggestion] = useState("");
   let password = DEFAULT_PASSWORD;
 
+  //Game Information
+  const [topPlayers, setTopPlayers] = useState([{ username: "loading", balance: 0 }]);
+
   // Functions
   function focusCommandLine() {
     const commandLine = document.getElementById("command-line");
     commandLine?.focus();
+  }
+
+  // Fucntions
+  async function fetchLeaderboard() {
+    const response = await leaderboard();
+
+    if (response.data) {
+      const playerList = JSON.parse(response.data);
+      setTopPlayers(playerList);
+    }
   }
 
   function printCommand() {
@@ -285,96 +299,116 @@ export default function Page() {
     focusCommandLine();
   }
 
+  useEffect(() => {
+    fetchLeaderboard();
+    setInterval(() => {
+      fetchLeaderboard();
+    }, 10000);
+  }, []);
+
   return (
-    <main className="min-h-screen min-w-full bg-zinc-900 text-white">
-      <div>
-        <ul id="console-element">
-          <li id="command-prompt">
-            <div>
-              <textarea
-                className="bg-zinc-900 outline-none w-full absolute h-full"
-                value={prompt + command}
-                id="command-line"
-                onChange={(e) => {
-                  if (e.target.value[e.target.value.length - 1] !== "\n") {
-                    setCommand(e.target.value.slice(prompt.length));
-                  }
-                }}
-                // If user changes the value of the command
-                onKeyDown={(e) => {
-                  const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
+    <>
+      <main className="min-h-screen min-w-full bg-zinc-900 text-white">
+        <div>
+          <ul id="console-element">
+            <li id="command-prompt">
+              <div>
+                <textarea
+                  className="bg-zinc-900 outline-none w-full absolute h-full"
+                  value={prompt + command}
+                  id="command-line"
+                  onChange={(e) => {
+                    if (e.target.value[e.target.value.length - 1] !== "\n") {
+                      setCommand(e.target.value.slice(prompt.length));
+                    }
+                  }}
+                  // If user changes the value of the command
+                  onKeyDown={(e) => {
+                    const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
-                  // make argumentSuggestion empty
-                  if (argumentSuggestion !== "") {
-                    setArgumentSuggestion("");
-                  }
+                    // make argumentSuggestion empty
+                    if (argumentSuggestion !== "") {
+                      setArgumentSuggestion("");
+                    }
 
-                  // Suggest it's arguments
-                  if (commandInfo && e.key === " ") {
-                    suggestArguments(command);
-                  }
+                    // Suggest it's arguments
+                    if (commandInfo && e.key === " ") {
+                      suggestArguments(command);
+                    }
 
-                  // If enter key is pressed
-                  if (e.key === "Enter") {
-                    printCommand();
-                    executeCommand();
-                  }
-                }}
-              />
-              <div className="absolute text-zinc-400 flex ml-1">
-                <h3 className="text-transparent">{prompt + command}</h3>
-                <h3>{argumentSuggestion}</h3>
+                    // If enter key is pressed
+                    if (e.key === "Enter") {
+                      printCommand();
+                      executeCommand();
+                    }
+                  }}
+                />
+                <div className="absolute text-zinc-400 flex ml-1">
+                  <h3 className="text-transparent">{prompt + command}</h3>
+                  <h3>{argumentSuggestion}</h3>
+                </div>
+                <h3 className="absolute bg-transparent text-transparent select-none">{prompt}</h3>
               </div>
-              <h3 className="absolute bg-transparent text-transparent select-none">{prompt}</h3>
-            </div>
-          </li>
-        </ul>
-        <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
-          <button onClick={() => setActiveBot(!activeBot)}>
-            <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
-          </button>
-          <div className="absolute w-20">
-            <div
-              className={`absolute ${
-                activeBot && "rotate-180"
-              } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
-            >
-              {Object.keys(COMMANDS)
-                .filter((commandName) => !COMMANDS[commandName as keyof typeof COMMANDS]?.hidden)
-                .map((commandName) => (
-                  <div
-                    key={commandName}
-                    className={`${
-                      !activeBot && "scale-0"
-                    } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
-                  >
-                    <h1
-                      onClick={() => {
-                        setCommand(
-                          commandName +
-                            (COMMANDS[commandName as keyof typeof COMMANDS].argumentsRequired === "" ? "" : " ")
-                        );
-                        suggestArguments(commandName);
-                        setActiveBot(false);
-                      }}
-                      className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
+            </li>
+          </ul>
+          <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
+            <button onClick={() => setActiveBot(!activeBot)}>
+              <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
+            </button>
+            <div className="absolute w-20">
+              <div
+                className={`absolute ${
+                  activeBot && "rotate-180"
+                } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
+              >
+                {Object.keys(COMMANDS)
+                  .filter((commandName) => !COMMANDS[commandName as keyof typeof COMMANDS]?.hidden)
+                  .map((commandName) => (
+                    <div
+                      key={commandName}
+                      className={`${
+                        !activeBot && "scale-0"
+                      } text-center rotate-180 flex justify-center my-8 text-2xl transition-all duration-1000`}
                     >
-                      {commandName}
-                    </h1>
-                    <div className="h-2 flex flex-col mx-1">
-                      <h3
-                        onClick={() => getCommandInfo(commandName)}
-                        className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                      <h1
+                        onClick={() => {
+                          setCommand(
+                            commandName +
+                              (COMMANDS[commandName as keyof typeof COMMANDS].argumentsRequired === "" ? "" : " ")
+                          );
+                          suggestArguments(commandName);
+                          setActiveBot(false);
+                        }}
+                        className="w-[28vw] h-10 p-2 text-lg rounded-full transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-green-600 shadow-lg shadow-green-700 back text-zinc-100"
                       >
-                        i
-                      </h3>
+                        {commandName}
+                      </h1>
+                      <div className="h-2 flex flex-col mx-1">
+                        <h3
+                          onClick={() => getCommandInfo(commandName)}
+                          className="w-5 h-5 m-3 bg-blue-800 rounded-full text-sm text-white shadow-sm shadow-zinc-700 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                        >
+                          i
+                        </h3>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
           </div>
         </div>
+      </main>
+      <div
+        id="leaderboard"
+        className="w-60 h-80 bg-gray-400 text-zinc-400 bg-opacity-5 fixed top-0 right-0 opacity-0 sm:opacity-100"
+      >
+        <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
+        {topPlayers.map((player, index) => (
+          <h3 id={player.username} key={player.username}>
+            {index + 1}. {player.username} - {player.balance}
+          </h3>
+        ))}
       </div>
-    </main>
+    </>
   );
 }
