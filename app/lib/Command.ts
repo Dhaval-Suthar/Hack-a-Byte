@@ -114,7 +114,6 @@ export const COMMANDS = {
   transfer: new Command({
     description: "Transfer money from one user to another",
     argumentsRequired: "[receiver] [amount]",
-    requiresPassword: true,
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Transferring...",
