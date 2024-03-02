@@ -127,14 +127,14 @@ export const COMMANDS = {
     action: handleBrowser,
   }),
   browse: new Command({
-    description: "Gives random 10 website links",
+    description: "Gives list of your hacked website links",
     requiresLogin: true,
     loadingText: "Fetching websites...",
     action: handleBrowse,
   }),
   ham: new Command({
     description: "ham is a package manager which let you install various softwares and malwares",
-    argumentsRequired: "install [software-id]",
+    argumentsRequired: "install [software-name]",
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Installing...",
