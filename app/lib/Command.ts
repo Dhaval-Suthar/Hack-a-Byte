@@ -18,6 +18,7 @@ import {
   handleDeploy,
   handleEmail,
   handleInbox,
+  handleDetect,
 } from "./commands";
 
 export class Command {
@@ -145,7 +146,7 @@ export const COMMANDS = {
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Installing...",
-    info: `<h3> - Virus: @1000</h3><h3> - Ransomware: @500</h3>`,
+    info: `<h3> - Virus: @1000</h3><h3> - Ransomware: @500</h3><h3> - Spyware: @200</h3>`,
     action: handleHam,
   }),
   leaderboard: new Command({
@@ -180,5 +181,13 @@ export const COMMANDS = {
     requiresLogin: true,
     loadingText: "Sending...",
     action: handleEmail,
+  }),
+  detect: new Command({
+    description: "Detects if a spyware is installed",
+    argumentsRequired: "spyware",
+    loadingText: "Detecting...",
+    requiresLogin: true,
+    requiresConfirmation: true,
+    action: handleDetect,
   }),
 };
