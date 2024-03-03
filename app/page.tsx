@@ -29,11 +29,15 @@ export default function Page() {
   const [activeBot, setActiveBot] = useState(false);
 
   // Command Information
+  const [prevCommands, setPrevCommands] = useState<string[]>([]) // stores prev commands
+  const [index, setIndex] = useState(0) // stores prev commands
+  const [backupCommand, setBackupCommand] = useState('');
   const [argumentSuggestion, setArgumentSuggestion] = useState("");
   let password = DEFAULT_PASSWORD;
 
   //Game Information
   const [topPlayers, setTopPlayers] = useState([{ username: "loading", balance: 0 }]);
+  
 
   // Functions
   function focusCommandLine() {
@@ -74,6 +78,15 @@ export default function Page() {
     promptElement && consoleElement?.removeChild(promptElement);
 
     const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
+
+    // Save Command to history and Reset Index
+    if (prevCommands.length < 10) { 
+      setPrevCommands(prevcmds => [ command,...prevcmds]);
+    } else { 
+      let tempArray = prevCommands.slice(0, prevCommands.length - 1);
+      setPrevCommands([command, ...tempArray]);
+    }
+    setIndex(0);
 
     async function checkInputs() {
       if (!commandInfo) {
@@ -151,6 +164,7 @@ export default function Page() {
 
     // Clear Command
     setCommand("");
+    console.log(prevCommands)
 
     // Print output
     consoleElement?.appendChild(outputElement);
@@ -315,12 +329,22 @@ export default function Page() {
                   onChange={(e) => {
                     if (e.target.value[e.target.value.length - 1] !== "\n") {
                       setCommand(e.target.value.slice(prompt.length));
+
+                      // Update command history 
+                      if (index > 0) { 
+                        let tempArray = [...prevCommands];
+                        tempArray[index - 1] = e.target.value.slice(prompt.length)
+                        setPrevCommands(tempArray);
+                      }
+
                     }
                   }}
                   // If user changes the value of the command
                   onKeyDown={(e) => {
                     const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
+                    
+                    
                     // make argumentSuggestion empty
                     if (argumentSuggestion !== "") {
                       setArgumentSuggestion("");
@@ -335,7 +359,33 @@ export default function Page() {
                     if (e.key === "Enter") {
                       printCommand();
                       executeCommand();
+                    } 
+
+                    if ((e.key === "ArrowUp" || e.key === "ArrowDown") && prevCommands.length) { 
+                      e.preventDefault();
+                      switch (e.key) { 
+                        case "ArrowUp":
+                          if (index === 0) { 
+                            setBackupCommand(command)
+                          }
+                          if (prevCommands[index]) { 
+                            setCommand(prevCommands[index]);
+                            setIndex(index + 1);
+                      
+                          }
+                          break;
+                        case "ArrowDown":
+                          if (index === 1) { 
+                            setCommand(backupCommand)
+                            setIndex(index - 1)
+                          }else if  (prevCommands[index - 2]) { 
+                            setCommand(prevCommands[index - 2])
+                            setIndex(index - 1) 
+                          }
+                          break;
+                      } 
                     }
+
                   }}
                 />
                 <div className="absolute text-zinc-400 flex ml-1">
