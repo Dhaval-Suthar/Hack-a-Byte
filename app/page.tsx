@@ -80,11 +80,10 @@ export default function Page() {
     const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
     // Save Command to history and Reset Index
-    if (prevCommands.length <= 10) { 
-
+    if (prevCommands.length < 10) { 
       setPrevCommands(prevcmds => [ command,...prevcmds]);
     } else { 
-      let tempArray = prevCommands.slice(0, prevCommands.length - 2);
+      let tempArray = prevCommands.slice(0, prevCommands.length - 1);
       setPrevCommands([command, ...tempArray]);
     }
     setIndex(0);
