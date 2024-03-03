@@ -154,15 +154,18 @@ export default function Page() {
     }
 
     // Save Command to history and Reset Index
-    if ( commandToPerform === 'clear') {
-      setPrevCommands([]); 
-    } else { 
+    if (prevCommands.length <= 10) { 
+
       setPrevCommands(prevcmds => [ command,...prevcmds]);
+    } else { 
+      let tempArray = prevCommands.slice(0, prevCommands.length - 2);
+      setPrevCommands([command, ...tempArray]);
     }
     setIndex(0);
 
     // Clear Command
     setCommand("");
+    console.log(prevCommands)
 
     // Print output
     consoleElement?.appendChild(outputElement);
