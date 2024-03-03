@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 const APPS = [
@@ -30,6 +31,8 @@ const APPS = [
 ];
 
 const page = () => {
+  const router = useRouter();
+  
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
 
@@ -68,11 +71,23 @@ const page = () => {
             clickedStart ? "" : "hidden"
           }`}
         >
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
+          <div
+            className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
+            onClick={() => {
+              // Sends user to home page
+              router.replace("https://www.google.com");
+            }}
+          >
             <img className="h-16 mx-3" src="./log-out.png" alt="" />
             <h1 className="m-auto w-full">Log Out</h1>
           </div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
+          <div
+            className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
+            onClick={() => {
+              // Sends user to hackbook-L
+              router.replace("/");
+            }}
+          >
             <img className="h-20" src="./change-comp.png" alt="" />
             <h1 className="m-auto w-full">Change Computer</h1>
           </div>
