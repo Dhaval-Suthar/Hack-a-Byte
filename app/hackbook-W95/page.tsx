@@ -9,24 +9,35 @@ const APPS = [
     icon: "/ie.png",
     path: "/ie",
     clicked: false,
+    opened: false,
   },
   {
     name: "My Computer",
     icon: "/mycomputer.png",
     path: "/mycomputer",
     clicked: false,
+    opened: false,
+  },
+  {
+    name: "Terminal",
+    icon: "/terminal.png",
+    path: "/terminal",
+    clicked: false,
+    opened: false,
   },
   {
     name: "Recycle Bin",
     icon: "/recyclebin.png",
     path: "/recyclebin",
     clicked: false,
+    opened: false,
   },
   {
     name: "Inbox",
     icon: "/inbox.png",
     path: "/inbox",
     clicked: false,
+    opened: false,
   },
 ];
 
@@ -35,6 +46,7 @@ const page = () => {
   
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
+  const [selectedAppIndex, setSelectedAppIndex] = useState(0);
 
   function deSelectAll() {
     apps.forEach((app) => {
@@ -46,6 +58,36 @@ const page = () => {
 
   return (
     <main className="bg-[#008080] h-screen w-screen ">
+      <div
+        className={`h-[96vh] w-screen absolute flex justify-center pointer-events-none  ${
+          apps[selectedAppIndex].opened ? "" : "hidden"
+        } z-10`}
+      >
+        <div className="bg-[#BBC2C2] w-[80vw] h-[80vh] pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white">
+          <div className="h-10 w-auto bg-blue-800 m-2 flex ">
+            <img src={apps[selectedAppIndex].icon} alt="" />
+            <h1 className="text-white text-left w-full m-auto font-bold text-xl">{apps[selectedAppIndex].name}</h1>
+            <div className="flex justify-around">
+              <h1 className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white">
+                _
+              </h1>
+              <h1 className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2  border-2 shadow shadow-black border-black border-t-white border-l-white">
+                &#9633;
+              </h1>
+              <h1
+                className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                onClick={() => {
+                  apps[selectedAppIndex].opened = false;
+                  setApps([...apps]);
+                }}
+              >
+                &#88;
+              </h1>
+            </div>
+          </div>
+          <iframe src="/" className=" w-[78vw] h-[70vh] m-auto overscroll-none" />
+        </div>
+      </div>
       <div className="h-[96vh] w-screen absolute z-0" onClick={deSelectAll}></div>
       <div className="grid grid-cols-10 grid-rows-6 grid-flow-col w-screen h-[96vh] text-black">
         {APPS.map((app, index) => (
@@ -53,6 +95,13 @@ const page = () => {
             key={app.name}
             className="col-span-1 row-span-1 flex justify-center z-10"
             onClick={() => {
+              if (app.clicked) {
+                app.clicked = false;
+                app.opened = true;
+                setApps([...apps]);
+                setSelectedAppIndex(index);
+                return;
+              }
               deSelectAll();
               apps[index].clicked = true;
               setApps([...apps]);
