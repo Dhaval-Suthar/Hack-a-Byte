@@ -79,6 +79,16 @@ export default function Page() {
 
     const commandInfo = COMMANDS[commandToPerform as keyof typeof COMMANDS];
 
+    // Save Command to history and Reset Index
+    if (prevCommands.length <= 10) { 
+
+      setPrevCommands(prevcmds => [ command,...prevcmds]);
+    } else { 
+      let tempArray = prevCommands.slice(0, prevCommands.length - 2);
+      setPrevCommands([command, ...tempArray]);
+    }
+    setIndex(0);
+
     async function checkInputs() {
       if (!commandInfo) {
         return `<h3>command not found: ${commandToPerform} </h3>`;
@@ -152,16 +162,6 @@ export default function Page() {
       // End loading
       consoleElement?.removeChild(loadingElement);
     }
-
-    // Save Command to history and Reset Index
-    if (prevCommands.length <= 10) { 
-
-      setPrevCommands(prevcmds => [ command,...prevcmds]);
-    } else { 
-      let tempArray = prevCommands.slice(0, prevCommands.length - 2);
-      setPrevCommands([command, ...tempArray]);
-    }
-    setIndex(0);
 
     // Clear Command
     setCommand("");
