@@ -3,47 +3,36 @@
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
-const APPS = [
-  {
-    name: "Internet Explorer",
-    icon: "/ie.png",
-    path: "/ie",
-    clicked: false,
-    opened: false,
-  },
-  {
-    name: "My Computer",
-    icon: "/mycomputer.png",
-    path: "/mycomputer",
-    clicked: false,
-    opened: false,
-  },
-  {
-    name: "Terminal",
-    icon: "/terminal.png",
-    path: "/terminal",
-    clicked: false,
-    opened: false,
-  },
-  {
-    name: "Recycle Bin",
-    icon: "/recyclebin.png",
-    path: "/recyclebin",
-    clicked: false,
-    opened: false,
-  },
-  {
-    name: "Inbox",
-    icon: "/inbox.png",
-    path: "/inbox",
-    clicked: false,
-    opened: false,
-  },
-];
+class App {
+  name: string;
+  icon: string;
+  path?: string;
+  clicked: boolean;
+  opened: boolean;
+  fullscreen: boolean;
+  hidden: boolean;
 
+  constructor(name: string, icon: string, path?: string) {
+    this.name = name;
+    this.icon = icon;
+    this.path = path;
+    this.clicked = false;
+    this.opened = false;
+    this.fullscreen = false;
+    this.hidden = false;
+  }
+}
+
+const APPS: App[] = [
+  new App("Internet Explorer", "/ie.png", "/ie"),
+  new App("My Computer", "/mycomputer.png", "/mycomputer"),
+  new App("Terminal", "/terminal.png", "/terminal"),
+  new App("Recycle Bin", "/recyclebin.png", "/recyclebin"),
+  new App("Inbox", "/inbox.png", "/inbox"),
+];
 const page = () => {
   const router = useRouter();
-  
+
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
   const [selectedAppIndex, setSelectedAppIndex] = useState(0);
@@ -56,36 +45,144 @@ const page = () => {
     setClickedStart(false);
   }
 
+  function addElement(
+    app: {
+      name: any;
+      icon: any;
+      path?: string;
+      clicked?: boolean;
+      opened?: boolean;
+      fullscreen?: boolean;
+      hidden?: boolean;
+    },
+    index: number
+  ) {
+    const panelElement = document.getElementById("panel");
+    const previewElement = document.createElement("div");
+
+    previewElement.id = app.name;
+
+    previewElement.className =
+      "w-full max-w-sm h-full bg-[#dfe6e6] border-2 shadow shadow-black border-black border-b-white border-r-white flex";
+
+    previewElement.innerHTML = `<img class="h-10 w-10 -m-1.5" src="${app.icon}" alt="" />
+                  <h1 class="text-black text-left w-full m-auto font-bold text-xl">${app.name}</h1>`;
+
+    previewElement.addEventListener("click", () => {
+      if (app.hidden) {
+        app.hidden = false;
+        setApps([...apps]);
+        setSelectedAppIndex(index);
+
+        hideOtherOpenApps();
+
+        const previewElement = document.getElementById(app.name);
+        if (previewElement) {
+          ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+            previewElement.classList.add(className);
+          });
+          ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+            previewElement.classList.remove(className);
+          });
+        }
+
+        return;
+      }
+    });
+
+    if (panelElement) {
+      panelElement.appendChild(previewElement);
+    }
+  }
+
+  function removeElement(appName: string) {
+    const panelElement = document.getElementById("panel");
+    const previewElement = document.getElementById(appName);
+
+    if (panelElement && previewElement) {
+      panelElement.removeChild(previewElement);
+    }
+  }
+
+  function hideOtherOpenApps() {
+    apps.forEach((app, index) => {
+      const previewElement = document.getElementById(app.name);
+      if (previewElement) {
+        ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+          previewElement.classList.remove(className);
+        });
+        ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+          previewElement.classList.add(className);
+        });
+        app.hidden = true;
+        setApps([...apps]);
+      }
+    });
+  }
+
   return (
     <main className="bg-[#008080] h-screen w-screen ">
       <div
-        className={`h-[96vh] w-screen absolute flex justify-center pointer-events-none  ${
-          apps[selectedAppIndex].opened ? "" : "hidden"
-        } z-10`}
+        className={` ${
+          apps[selectedAppIndex].fullscreen ? "h-[100vh]" : "h-[96vh]"
+        } w-screen absolute flex justify-center pointer-events-none  ${
+          apps[selectedAppIndex].opened? "" : "hidden"
+        } z-20`}
       >
-        <div className="bg-[#BBC2C2] w-[80vw] h-[80vh] pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white">
+        <div
+          className={`bg-[#BBC2C2] ${
+            apps[selectedAppIndex].fullscreen ? "w-[100vw] h-[100vh]" : "w-[80vw] h-[80vh]"
+          }    pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white`}
+        >
           <div className="h-10 w-auto bg-blue-800 m-2 flex ">
             <img src={apps[selectedAppIndex].icon} alt="" />
             <h1 className="text-white text-left w-full m-auto font-bold text-xl">{apps[selectedAppIndex].name}</h1>
             <div className="flex justify-around">
-              <h1 className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white">
-                _
-              </h1>
-              <h1 className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2  border-2 shadow shadow-black border-black border-t-white border-l-white">
-                &#9633;
-              </h1>
               <h1
-                className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-auto px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                className="text-center text-2xl cursor-pointer font-extrabold  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
                 onClick={() => {
-                  apps[selectedAppIndex].opened = false;
+                  apps[selectedAppIndex].hidden = !apps[selectedAppIndex].hidden;
                   setApps([...apps]);
                 }}
               >
-                &#88;
+                _
+              </h1>
+              <h1
+                className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 p-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                onClick={() => {
+                  apps[selectedAppIndex].fullscreen = !apps[selectedAppIndex].fullscreen;
+                  setApps([...apps]);
+                }}
+              >
+                {apps[selectedAppIndex].fullscreen ? (
+                  <div className="px-1">
+                    <div className="w-3 h-3 border border-black border-t-4 translate-x-0.5 "></div>
+                    <div className="w-3 h-3 border border-black border-t-4  -translate-y-1 -translate-x-0.5"></div>
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 border border-black border-t-4"></div>
+                )}
+              </h1>
+              <h1
+                className="text-center text-2xl font-bold cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-1 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                onClick={() => {
+                  apps[selectedAppIndex].opened = false;
+                  apps[selectedAppIndex].fullscreen = false;
+                  setApps([...apps]);
+
+                  removeElement(apps[selectedAppIndex].name);
+                }}
+              >
+                &#10005;
               </h1>
             </div>
           </div>
-          <iframe src="/" className=" w-[78vw] h-[70vh] m-auto overscroll-none" />
+          <iframe
+            src="/"
+            className={` ${
+              apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
+            } m-auto overscroll-none`}
+          />
         </div>
       </div>
       <div className="h-[96vh] w-screen absolute z-0" onClick={deSelectAll}></div>
@@ -95,11 +192,15 @@ const page = () => {
             key={app.name}
             className="col-span-1 row-span-1 flex justify-center z-10"
             onClick={() => {
-              if (app.clicked) {
+              if (app.clicked && !app.opened) {
                 app.clicked = false;
                 app.opened = true;
                 setApps([...apps]);
                 setSelectedAppIndex(index);
+
+                hideOtherOpenApps();
+
+                addElement(app, index);
                 return;
               }
               deSelectAll();
@@ -172,8 +273,9 @@ const page = () => {
         >
           Start
         </h1>
-        <h1 className="text-center my-auto px-2 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
-          9:00 AM
+        <div id="panel" className="w-full h-full  flex justify-start"></div>
+        <h1 className="text-center my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
+          9:00AM
         </h1>
       </div>
     </main>
