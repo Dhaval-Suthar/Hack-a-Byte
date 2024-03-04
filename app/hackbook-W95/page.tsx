@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 class App {
   name: string;
@@ -71,6 +71,7 @@ const page = () => {
     previewElement.addEventListener("click", () => {
       if (app.hidden) {
         app.hidden = false;
+        app.opened = true;
         setApps([...apps]);
         setSelectedAppIndex(index);
 
@@ -120,13 +121,33 @@ const page = () => {
     });
   }
 
+  useEffect(() => {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        apps.forEach((app, index) => {
+          if (app.clicked) {
+            app.clicked = false;
+            app.opened = true;
+            setApps([...apps]);
+            setSelectedAppIndex(index);
+
+            hideOtherOpenApps();
+
+            addElement(app, index);
+            return;
+          }
+        });
+      }
+    });
+  }, []);
+
   return (
     <main className="bg-[#008080] h-screen w-screen ">
       <div
         className={` ${
           apps[selectedAppIndex].fullscreen ? "h-[100vh]" : "h-[96vh]"
         } w-screen absolute flex justify-center pointer-events-none  ${
-          apps[selectedAppIndex].opened? "" : "hidden"
+          apps[selectedAppIndex].opened ? "" : "hidden"
         } z-20`}
       >
         <div
@@ -141,7 +162,8 @@ const page = () => {
               <h1
                 className="text-center text-2xl cursor-pointer font-extrabold  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
                 onClick={() => {
-                  apps[selectedAppIndex].hidden = !apps[selectedAppIndex].hidden;
+                  hideOtherOpenApps();
+                  apps[selectedAppIndex].opened = false;
                   setApps([...apps]);
                 }}
               >
@@ -192,6 +214,26 @@ const page = () => {
             key={app.name}
             className="col-span-1 row-span-1 flex justify-center z-10"
             onClick={() => {
+              if (app.hidden && app.clicked) {
+                app.hidden = false;
+                app.opened = true;
+                setApps([...apps]);
+                setSelectedAppIndex(index);
+
+                hideOtherOpenApps();
+
+                const previewElement = document.getElementById(app.name);
+                if (previewElement) {
+                  ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+                    previewElement.classList.add(className);
+                  });
+                  ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+                    previewElement.classList.remove(className);
+                  });
+                }
+
+                return;
+              }
               if (app.clicked && !app.opened) {
                 app.clicked = false;
                 app.opened = true;
