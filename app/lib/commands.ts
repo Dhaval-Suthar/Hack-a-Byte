@@ -176,7 +176,7 @@ export async function handleBalance({ userId = "", username = "", password = "",
   }
 
   return {
-    output: `<h3> - @${response.balance}</h3>`,
+    output: `<h3> - ₹${response.balance}</h3>`,
     acknowledged: true,
   };
 }
@@ -243,7 +243,7 @@ export async function handleTransfer({ userId = "", username = "", password = ""
   }
 
   return {
-    output: `<h3> - @${amount} is Successfully transferred to ${receiver}</h3> <h3>${transfered.success}</h3>`,
+    output: `<h3> - ₹${amount} is Successfully transferred to ${receiver}</h3> <h3>${transfered.success}</h3>`,
     acknowledged: true,
   };
 }
@@ -313,7 +313,7 @@ export async function handleTransactions({
 
   // Return all transactions
   transactionList.map((transaction: { _id: any; from: String; to: String; amount: number; date: Date }) => {
-    output += `<h3> [${transaction._id.toString()}] - Transferred ${transaction.amount} from ${
+    output += `<h3> [${transaction._id.toString()}] - Transferred ₹${transaction.amount} from ${
       transaction.from === username ? "You" : transaction.from
     } to ${transaction.to === username ? "You" : transaction.to} on ${new Date(transaction.date).toDateString()}</h3>`;
   });
@@ -346,7 +346,7 @@ export async function handleBrowser({ userId = "", username = "", password = "",
 
   if (response.encrypted) {
     return {
-      output: `<h3>${response.success}</h3><h3>Transfer $${response.money} to hacker to decrypt the data</h3><h3>If failed to do so, you won't be able to login for 2 days</h3><h3 class="text-yellow-300">Warning: Do not log out.</h3>`,
+      output: `<h3>${response.success}</h3><h3>Transfer ₹${response.money} to hacker to decrypt the data</h3><h3>If failed to do so, you won't be able to login for 2 days</h3><h3 class="text-yellow-300">Warning: Do not log out.</h3>`,
       acknowledged: true,
     };
   }
