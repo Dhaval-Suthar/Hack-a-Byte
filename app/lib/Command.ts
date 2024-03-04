@@ -19,12 +19,14 @@ import {
   handleEmail,
   handleInbox,
   handleDetect,
+  handlePassChange,
 } from "./commands";
 
 export class Command {
   description: string;
   argumentsRequired: string;
   requiresPassword: boolean;
+  passwordType: string;
   requiresConfirmation: boolean;
   requiresLogin: boolean;
   hidden: boolean;
@@ -38,6 +40,7 @@ export class Command {
     description = "",
     argumentsRequired = "",
     requiresPassword = false,
+    passwordType = 'password',
     requiresConfirmation = false,
     requiresLogin = false,
     hidden = false,
@@ -50,6 +53,7 @@ export class Command {
     this.description = description;
     this.argumentsRequired = argumentsRequired;
     this.requiresPassword = requiresPassword;
+    this.passwordType = passwordType;
     this.requiresConfirmation = requiresConfirmation;
     this.requiresLogin = requiresLogin;
     this.hidden = hidden;
@@ -190,4 +194,12 @@ export const COMMANDS = {
     requiresConfirmation: true,
     action: handleDetect,
   }),
+  passwd: new Command({
+    description: "Used to change user's pasword.",
+    requiresPassword: true,
+    passwordType: "current password",
+    loadingText: '',
+    requiresLogin: true,
+    action: handlePassChange
+  })
 };

@@ -18,7 +18,9 @@ import {
   email,
   inbox,
   detect,
+  changePassword,
 } from "./actions";
+import { askForPassword } from "./utils";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const response = await admin(argumentList[0], argumentList[1], password);
@@ -578,4 +580,43 @@ export async function handleDetect({ userId = "", username = "", password = "", 
     output: `<h3> - ${response.success}</h3>`,
     acknowledged: true,
   };
+}
+
+export async function handlePassChange({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const inputUsername = argumentList[0];
+
+  // check if the current password is correct.
+  let response = await login(username, password);
+  if (response.error) {
+    return {
+      output: `<h3 class="text-red-800">Credentials didn't match!</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  // ask for new password
+  let newPassword = await askForPassword("New password");
+  if (newPassword === await askForPassword("Confirm new password")) { 
+    // change the password
+    let response = await changePassword(username, newPassword);
+
+    if (response.success) { 
+      return {
+        output: `<h3>Password has been successfully changed.</h3>`,
+        acknowledged: true
+      }
+    } else { 
+      return {
+        output: `<h3 class="text-red-800">${response.error}!</h3>`,
+        acknowledged: false,
+      };
+    }
+
+  } else { 
+    // return error new password didnt match
+    return { 
+      output: `<h3 class="text-red-800">New password didn't match!</h3>`,
+      acknowledged: false,
+    }
+  }
 }

@@ -85,7 +85,7 @@ export async function login(username: string, password: string) {
       password,
     });
 
-    if (!response) return { error: ERRORS.INVALID_CREDENTIALS };
+    if (!response) return { error: ERRORS.INVALID_CREDENTIALS};
 
     if (response.encrypted) return { error: "Sorry, your data have been encrypted. Can't access it." };
 
@@ -96,6 +96,23 @@ export async function login(username: string, password: string) {
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function changePassword(username: string, newPassword: string) { 
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    // update the password
+    const response = await db.collection("hackers").updateOne({ username: username },{ $set: { password: newPassword }})
+    if (!response) return { error: ERRORS.SOME_ERROR};
+
+    return {
+      success: true,
+    };
+  } catch (e) {
+    return { error: ERRORS.SERVER_ERROR};
   }
 }
 
