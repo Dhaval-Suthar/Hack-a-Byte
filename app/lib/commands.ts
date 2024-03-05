@@ -201,7 +201,7 @@ export async function handleStorage({ userId = "", username = "", password = "",
   const totalSpace = response.total;
   const usedSpace = response.used;
   const systemSpace = response.system;
-  const freeSpace = response.total - response.used;
+  const freeSpace = response.total - usedSpace - systemSpace;
 
   function convertToMegaBytes(bytes: number) {
     return bytes / (1024 * 1024);
