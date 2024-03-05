@@ -24,13 +24,13 @@ class App {
 }
 
 const APPS: App[] = [
-  new App("Internet Explorer", "/ie.png", "/ie"),
-  new App("My Computer", "/mycomputer.png", "/mycomputer"),
-  new App("Terminal", "/terminal.png", "/terminal"),
-  new App("Recycle Bin", "/recyclebin.png", "/recyclebin"),
-  new App("Inbox", "/inbox.png", "/inbox"),
+  new App("Internet Explorer", "/ie.png", "/hackbook-W95/ie"),
+  new App("My Computer", "/mycomputer.png", "/hackbook-W95/mycomputer"),
+  new App("Terminal", "/terminal.png", "/"),
+  new App("Recycle Bin", "/recyclebin.png", "/hackbook-W95/recyclebin"),
+  new App("Inbox", "/inbox.png", "hackbook-W95/inbox"),
 ];
-const page = () => {
+const Page = () => {
   const router = useRouter();
 
   const [apps, setApps] = useState(APPS);
@@ -200,7 +200,7 @@ const page = () => {
             </div>
           </div>
           <iframe
-            src="/"
+            src={apps[selectedAppIndex].path}
             className={` ${
               apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
             } m-auto overscroll-none`}
@@ -324,4 +324,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
