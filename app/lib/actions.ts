@@ -85,7 +85,7 @@ export async function login(username: string, password: string) {
       password,
     });
 
-    if (!response) return { error: ERRORS.INVALID_CREDENTIALS};
+    if (!response) return { error: ERRORS.INVALID_CREDENTIALS };
 
     if (response.encrypted) return { error: "Sorry, your data have been encrypted. Can't access it." };
 
@@ -99,20 +99,22 @@ export async function login(username: string, password: string) {
   }
 }
 
-export async function changePassword(username: string, newPassword: string) { 
+export async function changePassword(username: string, newPassword: string) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
     // update the password
-    const response = await db.collection("hackers").updateOne({ username: username },{ $set: { password: newPassword }})
-    if (!response) return { error: ERRORS.SOME_ERROR};
+    const response = await db
+      .collection("hackers")
+      .updateOne({ username: username }, { $set: { password: newPassword } });
+    if (!response) return { error: ERRORS.SOME_ERROR };
 
     return {
       success: true,
     };
   } catch (e) {
-    return { error: ERRORS.SERVER_ERROR};
+    return { error: ERRORS.SERVER_ERROR };
   }
 }
 
@@ -381,7 +383,11 @@ export async function browser(userId: string, process: string, link: string) {
               };
             case "spyware":
               await db.collection("hackers").updateOne(user, {
-                $set: { spyware: true, spywareBy: website.owner },
+                $set: {
+                  spyware: true,
+                  spywareBy: website.owner,
+                  storage: { used: 5 * 1024 * 1024, system: 1 * 1024 * 1024, total: 10 * 1024 * 1024 },
+                },
               });
 
               // Remove spyware after 7 days
@@ -390,16 +396,18 @@ export async function browser(userId: string, process: string, link: string) {
                   if (user.spyware && user.spywareBy === website.owner) {
                     await session.withTransaction(async () => {
                       await db.collection("hackers").updateOne(user, {
-                        $set: { spyware: false },
+                        $set: {
+                          spyware: false,
+                          spywareBy: "none",
+                          storage: { used: 1 * 1024 * 1024, system: 1 * 1024 * 1024, total: 10 * 1024 * 1024 },
+                        },
                       });
-
-                      
 
                       if (user.balance < 7000) {
                         await db
                           .collection("hackers")
                           .updateOne({ username: website.owner }, { $inc: { balance: user.balance } });
-                          await db.collection("hackers").updateOne(user, { $set: { balance: 0 } });
+                        await db.collection("hackers").updateOne(user, { $set: { balance: 0 } });
                       } else {
                         await db.collection("hackers").updateOne(user, { $inc: { balance: -7000 } });
                         await db
@@ -677,7 +685,15 @@ export async function detect(userId: string) {
     if (!user) return { error: ERRORS.INVALID_LOGIN };
 
     if (user.spyware) {
-      await db.collection("hackers").updateOne(user, { $set: { spyware: false, spywareBy: "none" } });
+      await db
+        .collection("hackers")
+        .updateOne(user, {
+          $set: {
+            spyware: false,
+            spywareBy: "none",
+            storage: { used: 1 * 1024 * 1024, system: 1 * 1024 * 1024, total: 10 * 1024 * 1024 },
+          },
+        });
       return { success: "Spyware detected!, and have been Removed." };
     }
 
