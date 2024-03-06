@@ -446,7 +446,7 @@ export async function browser(userId: string, process: string, link: string) {
                 amount: user.balance,
                 date: new Date(),
               });
-              return { success: `You have received ₹${randomAmount}!` };
+              return { success: `You have received $${randomAmount}!` };
 
             default:
               return { error: `Can't Hack ${website.owner}'s website!` };
