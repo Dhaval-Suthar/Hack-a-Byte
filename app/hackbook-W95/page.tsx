@@ -2,6 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import Draggable from "react-draggable";
+
+type DraggableData = {
+  node: HTMLElement;
+  // lastX + deltaX === x
+  x: number;
+  y: number;
+  deltaX: number;
+  deltaY: number;
+  lastX: number;
+  lastY: number;
+};
 
 class App {
   name: string;
@@ -11,6 +23,7 @@ class App {
   opened: boolean;
   fullscreen: boolean;
   hidden: boolean;
+  defaultPosition: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(name: string, icon: string, path?: string) {
     this.name = name;
@@ -121,6 +134,14 @@ const Page = () => {
     });
   }
 
+  function savePosition(data: DraggableData) {
+    apps[selectedAppIndex].defaultPosition = {
+      x: data.x,
+      y: data.y,
+    };
+    setApps([...apps]);
+  }
+
   useEffect(() => {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -150,62 +171,73 @@ const Page = () => {
           apps[selectedAppIndex].opened ? "" : "hidden"
         } z-20`}
       >
-        <div
-          className={`bg-[#BBC2C2] ${
-            apps[selectedAppIndex].fullscreen ? "w-[100vw] h-[100vh]" : "w-[80vw] h-[80vh]"
-          }    pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white`}
+        <Draggable
+          disabled={apps[selectedAppIndex].fullscreen}
+          onDrag={(e, data) => {
+            savePosition(data);
+          }}
+          position={apps[selectedAppIndex].defaultPosition}
         >
-          <div className="h-10 w-auto bg-blue-800 m-2 flex ">
-            <img src={apps[selectedAppIndex].icon} alt="" />
-            <h1 className="text-white text-left w-full m-auto font-bold text-xl">{apps[selectedAppIndex].name}</h1>
-            <div className="flex justify-around">
-              <h1
-                className="text-center text-2xl cursor-pointer font-extrabold  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                onClick={() => {
-                  hideOtherOpenApps();
-                  apps[selectedAppIndex].opened = false;
-                  setApps([...apps]);
-                }}
-              >
-                _
-              </h1>
-              <h1
-                className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 p-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                onClick={() => {
-                  apps[selectedAppIndex].fullscreen = !apps[selectedAppIndex].fullscreen;
-                  setApps([...apps]);
-                }}
-              >
-                {apps[selectedAppIndex].fullscreen ? (
-                  <div className="px-1">
-                    <div className="w-3 h-3 border border-black border-t-4 translate-x-0.5 "></div>
-                    <div className="w-3 h-3 border border-black border-t-4  -translate-y-1 -translate-x-0.5"></div>
-                  </div>
-                ) : (
-                  <div className="w-5 h-5 border border-black border-t-4"></div>
-                )}
-              </h1>
-              <h1
-                className="text-center text-2xl font-bold cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-1 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                onClick={() => {
-                  apps[selectedAppIndex].opened = false;
-                  apps[selectedAppIndex].fullscreen = false;
-                  setApps([...apps]);
-
-                  removeElement(apps[selectedAppIndex].name);
-                }}
-              >
-                &#10005;
-              </h1>
+          <div
+            id="screen"
+            className={`bg-[#BBC2C2] ${
+              apps[selectedAppIndex].fullscreen
+                ? "w-[100vw] h-[100vh] !translate-x-0 !translate-y-0"
+                : "w-[80vw] h-[80vh]"
+            }    pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white`}
+          >
+            <div className="h-10 w-auto bg-blue-800 m-2 flex ">
+              <img src={apps[selectedAppIndex].icon} alt="" />
+              <h1 className="text-white text-left w-full m-auto font-bold text-xl">{apps[selectedAppIndex].name}</h1>
+              <div className="flex justify-around">
+                <h1
+                  className="text-center text-2xl cursor-pointer font-extrabold  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                  onClick={() => {
+                    hideOtherOpenApps();
+                    apps[selectedAppIndex].opened = false;
+                    setApps([...apps]);
+                  }}
+                >
+                  _
+                </h1>
+                <h1
+                  className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 p-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                  onClick={() => {
+                    apps[selectedAppIndex].fullscreen = !apps[selectedAppIndex].fullscreen;
+                    setApps([...apps]);
+                  }}
+                >
+                  {apps[selectedAppIndex].fullscreen ? (
+                    <div className="px-1">
+                      <div className="w-3 h-3 border border-black border-t-4 translate-x-0.5 "></div>
+                      <div className="w-3 h-3 border border-black border-t-4  -translate-y-1 -translate-x-0.5"></div>
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 border border-black border-t-4"></div>
+                  )}
+                </h1>
+                <h1
+                  className="text-center text-2xl font-bold cursor-pointer hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-1 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
+                  onClick={() => {
+                    removeElement(apps[selectedAppIndex].name);
+                    apps[selectedAppIndex].opened = false;
+                    apps[selectedAppIndex].fullscreen = false;
+                    apps[selectedAppIndex].defaultPosition = { x: 0, y: 0 };
+                    setApps([...apps]);
+                  }}
+                >
+                  &#10005;
+                </h1>
+              </div>
             </div>
+            <iframe
+              src={apps[selectedAppIndex].path}
+              className={` ${
+                apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
+              } m-auto overscroll-none`}
+            />
           </div>
-          <iframe
-            src={apps[selectedAppIndex].path}
-            className={` ${
-              apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
-            } m-auto overscroll-none`}
-          />
-        </div>
+        </Draggable>
       </div>
       <div className="h-[96vh] w-screen absolute z-0" onClick={deSelectAll}></div>
       <div className="grid grid-cols-10 grid-rows-6 grid-flow-col w-screen h-[96vh] text-black">
@@ -284,26 +316,46 @@ const Page = () => {
             <h1 className="m-auto w-full">Change Computer</h1>
           </div>
           <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-            <img className="h-20" src="./mycomputer.png" alt="" />
-            <h1 className="m-auto w-full">-</h1>
-          </div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-            <img className="h-20" src="./mycomputer.png" alt="" />
-            <h1 className="m-auto w-full">-</h1>
-          </div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-            <img className="h-20" src="./mycomputer.png" alt="" />
-            <h1 className="m-auto w-full">-</h1>
-          </div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-            <img className="h-20" src="./mycomputer.png" alt="" />
-            <h1 className="m-auto w-full">-</h1>
-          </div>
-          <div className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-            <img className="h-20" src="./mycomputer.png" alt="" />
-            <h1 className="m-auto w-full">-</h1>
-          </div>
+          {apps.map((app, index) => (
+            <div
+              key={app.name}
+              className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
+              onClick={() => {
+                if (app.hidden) {
+                  app.hidden = false;
+                  app.opened = true;
+                  setApps([...apps]);
+                  setSelectedAppIndex(index);
+
+                  hideOtherOpenApps();
+
+                  const previewElement = document.getElementById(app.name);
+                  if (previewElement) {
+                    ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+                      previewElement.classList.add(className);
+                    });
+                    ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+                      previewElement.classList.remove(className);
+                    });
+                  }
+                } else if (!app.opened) {
+                  app.clicked = false;
+                  app.opened = true;
+                  setApps([...apps]);
+                  setSelectedAppIndex(index);
+
+                  hideOtherOpenApps();
+
+                  addElement(app, index);
+                }
+
+                setClickedStart(false);
+              }}
+            >
+              <img className="h-20" src={app.icon} alt="" />
+              <h1 className="m-auto w-full">{app.name}</h1>
+            </div>
+          ))}
         </div>
         <h1
           className={`text-center my-auto shadow shadow-black ${

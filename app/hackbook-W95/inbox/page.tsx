@@ -90,8 +90,9 @@ const page = () => {
             </div>
           </div>
 
-          {mails.map((mail) => (
+          {mails.map((mail, index) => (
             <div
+              key={index}
               className={`${selectedType === mail.type ? "hidden" : ""}`}
               onClick={() => {
                 deSelectAll();
@@ -104,7 +105,9 @@ const page = () => {
                 <h1 className="my-auto w-1/2  text-lg">Hack a Byte</h1>
                 <h1 className="my-auto w-1/2  text-lg">Reward</h1>
               </div>
-              <div className={`mx-5 my-2 ${mail.clicked ? "" : "hidden "}`}>Browse the link! http://localhost:3000/hackbook-W95 to get your reward</div>
+              <div className={`mx-5 my-2 ${mail.clicked ? "" : "hidden "}`}>
+                Browse the link! http://localhost:3000/hackbook-W95 to get your reward
+              </div>
             </div>
           ))}
         </div>
