@@ -146,7 +146,7 @@ export const COMMANDS = {
     requiresConfirmation: true,
     requiresLogin: true,
     loadingText: "Installing...",
-    info: `<h3> - Virus: ₹1000</h3><h3> - Ransomware: ₹500</h3><h3> - Spyware: ₹200</h3>`,
+    info: `<h3> - Virus: $1000</h3><h3> - Ransomware: $500</h3><h3> - Spyware: $200</h3>`,
     action: handleHam,
   }),
   leaderboard: new Command({
