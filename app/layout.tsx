@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Created by Virexela",
 };
 
+
+
 export default function RootLayout({
   children,
 }: {
@@ -18,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={`${inter.className} bg-zinc-900`}>
         {children} <Analytics /> <SpeedInsights />
       </body>
