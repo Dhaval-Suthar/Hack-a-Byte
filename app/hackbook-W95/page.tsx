@@ -143,6 +143,10 @@ const Page = () => {
   }
 
   useEffect(() => {
+    if (!localStorage.getItem("userId")) {
+      router.push("/hackbook-W95/login");
+    }
+
     window.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         apps.forEach((app, index) => {
@@ -298,8 +302,10 @@ const Page = () => {
           <div
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
-              // Sends user to home page
-              router.replace("https://www.google.com");
+              localStorage.removeItem("userId");
+
+              // Sends user to login page
+              router.push("/hackbook-W95/login");
             }}
           >
             <img className="h-16 mx-3" src="./log-out.png" alt="" />
