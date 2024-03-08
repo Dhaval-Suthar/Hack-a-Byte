@@ -636,7 +636,14 @@ export async function email(userId: string, receiverUsername: string, websiteLin
 
     const website = await db.collection("websites").findOne({ _id: new ObjectId(link) });
     if (!website?._id) return { error: ERRORS.INVALID_LINK };
-
+    
+    // if email was already sent by the user once return error
+    const isEmail = await db.collection("emails").findOne({sender: user.username, receiver: receiverUsername}) 
+    if ( isEmail ) { 
+      return { 
+        error: ERRORS.EMAIL_ALREADY_SENT,
+      }
+    }
     const response = await db.collection("emails").insertOne({
       sender: user.username,
       receiver: receiverUsername,
@@ -646,7 +653,7 @@ export async function email(userId: string, receiverUsername: string, websiteLin
 
     if (!response) return { error: ERRORS.SERVER_ERROR };
 
-    return { success: "Sent Successfully!" };
+    return { success: "Sent Successfully!" , username: user.username};
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };
@@ -805,5 +812,33 @@ export async function sendDailyMoneyEmail() {
     };
   } catch (e) {
     console.error(e);
+  }
+}
+
+export async function addMoney(username: string, amount: number) { 
+  try { 
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const response = await db.collection('hackers').findOneAndUpdate({username} , {$inc : {balance: amount}})
+    const transactionResponse = await db.collection('transactions').insertOne({
+      _id: new ObjectId(),
+      from: 'admin',
+      username: username,
+      amount,
+      date: new Date()
+    })
+
+    if (response) { 
+      return {success: true}
+    } else { 
+      return {
+        success: false,
+        error: ERRORS.SOME_ERROR
+      }
+    }
+
+  } catch(e) { 
+    return { error: ERRORS.SERVER_ERROR };
   }
 }

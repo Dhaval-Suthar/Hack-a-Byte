@@ -23,4 +23,5 @@ export const ERRORS = {
   INVALID_SOFTWARE_ID: "Invalid software id",
   NOT_YOUR_WEBSITE: "Not your website",
   NO_EMAILS_FOUND: "No emails found!",
+  EMAIL_ALREADY_SENT:"Can't send more than 1 email to same user"
 };
