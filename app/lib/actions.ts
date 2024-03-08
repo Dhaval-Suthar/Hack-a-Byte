@@ -281,6 +281,8 @@ export async function browser(userId: string, process: string, link: string) {
 
     const websiteId = link.slice(31); // Removes "https://hack-a-byte.vercel.app/"
 
+    
+
     switch (process) {
       case "hack":
         const response = await db.collection("websites").findOne({ _id: new ObjectId(websiteId) });
@@ -294,10 +296,10 @@ export async function browser(userId: string, process: string, link: string) {
 
           switch (response?.type) {
             case "money":
-              await db.collection("websites").updateOne(response, { $set: { owner: name } });
+              await db.collection("websites").updateOne(response, { $set: { owner: user.username } });
               return { success: "The website have been hacked" };
             case "virus":
-              await db.collection("hackers").updateOne({ username: name }, { $set: { balance: 0 } });
+              await db.collection("hackers").updateOne({ username: user.username }, { $set: { balance: 0 } });
               return { success: "You have been hacked" };
 
             default:
@@ -470,6 +472,26 @@ export async function inbox(userId: string) {
     if (!response[0]) return { error: ERRORS.NO_EMAILS_FOUND };
 
     db.collection("emails").deleteMany({ receiver: user.username });
+
+    return { data: JSON.stringify(response) };
+  } catch (e) {
+    console.error(e);
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function outbox(userId: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    const response = await db.collection("emails").find({ sender: user.username }).toArray();
+
+    if (!response[0]) return { error: ERRORS.NO_EMAILS_FOUND };
+
 
     return { data: JSON.stringify(response) };
   } catch (e) {

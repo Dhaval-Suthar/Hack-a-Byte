@@ -1,29 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import { inbox, outbox } from "@/app/lib/actions";
+import { DEFAULT_USER_ID } from "@/app/lib/constants";
+import React, { useEffect, useState } from "react";
 
 class Mail {
   from: string;
   subject: string;
   type: string;
+  link: string;
   clicked: boolean = false;
 
-  constructor(from: string, subject: string, type: string) {
+  constructor(from: string, subject: string, type: string, link: string) {
     this.from = from;
     this.subject = subject;
+    this.link = link;
     this.type = type;
   }
 }
 
-const MAILS: Mail[] = [
-  new Mail("admin", "Money", "inbox"),
-  new Mail("admin", "Money", "outbox"),
-  new Mail("admin", "Money", "inbox"),
-];
-
 const page = () => {
   const [selectedType, setSelectedType] = useState("inbox");
-  const [mails, setMails] = useState(MAILS);
+  const [mails, setMails] = useState<Mail[]>([]); 
   const [clicked, setClicked] = useState("none");
 
   function deSelectAll() {
@@ -33,6 +31,32 @@ const page = () => {
     setMails([...mails]);
     setClicked("none");
   }
+
+  async function fetchMails() {
+    const userId = localStorage.getItem("userId") || DEFAULT_USER_ID;
+    const inboxResponse = await inbox(userId);
+    const outboxResponse = await outbox(userId);
+
+    if (inboxResponse.data) {
+      const emailList = JSON.parse(inboxResponse.data);
+      emailList.forEach((email: any) => {
+        mails.push(new Mail(email.username, "Reward", "inbox", email.link));
+      });
+      setMails([...mails]);
+    }
+
+    if (outboxResponse.data) {
+      const emailList = JSON.parse(outboxResponse.data);
+      emailList.forEach((email: any) => {
+        mails.push(new Mail(email.receiver, "Reward", "outbox", email.link));
+      });
+      setMails([...mails]);
+    }
+  }
+
+  useEffect(() => {
+    fetchMails();
+  }, []);
 
   return (
     <main className="h-screen w-screen ">
@@ -83,7 +107,7 @@ const page = () => {
               <img className="h-6 " src="/mail-white.png" alt="" />
             </div>
             <div className="flex h-8 w-1/2 bg-[#BBC2C2] border-2 border-black  border-l-white border-t-white ">
-              From
+              {selectedType === "inbox" ? "From" : "To"}
             </div>
             <div className="flex h-8 w-1/2 bg-[#BBC2C2] border-2 border-black  border-l-white border-t-white ">
               Subject
@@ -93,7 +117,7 @@ const page = () => {
           {mails.map((mail, index) => (
             <div
               key={index}
-              className={`${selectedType === mail.type ? "hidden" : ""}`}
+              className={`${selectedType === mail.type ? "" : "hidden"}`}
               onClick={() => {
                 deSelectAll();
                 mail.clicked = true;
@@ -102,11 +126,11 @@ const page = () => {
             >
               <div className={`flex  ${mail.clicked ? "bg-blue-900 text-white " : "text-black "} font-bold `}>
                 <img className="h-5 w-8 p-0.5 mt-0.5" src="/mail.png" alt="" />
-                <h1 className="my-auto w-1/2  text-lg">Hack a Byte</h1>
+                <h1 className="my-auto w-1/2  text-lg"> {mail.from}</h1>
                 <h1 className="my-auto w-1/2  text-lg">Reward</h1>
               </div>
               <div className={`mx-5 my-2 ${mail.clicked ? "" : "hidden "}`}>
-                Browse the link! http://localhost:3000/hackbook-W95 to get your reward
+                Browse the link! {mail.link} to get your reward
               </div>
             </div>
           ))}
