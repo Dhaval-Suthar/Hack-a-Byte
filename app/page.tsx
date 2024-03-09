@@ -40,6 +40,24 @@ export default function Page() {
   const [topPlayers, setTopPlayers] = useState([{ username: "loading", balance: 0 }]);
   
 
+  // quickfix for scrollbug
+  useEffect(() => { 
+
+    const commandPrompt = document.getElementById('commandList');
+    function onScroll(e: WheelEvent) { 
+   
+      e.preventDefault();
+      if (commandPrompt) { 
+        commandPrompt.scrollTop += -e.deltaY;
+
+      }
+    
+    }
+
+    commandPrompt?.addEventListener('wheel', onScroll)
+    return () => commandPrompt?.removeEventListener('wheel', onScroll)
+  }, [])
+
   // Functions
   function focusCommandLine() {
     const commandLine = document.getElementById("command-line");
@@ -347,7 +365,7 @@ export default function Page() {
                 className={`absolute ${
                   activeBot && "rotate-180"
                 } w-60 duration-1000 transition-all right-0 mr-1 origin-top h-[85vh] text-black bg-transparent overflow-y-auto overflow-hidden hide-scrollbar`}
-              >
+               id="commandList">
                 {Object.keys(COMMANDS)
                   .filter((commandName) => !COMMANDS[commandName as keyof typeof COMMANDS]?.hidden)
                   .map((commandName) => (
