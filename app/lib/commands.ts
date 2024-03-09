@@ -19,6 +19,7 @@ import {
   inbox,
   detect,
   changePassword,
+  addMoney,
 } from "./actions";
 import { askForPassword } from "./utils";
 
@@ -508,7 +509,9 @@ export async function handleEmail({ userId = "", username = "", password = "", c
       output: `<h3>${ERRORS.SERVER_ERROR}</h3>`,
       acknowledged: false,
     };
-
+    
+  // if sucessfully sent mail to someone add 10 dollars
+  addMoney(response.username, 10);
   return {
     output: response.success,
     acknowledged: true,
