@@ -464,11 +464,14 @@ export async function browser(userId: string, process: string, link: string) {
   }
 }
 
-export async function browse(username: string) {
+export async function browse(username: string, self: boolean) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    const response = await db.collection("websites").find({ owner: username }).toArray();
+    // depending on self value return owned webite or 10 random website of which he is not the owner
+    const response = self ? await db.collection("websites").find({ owner: username }).toArray()
+    : await db.collection("websites").aggregate([{$match: {owner: {$ne : username }}}, {$sample: {size: 10}}]).toArray();
+    
 
     if (!response[0]) return { error: ERRORS.NO_WEBSITES_FOUND };
 

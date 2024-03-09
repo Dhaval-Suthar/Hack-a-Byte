@@ -140,6 +140,7 @@ export const COMMANDS = {
   }),
   browse: new Command({
     description: "Gives list of your hacked website links",
+    optionalArguments: "[flags]",
     requiresLogin: true,
     loadingText: "Fetching websites...",
     action: handleBrowse,
