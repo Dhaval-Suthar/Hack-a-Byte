@@ -183,7 +183,6 @@ export default function Page() {
 
     // Clear Command
     setCommand("");
-    console.log(prevCommands)
 
     // Print output
     consoleElement?.appendChild(outputElement);
