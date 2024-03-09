@@ -359,7 +359,9 @@ export async function handleBrowser({ userId = "", username = "", password = "",
 }
 
 export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await browse(username);
+
+  const flags = argumentList[0];
+  const response = flags === "-o" ? await browse(username, true) : await browse(username, false);
 
   if (response.error) {
     return {
