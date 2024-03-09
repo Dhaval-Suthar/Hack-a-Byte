@@ -825,7 +825,7 @@ export async function addMoney(username: string, amount: number) {
       _id: new ObjectId(),
       from: 'admin',
       username: username,
-      amount,
+      amount: amount,
       date: new Date()
     })
 
