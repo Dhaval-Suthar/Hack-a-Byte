@@ -20,9 +20,9 @@ import {
   detect,
   changePassword,
   addMoney,
-  market,
+   market,
 } from "./actions";
-import { askForPassword } from "./utils";
+import { askForPassword, genHint } from "./utils";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const response = await admin(argumentList[0], argumentList[1], password);
@@ -511,7 +511,7 @@ export async function handleEmail({ userId = "", username = "", password = "", c
       output: `<h3>${ERRORS.SERVER_ERROR}</h3>`,
       acknowledged: false,
     };
-
+  
   return {
     output: response.success,
     acknowledged: true,
@@ -599,22 +599,22 @@ export async function handlePassChange({ userId = "", username = "", password = 
 
   // ask for new password
   let newPassword = await askForPassword("New password");
-  if (newPassword === (await askForPassword("Confirm new password"))) {
+  if (newPassword === await askForPassword("Confirm new password")) { 
     // change the password
     let response = await changePassword(username, newPassword);
 
-    if (response.success) {
+    if (response.success) { 
       return {
         output: `<h3>Password has been successfully changed.</h3>`,
-        acknowledged: true,
-      };
-    } else {
+        acknowledged: true
+      }
+    } else { 
       return {
         output: `<h3 class="text-red-800">${response.error}!</h3>`,
         acknowledged: false,
       };
     }
-  } else {
+    } else {
     // return error new password didnt match
     return {
       output: `<h3 class="text-red-800">New password didn't match!</h3>`,
@@ -655,4 +655,36 @@ export async function handleMarket({ userId = "", username = "", password = "", 
     output: `<h3> - ${response.success} </h3>`,
     acknowledged: true,
   };
+}
+
+
+export async function handleHint({ userId = "", username = "", password = "", command = "", argumentList = [] }) { 
+
+  const hintForUser = argumentList[0];
+  const response = await genHint(hintForUser);
+
+  
+  if (response.error) { 
+    return { 
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
+      acknowledged: false
+    }
+  }
+
+  let hintsArray = Object.values(response.hints).filter((hints) => { 
+    if (hints) { 
+      return true
+    }
+  });
+
+
+  let hint = hintsArray[Math.floor(Math.random() * hintsArray.length)]
+  addMoney(username, -10);
+
+  return { 
+    output: `<h3>${hint}</h3>`,
+    acknowledged: true
+  }
+
+  // roll a dice and give random hint
 }

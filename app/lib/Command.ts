@@ -20,6 +20,7 @@ import {
   handleInbox,
   handleDetect,
   handlePassChange,
+   handleHint,
   handleMarket,
 } from "./commands";
 
@@ -212,5 +213,13 @@ export const COMMANDS = {
     loadingText: "Buying...",
     info: `<h3> - Hackbook-W95: $10,000</h3>`,
     action: handleMarket,
+  }),
+  hint: new Command({
+    description: "Provides a clue for hacking the password for 10$",
+    loadingText: "Generating hint...",
+    requiresLogin: true,
+    requiresConfirmation: true,
+    argumentsRequired: "[username]",
+    action: handleHint
   })
 };

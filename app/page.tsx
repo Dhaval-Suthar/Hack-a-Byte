@@ -271,6 +271,7 @@ export default function Page() {
     if(localStorage.getItem('userId')) {
       setComputerModel("Hackbook-W95");
     }
+    
     fetchLeaderboard();
     setInterval(() => {
       fetchLeaderboard();
