@@ -15,7 +15,7 @@ export const ERRORS = {
   INVALID_USER_ID: "Invalid user id",
   INVALID_LOGIN: "Invalid login",
   INVALID_LINK: "Invalid link",
-  INSUFFICIENT_BALANCE: "Invalid login",
+  INSUFFICIENT_BALANCE: "Insufficient balance",
   NO_TRANSACTIONS_FOUND: "No transactions found!",
   NO_WEBSITES_FOUND: "No websites found!",
   INVALID_PROCESS: "Invalid process",

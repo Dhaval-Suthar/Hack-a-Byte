@@ -41,7 +41,7 @@ const APPS: App[] = [
   new App("My Computer", "/mycomputer.png", "/hackbook-W95/mycomputer"),
   new App("Terminal", "/terminal.png", "/"),
   new App("Recycle Bin", "/recyclebin.png", "/hackbook-W95/recyclebin"),
-  new App("Inbox", "/inbox.png", "hackbook-W95/inbox"),
+  new App("Inbox", "/inbox.png", "/hackbook-W95/inbox"),
 ];
 const Page = () => {
   const router = useRouter();
@@ -308,17 +308,19 @@ const Page = () => {
               router.push("/hackbook-W95/login");
             }}
           >
-            <img className="h-16 mx-3" src="./log-out.png" alt="" />
+            <img className="h-16 mx-3" src="/log-out.png" alt="" />
             <h1 className="m-auto w-full">Log Out</h1>
           </div>
           <div
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
+              localStorage.removeItem("userId");
+              
               // Sends user to hackbook-L
               router.replace("/");
             }}
           >
-            <img className="h-20" src="./change-comp.png" alt="" />
+            <img className="h-20" src="/change-comp.png" alt="" />
             <h1 className="m-auto w-full">Change Computer</h1>
           </div>
           <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>

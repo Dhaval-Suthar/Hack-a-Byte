@@ -268,6 +268,9 @@ export default function Page() {
   }
 
   useEffect(() => {
+    if(localStorage.getItem('userId')) {
+      setComputerModel("Hackbook-W95");
+    }
     fetchLeaderboard();
     setInterval(() => {
       fetchLeaderboard();

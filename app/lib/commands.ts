@@ -20,6 +20,7 @@ import {
   detect,
   changePassword,
   addMoney,
+  market,
 } from "./actions";
 import { askForPassword } from "./utils";
 
@@ -359,7 +360,6 @@ export async function handleBrowser({ userId = "", username = "", password = "",
 }
 
 export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-
   const flags = argumentList[0];
   const response = flags === "-o" ? await browse(username, true) : await browse(username, false);
 
@@ -511,7 +511,7 @@ export async function handleEmail({ userId = "", username = "", password = "", c
       output: `<h3>${ERRORS.SERVER_ERROR}</h3>`,
       acknowledged: false,
     };
-  
+
   return {
     output: response.success,
     acknowledged: true,
@@ -599,27 +599,60 @@ export async function handlePassChange({ userId = "", username = "", password = 
 
   // ask for new password
   let newPassword = await askForPassword("New password");
-  if (newPassword === await askForPassword("Confirm new password")) { 
+  if (newPassword === (await askForPassword("Confirm new password"))) {
     // change the password
     let response = await changePassword(username, newPassword);
 
-    if (response.success) { 
+    if (response.success) {
       return {
         output: `<h3>Password has been successfully changed.</h3>`,
-        acknowledged: true
-      }
-    } else { 
+        acknowledged: true,
+      };
+    } else {
       return {
         output: `<h3 class="text-red-800">${response.error}!</h3>`,
         acknowledged: false,
       };
     }
-
-  } else { 
+  } else {
     // return error new password didnt match
-    return { 
+    return {
       output: `<h3 class="text-red-800">New password didn't match!</h3>`,
       acknowledged: false,
-    }
+    };
   }
+}
+
+export async function handleMarket({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const process = argumentList[0];
+  const product = argumentList[1];
+  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
+
+  if (process !== "buy") {
+    return {
+      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  const response = await market(userId, product);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success) {
+    return {
+      output: `<h3>Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  return {
+    output: `<h3> - ${response.success} </h3>`,
+    acknowledged: true,
+  };
 }

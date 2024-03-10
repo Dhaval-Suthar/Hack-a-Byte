@@ -20,6 +20,7 @@ import {
   handleInbox,
   handleDetect,
   handlePassChange,
+  handleMarket,
 } from "./commands";
 
 export class Command {
@@ -199,8 +200,17 @@ export const COMMANDS = {
     description: "Used to change user's pasword.",
     requiresPassword: true,
     passwordType: "current password",
-    loadingText: '',
+    loadingText: "",
     requiresLogin: true,
-    action: handlePassChange
+    action: handlePassChange,
+  }),
+  market: new Command({
+    description: "A market place to buy computer models",
+    argumentsRequired: "buy [computer-model]",
+    requiresConfirmation: true,
+    requiresLogin: true,
+    loadingText: "Buying...",
+    info: `<h3> - Hackbook-W95: $10,000</h3>`,
+    action: handleMarket,
   })
 };
