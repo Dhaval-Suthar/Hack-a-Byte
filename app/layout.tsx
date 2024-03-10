@@ -1,21 +1,17 @@
-// For Site Analytics
 import { Analytics } from "@vercel/analytics/react";
-// For Site Analytics
-
-// For Site SpeedInsights
 import { SpeedInsights } from "@vercel/speed-insights/next";
-// For Site SpeedInsights
-
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
-import { PT_Mono } from "next/font/google";
+import { Noto_Sans_Tamil_Supplement } from "next/font/google";
 
-const inter = PT_Mono({ weight: "400", subsets: ["latin"] });
+const inter = Noto_Sans_Tamil_Supplement({ weight: "400", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Hack a Byte",
   description: "Created by Virexela",
 };
+
+
 
 export default function RootLayout({
   children,
@@ -24,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={`${inter.className} bg-zinc-900`}>
         {children} <Analytics /> <SpeedInsights />
       </body>

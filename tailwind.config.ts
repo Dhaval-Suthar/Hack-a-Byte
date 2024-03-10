@@ -7,6 +7,19 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
 
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }: { addUtilities: any }) {
+      const newUtilities = {
+        ".hide-scrollbar": {
+          "scrollbar-width": "none" /* Firefox */,
+          "-ms-overflow-style": "none" /* Internet Explorer 10+ */,
+        },
+        ".hide-scrollbar::-webkit-scrollbar": {
+          display: "none" /* Safari and Chrome */,
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 };
 export default config;
