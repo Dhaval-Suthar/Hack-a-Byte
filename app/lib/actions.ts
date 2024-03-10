@@ -840,26 +840,6 @@ export async function sendDailyMoneyEmail() {
   }
 }
 
-export async function outbox(userId: string) {
-  try {
-    const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
-
-    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
-    if (!user) return { error: ERRORS.INVALID_LOGIN };
-
-    const response = await db.collection("emails").find({ sender: user.username }).toArray();
-
-    if (!response[0]) return { error: ERRORS.NO_EMAILS_FOUND };
-
-
-    return { data: JSON.stringify(response) };
-  } catch (e) {
-    console.error(e);
-    return { error: ERRORS.SERVER_ERROR };
-  }
-}
-
 export async function addMoney(username: string, amount: number) { 
   try { 
     const client = await clientPromise;
