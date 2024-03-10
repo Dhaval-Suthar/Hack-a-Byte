@@ -208,6 +208,7 @@ export const COMMANDS = {
     description: "Provides a clue for hacking the password for 10$",
     loadingText: "Generating hint...",
     requiresLogin: true,
+    requiresConfirmation: true,
     argumentsRequired: "[username]",
     action: handleHint
   })

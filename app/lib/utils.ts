@@ -116,7 +116,7 @@ export async function genHint(username:string) {
         isSameDigit: sameDigit ? "the password is of the same digit. e.g 1111": false,
         maxNumber: `the max digit in the password is ${maxNumber}`,
         lowestNumber: `the max digit in the password is ${lowestNumber}`,
-        password: `the pasword is ${password}`
+        // password: `the pasword is ${password}` 
       } 
     }
   // give the user the hint and make sure his 30-rs gets debited/

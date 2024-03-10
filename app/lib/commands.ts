@@ -625,8 +625,8 @@ export async function handlePassChange({ userId = "", username = "", password = 
 }
 
 export async function handleHint({ userId = "", username = "", password = "", command = "", argumentList = [] }) { 
-  const hintForUser = argumentList[0];
 
+  const hintForUser = argumentList[0];
   const response = await genHint(hintForUser);
 
   
