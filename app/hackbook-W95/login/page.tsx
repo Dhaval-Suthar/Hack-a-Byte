@@ -26,13 +26,22 @@ const page = () => {
       return;
     }
 
-    if (!response.id) {
+    if (!response.id || !response.data) {
       alert("Sorry! Some Error Occured!");
       return;
     }
 
-    localStorage.setItem("userId", response.id);
-    router.push("/hackbook-W95");
+    const userData = JSON.parse(response.data);
+
+    if(userData.computerModels.includes("Hackbook-W95")){ 
+      localStorage.setItem("userId", response.id);
+      router.push("/hackbook-W95");
+    }
+    else{
+      alert("Buy Hackbook-W95 to access!");
+    }
+
+    
   };
 
   const handleInfo = () => {

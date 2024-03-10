@@ -91,6 +91,7 @@ export async function login(username: string, password: string) {
 
     return {
       id: response?._id.toJSON(),
+      data: JSON.stringify(response),
       lastLogin: response?.lastLogin,
     };
   } catch (e) {
