@@ -845,3 +845,17 @@ export async function addMoney(username: string, amount: number) {
     return { error: ERRORS.SERVER_ERROR };
   }
 }
+
+export async function fetchUserPassword(username: string) { 
+  try { 
+
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const response = await db.collection("hackers").findOne({username});
+
+    return response?.password
+  } catch(e) { 
+    return {error : ERRORS.SERVER_ERROR}
+  }
+}

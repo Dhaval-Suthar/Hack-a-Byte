@@ -1,3 +1,5 @@
+import { fetchUserPassword } from "./actions";
+
 export async function askForPassword(passwordType: string) {
     const passwordElement = document.createElement("li");
     const consoleElement = document.getElementById("console-element");
@@ -54,3 +56,69 @@ export async function askForPassword(passwordType: string) {
         })
     );
   }
+
+
+export async function genHint(username:string) { 
+  // take username of the account to hack as input
+  const password = await fetchUserPassword(username);
+
+  if (password.error) { 
+    return { error: password.error}
+  } 
+
+  let consecutive = true;
+  let reverseConsecutive = true;
+  let repeatedPattern = true;
+  let sameDigit = true;
+  let maxNumber = password[0];
+  let lowestNumber = password[0]
+  for (let i = 1; i < password.length; i++) {
+    if (parseInt(password[i]) !== parseInt(password[i - 1]) + 1) {
+      consecutive = false;
+    }
+
+    if (parseInt(password[i]) !== parseInt(password[i - 1]) - 1) {
+      reverseConsecutive = false;
+    }
+
+    if (password[i] !== password[i - 1]) {
+      repeatedPattern = false;
+    }
+
+    if (password[i] !== password[0]) {
+      sameDigit = false;
+      break;
+    }
+
+    if (maxNumber < parseInt(password[i])) { 
+      maxNumber = password[i]
+    }
+    if (lowestNumber > parseInt(password[i])) { 
+      lowestNumber = password[i]
+    }
+  }
+    
+    // 5555 - the middle number
+
+
+    // 4958 - the password is 4958 (least probability) 10%
+    let randomRoll = Math.floor(Math.random() * (100 - 1 + 1) + 1);
+    if (randomRoll <= 10) { 
+      return password
+    } 
+
+    return { 
+      hints: { 
+
+        isCons: consecutive ? "The password is in sequence. e.g 1234": false,
+        isReverseCon: reverseConsecutive ? "the password is in reverse sequence. e.g 5432" : false,
+        isRepeatedPattern: repeatedPattern ? "the password is a repeated pattern. e.g 1212": false,
+        isSameDigit: sameDigit ? "the password is of the same digit. e.g 1111": false,
+        maxNumber: `the max digit in the password is ${maxNumber}`,
+        lowestNumber: `the max digit in the password is ${lowestNumber}`,
+        password: `the pasword is ${password}`
+      } 
+    }
+  // give the user the hint and make sure his 30-rs gets debited/
+
+}
