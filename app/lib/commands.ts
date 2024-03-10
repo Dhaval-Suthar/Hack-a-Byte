@@ -20,6 +20,7 @@ import {
   detect,
   changePassword,
   addMoney,
+   market,
 } from "./actions";
 import { askForPassword, genHint } from "./utils";
 
@@ -359,7 +360,6 @@ export async function handleBrowser({ userId = "", username = "", password = "",
 }
 
 export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-
   const flags = argumentList[0];
   const response = flags === "-o" ? await browse(username, true) : await browse(username, false);
 
@@ -614,15 +614,49 @@ export async function handlePassChange({ userId = "", username = "", password = 
         acknowledged: false,
       };
     }
-
-  } else { 
+    } else {
     // return error new password didnt match
-    return { 
+    return {
       output: `<h3 class="text-red-800">New password didn't match!</h3>`,
       acknowledged: false,
-    }
+    };
   }
 }
+
+export async function handleMarket({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
+  const process = argumentList[0];
+  const product = argumentList[1];
+  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
+
+  if (process !== "buy") {
+    return {
+      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  const response = await market(userId, product);
+
+  if (response.error) {
+    return {
+      output: `<h3>${response.error}</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  if (!response.success) {
+    return {
+      output: `<h3>Sorry Some Error Occured</h3>`,
+      acknowledged: false,
+    };
+  }
+
+  return {
+    output: `<h3> - ${response.success} </h3>`,
+    acknowledged: true,
+  };
+}
+
 
 export async function handleHint({ userId = "", username = "", password = "", command = "", argumentList = [] }) { 
 

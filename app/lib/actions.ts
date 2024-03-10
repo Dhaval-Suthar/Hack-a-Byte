@@ -57,7 +57,7 @@ export async function signup(username: string, password: string) {
         system: 1 * 1024 * 1024,
         total: 10 * 1024 * 1024,
       },
-      computerModel: "HackBook-L",
+      computerModels: ["HackBook-L"],
       lastLogin: new Date(),
     });
 
@@ -91,6 +91,7 @@ export async function login(username: string, password: string) {
 
     return {
       id: response?._id.toJSON(),
+      data: JSON.stringify(response),
       lastLogin: response?.lastLogin,
     };
   } catch (e) {
@@ -466,10 +467,14 @@ export async function browse(username: string, self: boolean) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    // depending on self value return owned webite or 10 random website of which he is not the owner
-    const response = self ? await db.collection("websites").find({ owner: username }).toArray()
-    : await db.collection("websites").aggregate([{$match: {owner: {$ne : username }}}, {$sample: {size: 10}}]).toArray();
     
+    // depending on self value return owned webite or 10 random website of which he is not the owner
+    const response = self
+      ? await db.collection("websites").find({ owner: username }).toArray()
+      : await db
+          .collection("websites")
+          .aggregate([{ $match: { owner: { $ne: username } } }, { $sample: { size: 10 } }])
+          .toArray();
 
     if (!response[0]) return { error: ERRORS.NO_WEBSITES_FOUND };
 
@@ -641,11 +646,11 @@ export async function email(userId: string, receiverUsername: string, websiteLin
     if (!website?._id) return { error: ERRORS.INVALID_LINK };
     
     // if email was already sent by the user once return error
-    const isEmail = await db.collection("emails").findOne({sender: user.username, receiver: receiverUsername}) 
-    if ( isEmail ) { 
-      return { 
+    const isEmail = await db.collection("emails").findOne({ sender: user.username, receiver: receiverUsername });
+    if (isEmail) {
+      return {
         error: ERRORS.EMAIL_ALREADY_SENT,
-      }
+      };
     }
     const response = await db.collection("emails").insertOne({
       sender: user.username,
@@ -656,7 +661,7 @@ export async function email(userId: string, receiverUsername: string, websiteLin
 
     if (!response) return { error: ERRORS.SERVER_ERROR };
 
-    return { success: "Sent Successfully!" , username: user.username};
+    return { success: "Sent Successfully!", username: user.username };
   } catch (e) {
     console.error(e);
     return { error: ERRORS.SERVER_ERROR };
@@ -684,6 +689,25 @@ export async function inbox(userId: string) {
   }
 }
 
+export async function outbox(userId: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+    if (!user) return { error: ERRORS.INVALID_LOGIN };
+
+    const response = await db.collection("emails").find({ sender: user.username }).toArray();
+
+    if (!response[0]) return { error: ERRORS.NO_EMAILS_FOUND };
+
+    return { data: JSON.stringify(response) };
+  } catch (e) {
+    console.error(e);
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
 export async function detect(userId: string) {
   try {
     const client = await clientPromise;
@@ -693,7 +717,7 @@ export async function detect(userId: string) {
     if (!user) return { error: ERRORS.INVALID_LOGIN };
 
     if (user.spyware) {
-      await db
+    await db
         .collection("hackers")
         .updateOne(user, {
           $set: {
@@ -842,6 +866,49 @@ export async function addMoney(username: string, amount: number) {
     }
 
   } catch(e) { 
+    return { error: ERRORS.SERVER_ERROR };
+  }
+}
+
+export async function market(userId: string, product: string) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("Hack-a-Byte");
+
+    const user = await db.collection("hackers").findOne({ _id: new ObjectId(userId) });
+
+    if (!user) {
+      return { error: ERRORS.INVALID_LOGIN };
+    }
+
+    if (user.computerModels.includes("Hackbook-W95")) return { error: "Already bought Hackbook-W95" };
+
+    // Start a Client Session
+    const session = client.startSession();
+
+    switch (product) {
+      case "Hackbook-W95":
+        if (user.balance < 10000) return { error: ERRORS.INSUFFICIENT_BALANCE };
+
+        await session.withTransaction(async () => {
+          await db
+            .collection("hackers")
+            .updateOne(user, { $inc: { balance: -10000 }, $push: { computerModels: "Hackbook-W95" } }, { session });
+
+          await db.collection("transactions").insertOne({
+            from: user.username,
+            to: "admin",
+            amount: 10000,
+            date: new Date(),
+          });
+        });
+
+        return { success: "You own a Hackbook-W95 Now" };
+      default:
+        return { error: "Invalid Product" };
+    }
+  } catch (e) {
+    console.error(e);
     return { error: ERRORS.SERVER_ERROR };
   }
 }
