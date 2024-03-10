@@ -22,7 +22,6 @@ import {
   addMoney,
 } from "./actions";
 import { askForPassword, genHint } from "./utils";
-import { resolve } from "path";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const response = await admin(argumentList[0], argumentList[1], password);
