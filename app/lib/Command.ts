@@ -20,6 +20,7 @@ import {
   handleInbox,
   handleDetect,
   handlePassChange,
+  handleHint,
 } from "./commands";
 
 export class Command {
@@ -202,5 +203,13 @@ export const COMMANDS = {
     loadingText: '',
     requiresLogin: true,
     action: handlePassChange
+  }),
+  hint: new Command({
+    description: "Provides a clue for hacking the password for 10$",
+    loadingText: "Generating hint...",
+    requiresLogin: true,
+    requiresConfirmation: true,
+    argumentsRequired: "[username]",
+    action: handleHint
   })
 };

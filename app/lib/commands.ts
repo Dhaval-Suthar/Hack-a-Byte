@@ -21,7 +21,7 @@ import {
   changePassword,
   addMoney,
 } from "./actions";
-import { askForPassword } from "./utils";
+import { askForPassword, genHint } from "./utils";
 
 export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
   const response = await admin(argumentList[0], argumentList[1], password);
@@ -622,4 +622,35 @@ export async function handlePassChange({ userId = "", username = "", password = 
       acknowledged: false,
     }
   }
+}
+
+export async function handleHint({ userId = "", username = "", password = "", command = "", argumentList = [] }) { 
+
+  const hintForUser = argumentList[0];
+  const response = await genHint(hintForUser);
+
+  
+  if (response.error) { 
+    return { 
+      output: `<h3 class="text-red-800">${response.error}</h3>`,
+      acknowledged: false
+    }
+  }
+
+  let hintsArray = Object.values(response.hints).filter((hints) => { 
+    if (hints) { 
+      return true
+    }
+  });
+
+
+  let hint = hintsArray[Math.floor(Math.random() * hintsArray.length)]
+  addMoney(username, -10);
+
+  return { 
+    output: `<h3>${hint}</h3>`,
+    acknowledged: true
+  }
+
+  // roll a dice and give random hint
 }
