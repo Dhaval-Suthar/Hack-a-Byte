@@ -19,7 +19,7 @@ class Mail {
   }
 }
 
-const Inbox = ({ fullscreen }: { fullscreen: boolean }) => {
+const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, setLink: Function, handleOpenLink: Function }) => {
   const [selectedType, setSelectedType] = useState("inbox");
   const [mails, setMails] = useState<Mail[]>([]);
   const [clicked, setClicked] = useState("none");
@@ -134,7 +134,17 @@ const Inbox = ({ fullscreen }: { fullscreen: boolean }) => {
                 <h1 className="my-auto w-1/2  text-lg">Reward</h1>
               </div>
               <div className={`mx-5 my-2 ${mail.clicked ? "" : "hidden "}`}>
-                Browse the link! {mail.link} to get your reward
+                Browse the link!{" "}
+                <h1
+                  className="text-blue-800 underline cursor-pointer"
+                  onClick={() => {
+                    setLink(mail.link);
+                    handleOpenLink();
+                  }}
+                >
+                  {mail.link}{" "}
+                </h1>{" "}
+                to get your reward
               </div>
             </div>
           ))}

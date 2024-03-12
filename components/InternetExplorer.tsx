@@ -2,9 +2,7 @@
 
 import React, { useState } from "react";
 
-const InternetExplorer = ({ fullscreen }: { fullscreen: boolean }) => {
-  const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
-
+const InternetExplorer = ({ fullscreen, link, setLink }: { fullscreen: boolean; link: string; setLink: (link: string) => void }) => {
   return (
     <main className={`w-full h-full fixed`}>
       <div className="flex h-[5vh] justify-start w-full  bg-[#BBC2C2] text-start">

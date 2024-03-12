@@ -55,12 +55,50 @@ const Page = () => {
   const [clickedStart, setClickedStart] = useState(false);
   const [selectedAppIndex, setSelectedAppIndex] = useState(0);
 
+  const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
+
+   function handleOpenLink() {
+    const app = apps[0];
+
+    if (app.hidden) {
+      app.hidden = false;
+      app.opened = true;
+      setApps([...apps]);
+      setSelectedAppIndex(0);
+
+      hideOtherOpenApps();
+
+      const previewElement = document.getElementById(app.name);
+      if (previewElement) {
+        ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+          previewElement.classList.add(className);
+        });
+        ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+          previewElement.classList.remove(className);
+        });
+      }
+
+      return;
+    }
+
+    app.clicked = false;
+    app.opened = true;
+    setApps([...apps]);
+    setSelectedAppIndex(0);
+
+    hideOtherOpenApps();
+
+    addElement(app, 0);
+  }
+
   function openApp() {
     switch (apps[selectedAppIndex].name) {
       case "Internet Explorer":
-        return <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} />;
+        return <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} link={link} setLink={setLink} />;
       case "Inbox":
-        return <Inbox fullscreen={apps[selectedAppIndex].fullscreen} />;
+        return (
+          <Inbox fullscreen={apps[selectedAppIndex].fullscreen} setLink={setLink} handleOpenLink={handleOpenLink} />
+        );
       case "Recycle Bin":
         return <RecycleBin fullscreen={apps[selectedAppIndex].fullscreen} />;
       case "My Computer":
@@ -168,6 +206,8 @@ const Page = () => {
     };
     setApps([...apps]);
   }
+
+ 
 
   useEffect(() => {
     if (!localStorage.getItem("userId")) {
