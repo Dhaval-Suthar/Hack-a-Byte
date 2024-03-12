@@ -869,7 +869,7 @@ export async function addMoney(username: string, amount: number) {
     })
 
     if (response) { 
-      return {success: true, userBalance, amount}
+      return {success: true}
     } else { 
       return {
         success: false,

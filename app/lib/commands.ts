@@ -682,7 +682,6 @@ export async function handleHint({ userId = "", username = "", password = "", co
 
   const resp = await addMoney(username, -10);
 
-  console.log(resp)
 
   if (resp.error) { 
     return {
