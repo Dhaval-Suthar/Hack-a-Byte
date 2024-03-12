@@ -54,10 +54,11 @@ const Page = () => {
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
   const [selectedAppIndex, setSelectedAppIndex] = useState(0);
+  const [date, setDate] = useState(new Date());
 
   const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
 
-   function handleOpenLink() {
+  function handleOpenLink() {
     const app = apps[0];
 
     if (app.hidden) {
@@ -207,8 +208,6 @@ const Page = () => {
     setApps([...apps]);
   }
 
- 
-
   useEffect(() => {
     if (!localStorage.getItem("userId")) {
       router.push("/hackbook-W95/login");
@@ -231,6 +230,10 @@ const Page = () => {
         });
       }
     });
+
+    setInterval(() => {
+      setDate(new Date());
+    }, 60000);
   }, []);
 
   return (
@@ -302,12 +305,6 @@ const Page = () => {
               </div>
             </div>
             {openApp()}
-            {/* <iframe
-              src={apps[selectedAppIndex].path}
-              className={` ${
-                apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
-              } m-auto overscroll-none`}
-            /> */}
           </div>
         </Draggable>
       </div>
@@ -445,7 +442,7 @@ const Page = () => {
         </h1>
         <div id="panel" className="w-full h-full  flex justify-start"></div>
         <h1 className="text-center my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
-          9:00AM
+          {date.toLocaleTimeString().slice(0, -6) + date.toLocaleTimeString().split(" ")[1]}
         </h1>
       </div>
     </main>
