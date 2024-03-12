@@ -1,5 +1,10 @@
 "use client";
 
+import Inbox from "@/components/Inbox";
+import InternetExplorer from "@/components/InternetExplorer";
+import RecycleBin from "@/components/RecycleBin";
+import MyComputer from "@/components/MyComputer";
+
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import Draggable from "react-draggable";
@@ -49,6 +54,28 @@ const Page = () => {
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
   const [selectedAppIndex, setSelectedAppIndex] = useState(0);
+
+  function openApp() {
+    switch (apps[selectedAppIndex].name) {
+      case "Internet Explorer":
+        return <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} />;
+      case "Inbox":
+        return <Inbox fullscreen={apps[selectedAppIndex].fullscreen} />;
+      case "Recycle Bin":
+        return <RecycleBin fullscreen={apps[selectedAppIndex].fullscreen} />;
+      case "My Computer":
+        return <MyComputer fullscreen={apps[selectedAppIndex].fullscreen} />;
+      default:
+        return (
+          <iframe
+            src={apps[selectedAppIndex].path}
+            className={` ${
+              apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
+            } m-auto overscroll-none`}
+          />
+        );
+    }
+  }
 
   function deSelectAll() {
     apps.forEach((app) => {
@@ -234,12 +261,13 @@ const Page = () => {
                 </h1>
               </div>
             </div>
-            <iframe
+            {openApp()}
+            {/* <iframe
               src={apps[selectedAppIndex].path}
               className={` ${
                 apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
               } m-auto overscroll-none`}
-            />
+            /> */}
           </div>
         </Draggable>
       </div>
@@ -315,7 +343,7 @@ const Page = () => {
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
               localStorage.removeItem("userId");
-              
+
               // Sends user to hackbook-L
               router.replace("/");
             }}

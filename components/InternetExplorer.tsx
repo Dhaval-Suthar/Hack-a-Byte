@@ -2,12 +2,11 @@
 
 import React, { useState } from "react";
 
-const page = () => {
-  const [clicked, setClicked] = useState(false);
+const InternetExplorer = ({ fullscreen }: { fullscreen: boolean }) => {
   const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
 
   return (
-    <main className="h-screen w-screen ">
+    <main className={`w-full h-full fixed`}>
       <div className="flex h-[5vh] justify-start w-full  bg-[#BBC2C2] text-start">
         <h1 className="my-auto mx-2 underline">File</h1>
         <h1 className="my-auto mx-2 underline">Edit</h1>
@@ -31,9 +30,12 @@ const page = () => {
 
       <div className="  bg-white grid grid-cols-10 grid-rows-6 grid-flow-col"></div>
 
-      <iframe src={link} className={` h-[94vh] w-full m-auto overscroll-none`} />
+      <iframe
+        src={link}
+        className={` ${fullscreen ? "w-[98vw] h-[80vh]" : "w-[78vw] h-[60vh]"} m-auto overscroll-none`}
+      />
     </main>
   );
 };
 
-export default page;
+export default InternetExplorer;
