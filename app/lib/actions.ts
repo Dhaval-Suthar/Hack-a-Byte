@@ -274,7 +274,7 @@ export async function leaderboard() {
       .find({})
       .project({ _id: 0, username: 1, balance: 1 })
       .sort({ balance: -1 })
-      .limit(5)
+      .limit(10)
       .toArray();
 
     if (!response[0]) return { error: ERRORS.NO_USER_FOUND };
