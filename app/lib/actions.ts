@@ -462,7 +462,7 @@ export async function browse(username: string, self: boolean) {
   try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
-    
+
     // depending on self value return owned webite or 10 random website of which he is not the owner
     const response = self
       ? await db.collection("websites").find({ owner: username }).toArray()
@@ -639,7 +639,7 @@ export async function email(userId: string, receiverUsername: string, websiteLin
 
     const website = await db.collection("websites").findOne({ _id: new ObjectId(link) });
     if (!website?._id) return { error: ERRORS.INVALID_LINK };
-    
+
     // if email was already sent by the user once return error
     const isEmail = await db.collection("emails").findOne({ sender: user.username, receiver: receiverUsername });
     if (isEmail) {
@@ -712,15 +712,13 @@ export async function detect(userId: string) {
     if (!user) return { error: ERRORS.INVALID_LOGIN };
 
     if (user.spyware) {
-    await db
-        .collection("hackers")
-        .updateOne(user, {
-          $set: {
-            spyware: false,
-            spywareBy: "none",
-            storage: { used: 1 * 1024 * 1024, system: 1 * 1024 * 1024, total: 10 * 1024 * 1024 },
-          },
-        });
+      await db.collection("hackers").updateOne(user, {
+        $set: {
+          spyware: false,
+          spywareBy: "none",
+          storage: { used: 1 * 1024 * 1024, system: 1 * 1024 * 1024, total: 10 * 1024 * 1024 },
+        },
+      });
       return { success: "Spyware detected!, and have been Removed." };
     }
 
@@ -837,30 +835,45 @@ export async function sendDailyMoneyEmail() {
   }
 }
 
-export async function addMoney(username: string, amount: number) { 
-  try { 
+export async function addMoney(username: string, amount: number) {
+  try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    const response = await db.collection('hackers').findOneAndUpdate({username} , {$inc : {balance: amount}})
-    const transactionResponse = await db.collection('transactions').insertOne({
-      _id: new ObjectId(),
-      from: 'admin',
-      username: username,
-      amount: amount,
-      date: new Date()
-    })
+    const collection = db.collection("hackers");
 
-    if (response) { 
-      return {success: true}
-    } else { 
+    const user = await collection.findOne({ username });
+
+    if (!user) return { error: "User does not exists" };
+
+    const userBalance = user?.balance;
+
+    if (amount < 0 && userBalance <= 0) {
       return {
         success: false,
-        error: ERRORS.SOME_ERROR
-      }
+        error: "Insufficient Balance",
+      };
     }
 
-  } catch(e) { 
+    const response = await collection.findOneAndUpdate({ username }, { $inc: { balance: amount } });
+
+    const transactionResponse = await db.collection("transactions").insertOne({
+      _id: new ObjectId(),
+      from: "admin",
+      username: username,
+      amount: amount,
+      date: new Date(),
+    });
+
+    if (response) {
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        error: ERRORS.SOME_ERROR,
+      };
+    }
+  } catch (e) {
     return { error: ERRORS.SERVER_ERROR };
   }
 }
@@ -908,16 +921,17 @@ export async function market(userId: string, product: string) {
   }
 }
 
-export async function fetchUserPassword(username: string) { 
-  try { 
-
+export async function fetchUserPassword(username: string) {
+  try {
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
 
-    const response = await db.collection("hackers").findOne({username});
+    const user = await db.collection("hackers").findOne({ username });
 
-    return response?.password
-  } catch(e) { 
-    return {error : ERRORS.SERVER_ERROR}
+    if (!user) return { error: "User does not exists" };
+
+    return user?.password;
+  } catch (e) {
+    return { error: ERRORS.SERVER_ERROR };
   }
 }

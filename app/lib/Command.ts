@@ -212,6 +212,7 @@ export const COMMANDS = {
   hint: new Command({
     description: "Provides a clue for hacking the password for 10$",
     loadingText: "Generating hint...",
+    info: `<h3> - That will Cost: $10</h3>`,
     requiresLogin: true,
     requiresConfirmation: true,
     argumentsRequired: "[username]",
