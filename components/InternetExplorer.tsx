@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 const InternetExplorer = ({ fullscreen, link, setLink }: { fullscreen: boolean; link: string; setLink: (link: string) => void }) => {
   return (
-    <main className={`w-full h-full fixed`}>
+    <main className={`w-full h-full fixed `}>
       <div className="flex h-[5vh] justify-start w-full  bg-[#BBC2C2] text-start">
         <h1 className="my-auto mx-2 underline">File</h1>
         <h1 className="my-auto mx-2 underline">Edit</h1>
@@ -22,6 +22,7 @@ const InternetExplorer = ({ fullscreen, link, setLink }: { fullscreen: boolean; 
           className="bg-white h-7 w-full m-auto mx-10 border-2 shadow shadow-black border-black border-b-white border-r-white"
           value={link}
           onChange={(e) => setLink(e.target.value)}
+          onClick={(e) => e.target.select()} // Ignore the error, it works
         />
       </div>
       <div className="border w-full h-1 bg-transparent border-t-white border-b-black"></div>

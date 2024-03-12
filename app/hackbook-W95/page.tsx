@@ -95,7 +95,7 @@ const Page = () => {
   function openApp() {
     switch (apps[selectedAppIndex].name) {
       case "Internet Explorer":
-        return <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} link={link} setLink={setLink} />;
+        return  <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} link={link} setLink={setLink} />;
       case "Inbox":
         return (
           <Inbox fullscreen={apps[selectedAppIndex].fullscreen} setLink={setLink} handleOpenLink={handleOpenLink} />
