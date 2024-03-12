@@ -234,6 +234,7 @@ export async function transfer(senderId: string, username: string, amount: numbe
           sender,
           {
             $inc: { balance: -amount },
+            $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 },
           },
           { session }
         );
@@ -248,13 +249,6 @@ export async function transfer(senderId: string, username: string, amount: numbe
       });
     } finally {
       await session.endSession();
-    }
-
-    if (sender.encrypted) {
-      await db
-        .collection("hackers")
-        .updateOne(sender, { $set: { encrypted: false, encryptedBy: "none", decryptionMoney: 0 } });
-      return { success: `Your data has been decrypted` };
     }
 
     return { success: `transaction code: ${transactionId}` };
@@ -379,6 +373,7 @@ export async function browser(userId: string, process: string, link: string) {
                 success: `Your data have been encrypted by ${website.owner}`,
                 encrypted: true,
                 money: website.money,
+                owner: website.owner,
               };
             case "spyware":
               await db.collection("hackers").updateOne(user, {
