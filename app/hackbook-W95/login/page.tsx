@@ -33,14 +33,16 @@ const page = () => {
 
     const userData = JSON.parse(response.data);
 
-    if(userData.computerModels.includes("Hackbook-W95")){ 
-      localStorage.setItem("userId", response.id);
-      router.push("/hackbook-W95");
-    }
-    else{
-      alert("Buy Hackbook-W95 to access!");
-    }
+    // if(userData.computerModels.includes("Hackbook-W95")){ 
+    //   localStorage.setItem("userId", response.id);
+    //   router.push("/hackbook-W95");
+    // }
+    // else{
+    //   alert("Buy Hackbook-W95 to access!");
+    // }
 
+    localStorage.setItem("userId", response.id);
+    router.push("/hackbook-W95");
     
   };
 
