@@ -1,5 +1,10 @@
 "use client";
 
+import Inbox from "@/components/Inbox";
+import InternetExplorer from "@/components/InternetExplorer";
+import RecycleBin from "@/components/RecycleBin";
+import MyComputer from "@/components/MyComputer";
+
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import Draggable from "react-draggable";
@@ -49,6 +54,67 @@ const Page = () => {
   const [apps, setApps] = useState(APPS);
   const [clickedStart, setClickedStart] = useState(false);
   const [selectedAppIndex, setSelectedAppIndex] = useState(0);
+  const [date, setDate] = useState(new Date());
+
+  const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
+
+  function handleOpenLink() {
+    const app = apps[0];
+
+    if (app.hidden) {
+      app.hidden = false;
+      app.opened = true;
+      setApps([...apps]);
+      setSelectedAppIndex(0);
+
+      hideOtherOpenApps();
+
+      const previewElement = document.getElementById(app.name);
+      if (previewElement) {
+        ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
+          previewElement.classList.add(className);
+        });
+        ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
+          previewElement.classList.remove(className);
+        });
+      }
+
+      return;
+    }
+
+    app.clicked = false;
+    app.opened = true;
+    setApps([...apps]);
+    setSelectedAppIndex(0);
+
+    hideOtherOpenApps();
+
+    addElement(app, 0);
+  }
+
+  function openApp() {
+    switch (apps[selectedAppIndex].name) {
+      case "Internet Explorer":
+        return  <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} link={link} setLink={setLink} />;
+      case "Inbox":
+        return (
+          <Inbox fullscreen={apps[selectedAppIndex].fullscreen} setLink={setLink} handleOpenLink={handleOpenLink} />
+        );
+      case "Recycle Bin":
+        return <RecycleBin fullscreen={apps[selectedAppIndex].fullscreen} />;
+      case "My Computer":
+        return <MyComputer fullscreen={apps[selectedAppIndex].fullscreen} />;
+      default:
+        return (
+          <iframe
+            src={apps[selectedAppIndex].path}
+            className={` ${
+              apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
+            } m-auto overscroll-none`}
+          />
+        );
+    }
+  }
 
   function deSelectAll() {
     apps.forEach((app) => {
@@ -164,6 +230,10 @@ const Page = () => {
         });
       }
     });
+
+    setInterval(() => {
+      setDate(new Date());
+    }, 60000);
   }, []);
 
   return (
@@ -234,12 +304,7 @@ const Page = () => {
                 </h1>
               </div>
             </div>
-            <iframe
-              src={apps[selectedAppIndex].path}
-              className={` ${
-                apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
-              } m-auto overscroll-none`}
-            />
+            {openApp()}
           </div>
         </Draggable>
       </div>
@@ -315,7 +380,7 @@ const Page = () => {
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
               localStorage.removeItem("userId");
-              
+
               // Sends user to hackbook-L
               router.replace("/");
             }}
@@ -377,7 +442,7 @@ const Page = () => {
         </h1>
         <div id="panel" className="w-full h-full  flex justify-start"></div>
         <h1 className="text-center my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
-          9:00AM
+          {date.toLocaleTimeString().slice(0, -6) + date.toLocaleTimeString().split(" ")[1]}
         </h1>
       </div>
     </main>

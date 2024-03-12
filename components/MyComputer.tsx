@@ -2,10 +2,10 @@
 
 import React, { useState } from "react";
 
-const page = () => {
+const MyComputer = ({ fullscreen }: { fullscreen: boolean }) => {
   const [clicked, setClicked] = useState(false);
   return (
-    <main className="h-screen w-screen ">
+    <main className="w-full h-full fixed">
       <div className="flex h-[5vh] justify-start w-full  bg-[#BBC2C2] text-start">
         <h1 className="my-auto mx-2 underline">File</h1>
         <h1 className="my-auto mx-2 underline">Edit</h1>
@@ -15,7 +15,11 @@ const page = () => {
 
       <div className="border w-full h-1 bg-transparent border-t-white border-b-black"></div>
 
-      <div className=" h-[94vh] w-full bg-white grid grid-cols-10 grid-rows-6 grid-flow-col">
+      <div
+        className={` ${
+          fullscreen ? "h-[87vh]" : "h-[67vh]"
+        } w-full bg-white grid grid-cols-10 grid-rows-6 grid-flow-col`}
+      >
         <div
           className="col-span-1 row-span-1 flex justify-center z-10"
           onClick={() => {
@@ -37,4 +41,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default MyComputer;

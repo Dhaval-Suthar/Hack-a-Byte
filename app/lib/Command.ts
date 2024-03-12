@@ -69,6 +69,20 @@ export class Command {
 
 // List of commands
 export const COMMANDS = {
+  admin: new Command({
+    description: "Secret command to do admin tasks",
+    argumentsRequired: "[username] [password]",
+    requiresPassword: true,
+    hidden: true,
+    action: handleAdmin,
+  }),
+  signup: new Command({
+    description: "Creates a new account",
+    argumentsRequired: "[username]",
+    requiresPassword: true,
+    loadingText: "Signing up...",
+    action: handleSignUp,
+  }),
   login: new Command({
     description: "Logs you into your existing account",
     argumentsRequired: "[username]",
@@ -81,17 +95,37 @@ export const COMMANDS = {
     loadingText: "Logging out...",
     action: handleLogOut,
   }),
+  delete: new Command({
+    description: "Permanently deletes your account",
+    requiresPassword: true,
+    requiresLogin: true,
+    loadingText: "Deleting...",
+    action: handleDelete,
+  }),
+  passwd: new Command({
+    description: "Used to change user's pasword.",
+    requiresPassword: true,
+    passwordType: "current password",
+    loadingText: "",
+    requiresLogin: true,
+    action: handlePassChange,
+  }),
   search: new Command({
     description: "Gives a random account you could try to hack",
     loadingText: "Searching...",
     action: handleSearch,
   }),
-  admin: new Command({
-    description: "Secret command to do admin tasks",
-    argumentsRequired: "[username] [password]",
-    requiresPassword: true,
-    hidden: true,
-    action: handleAdmin,
+  leaderboard: new Command({
+    description: "Gives a list of top 10 hackers all over the world",
+    loadingText: "Fetching Top 10 Hackers...",
+    action: handleLeaderboard,
+  }),
+  browse: new Command({
+    description: "Gives list of your hacked website links",
+    optionalArguments: "[flags]",
+    requiresLogin: true,
+    loadingText: "Fetching websites...",
+    action: handleBrowse,
   }),
   balance: new Command({
     description: "Gets your account balance",
@@ -105,25 +139,13 @@ export const COMMANDS = {
     loadingText: "Fetching storage...",
     action: handleStorage,
   }),
-  delete: new Command({
-    description: "Permanently deletes your account",
-    requiresPassword: true,
+  transactions: new Command({
+    description: "Shows your transaction history",
     requiresLogin: true,
-    loadingText: "Deleting...",
-    action: handleDelete,
+    loadingText: "Fetching transactions...",
+    action: handleTransactions,
   }),
-  help: new Command({
-    description: "Shows description of the command you pass as argument",
-    argumentsRequired: "[command]",
-    action: handleHelp,
-  }),
-  signup: new Command({
-    description: "Creates a new account",
-    argumentsRequired: "[username]",
-    requiresPassword: true,
-    loadingText: "Signing up...",
-    action: handleSignUp,
-  }),
+  clear: new Command({ description: "Clears terminal history", loadingText: "Clearing", action: handleClear }),
   transfer: new Command({
     description: "Transfer money from one user to another",
     argumentsRequired: "[receiver] [amount]",
@@ -140,42 +162,6 @@ export const COMMANDS = {
     loadingText: "Hacking...",
     action: handleBrowser,
   }),
-  browse: new Command({
-    description: "Gives list of your hacked website links",
-    optionalArguments: "[flags]",
-    requiresLogin: true,
-    loadingText: "Fetching websites...",
-    action: handleBrowse,
-  }),
-  ham: new Command({
-    description: "ham is a package manager which let you install various softwares and malwares",
-    argumentsRequired: "install [software-name]",
-    requiresConfirmation: true,
-    requiresLogin: true,
-    loadingText: "Installing...",
-    info: `<h3> - Virus: $1000</h3><h3> - Ransomware: $500</h3><h3> - Spyware: $200</h3>`,
-    action: handleHam,
-  }),
-  leaderboard: new Command({
-    description: "Gives a list of top 10 hackers all over the world",
-    loadingText: "Fetching Top 10 Hackers...",
-    action: handleLeaderboard,
-  }),
-  transactions: new Command({
-    description: "Shows your transaction history",
-    requiresLogin: true,
-    loadingText: "Fetching transactions...",
-    action: handleTransactions,
-  }),
-  clear: new Command({ description: "Clears terminal history", loadingText: "Clearing", action: handleClear }),
-  deploy: new Command({
-    description: "Used to deploy a malware on a website you own",
-    argumentsRequired: "[software-id] [your-website-link]",
-    optionalArguments: "[money](only-for-ransomware)",
-    requiresLogin: true,
-    loadingText: "Deploying...",
-    action: handleDeploy,
-  }),
   inbox: new Command({
     description: "Gives you a list of emails",
     requiresLogin: true,
@@ -189,22 +175,6 @@ export const COMMANDS = {
     loadingText: "Sending...",
     action: handleEmail,
   }),
-  detect: new Command({
-    description: "Detects if a spyware is installed",
-    argumentsRequired: "spyware",
-    loadingText: "Detecting...",
-    requiresLogin: true,
-    requiresConfirmation: true,
-    action: handleDetect,
-  }),
-  passwd: new Command({
-    description: "Used to change user's pasword.",
-    requiresPassword: true,
-    passwordType: "current password",
-    loadingText: "",
-    requiresLogin: true,
-    action: handlePassChange,
-  }),
   market: new Command({
     description: "A market place to buy computer models",
     argumentsRequired: "buy [computer-model]",
@@ -214,12 +184,43 @@ export const COMMANDS = {
     info: `<h3> - Hackbook-W95: $10,000</h3>`,
     action: handleMarket,
   }),
+  ham: new Command({
+    description: "ham is a package manager which let you install various softwares and malwares",
+    argumentsRequired: "install [software-name]",
+    requiresConfirmation: true,
+    requiresLogin: true,
+    loadingText: "Installing...",
+    info: `<h3> - Virus: $1000</h3><h3> - Ransomware: $500</h3><h3> - Spyware: $200</h3>`,
+    action: handleHam,
+  }),
+  deploy: new Command({
+    description: "Used to deploy a malware on a website you own",
+    argumentsRequired: "[software-id] [your-website-link]",
+    optionalArguments: "[money](only-for-ransomware)",
+    requiresLogin: true,
+    loadingText: "Deploying...",
+    action: handleDeploy,
+  }),
+  detect: new Command({
+    description: "Detects if a spyware is installed",
+    argumentsRequired: "spyware",
+    loadingText: "Detecting...",
+    requiresLogin: true,
+    requiresConfirmation: true,
+    action: handleDetect,
+  }),
   hint: new Command({
     description: "Provides a clue for hacking the password for 10$",
     loadingText: "Generating hint...",
+    info: `<h3> - That will Cost: $10</h3>`,
     requiresLogin: true,
     requiresConfirmation: true,
     argumentsRequired: "[username]",
-    action: handleHint
-  })
+    action: handleHint,
+  }),
+  help: new Command({
+    description: "Shows description of the command you pass as argument",
+    argumentsRequired: "[command]",
+    action: handleHelp,
+  }),
 };

@@ -408,7 +408,7 @@ export default function Page() {
       </main>
       <div
         id="leaderboard"
-        className="w-60 h-80 bg-gray-400 text-zinc-400 bg-opacity-5 fixed top-0 right-0 opacity-0 sm:opacity-100"
+        className={`w-60 h-80 bg-gray-400 text-zinc-400 bg-opacity-5 fixed ${activeBot ? "bottom-0 left-0" : "top-0 right-0"}  opacity-0 sm:opacity-100`}
       >
         <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
         {topPlayers.map((player, index) => (
