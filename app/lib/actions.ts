@@ -846,8 +846,20 @@ export async function addMoney(username: string, amount: number) {
   try { 
     const client = await clientPromise;
     const db = client.db("Hack-a-Byte");
+    const collection = db.collection('hackers')
+    
+    const userBalance = (await collection.findOne({username}))?.balance;
 
-    const response = await db.collection('hackers').findOneAndUpdate({username} , {$inc : {balance: amount}})
+
+    if (amount < 0 && userBalance <= 0) { 
+      return {
+        success: false,
+        error: "Insufficient Balance"
+      }
+    }
+
+    const response = await collection.findOneAndUpdate({username} , {$inc : {balance: amount}})
+
     const transactionResponse = await db.collection('transactions').insertOne({
       _id: new ObjectId(),
       from: 'admin',
@@ -857,7 +869,7 @@ export async function addMoney(username: string, amount: number) {
     })
 
     if (response) { 
-      return {success: true}
+      return {success: true, userBalance, amount}
     } else { 
       return {
         success: false,

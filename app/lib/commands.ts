@@ -679,12 +679,21 @@ export async function handleHint({ userId = "", username = "", password = "", co
 
 
   let hint = hintsArray[Math.floor(Math.random() * hintsArray.length)]
-  addMoney(username, -10);
+
+  const resp = await addMoney(username, -10);
+
+  console.log(resp)
+
+  if (resp.error) { 
+    return {
+      output: `<h3 class="text-red-800">${resp.error}</h3>`,
+      acknowledged: false
+    }
+  }
 
   return { 
     output: `<h3>${hint}</h3>`,
     acknowledged: true
   }
 
-  // roll a dice and give random hint
 }
