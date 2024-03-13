@@ -51,14 +51,14 @@ const Page = ({ params }: { params: { emailId: string } }) => {
         <h1 className="text-green-700 text-2xl" onClick={ async () => {
           const userId = localStorage.getItem("userId") || DEFAULT_USER_ID;
           await transfer(userId, owner, Number(amount));
-          router.push("/hackbook-W95");
+          router.push("/hackbook-W95/paid");
         }}>
           Pay
         </h1>
         <h1
           className="text-red-900 text-2xl"
           onClick={() => {
-            router.push("/hackbook-W95/login");
+            router.push("/hackbook-W95/not-paid");
           }}
         >
           Leave
