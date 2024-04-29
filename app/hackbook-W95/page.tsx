@@ -1,9 +1,9 @@
 "use client";
 
-import Inbox from "@/components/Inbox";
-import InternetExplorer from "@/components/InternetExplorer";
-import RecycleBin from "@/components/RecycleBin";
-import MyComputer from "@/components/MyComputer";
+import Inbox from "@/app/ui/hackbook-W95/Inbox";
+import InternetExplorer from "@/app/ui/hackbook-W95/InternetExplorer";
+import RecycleBin from "@/app/ui/hackbook-W95/RecycleBin";
+import MyComputer from "@/app/ui/hackbook-W95/MyComputer";
 
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
