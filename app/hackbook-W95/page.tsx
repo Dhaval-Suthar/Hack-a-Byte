@@ -42,11 +42,11 @@ class App {
 }
 
 const APPS: App[] = [
-  new App("Internet Explorer", "/ie.png", "/hackbook-W95/ie"),
-  new App("My Computer", "/mycomputer.png", "/hackbook-W95/mycomputer"),
-  new App("Terminal", "/terminal.png", "/"),
-  new App("Recycle Bin", "/recyclebin.png", "/hackbook-W95/recyclebin"),
-  new App("Inbox", "/inbox.png", "/hackbook-W95/inbox"),
+  new App("Internet Explorer", "/hackbook-W95/ie.png", "/hackbook-W95/ie"),
+  new App("My Computer", "/hackbook-W95/mycomputer.png", "/hackbook-W95/mycomputer"),
+  new App("Terminal", "/hackbook-W95/terminal.png", "/"),
+  new App("Recycle Bin", "/hackbook-W95/recyclebin.png", "/hackbook-W95/recyclebin"),
+  new App("Inbox", "/hackbook-W95/inbox.png", "/hackbook-W95/inbox"),
 ];
 const Page = () => {
   const router = useRouter();
@@ -373,7 +373,7 @@ const Page = () => {
               router.push("/hackbook-W95/login");
             }}
           >
-            <img className="h-16 mx-3" src="/log-out.png" alt="" />
+            <img className="h-16 mx-3" src="/hackbook-W95/log-out.png" alt="" />
             <h1 className="m-auto w-full">Log Out</h1>
           </div>
           <div
@@ -385,7 +385,7 @@ const Page = () => {
               router.replace("/");
             }}
           >
-            <img className="h-20" src="/change-comp.png" alt="" />
+            <img className="h-20" src="/hackbook-W95/change-comp.png" alt="" />
             <h1 className="m-auto w-full">Change Computer</h1>
           </div>
           <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>

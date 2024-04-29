@@ -269,7 +269,7 @@ export default function Page() {
 
   useEffect(() => {
     if(localStorage.getItem('userId')) {
-      setComputerModel("Hackbook-W95");
+      setComputerModel("hackbook-W95");
     }
     
     fetchLeaderboard();
@@ -361,7 +361,7 @@ export default function Page() {
           </ul>
           <div className="h-16 w-16 fixed right-0 bottom-0 m-10 z-20 ">
             <button onClick={() => setActiveBot(!activeBot)}>
-              <img src="./image.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
+              <img src="./bot.png" alt="assitant" className="absolute z-10 hover:scale-110 duration-500" />
             </button>
             <div className="absolute w-20">
               <div
