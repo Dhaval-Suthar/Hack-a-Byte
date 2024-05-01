@@ -58,7 +58,7 @@ const Page = ({ params }: { params: { emailId: string } }) => {
         <h1
           className="text-red-900 text-2xl"
           onClick={() => {
-            router.push("/hackbook-W95/not-paid");
+            router.push("/hackbook-W95/app-icon/login");
           }}
         >
           Leave
