@@ -72,7 +72,7 @@ const page = () => {
         </div>
         <div className="w-auto h-64  flex m-1">
           <div className="w-1/5 h-full ">
-            <img src="/hackbook-W95/key.png" alt="" />
+            <img src="/hackbook-W95/app-icon/key.png" alt="" />
           </div>
           <div className="w-3/5 h-full  flex flex-col justify-around">
             <h1>Type a user name and password to log on to hackbook-W95</h1>
