@@ -1,8 +1,8 @@
 "use client";
 
 import react, { useEffect } from "react";
-import { browser, transfer } from "../lib/actions";
-import { DEFAULT_USER_ID } from "../lib/constants";
+import { browser, transfer } from "../../lib/actions";
+import { DEFAULT_USER_ID } from "../../lib/constants";
 import { useRouter } from "next/navigation";
 
 const Page = ({ params }: { params: { emailId: string } }) => {
