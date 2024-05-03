@@ -2,7 +2,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "@/app/ui/global.css";
 import type { Metadata } from "next";
-import { noto } from "@/app/ui/fonts";
+import { robotoMono } from "@/app/ui/fonts";
 
 export const metadata: Metadata = {
   title: "Hack a Byte",
@@ -19,7 +19,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={`${noto.className} bg-zinc-900`}>
+      <body className={`${robotoMono.className} bg-zinc-900`}>
         {children} <Analytics /> <SpeedInsights />
       </body>
     </html>

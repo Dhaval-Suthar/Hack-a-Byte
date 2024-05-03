@@ -1,6 +1,5 @@
-import { Noto_Sans_Tamil_Supplement } from 'next/font/google';
+import { Roboto_Mono } from "next/font/google";
 
-export const noto = Noto_Sans_Tamil_Supplement({
-  weight: ["400"],
+export const robotoMono = Roboto_Mono({
   subsets: ["latin"],
 });

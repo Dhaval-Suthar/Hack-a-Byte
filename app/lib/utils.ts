@@ -125,3 +125,8 @@ export async function genHint(username: string) {
   };
   // give the user the hint and make sure his 30-rs gets debited/
 }
+
+// Function to convert decimal to binary
+export function dec2bin(dec: number) {
+  return (dec >>> 0).toString(2);
+}
