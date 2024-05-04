@@ -19,7 +19,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={`${robotoMono.className} bg-zinc-900`}>
+      <body className={`${robotoMono.className}`}>
         {children} <Analytics /> <SpeedInsights />
       </body>
     </html>

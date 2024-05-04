@@ -130,3 +130,9 @@ export async function genHint(username: string) {
 export function dec2bin(dec: number) {
   return (dec >>> 0).toString(2);
 }
+
+// Function to focus the command line
+export function focusCommandLine() {
+  const commandLine = document.getElementById("command-line");
+  commandLine?.focus();
+}
