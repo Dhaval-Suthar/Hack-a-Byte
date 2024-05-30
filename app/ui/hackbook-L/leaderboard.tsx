@@ -1,13 +1,13 @@
-import { leaderboard } from "../../lib/actions";
+import { action } from "../../lib/actions";
 
 export default async function Leaderboard() {
-  const response = await leaderboard();
+  const response = await action("leaderboard", {});
   const topPlayers = JSON.parse(response.data || "");
 
   return (
     <div
       id="leaderboard"
-      className="w-60 h-80 transition-all duration-1000 absolute top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
+      className="w-60 h-80 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
     >
       <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
       {topPlayers.map((player: any, index: number) => (
@@ -23,7 +23,7 @@ export function LeaderboardSkeleton() {
   return (
     <div
       id="leaderboard"
-      className="w-60 h-80 absolute transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
+      className="w-60 h-80 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
     >
       <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
       <h3 className="mx-2 flex">

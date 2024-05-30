@@ -1,696 +1,387 @@
-import { DEFAULT_USER_ID, DEFAULT_USERNAME, ERRORS } from "./constants";
-import { COMMANDS, Command } from "./Command";
-import {
-  search,
-  admin,
-  balance,
-  storage,
-  deleteUser,
-  leaderboard,
-  login,
-  signup,
-  transactions,
-  transfer,
-  browse,
-  browser,
-  ham,
-  deploy,
-  email,
-  inbox,
-  detect,
-  changePassword,
-  addMoney,
-   market,
-} from "./actions";
-import { askForPassword, genHint } from "./utils";
+import { State, Command } from "@/app/lib/definitions";
+import { action, logout } from "./actions";
+import { redirect } from "next/navigation";
 
-export async function handleAdmin({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await admin(argumentList[0], argumentList[1], password);
+export async function execute(prompt: string, prevState: State, formData: FormData) {
+  // Get the command and arguments from the form data
+  const commandWithPrompt = (formData.get("command") as string) || prevState.command || "";
+  const password = formData.get("password") as string;
+  const amount = formData.get("amount") as string;
+  const confirmation = formData.get("confirmation") as string;
+
+  // Variables
+  const commands = commandWithPrompt.slice(prompt.length);
+  const command = commands.split(" ")[0];
+  const argumentsPassed = commands.slice(command.length + 1).split(" ");
+  const argumentCount = commands.split(" ").length - 1;
+  let data: any = {};
+
+  // Check for invalid command or arguments
+  if (!COMMANDS[command as keyof typeof COMMANDS]) {
+    return {
+      error: `<h3>command not found: ${command}</h3>`,
+      command: commandWithPrompt,
+    };
+  }
+
+  if (
+    argumentCount <
+    COMMANDS[command as keyof typeof COMMANDS].usage.split(" ").length -
+      1 -
+      COMMANDS[command as keyof typeof COMMANDS].optionalArguments
+  ) {
+    return {
+      error: `<h3>Usage: ${COMMANDS[command as keyof typeof COMMANDS].usage}</h3>`,
+      command: commandWithPrompt,
+    };
+  }
+
+  if (password !== null) {
+    if (!Number(password))
+      return { error: `<h3 class="text-red-800">password should be only numbers</h3>`, command: commandWithPrompt };
+
+    if (password.length !== 4)
+      return {
+        error: `<h3 class="text-red-800">password should have 4 digits</h3>`,
+        command: commandWithPrompt,
+      };
+
+    data.password = password;
+  }
+
+  if (amount !== null) {
+    if (amount === "0")
+      return { error: `<h3 class="text-red-800">amount should be greater than 0</h3>`, command: commandWithPrompt };
+
+    if (!Number(amount))
+      return { error: `<h3 class="text-red-800">amount should be only numbers</h3>`, command: commandWithPrompt };
+
+    if (Number(amount) < 1)
+      return {
+        error: `<h3 class="text-red-800">amount should be greater than 0 </h3>`,
+        command: commandWithPrompt,
+      };
+
+    data.amount = Number(amount);
+  }
+
+  // Assign the arguments passed to the data object
+  COMMANDS[command as keyof typeof COMMANDS].usage
+    .slice(command.length + 1)
+    .replaceAll("[", "")
+    .replaceAll("]", "")
+    .split(" ")
+    .map((arg, index) => {
+      data[arg] = argumentsPassed[index];
+    });
+
+  // Check for confirmation
+  switch (COMMANDS[command as keyof typeof COMMANDS].confirm) {
+    case "password":
+      if (!password) {
+        return {
+          require: "password",
+          command: commandWithPrompt,
+        };
+      }
+
+      if (!prevState.password) {
+        return {
+          require: "confirm password",
+          password: password,
+          command: commandWithPrompt,
+        };
+      }
+
+      if (prevState.password !== password) {
+        return {
+          error: `<h3 class="text-red-800">passwords do not match</h3>`,
+          command: commandWithPrompt,
+        };
+      }
+
+      break;
+
+    case "none":
+      break;
+
+    default:
+      if (confirmation === null) {
+        return {
+          confirm:
+            COMMANDS[command as keyof typeof COMMANDS].confirm === "install"
+              ? data.software
+              : COMMANDS[command as keyof typeof COMMANDS].confirm,
+          command: commandWithPrompt,
+        };
+      }
+      break;
+  }
+
+  if (prevState.confirm && confirmation !== null) {
+    switch (confirmation) {
+      case "y":
+        data.confirm = true;
+        break;
+      case "n":
+        return {
+          error: `<h3 class="text-red-800">Operation Cancelled</h3>`,
+          command: commandWithPrompt,
+        };
+      default:
+        return {
+          error: `<h3 class="text-red-800">Invalid Input!</h3>`,
+          command: commandWithPrompt,
+        };
+    }
+  }
+
+  // Perform the action on the server
+  const response = await action(command, data);
+
+  // Actions to be taken based on the response from the server
+  if (response.requirePassword) {
+    return {
+      require: "password",
+      command: commandWithPrompt,
+    };
+  }
+
+  if (response.confirm) {
+    return {
+      confirm: response.confirm,
+      command: commandWithPrompt,
+    };
+  }
+
+  if (response.requireAmount) {
+    return {
+      require: "amount",
+      command: commandWithPrompt,
+    };
+  }
 
   if (response.error) {
     return {
-      output: `<h3>${response.error}</h3>`,
+      error: `<h3>${response.error}</h3>`,
+      command: commandWithPrompt,
     };
   }
 
-  if (!response.added) {
+  if(response.logout){
+    await logout();
+  }
+
+  if(response.shutdown){
+    redirect("/dashboard");
+  }
+
+  if (!response.data) {
     return {
-      output: `<h3>command not found: admin</h3>`,
+      message: "Server Error",
+      command: commandWithPrompt,
     };
   }
+
+  // Format the response data and return it
+  const output = COMMANDS[command as keyof typeof COMMANDS].format(response.data);
 
   return {
-    output: `<h3>Added Successfully. </h3>`,
+    message: output,
+    username: response.username,
+    clear: COMMANDS[command as keyof typeof COMMANDS].clear,
+    command: commandWithPrompt,
   };
 }
 
-export async function handleSignUp({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const inputUsername = argumentList[0];
+export const COMMANDS = {
+  leaderboard: new Command({
+    info: "Gives a list of top 10 hackers all over the world",
+    usage: "leaderboard",
+    requiresLogin: false,
+    format: (data: string) => {
+      const parsedData = JSON.parse(data);
 
-  const response = await signup(inputUsername, password);
+      return parsedData
+        .map((player: { username: string; balance: number }, index: number) => {
+          return `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
+        })
+        .join("");
+    },
+  }),
+  hunt: new Command({
+    info: "Starts a hacking hunt",
+    usage: "hunt",
+    requiresLogin: false,
+    format: (data: string) => `<h3> - ${data}</h3>`,
+  }),
+  login: new Command({
+    info: "Logs in with the specified username",
+    usage: "login [username]",
+    requiresLogin: false,
+  }),
+  balance: new Command({
+    info: "Displays the current balance",
+    usage: "balance",
+  }),
+  passwd: new Command({
+    info: "Changes the password",
+    usage: "passwd",
+    confirm: "password",
+  }),
+  logout: new Command({
+    info: "Logs out from hack-a-byte",
+    usage: "logout",
+  }),
+  shutdown: new Command({
+    info: "Shuts down the system",
+    usage: "shutdown",
+  }),
+  browse: new Command({
+    info: "Browses the specified website",
+    usage: "browse [flags]",
+    optionalArguments: 1,
+    format: (data: string) => {
+      const parsedData = JSON.parse(data);
 
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}!</h3>`,
-      acknowledged: false,
-    };
-  }
+      return parsedData
+        .map(
+          (
+            website: {
+              _id: string;
+            },
+            index: number
+          ) => {
+            return `<h3> ${index + 1}. https://hack-a-byte.vercel.app/${website._id.toString()}</h3>`;
+          }
+        )
+        .join("");
+    },
+  }),
+  storage: new Command({
+    info: "Displays the storage information",
+    usage: "storage",
+    format: (data: { total: number; used: number; system: number }) => {
+      const totalSpace = data.total;
+      const usedSpace = data.used + data.system;
+      const systemSpace = data.system;
+      const freeSpace = data.total - usedSpace;
 
-  if (!response.id) {
-    return {
-      output: `<h3>Sorry! Some Error Occured!</h3> `,
-      acknowledged: false,
-    };
-  }
+      function convertToMegaBytes(bytes: number) {
+        return bytes / (1024 * 1024);
+      }
 
-  return {
-    userData: { id: response.id, username: inputUsername },
-    output: `<h3>Last login: never on console</h3> <h3>Welcome ${inputUsername}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleLogIn({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const inputUsername = argumentList[0];
-
-  const response = await login(inputUsername, password);
-
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}!</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.id) {
-    return {
-      output: `<h3>Sorry! Some Error Occured!</h3> `,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    userData: { id: response.id, username: inputUsername },
-    output: `<h3>Last login: ${new Date(
-      response.lastLogin
-    ).toDateString()} on console</h3> <h3>Welcome ${inputUsername}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleLogOut({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  if (userId === DEFAULT_USER_ID) {
-    return {
-      output: `<h3>Already Logged Out</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    userData: { id: DEFAULT_USER_ID, username: DEFAULT_USERNAME },
-    output: `<h3>Logged Out Successfully!</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleDelete({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await deleteUser(username, password);
-
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.deleted) {
-    return {
-      output: `<h3 class="text-red-800">Sorry Some Error Occured</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    userData: { id: DEFAULT_USER_ID, username: DEFAULT_USERNAME },
-    output: `<h3>${username} Deleted Successfully</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleSearch({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await search();
-
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response) {
-    return {
-      output: `<h3 class="text-red-800">Sorry can't find any user</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${response.username}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleBalance({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await balance(userId);
-
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response) {
-    return {
-      output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - $${response.balance}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleStorage({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await storage(userId);
-
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response) {
-    return {
-      output: `<h3 class="text-red-800">Sorry Some Error Occured!</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  const totalSpace = response.total;
-  const usedSpace = response.used;
-  const systemSpace = response.system;
-  const freeSpace = response.total - usedSpace - systemSpace;
-
-  function convertToMegaBytes(bytes: number) {
-    return bytes / (1024 * 1024);
-  }
-
-  return {
-    output: `<h3> Total Space: ${convertToMegaBytes(totalSpace).toFixed(2)} MB</h3>
+      return `<h3> Total Space: ${convertToMegaBytes(totalSpace).toFixed(2)} MB</h3>
                  <h3> Used Space: ${convertToMegaBytes(usedSpace).toFixed(2)} MB</h3>
                  <h3> System Space: ${convertToMegaBytes(systemSpace).toFixed(2)} MB</h3>
-                 <h3> Free Space: ${convertToMegaBytes(freeSpace).toFixed(2)} MB</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleTransfer({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const receiver = argumentList[0];
-  const amount = argumentList[1];
-
-  if (receiver == username)
-    return {
-      output: `<h3>Can't transfer to self</h3>`,
-      acknowledged: false,
-    };
-
-  const transfered = await transfer(userId, receiver, Number(amount));
-
-  if (transfered.error) {
-    return {
-      output: `<h3 class="text-red-800">${transfered.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!transfered.success) {
-    return {
-      output: `<h3 class="text-red-800">Sorry! Some Error Occured!</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - $${amount} is Successfully transferred to ${receiver}</h3> <h3>${transfered.success}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleLeaderboard({
-  userId = "",
-  username = "",
-  password = "",
-  command = "",
-  argumentList = [],
-}) {
-  const response = await leaderboard();
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.data)
-    return {
-      output: `<h3>Lack of Users</h3>`,
-      acknowledged: false,
-    };
-
-  const playerList = JSON.parse(response.data);
-
-  let output = "";
-
-  // Return players
-  playerList.map((player: { username: string; balance: number }, index: number) => {
-    output = output + `<h3> ${index + 1}. ${player.username} - ${player.balance}</h3>`;
-  });
-
-  return {
-    output: output,
-    acknowledged: true,
-  };
-}
-
-export async function handleTransactions({
-  userId = "",
-  username = "",
-  password = "",
-  command = "",
-  argumentList = [],
-}) {
-  const response = await transactions(username);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.data)
-    return {
-      output: `<h3>Lack of Users</h3>`,
-      acknowledged: false,
-    };
-
-  const transactionList = JSON.parse(response.data);
-
-  let output = "";
-
-  // Return all transactions
-  transactionList.map((transaction: { _id: any; from: String; to: String; amount: number; date: Date }) => {
-    output += `<h3> [${transaction._id.toString()}] - Transferred $${transaction.amount} from ${
-      transaction.from === username ? "You" : transaction.from
-    } to ${transaction.to === username ? "You" : transaction.to} on ${new Date(transaction.date).toDateString()}</h3>`;
-  });
-
-  return {
-    output: output,
-    acknowledged: true,
-  };
-}
-
-export async function handleBrowser({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[0];
-  const link = argumentList[1];
-
-  const response = await browser(userId, process, link);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.success) {
-    return {
-      output: `<h3>Sorry Some Error Occured</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (response.encrypted) {
-    return {
-      output: `<h3>${response.success}</h3><h3>Transfer $${response.money} to hacker to decrypt the data</h3><h3>If failed to do so, you won't be able to login for 2 days</h3><h3 class="text-yellow-300">Warning: Do not log out.</h3>`,
-      acknowledged: true,
-    };
-  }
-
-  return {
-    output: `<h3>${response.success}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleBrowse({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const flags = argumentList[0];
-  const response = flags === "-o" ? await browse(username, true) : await browse(username, false);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.data)
-    return {
-      output: `<h3>No website found</h3>`,
-      acknowledged: false,
-    };
-
-  const websiteList = JSON.parse(response.data);
-
-  let output = "";
-
-  // Return websites
-  websiteList.map(
-    (
-      website: {
-        _id: any;
-      },
-      index: number
-    ) => {
-      output = output + `<h3> ${index + 1}. https://hack-a-byte.vercel.app/${website._id.toString()}</h3>`;
-    }
-  );
-
-  return {
-    output: output,
-    acknowledged: true,
-  };
-}
-
-export async function handleHam({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[0];
-  const software = argumentList[1];
-  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
-
-  if (process !== "install") {
-    return {
-      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  const response = await ham(userId, software);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.success) {
-    return {
-      output: `<h3>Sorry Some Error Occured</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${response.success} </h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handleDeploy({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const softwareId = argumentList[0];
-  const websiteLink = argumentList[1];
-  const money = argumentList[2] || "1000";
-
-  let response = await deploy(userId, websiteLink, softwareId, money);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.success) {
-    return {
-      output: `<h3>Sorry Some Error Occured</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${response.success} </h3>`,
-    acknowledged: true,
-  };
-}
-
-export function handleHelp({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const inputCommand = argumentList[0];
-  const inputCommandInfo: Command = COMMANDS[inputCommand as keyof typeof COMMANDS];
-
-  if (!inputCommandInfo) {
-    return {
-      output: `<h3> Unknown command </h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${inputCommandInfo.description} </h3>`,
-    acknowledged: true,
-  };
-}
-
-export function handleClear({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const consoleElement = document.getElementById("console-element");
-
-  if (consoleElement === null) return;
-
-  while (consoleElement.childNodes.length > 2) {
-    // so that it doesnt clear the top line and command line
-    consoleElement.removeChild(consoleElement.children[1]);
-  }
-
-  consoleElement.appendChild(document.createElement("h1")); // Adds a h1 tag as the console should have atleast one line
-
-  consoleElement.removeChild(consoleElement.children[0]); // clears the 'clear' command
-
-  return {
-    output: "",
-    acknowledged: true,
-  };
-}
-
-export async function handleEmail({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await email(userId, argumentList[0], argumentList[1], argumentList[2]);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.success)
-    return {
-      output: `<h3>${ERRORS.SERVER_ERROR}</h3>`,
-      acknowledged: false,
-    };
-  
-  return {
-    output: response.success,
-    acknowledged: true,
-  };
-}
-
-export async function handleInbox({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const response = await inbox(userId);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.data)
-    return {
-      output: `<h3>No emails received yet</h3>`,
-      acknowledged: false,
-    };
-
-  const emailList = JSON.parse(response.data);
-
-  let output = "";
-
-  // Return all new emails
-  emailList.map((mail: { sender: string; receiver: string; username: string; link: string }, index: number) => {
-    output += `<h3> ${index + 1}. ${mail.username}: Your daily price:- Visit ${mail.link}</h3>`;
-  });
-
-  // Add a warning at last
-  output += `<h3 class="text-yellow-300">Note: Once Fetched, the mails are automatically deleted.</h3>`;
-
-  return {
-    output: output,
-    acknowledged: true,
-  };
-}
-
-export async function handleDetect({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[0];
-  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
-
-  if (process !== "spyware") {
-    return {
-      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  const response = await detect(userId);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response) {
-    return {
-      output: `<h3 class="text-red-800">Sorry can't detect any spyware</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${response.success}</h3>`,
-    acknowledged: true,
-  };
-}
-
-export async function handlePassChange({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const inputUsername = argumentList[0];
-
-  // check if the current password is correct.
-  let response = await login(username, password);
-  if (response.error) {
-    return {
-      output: `<h3 class="text-red-800">Credentials didn't match!</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  // ask for new password
-  let newPassword = await askForPassword("New password");
-  if (newPassword === await askForPassword("Confirm new password")) { 
-    // change the password
-    let response = await changePassword(username, newPassword);
-
-    if (response.success) { 
-      return {
-        output: `<h3>Password has been successfully changed.</h3>`,
-        acknowledged: true
-      }
-    } else { 
-      return {
-        output: `<h3 class="text-red-800">${response.error}!</h3>`,
-        acknowledged: false,
-      };
-    }
-    } else {
-    // return error new password didnt match
-    return {
-      output: `<h3 class="text-red-800">New password didn't match!</h3>`,
-      acknowledged: false,
-    };
-  }
-}
-
-export async function handleMarket({ userId = "", username = "", password = "", command = "", argumentList = [] }) {
-  const process = argumentList[0];
-  const product = argumentList[1];
-  const commandInfo = COMMANDS[command as keyof typeof COMMANDS];
-
-  if (process !== "buy") {
-    return {
-      output: `<h3>Usage: ${command} ${commandInfo.argumentsRequired}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  const response = await market(userId, product);
-
-  if (response.error) {
-    return {
-      output: `<h3>${response.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  if (!response.success) {
-    return {
-      output: `<h3>Sorry Some Error Occured</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return {
-    output: `<h3> - ${response.success} </h3>`,
-    acknowledged: true,
-  };
-}
-
-
-export async function handleHint({ userId = "", username = "", password = "", command = "", argumentList = [] }) { 
-
-  const hintForUser = argumentList[0];
-  const response = await genHint(hintForUser);
-
-  
-  if (response.error) { 
-    return { 
-      output: `<h3 class="text-red-800">${response.error}</h3>`,
-      acknowledged: false
-    }
-  }
-
-  let hintsArray = Object.values(response.hints).filter((hints) => { 
-    if (hints) { 
-      return true
-    }
-  });
-
-
-  let hint = hintsArray[Math.floor(Math.random() * hintsArray.length)]
-  const resp = await addMoney(username, -10);
-
-  if (resp.error) {
-    return {
-      output: `<h3 class="text-red-800">${resp.error}</h3>`,
-      acknowledged: false,
-    };
-  }
-
-  return { 
-    output: `<h3>${hint}</h3>`,
-    acknowledged: true
-  }
-
-}
+                 <h3> Free Space: ${convertToMegaBytes(freeSpace).toFixed(2)} MB</h3>`;
+    },
+  }),
+  transactions: new Command({
+    info: "Displays the transaction history",
+    usage: "transactions",
+    format: (data: string) => {
+      const parsedData = JSON.parse(data);
+
+      return parsedData.data
+        .map(
+          (
+            transaction: {
+              _id: string;
+              from: string;
+              to: string;
+              amount: number;
+              date: string;
+            },
+            index: number
+          ) => {
+            return `<h3> [${transaction._id.toString()}] - Transferred $${transaction.amount} from ${
+              transaction.from === parsedData.username ? "You" : transaction.from
+            } to ${transaction.to === parsedData.username ? "You" : transaction.to} on ${new Date(
+              transaction.date
+            ).toDateString()}</h3>`;
+          }
+        )
+        .join("");
+    },
+  }),
+  clear: new Command({
+    info: "Clears the screen",
+    usage: "clear",
+    format: (data: string) => {
+      return "";
+    },
+    clear: true,
+  }),
+  transfer: new Command({
+    info: "Transfers the specified amount to the receiver",
+    usage: "transfer [receiver] [amount]",
+    confirm: "process",
+    format: (data: { amount: number; receiver: string; transactionId: string }) => {
+      return `<h3>- $${data.amount} is Successfully transferred to ${data.receiver}</h3> <h3>transaction code: ${data.transactionId} </h3>`;
+    },
+  }),
+  hint: new Command({
+    info: "Provides a hint for the specified username",
+    usage: "hint [username]",
+    confirm: "hint",
+  }),
+  visit: new Command({
+    info: "Visits the specified link",
+    usage: "visit [link]",
+  }),
+  inbox: new Command({
+    info: "Displays the inbox emails",
+    usage: "inbox",
+    format: (data: string) => {
+      const parsedData = JSON.parse(data);
+
+      return parsedData
+        .map((email: { sender: string; receiver: string; username: string; link: string }, index: number) => {
+          return `<h3> ${index + 1}. ${email.username}: Your daily price:- Visit https://hack-a-byte.vercel.app/${
+            email.link
+          }</h3>`;
+        })
+        .join("");
+    },
+  }),
+  email: new Command({
+    info: "Sends an email to the receiver",
+    usage: "email [receiver] [link] [sender]",
+  }),
+  outbox: new Command({
+    info: "Displays the emails sent by You",
+    usage: "outbox",
+    format: (data: string) => {
+      const parsedData = JSON.parse(data);
+
+      return parsedData
+        .map((email: { sender: string; receiver: string; username: string; link: string }, index: number) => {
+          return `<h3> ${index + 1}. Send https://hack-a-byte.vercel.app/${email.link} to ${email.receiver}: </h3>`;
+        })
+        .join("");
+    },
+  }),
+  ham: new Command({
+    info: "Installs the specified software",
+    usage: "ham install [software]",
+    confirm: "install",
+  }),
+  deploy: new Command({
+    info: "Deploys the software with the specified softwareId and website link",
+    usage: "deploy [softwareId] [link]",
+  }),
+  scan: new Command({
+    info: "Scans for vulnerabilities",
+    usage: "scan",
+  }),
+  hack: new Command({
+    info: "Starts hacking the specified website",
+    usage: "hack [link]",
+  }),
+  help: new Command({
+    info: "Displays information about the specified command",
+    usage: "help [command]",
+    requiresLogin: false,
+  }),
+};

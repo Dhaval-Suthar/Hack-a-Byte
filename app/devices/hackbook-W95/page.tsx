@@ -5,9 +5,12 @@ import InternetExplorer from "@/app/ui/hackbook-W95/apps/InternetExplorer";
 import RecycleBin from "@/app/ui/hackbook-W95/apps/RecycleBin";
 import MyComputer from "@/app/ui/hackbook-W95/apps/MyComputer";
 
+import { logout } from "@/app/lib/actions";
+
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import Draggable from "react-draggable";
+
 
 type DraggableData = {
   node: HTMLElement;
@@ -209,9 +212,9 @@ const Page = () => {
   }
 
   useEffect(() => {
-    if (!localStorage.getItem("userId")) {
-      router.push("/hackbook-W95/login");
-    }
+    // if (!localStorage.getItem("userId")) {
+    //   router.push("/hackbook-W95/login");
+    // }
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -235,6 +238,7 @@ const Page = () => {
       setDate(new Date());
     }, 60000);
   }, []);
+
 
   return (
     <main className="bg-[#008080] h-screen w-screen ">
@@ -364,18 +368,12 @@ const Page = () => {
             clickedStart ? "" : "hidden"
           }`}
         >
-          <div
-            className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
-            onClick={() => {
-              localStorage.removeItem("userId");
-
-              // Sends user to login page
-              router.push("/hackbook-W95/login");
-            }}
-          >
-            <img className="h-16 mx-3" src="/hackbook-W95/log-out.png" alt="" />
-            <h1 className="m-auto w-full">Log Out</h1>
-          </div>
+          <form action={logout}>
+            <button type="submit" className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
+              <img className="h-16 mx-3" src="/hackbook-W95/log-out.png" alt="" />
+              <h3 className="m-auto w-full">Log Out</h3>
+            </button>
+          </form>
           <div
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
