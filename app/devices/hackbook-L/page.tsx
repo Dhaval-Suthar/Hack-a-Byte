@@ -1,5 +1,5 @@
 import Console from "../../ui/hackbook-L/console";
-import { DEFAULT_USERNAME } from "@/app/lib/constants";
+import { DEFAULT_USERNAME, MODELS } from "@/app/lib/constants";
 import { getModels } from "@/app/lib/actions";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -12,11 +12,11 @@ export default async function Page() {
   const cookieStore = cookies();
   const username = cookieStore.get("username")?.value;
 
-  if (!models["Hackbook-L"]) {
+  if (!models[MODELS.L]) {
     redirect("/dashboard");
   }
 
-  if (models["Hackbook-L"].password === "-") {
+  if (models[MODELS.L].password === "-") {
     redirect("/devices/hackbook-L/setup");
   }
 
