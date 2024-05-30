@@ -1,6 +1,6 @@
 "use client";
 
-import { inbox, outbox } from "@/app/lib/actions";
+import { action } from "@/app/lib/actions";
 import { DEFAULT_USER_ID } from "@/app/lib/constants";
 import React, { useEffect, useState } from "react";
 
@@ -19,7 +19,15 @@ class Mail {
   }
 }
 
-const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, setLink: Function, handleOpenLink: Function }) => {
+const Inbox = ({
+  fullscreen,
+  setLink,
+  handleOpenLink,
+}: {
+  fullscreen: boolean;
+  setLink: Function;
+  handleOpenLink: Function;
+}) => {
   const [selectedType, setSelectedType] = useState("inbox");
   const [mails, setMails] = useState<Mail[]>([]);
   const [clicked, setClicked] = useState("none");
@@ -33,9 +41,8 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
   }
 
   async function fetchMails() {
-    const userId = localStorage.getItem("userId") || DEFAULT_USER_ID;
-    const inboxResponse = await inbox(userId);
-    const outboxResponse = await outbox(userId);
+    const inboxResponse = await action("inbox", {});
+    const outboxResponse = await action("outbox", {});
 
     if (inboxResponse.data) {
       const emailList = JSON.parse(inboxResponse.data);
