@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/app/lib/actions";
+import { action } from "@/app/lib/actions";
 
 const page = () => {
   const router = useRouter();
@@ -16,7 +16,7 @@ const page = () => {
       return;
     }
 
-    const response = await login(username, password);
+    const response = await action("login", { username, password });
 
     setUsername("");
     setPassword("");
@@ -26,24 +26,12 @@ const page = () => {
       return;
     }
 
-    if (!response.id || !response.data) {
+    if (!response.data) {
       alert("Sorry! Some Error Occured!");
       return;
     }
 
-    const userData = JSON.parse(response.data);
-
-    // if(userData.computerModels.includes("hackbook-W95")){ 
-    //   localStorage.setItem("userId", response.id);
-    //   router.push("/hackbook-W95");
-    // }
-    // else{
-    //   alert("Buy hackbook-W95 to access!");
-    // }
-
-    localStorage.setItem("userId", response.id);
     router.push("/hackbook-W95");
-    
   };
 
   const handleInfo = () => {
