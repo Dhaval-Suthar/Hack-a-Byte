@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/app/lib/actions";
+import { action } from "@/app/lib/actions";
 
 const page = () => {
   const router = useRouter();
@@ -16,7 +16,7 @@ const page = () => {
       return;
     }
 
-    const response = await login(username, password);
+    const response = await action("login", { username, password });
 
     setUsername("");
     setPassword("");
@@ -26,24 +26,12 @@ const page = () => {
       return;
     }
 
-    if (!response.id || !response.data) {
+    if (!response.data) {
       alert("Sorry! Some Error Occured!");
       return;
     }
 
-    const userData = JSON.parse(response.data);
-
-    // if(userData.computerModels.includes("Hackbook-W95")){ 
-    //   localStorage.setItem("userId", response.id);
-    //   router.push("/hackbook-W95");
-    // }
-    // else{
-    //   alert("Buy Hackbook-W95 to access!");
-    // }
-
-    localStorage.setItem("userId", response.id);
     router.push("/hackbook-W95");
-    
   };
 
   const handleInfo = () => {
@@ -54,7 +42,7 @@ const page = () => {
     <main className="bg-[#008080] h-screen w-screen flex justify-center ">
       <div className="bg-[#BBC2C2] h-80 w-[70vw] m-40  border-2 shadow shadow-black border-black border-t-white border-l-white">
         <div className="w-auto h-8 bg-blue-900  m-1 flex justify-between">
-          <h1 className="text-xl text-white font-semibold justify-self-start mx-2">Welcome to Hackbook-W95</h1>
+          <h1 className="text-xl text-white font-semibold justify-self-start mx-2">Welcome to hackbook-W95</h1>
           <div className="flex text-center font-extrabold text-xl">
             <div
               onClick={handleInfo}
@@ -72,7 +60,7 @@ const page = () => {
         </div>
         <div className="w-auto h-64  flex m-1">
           <div className="w-1/5 h-full ">
-            <img src="/key.png" alt="" />
+            <img src="/hackbook-W95/app-icon/key.png" alt="" />
           </div>
           <div className="w-3/5 h-full  flex flex-col justify-around">
             <h1>Type a user name and password to log on to hackbook-W95</h1>

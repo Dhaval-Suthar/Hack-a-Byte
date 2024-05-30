@@ -1,6 +1,6 @@
 "use client";
 
-import { inbox, outbox } from "@/app/lib/actions";
+import { action } from "@/app/lib/actions";
 import { DEFAULT_USER_ID } from "@/app/lib/constants";
 import React, { useEffect, useState } from "react";
 
@@ -19,7 +19,15 @@ class Mail {
   }
 }
 
-const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, setLink: Function, handleOpenLink: Function }) => {
+const Inbox = ({
+  fullscreen,
+  setLink,
+  handleOpenLink,
+}: {
+  fullscreen: boolean;
+  setLink: Function;
+  handleOpenLink: Function;
+}) => {
   const [selectedType, setSelectedType] = useState("inbox");
   const [mails, setMails] = useState<Mail[]>([]);
   const [clicked, setClicked] = useState("none");
@@ -33,9 +41,8 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
   }
 
   async function fetchMails() {
-    const userId = localStorage.getItem("userId") || DEFAULT_USER_ID;
-    const inboxResponse = await inbox(userId);
-    const outboxResponse = await outbox(userId);
+    const inboxResponse = await action("inbox", {});
+    const outboxResponse = await action("outbox", {});
 
     if (inboxResponse.data) {
       const emailList = JSON.parse(inboxResponse.data);
@@ -81,7 +88,7 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
               setClicked("inbox");
             }}
           >
-            <img className="h-16" src="/opened-file.png" alt="" />
+            <img className="h-16" src="/hackbook-W95/opened-file.png" alt="" />
             <h1 className={`my-auto  ${selectedType === "inbox" ? "font-extrabold" : "font-extralight"} text-lg `}>
               Inbox
             </h1>
@@ -94,7 +101,7 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
               setClicked("outbox");
             }}
           >
-            <img className="h-16" src="/file.png" alt="" />
+            <img className="h-16" src="/hackbook-W95/file.png" alt="" />
             <h1 className={`my-auto   ${selectedType === "outbox" ? "font-extrabold" : "font-extralight"} text-lg`}>
               Outbox
             </h1>
@@ -108,7 +115,7 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
         <div className="w-1/2 h-full bg-white border  border-r-black border-r-2 font-extralight">
           <div className="flex">
             <div className="flex h-8 w-8 p-0.5 bg-[#BBC2C2] border-2 border-black  border-l-white border-t-white ">
-              <img className="h-6 " src="/mail-white.png" alt="" />
+              <img className="h-6 " src="/hackbook-W95/mail-white.png" alt="" />
             </div>
             <div className="flex h-8 w-1/2 bg-[#BBC2C2] border-2 border-black  border-l-white border-t-white ">
               {selectedType === "inbox" ? "From" : "To"}
@@ -129,7 +136,7 @@ const Inbox = ({ fullscreen, setLink, handleOpenLink }: { fullscreen: boolean, s
               }}
             >
               <div className={`flex  ${mail.clicked ? "bg-blue-900 text-white " : "text-black "} font-bold `}>
-                <img className="h-5 w-8 p-0.5 mt-0.5" src="/mail.png" alt="" />
+                <img className="h-5 w-8 p-0.5 mt-0.5" src="/hackbook-W95/mail.png" alt="" />
                 <h1 className="my-auto w-1/2  text-lg"> {mail.from}</h1>
                 <h1 className="my-auto w-1/2  text-lg">Reward</h1>
               </div>

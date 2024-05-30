@@ -32,7 +32,7 @@ const MyComputer = ({ fullscreen }: { fullscreen: boolean }) => {
           }}
         >
           <div className="m-auto text-center break-words">
-            <img className={`h-24 w-24 ${clicked ? "saturate-200" : ""}  `} src="/hard-disk.png" />
+            <img className={`h-24 w-24 ${clicked ? "saturate-200" : ""}  `} src="/hackbook-W95/hard-disk.png" />
             <h4 className={`w-24 text-sm ${clicked ? "text-white bg-blue-700" : ""} `}>Hard Disk (C:)</h4>
           </div>
         </div>

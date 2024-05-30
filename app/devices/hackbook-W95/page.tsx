@@ -1,13 +1,16 @@
 "use client";
 
-import Inbox from "@/components/Inbox";
-import InternetExplorer from "@/components/InternetExplorer";
-import RecycleBin from "@/components/RecycleBin";
-import MyComputer from "@/components/MyComputer";
+import Inbox from "@/app/ui/hackbook-W95/apps/Inbox";
+import InternetExplorer from "@/app/ui/hackbook-W95/apps/InternetExplorer";
+import RecycleBin from "@/app/ui/hackbook-W95/apps/RecycleBin";
+import MyComputer from "@/app/ui/hackbook-W95/apps/MyComputer";
+
+import { logout } from "@/app/lib/actions";
 
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import Draggable from "react-draggable";
+
 
 type DraggableData = {
   node: HTMLElement;
@@ -42,11 +45,11 @@ class App {
 }
 
 const APPS: App[] = [
-  new App("Internet Explorer", "/ie.png", "/hackbook-W95/ie"),
-  new App("My Computer", "/mycomputer.png", "/hackbook-W95/mycomputer"),
-  new App("Terminal", "/terminal.png", "/"),
-  new App("Recycle Bin", "/recyclebin.png", "/hackbook-W95/recyclebin"),
-  new App("Inbox", "/inbox.png", "/hackbook-W95/inbox"),
+  new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png", "/hackbook-W95/ie"),
+  new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png", "/hackbook-W95/mycomputer"),
+  new App("Terminal", "/hackbook-W95/app-icon/terminal.png", "/"),
+  new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png", "/hackbook-W95/recyclebin"),
+  new App("Inbox", "/hackbook-W95/app-icon/inbox.png", "/hackbook-W95/inbox"),
 ];
 const Page = () => {
   const router = useRouter();
@@ -209,9 +212,9 @@ const Page = () => {
   }
 
   useEffect(() => {
-    if (!localStorage.getItem("userId")) {
-      router.push("/hackbook-W95/login");
-    }
+    // if (!localStorage.getItem("userId")) {
+    //   router.push("/hackbook-W95/login");
+    // }
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -235,6 +238,7 @@ const Page = () => {
       setDate(new Date());
     }, 60000);
   }, []);
+
 
   return (
     <main className="bg-[#008080] h-screen w-screen ">
@@ -364,18 +368,12 @@ const Page = () => {
             clickedStart ? "" : "hidden"
           }`}
         >
-          <div
-            className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
-            onClick={() => {
-              localStorage.removeItem("userId");
-
-              // Sends user to login page
-              router.push("/hackbook-W95/login");
-            }}
-          >
-            <img className="h-16 mx-3" src="/log-out.png" alt="" />
-            <h1 className="m-auto w-full">Log Out</h1>
-          </div>
+          <form action={logout}>
+            <button type="submit" className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
+              <img className="h-16 mx-3" src="/hackbook-W95/log-out.png" alt="" />
+              <h3 className="m-auto w-full">Log Out</h3>
+            </button>
+          </form>
           <div
             className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
             onClick={() => {
@@ -385,7 +383,7 @@ const Page = () => {
               router.replace("/");
             }}
           >
-            <img className="h-20" src="/change-comp.png" alt="" />
+            <img className="h-20" src="/hackbook-W95/app-icon/change-comp.png" alt="" />
             <h1 className="m-auto w-full">Change Computer</h1>
           </div>
           <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>
