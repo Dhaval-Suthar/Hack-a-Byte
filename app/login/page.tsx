@@ -105,36 +105,58 @@ export default function Page() {
               {method === "login" && (
                 <form action={dispatch}>
                   <h3 className="p-2 pb-0">
-                    Username: <input name="username" className="bg-transparent outline-none" type="text" />
+                    Username:{" "}
+                    <input min={3} max={20} name="username" className="bg-transparent outline-none" type="text" />
                   </h3>
                   <h3 className="p-2 pt-0">
-                    Password: <input name="password" className="bg-transparent outline-none" type="password" />
+                    Password:{" "}
+                    <input min={3} max={20} name="password" className="bg-transparent outline-none" type="password" />
                   </h3>
                   <button type="submit" className="px-4 hover:underline">
                     submit
                   </button>
-                  {/* <h3 className="p-2 pt-1">logging / ...</h3> */}
+                  <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
+                    {errorMessage && (
+                      <>
+                        <p className="text-sm p-2 text-red-500">{errorMessage}</p>
+                      </>
+                    )}
+                  </div>
                 </form>
               )}
               {method === "signup" && (
                 <form action={signupDispatch}>
                   <h3 className="p-2 pb-0">
-                    Username: <input name="username" className="bg-transparent outline-none" type="text" />
+                    Username:{" "}
+                    <input min={3} max={20} name="username" className="bg-transparent outline-none" type="text" />
                   </h3>
                   <h3 className="px-2">
                     Email: <input name="email" className="bg-transparent outline-none" type="email" />
                   </h3>
                   <h3 className=" px-2">
-                    Password: <input name="password" className="bg-transparent outline-none" type="password" />
+                    Password:{" "}
+                    <input min={3} max={20} name="password" className="bg-transparent outline-none" type="password" />
                   </h3>
                   <h3 className="p-2 pt-0">
                     Confirm Password:{" "}
-                    <input name="confirm-password" className="bg-transparent outline-none" type="password" />
+                    <input
+                      min={3}
+                      max={20}
+                      name="confirm-password"
+                      className="bg-transparent outline-none"
+                      type="password"
+                    />
                   </h3>
                   <button type="submit" className="px-4 hover:underline">
                     submit
                   </button>
-                  {/* <h3 className="p-2 pt-1">signing / ...</h3> */}
+                  <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
+                    {signupMessage && (
+                      <>
+                        <p className="p-2 text-sm text-red-500">{signupMessage}</p>
+                      </>
+                    )}
+                  </div>
                 </form>
               )}
               {method === "overview" && (

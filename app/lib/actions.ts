@@ -12,6 +12,21 @@ import { cookies } from "next/headers";
 import { getHint } from "./utils";
 import { COMMANDS } from "./commands";
 
+const UserSchema = z.object({
+  username: z
+    .string({ invalid_type_error: "Username has Invalid Type" })
+    .min(3, { message: "Username should contain atleast 3 characters" })
+    .max(20, { message: "Username should contain atmost 20 characters" }),
+  password: z
+    .string({ invalid_type_error: "Password has Invalid Type" })
+    .min(6, { message: "Password should contain atleast 6 characters" })
+    .max(20, { message: "Password should contain atmost 20 characters" }),
+  email: z.string({ invalid_type_error: "Email has Invalid Type" }).email({ message: "Invalid Email" }),
+  confirmPassword: z.string({ invalid_type_error: "Confirm Password has Invalid Type" }),
+});
+
+const loginSchema = UserSchema.omit({ email: true, confirmPassword: true });
+
 export async function action(commandName: string, data: any) {
   try {
     const { command, username, password, amount, receiver, link, softwareId, software, confirm, sender } = data;
@@ -760,7 +775,12 @@ export async function action(commandName: string, data: any) {
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
-    await signIn("credentials", formData);
+    const { username, password } = loginSchema.parse({
+      username: formData.get("username"),
+      password: formData.get("password"),
+    });
+
+    await signIn("credentials", { username, password });
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -769,8 +789,11 @@ export async function authenticate(prevState: string | undefined, formData: Form
         default:
           return "Something went wrong.";
       }
+    } else if (error instanceof z.ZodError) {
+      return error.errors[0].message;
     }
-    throw error;
+
+    return "Server Error";
   }
 }
 
@@ -780,10 +803,12 @@ export async function logout() {
 
 export async function signup(prevState: string | undefined, formData: FormData) {
   try {
-    const username = formData.get("username") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirm-password") as string;
+    const { username, password, email, confirmPassword } = UserSchema.parse({
+      username: formData.get("username"),
+      password: formData.get("password"),
+      email: formData.get("email"),
+      confirmPassword: formData.get("confirm-password"),
+    });
 
     if (password !== confirmPassword) return "Passwords do not match";
 
@@ -799,31 +824,40 @@ export async function signup(prevState: string | undefined, formData: FormData) 
     const emailInUse = await db.collection("users").findOne({ email: email });
     if (emailInUse) return "Email is already registered";
 
-    const response = await db.collection("users").insertOne({
-      username: username,
-      password: encryptedPassword,
-      email: email,
-      balance: 200,
-      models: {
-        "Hackbook-L": {
-          password: "-",
-          storage: {
-            used: 1 * 1024 * 1024,
-            system: 1 * 1024 * 1024,
-            total: 10 * 1024 * 1024,
+    const session = client.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await db.collection("users").insertOne({
+          username: username,
+          password: encryptedPassword,
+          email: email,
+          balance: 200,
+          models: {
+            "Hackbook-L": {
+              password: "-",
+              storage: {
+                used: 1 * 1024 * 1024,
+                system: 1 * 1024 * 1024,
+                total: 10 * 1024 * 1024,
+              },
+              softwares: [],
+              infected: 0,
+            },
           },
-          softwares: [],
-          infected: 0,
-        },
-      },
-    });
+        });
 
-    await db.collection("websites").insertOne({
-      owner: username,
-      type: "normal",
-    });
-
-    if (!response) return "Something went wrong";
+        await db.collection("websites").insertOne({
+          owner: username,
+          type: "normal",
+        });
+      });
+    } catch (error) {
+      console.error(error);
+      return "Something went wrong.";
+    } finally {
+      session.endSession();
+    }
 
     await signIn("credentials", { username: username, password: password });
   } catch (error) {
@@ -834,8 +868,11 @@ export async function signup(prevState: string | undefined, formData: FormData) 
         default:
           return "Something went wrong.";
       }
+    } else if (error instanceof z.ZodError) {
+      return error.errors[0].message;
     }
-    throw error;
+
+    return "Server Error";
   }
 }
 
