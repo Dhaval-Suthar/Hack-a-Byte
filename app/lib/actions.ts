@@ -12,6 +12,8 @@ import { cookies } from "next/headers";
 import { getHint } from "./utils";
 import { COMMANDS } from "./commands";
 
+const DATABASE_NAME = process.env.DATABASE_NAME;
+
 const UserSchema = z.object({
   username: z
     .string({ invalid_type_error: "Username has Invalid Type" })
@@ -40,7 +42,7 @@ export async function action(commandName: string, data: any) {
       .split(" ");
 
     const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
+    const db = client.db(DATABASE_NAME);
     const users = db.collection("users");
     const transactions = db.collection("transactions");
     const websites = db.collection("websites");
@@ -833,7 +835,7 @@ export async function signup(prevState: string | undefined, formData: FormData) 
     const encryptedPassword = await bcrypt.hash(password, 10);
 
     const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
+    const db = client.db(DATABASE_NAME);
 
     // checking if user with same username exist and sending error
     const usernameInUse = await db.collection("users").findOne({ username: username });
@@ -901,7 +903,7 @@ export async function getModels() {
     if (!session?.user) return "You are not logged in";
 
     const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
+    const db = client.db(DATABASE_NAME);
 
     const user = await db.collection("users").findOne({ username: session.user.name });
 
@@ -920,7 +922,7 @@ export async function setUp(formData: FormData) {
     if (!session?.user) return "You are not logged in";
 
     const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
+    const db = client.db(DATABASE_NAME);
 
     const user = await db.collection("users").findOne({ username: session.user.name });
 
@@ -938,7 +940,7 @@ export async function setUp(formData: FormData) {
 
 export async function sendDailyEmails() {
   const client = await clientPromise;
-  const db = client.db("Hack-a-Byte");
+  const db = client.db(DATABASE_NAME);
   const users = db.collection("users");
   const emails = db.collection("emails");
 

@@ -9,7 +9,7 @@ import bcrypt from "bcrypt";
 async function getUser(username: string): Promise<User | null> {
   try {
     const client = await clientPromise;
-    const db = client.db("Hack-a-Byte");
+    const db = client.db(process.env.DATABASE_NAME);
 
     const user = await db.collection("users").findOne({ username: username });
 
