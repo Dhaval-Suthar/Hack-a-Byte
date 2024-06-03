@@ -917,3 +917,29 @@ export async function setUp(formData: FormData) {
     return "Something went wrong.";
   }
 }
+
+export async function sendDailyEmails() {
+  const client = await clientPromise;
+  const db = client.db("Hack-a-Byte");
+  const users = db.collection("users");
+  const emails = db.collection("emails");
+
+  const usersList = await users.find({}).toArray();
+
+  const website = await db
+    .collection("websites")
+    .insertOne({ owner: "hack-a-byte", type: "reward", expiresAfter: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+
+  for (const user of usersList) {
+    await emails.insertOne({
+      sender: "hack-a-byte",
+      receiver: user.username,
+      username: "hack-a-byte",
+      link: `https://hack-a-byte.vercel.app/${website.insertedId}`,
+    });
+  }
+
+  console.log("Emails sent successfully");
+
+  return;
+}
