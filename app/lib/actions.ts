@@ -475,9 +475,27 @@ export async function action(commandName: string, data: any) {
               data: "Your device has been affected by a virus. Perform a scan to get rid of the virus before 24 hrs.",
             };
           case "reward":
-            await users.updateOne(loggedUser, {
-              $inc: { balance: 100 },
-            });
+            session = client.startSession();
+
+            try {
+              await users.updateOne(loggedUser, { $inc: { balance: 100 } }, { session });
+              await transactions.insertOne(
+                {
+                  from: website.owner,
+                  to: storedUsername,
+                  amount: 100,
+                  date: new Date(),
+                },
+                { session }
+              );
+              await websites.deleteOne(website);
+            } catch (e) {
+              console.error(e);
+
+              return { error: ERRORS.SERVER_ERROR };
+            } finally {
+              session.endSession();
+            }
             return { data: "Congratulations!! You won $100" };
           default:
             break;
@@ -916,4 +934,30 @@ export async function setUp(formData: FormData) {
   } catch (error) {
     return "Something went wrong.";
   }
+}
+
+export async function sendDailyEmails() {
+  const client = await clientPromise;
+  const db = client.db("Hack-a-Byte");
+  const users = db.collection("users");
+  const emails = db.collection("emails");
+
+  const usersList = await users.find({}).toArray();
+
+  for (const user of usersList) {
+    const website = await db
+      .collection("websites")
+      .insertOne({ owner: "hack-a-byte", type: "reward", expiresAfter: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+
+    await emails.insertOne({
+      sender: "hack-a-byte",
+      receiver: user.username,
+      username: "hack-a-byte",
+      link: `https://hack-a-byte.vercel.app/${website.insertedId}`,
+    });
+  }
+
+  console.log("Emails sent successfully");
+
+  return;
 }
