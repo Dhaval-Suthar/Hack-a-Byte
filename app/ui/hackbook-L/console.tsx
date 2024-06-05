@@ -5,14 +5,14 @@ import { execute } from "@/app/lib/commands";
 import { useFormState, useFormStatus } from "react-dom";
 import { DEFAULT_COMPUTER_MODEL, ROOT_DIRECTORY, CONFIRMATIONS } from "../../lib/constants";
 
-export default function Console({ user }: { user: string }) {
+export default function Console({ user, device }: { user: string, device: string}) {
   // Computer Information
   const [computerModel, setComputerModel] = useState(DEFAULT_COMPUTER_MODEL);
   const [presentWorkingDiractory, setPresentWorkingDiractory] = useState(ROOT_DIRECTORY);
 
   // Terminal Information
   const prompt = `${user}@${computerModel} ${presentWorkingDiractory} % `;
-  const executeWithPrompt = execute.bind(null, prompt);
+  const executeWithPrompt = execute.bind(null, prompt, device);
   const [state, dispatch] = useFormState(executeWithPrompt, {});
   const [commands, setCommands] = useState([""]);
   const [index, setIndex] = useState(0);

@@ -63,4 +63,5 @@ export const ERRORS = {
   PROVIDE_SOFTWARE_NAME: "Provide Software Name",
   INVALID_COMMAND: "Invalid Command",
   ZERO_AMOUNT: "Amount can't be 0",
+  DEVICE_NOT_FOUND: "Device Not Found",
 };

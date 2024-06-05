@@ -29,7 +29,7 @@ const UserSchema = z.object({
 
 const loginSchema = UserSchema.omit({ email: true, confirmPassword: true });
 
-export async function action(commandName: string, data: any) {
+export async function action(commandName: string, data: any, device: string = MODELS.L) {
   try {
     const { command, username, password, amount, receiver, link, softwareId, software, confirm, sender } = data;
 
@@ -76,12 +76,15 @@ export async function action(commandName: string, data: any) {
       loggedUser = await users.findOne({ username: storedUsername });
       if (!loggedUser) return { error: ERRORS.INVALID_LOGIN };
 
-      userPassword = loggedUser.models[MODELS.L].password;
+      userPassword = loggedUser.models[device].password;
       if (userPassword !== storedPassword && !["-", "none"].includes(userPassword))
         return { error: ERRORS.INVALID_LOGIN };
 
+      // Check if the owner owns the device
+      if (!loggedUser.models[device]) return { error: ERRORS.DEVICE_NOT_FOUND };
+
       // Check for ransomware
-      const loggedUserSoftwares = loggedUser.models[MODELS.L].softwares.filter((s: any) => s.name === "ransomware");
+      const loggedUserSoftwares = loggedUser.models[device].softwares.filter((s: any) => s.name === "ransomware");
       loggedUserMalware = loggedUserSoftwares[0];
 
       if (loggedUserMalware && !["logout", "shutdown", "transfer"].includes(commandName)) {
@@ -144,7 +147,7 @@ export async function action(commandName: string, data: any) {
     // Commands
     switch (commandName) {
       case "login":
-        const userPassword = user.models[MODELS.L].password;
+        const userPassword = user.models[device].password;
 
         if (!["-", "none"].includes(userPassword)) {
           if (!password) return { requirePassword: true };
@@ -152,7 +155,7 @@ export async function action(commandName: string, data: any) {
           if (userPassword !== password) return { error: ERRORS.INVALID_CREDENTIALS };
         }
 
-        const userSoftwares = user.models[MODELS.L].softwares;
+        const userSoftwares = user.models[device].softwares;
         const userMalware = userSoftwares[0];
 
         if (userMalware) {
@@ -317,7 +320,7 @@ export async function action(commandName: string, data: any) {
       case "balance":
         return { data: " - $" + loggedUser.balance.toString() };
       case "storage":
-        return { data: loggedUser.models[MODELS.L].storage };
+        return { data: loggedUser.models[device].storage };
       case "transactions":
         const loggedUserTransactions = await transactions
           .find({ $or: [{ from: storedUsername }, { to: storedUsername }] })
@@ -565,7 +568,7 @@ export async function action(commandName: string, data: any) {
           session.endSession();
         }
 
-        const hint = getHint(user?.models[MODELS.L].password);
+        const hint = getHint(user?.models[device].password);
 
         return { data: hint };
       case "deploy":
@@ -712,7 +715,7 @@ export async function action(commandName: string, data: any) {
 
         return { error: `Can't Hack ${website.owner}'s website!` };
       case "scan":
-        const loggedUsersoftwares = loggedUser.models[MODELS.L].softwares.filter((s: any) => s.name !== "ransomware");
+        const loggedUsersoftwares = loggedUser.models[device].softwares.filter((s: any) => s.name !== "ransomware");
 
         const malware = loggedUsersoftwares[0];
 
