@@ -1,214 +1,109 @@
 "use client";
+import React, { useEffect, useState } from "react";
+import clsx from "clsx";
+import { useRouter } from "next/navigation";
+import Draggable from "react-draggable";
 
 import Inbox from "@/app/ui/hackbook-W95/apps/Inbox";
 import InternetExplorer from "@/app/ui/hackbook-W95/apps/InternetExplorer";
 import RecycleBin from "@/app/ui/hackbook-W95/apps/RecycleBin";
 import MyComputer from "@/app/ui/hackbook-W95/apps/MyComputer";
+import Console from "@/app/ui/hackbook-L/console";
 
 import { logout } from "@/app/lib/actions";
-
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import Draggable from "react-draggable";
-
-
-type DraggableData = {
-  node: HTMLElement;
-  // lastX + deltaX === x
-  x: number;
-  y: number;
-  deltaX: number;
-  deltaY: number;
-  lastX: number;
-  lastY: number;
-};
-
-class App {
-  name: string;
-  icon: string;
-  path?: string;
-  clicked: boolean;
-  opened: boolean;
-  fullscreen: boolean;
-  hidden: boolean;
-  defaultPosition: { x: number; y: number } = { x: 0, y: 0 };
-
-  constructor(name: string, icon: string, path?: string) {
-    this.name = name;
-    this.icon = icon;
-    this.path = path;
-    this.clicked = false;
-    this.opened = false;
-    this.fullscreen = false;
-    this.hidden = false;
-  }
-}
+import { DEFAULT_LINK, DEFAULT_USERNAME, MODELS } from "@/app/lib/constants";
+import { App } from "@/app/lib/definitions";
 
 const APPS: App[] = [
-  new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png", "/hackbook-W95/ie"),
-  new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png", "/hackbook-W95/mycomputer"),
-  new App("Terminal", "/hackbook-W95/app-icon/terminal.png", "/"),
-  new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png", "/hackbook-W95/recyclebin"),
-  new App("Inbox", "/hackbook-W95/app-icon/inbox.png", "/hackbook-W95/inbox"),
+  new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png"),
+  new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png"),
+  new App("Terminal", "/hackbook-W95/app-icon/terminal.png"),
+  new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png"),
+  new App("Inbox", "/hackbook-W95/app-icon/inbox.png"),
 ];
+
 const Page = () => {
   const router = useRouter();
 
-  const [apps, setApps] = useState(APPS);
-  const [clickedStart, setClickedStart] = useState(false);
-  const [selectedAppIndex, setSelectedAppIndex] = useState(0);
+  const [openMenu, setOpenMenu] = useState(false);
+  const [selectedApp, setSelectedApp] = useState(null as App | null);
+  const [runningApp, setRunningApp] = useState(null as App | null);
+  const [runningApps, setRunningApps] = useState([] as App[]);
   const [date, setDate] = useState(new Date());
+  const [link, setLink] = useState(DEFAULT_LINK);
 
-  const [link, setLink] = useState("https://en.wikipedia.org/wiki/Main_Page");
+  function deSelect() {
+    setSelectedApp(null);
+    setOpenMenu(false);
+  }
 
-  function handleOpenLink() {
-    const app = apps[0];
+  function handleItemClick(app: App, clickTypeRequires: "single" | "double" = "double") {
+    const clickType = selectedApp === app ? "double" : "single";
 
-    if (app.hidden) {
-      app.hidden = false;
-      app.opened = true;
-      setApps([...apps]);
-      setSelectedAppIndex(0);
+    if (clickTypeRequires === clickType) {
+      open(app);
+    } else {
+      setSelectedApp(app);
+    }
+  }
 
-      hideOtherOpenApps();
-
-      const previewElement = document.getElementById(app.name);
-      if (previewElement) {
-        ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
-          previewElement.classList.add(className);
-        });
-        ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
-          previewElement.classList.remove(className);
-        });
-      }
-
+  function close() {
+    if (!runningApp) {
       return;
     }
 
-    app.clicked = false;
-    app.opened = true;
-    setApps([...apps]);
-    setSelectedAppIndex(0);
-
-    hideOtherOpenApps();
-
-    addElement(app, 0);
+    runningApp.fullscreen = false;
+    setRunningApps(runningApps.filter((app) => app !== runningApp));
+    setRunningApp(null);
   }
 
-  function openApp() {
-    switch (apps[selectedAppIndex].name) {
+  function open(app: App) {
+    if (runningApp === app) {
+      return;
+    }
+
+    if (!runningApps.filter((runningApp) => runningApp.name === app.name).length) {
+      setRunningApps([...runningApps, app]);
+    }
+
+    setRunningApp(app);
+    deSelect();
+  }
+
+  function openLink(link: string) {
+    const app = APPS.find((app) => app.name === "Internet Explorer");
+    if (app) {
+      open(app);
+    }
+
+    const searchBar = document.getElementById("searchBar") as HTMLInputElement;
+
+    if (searchBar) {
+      searchBar.value = "https://hack-a-byte.vercel.app/" + link;
+    }
+
+    setLink("https://hack-a-byte.vercel.app/" + link);
+  }
+
+  function getComponent() {
+    if (!runningApp) {
+      return null;
+    }
+
+    switch (runningApp.name) {
       case "Internet Explorer":
-        return  <InternetExplorer fullscreen={apps[selectedAppIndex].fullscreen} link={link} setLink={setLink} />;
-      case "Inbox":
-        return (
-          <Inbox fullscreen={apps[selectedAppIndex].fullscreen} setLink={setLink} handleOpenLink={handleOpenLink} />
-        );
-      case "Recycle Bin":
-        return <RecycleBin fullscreen={apps[selectedAppIndex].fullscreen} />;
+        return <InternetExplorer link={link} />;
       case "My Computer":
-        return <MyComputer fullscreen={apps[selectedAppIndex].fullscreen} />;
+        return <MyComputer />;
+      case "Terminal":
+        return <Console user={DEFAULT_USERNAME} device={MODELS.W95} />;
+      case "Recycle Bin":
+        return <RecycleBin />;
+      case "Inbox":
+        return <Inbox openLink={openLink} />;
       default:
-        return (
-          <iframe
-            src={apps[selectedAppIndex].path}
-            className={` ${
-              apps[selectedAppIndex].fullscreen ? "w-[98vw] h-[90vh]" : "w-[78vw] h-[70vh]"
-            } m-auto overscroll-none`}
-          />
-        );
+        return null;
     }
-  }
-
-  function deSelectAll() {
-    apps.forEach((app) => {
-      app.clicked = false;
-    });
-    setApps([...apps]);
-    setClickedStart(false);
-  }
-
-  function addElement(
-    app: {
-      name: any;
-      icon: any;
-      path?: string;
-      clicked?: boolean;
-      opened?: boolean;
-      fullscreen?: boolean;
-      hidden?: boolean;
-    },
-    index: number
-  ) {
-    const panelElement = document.getElementById("panel");
-    const previewElement = document.createElement("div");
-
-    previewElement.id = app.name;
-
-    previewElement.className =
-      "w-full max-w-sm h-full bg-[#dfe6e6] border-2 shadow shadow-black border-black border-b-white border-r-white flex";
-
-    previewElement.innerHTML = `<img class="h-10 w-10 -m-1.5" src="${app.icon}" alt="" />
-                  <h1 class="text-black text-left w-full m-auto font-bold text-xl">${app.name}</h1>`;
-
-    previewElement.addEventListener("click", () => {
-      if (app.hidden) {
-        app.hidden = false;
-        app.opened = true;
-        setApps([...apps]);
-        setSelectedAppIndex(index);
-
-        hideOtherOpenApps();
-
-        const previewElement = document.getElementById(app.name);
-        if (previewElement) {
-          ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
-            previewElement.classList.add(className);
-          });
-          ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
-            previewElement.classList.remove(className);
-          });
-        }
-
-        return;
-      }
-    });
-
-    if (panelElement) {
-      panelElement.appendChild(previewElement);
-    }
-  }
-
-  function removeElement(appName: string) {
-    const panelElement = document.getElementById("panel");
-    const previewElement = document.getElementById(appName);
-
-    if (panelElement && previewElement) {
-      panelElement.removeChild(previewElement);
-    }
-  }
-
-  function hideOtherOpenApps() {
-    apps.forEach((app, index) => {
-      const previewElement = document.getElementById(app.name);
-      if (previewElement) {
-        ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
-          previewElement.classList.remove(className);
-        });
-        ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
-          previewElement.classList.add(className);
-        });
-        app.hidden = true;
-        setApps([...apps]);
-      }
-    });
-  }
-
-  function savePosition(data: DraggableData) {
-    apps[selectedAppIndex].defaultPosition = {
-      x: data.x,
-      y: data.y,
-    };
-    setApps([...apps]);
   }
 
   useEffect(() => {
@@ -217,229 +112,241 @@ const Page = () => {
     // }
 
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        apps.forEach((app, index) => {
-          if (app.clicked) {
-            app.clicked = false;
-            app.opened = true;
-            setApps([...apps]);
-            setSelectedAppIndex(index);
-
-            hideOtherOpenApps();
-
-            addElement(app, index);
-            return;
-          }
-        });
+      if (e.key === "Enter" && selectedApp) {
+        open(selectedApp);
       }
     });
 
     setInterval(() => {
       setDate(new Date());
-    }, 60000);
+    }, 1000);
   }, []);
 
-
   return (
-    <main className="bg-[#008080] h-screen w-screen ">
-      <div
-        className={` ${
-          apps[selectedAppIndex].fullscreen ? "h-[100vh]" : "h-[96vh]"
-        } w-screen absolute flex justify-center pointer-events-none  ${
-          apps[selectedAppIndex].opened ? "" : "hidden"
-        } z-20`}
-      >
-        <Draggable
-          disabled={apps[selectedAppIndex].fullscreen}
-          onDrag={(e, data) => {
-            savePosition(data);
-          }}
-          position={apps[selectedAppIndex].defaultPosition}
-        >
-          <div
-            id="screen"
-            className={`bg-[#BBC2C2] ${
-              apps[selectedAppIndex].fullscreen
-                ? "w-[100vw] h-[100vh] !translate-x-0 !translate-y-0"
-                : "w-[80vw] h-[80vh]"
-            }    pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white`}
-          >
-            <div className="h-10 w-auto bg-blue-800 m-2 flex ">
-              <img src={apps[selectedAppIndex].icon} alt="" />
-              <h1 className="text-white text-left w-full m-auto font-bold text-xl">{apps[selectedAppIndex].name}</h1>
-              <div className="flex justify-around">
-                <h1
-                  className="text-center text-2xl cursor-pointer font-extrabold  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-2 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                  onClick={() => {
-                    hideOtherOpenApps();
-                    apps[selectedAppIndex].opened = false;
-                    setApps([...apps]);
-                  }}
-                >
-                  _
-                </h1>
-                <h1
-                  className="text-center cursor-pointer  hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 p-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                  onClick={() => {
-                    apps[selectedAppIndex].fullscreen = !apps[selectedAppIndex].fullscreen;
-                    setApps([...apps]);
-                  }}
-                >
-                  {apps[selectedAppIndex].fullscreen ? (
-                    <div className="px-1">
-                      <div className="w-3 h-3 border border-black border-t-4 translate-x-0.5 "></div>
-                      <div className="w-3 h-3 border border-black border-t-4  -translate-y-1 -translate-x-0.5"></div>
+    <main id="screen" className=" h-screen w-screen fixed">
+      <div className="w-full absolute flex justify-center pointer-events-none z-20 h-full">
+        {APPS.map((app) => (
+          <Draggable disabled={app.fullscreen} key={app.name}>
+            <div
+              id="screen"
+              key={app.name}
+              className={clsx(
+                "bg-[#BBC2C2] pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white ",
+                {
+                  "w-[100%] h-[100%] !translate-x-0 !translate-y-0": app.fullscreen,
+                  "w-[80%] h-[80%]": !app.fullscreen,
+                  hidden: runningApp !== app,
+                }
+              )}
+            >
+              <div className="h-[5%] w-auto bg-blue-800 m-[0.5%] flex ">
+                <img src={app.icon} alt="" />
+                <h1 className="text-white text-left w-full m-auto font-bold text-xl">{app.name}</h1>
+                <div className="flex justify-around text-center w-[10%]">
+                  <div
+                    className=" h-[85%] w-[33%] m-0.5 cursor-pointer flex justify-center hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] border-2 shadow shadow-black border-black border-t-white border-l-white"
+                    onClick={() => {
+                      setRunningApp(null);
+                    }}
+                  >
+                    <div className=" font-extrabold border-b-2 border-b-black w-3 h-5 m-auto "></div>
+                  </div>
+                  <div
+                    className=" h-[85%] w-[33%] m-0.5 cursor-pointer flex justify-center hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] border-2 shadow shadow-black border-black border-t-white border-l-white"
+                    onClick={() => {
+                      app.fullscreen = !app.fullscreen;
+                    }}
+                  >
+                    <div className=" font-extrabold w-5 h-5  m-auto ">
+                      {app.fullscreen ? (
+                        <div className="px-1">
+                          <div className="w-3 h-3 border border-black border-t-4 translate-x-0.5 "></div>
+                          <div className="w-3 h-3 border border-black border-t-4  -translate-y-1 -translate-x-0.5"></div>
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 border border-black border-t-4"></div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-5 h-5 border border-black border-t-4"></div>
-                  )}
-                </h1>
-                <h1
-                  className="text-center text-2xl font-bold cursor-pointer hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] my-1 px-1 mx-1 border-2 shadow shadow-black border-black border-t-white border-l-white"
-                  onClick={() => {
-                    removeElement(apps[selectedAppIndex].name);
-                    apps[selectedAppIndex].opened = false;
-                    apps[selectedAppIndex].fullscreen = false;
-                    apps[selectedAppIndex].defaultPosition = { x: 0, y: 0 };
-                    setApps([...apps]);
-                  }}
+                  </div>
+                  <div
+                    className=" h-[85%] w-[33%] m-0.5 cursor-pointer flex justify-center   hover:border-b-white  hover:border-r-white hover:border-l-black hover:border-t-black bg-[#BBC2C2] border-2 shadow shadow-black border-black border-t-white border-l-white"
+                    onClick={close}
+                  >
+                    <h1
+                      className={clsx("text-2xl font-bold  ", {
+                        "-mt-1 ": !app.fullscreen,
+                      })}
+                    >
+                      &#10005;
+                    </h1>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-full w-full">
+                <div className="flex h-[5%] justify-start w-full  bg-[#BBC2C2] text-start">
+                  <h1 className="my-auto mx-2 underline">File</h1>
+                  <h1 className="my-auto mx-2 underline">Edit</h1>
+                  <h1 className="my-auto mx-2 underline">View</h1>
+                  <h1 className="my-auto mx-2 underline">Help</h1>
+                </div>
+
+                {app.name === "Internet Explorer" && (
+                  <>
+                    <div className="border w-full h-0.5 bg-[#BBC2C2] border-b-white border-t-black"></div>
+
+                    <div className="flex h-[5%] justify-start w-full  bg-[#BBC2C2] text-start">
+                      <h1 className="my-auto mx-2">Address: </h1>
+                      <input
+                        id="searchBar"
+                        type="text"
+                        defaultValue={DEFAULT_LINK}
+                        className="bg-white h-7 w-full m-auto mx-10 border-2 shadow shadow-black border-black border-b-white border-r-white"
+                        onClick={(e) => {
+                          const input = e.target as HTMLInputElement;
+                          input.select();
+                        }}
+                        onKeyDown={(e) => {
+                          const input = e.target as HTMLInputElement;
+                          if (e.key === "Enter") {
+                            const url = input.value;
+                            setLink(url);
+                          }
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="border w-full h-1 bg-transparent border-t-white border-b-black"></div>
+
+                <div
+                  className={clsx(" w-[99.8%] fixed overflow-auto bg-zinc-900", {
+                    "h-[82.2%]": app.name === "Internet Explorer",
+                    "h-[87.2%]": app.name !== "Internet Explorer",
+                  })}
                 >
-                  &#10005;
-                </h1>
+                  {getComponent()}
+                </div>
               </div>
             </div>
-            {openApp()}
-          </div>
-        </Draggable>
+          </Draggable>
+        ))}
       </div>
-      <div className="h-[96vh] w-screen absolute z-0" onClick={deSelectAll}></div>
-      <div className="grid grid-cols-10 grid-rows-6 grid-flow-col w-screen h-[96vh] text-black">
-        {APPS.map((app, index) => (
+
+      <div className="w-full h-[96%] absolute z-0" onClick={deSelect}></div>
+
+      <div
+        id="desktop"
+        className="bg-[#008080] grid grid-cols-10 grid-rows-6 grid-flow-col w-full h-[96%] z-0 text-black"
+      >
+        {APPS.map((app) => (
           <div
             key={app.name}
             className="col-span-1 row-span-1 flex justify-center z-10"
             onClick={() => {
-              if (app.hidden && app.clicked) {
-                app.hidden = false;
-                app.opened = true;
-                setApps([...apps]);
-                setSelectedAppIndex(index);
-
-                hideOtherOpenApps();
-
-                const previewElement = document.getElementById(app.name);
-                if (previewElement) {
-                  ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
-                    previewElement.classList.add(className);
-                  });
-                  ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
-                    previewElement.classList.remove(className);
-                  });
-                }
-
-                return;
-              }
-              if (app.clicked && !app.opened) {
-                app.clicked = false;
-                app.opened = true;
-                setApps([...apps]);
-                setSelectedAppIndex(index);
-
-                hideOtherOpenApps();
-
-                addElement(app, index);
-                return;
-              }
-              deSelectAll();
-              apps[index].clicked = true;
-              setApps([...apps]);
+              handleItemClick(app);
             }}
           >
             <div className="m-auto text-center break-words">
-              <img className={`h-24 w-24 ${app.clicked ? "saturate-200" : ""} `} src={app.icon} />
-              <h4 className={`w-20 text-sm ${app.clicked ? "text-white bg-blue-700" : ""}`}>{app.name}</h4>
+              <img
+                className={clsx("h-24 w-24", {
+                  "saturate-200": app === selectedApp,
+                })}
+                src={app.icon}
+              />
+              <h4
+                className={clsx("w-20 text-sm", {
+                  "text-white bg-blue-700": app === selectedApp,
+                })}
+              >
+                {app.name}
+              </h4>
             </div>
           </div>
         ))}
       </div>
-      <div className="w-screen bg-[#BBC2C2] h-[4vh] flex justify-between">
-        <div
-          className={`absolute h-[70vh] w-[25vw] bg-[#BBC2C2] shadow shadow-black rounded-sm border-2 border-black border-b-white border-r-white grid grid-flow-row grid-cols-1 grid-rows-7 rotate-180 origin-top z-30 ${
-            clickedStart ? "" : "hidden"
-          }`}
-        >
-          <form action={logout}>
-            <button type="submit" className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left">
-              <img className="h-16 mx-3" src="/hackbook-W95/log-out.png" alt="" />
-              <h3 className="m-auto w-full">Log Out</h3>
-            </button>
-          </form>
-          <div
-            className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
-            onClick={() => {
-              localStorage.removeItem("userId");
 
-              // Sends user to hackbook-L
-              router.replace("/");
+      <div
+        id="menu"
+        className={clsx(
+          "absolute h-[70vh] w-[25vw] bg-[#BBC2C2] shadow shadow-black rounded-sm border-2 border-black border-b-white border-r-white flex flex-col justify-between bottom-[4%] origin-top z-30",
+          {
+            hidden: !openMenu,
+          }
+        )}
+      >
+        {/* Menu items */}
+        {APPS.map((app) => (
+          <div
+            key={app.name}
+            className=" hover:bg-blue-900 hover:text-white flex text-left"
+            onClick={() => {
+              handleItemClick(app, "single");
             }}
           >
-            <img className="h-20" src="/hackbook-W95/app-icon/change-comp.png" alt="" />
-            <h1 className="m-auto w-full">Change Computer</h1>
+            <img className="h-20" src={app.icon} alt="" />
+            <h1 className="m-auto w-full">{app.name}</h1>
           </div>
-          <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>
-          {apps.map((app, index) => (
-            <div
-              key={app.name}
-              className=" hover:bg-blue-900 hover:text-white rotate-180 flex text-left"
-              onClick={() => {
-                if (app.hidden) {
-                  app.hidden = false;
-                  app.opened = true;
-                  setApps([...apps]);
-                  setSelectedAppIndex(index);
+        ))}
 
-                  hideOtherOpenApps();
+        {/* Divider */}
+        <div className="border-2 w-full h-1 bg-transparent border-t-white border-b-black opacity-25 "></div>
 
-                  const previewElement = document.getElementById(app.name);
-                  if (previewElement) {
-                    ["bg-[#dfe6e6]", "border-b-white", "border-r-white"].forEach((className) => {
-                      previewElement.classList.add(className);
-                    });
-                    ["bg-[#BBC2C2]", "border-t-white", "border-l-white"].forEach((className) => {
-                      previewElement.classList.remove(className);
-                    });
-                  }
-                } else if (!app.opened) {
-                  app.clicked = false;
-                  app.opened = true;
-                  setApps([...apps]);
-                  setSelectedAppIndex(index);
+        {/* Custom menu items */}
+        <form action={logout} className=" hover:bg-blue-900 hover:text-white ">
+          <button type="submit" className="flex text-left">
+            <img className="h-16 mx-3" src="/hackbook-W95/app-icon/log-out.png" alt="" />
+            <h3 className="m-auto w-full">Log Out</h3>
+          </button>
+        </form>
 
-                  hideOtherOpenApps();
-
-                  addElement(app, index);
-                }
-
-                setClickedStart(false);
-              }}
-            >
-              <img className="h-20" src={app.icon} alt="" />
-              <h1 className="m-auto w-full">{app.name}</h1>
-            </div>
-          ))}
-        </div>
-        <h1
-          className={`text-center my-auto shadow shadow-black ${
-            clickedStart ? "border-b-white border-r-white" : "border-t-white border-l-white"
-          } font-semibold border-2 border-black  rounded-sm p-1 px-4 m-1 text-sm`}
+        <div
+          className=" hover:bg-blue-900 hover:text-white flex text-left"
           onClick={() => {
-            setClickedStart(!clickedStart);
+            router.push("/dashboard");
+          }}
+        >
+          <img className="h-16 mx-3" src="/hackbook-W95/app-icon/shut-down.png" alt="" />
+          <h1 className="m-auto w-full">Shut Down</h1>
+        </div>
+      </div>
+
+      <div id="dock" className="w-full bg-[#BBC2C2] h-[4%] flex justify-between">
+        <button
+          type="button"
+          aria-expanded="false"
+          id="menu-button"
+          className={clsx(
+            "text-center my-auto w-[6%] shadow shadow-black font-semibold border-2 border-black rounded-sm p-1 px-4 m-1 text-sm",
+            {
+              "border-b-white border-r-white": openMenu,
+              "border-t-white border-l-white": !openMenu,
+            }
+          )}
+          onClick={() => {
+            setOpenMenu(!openMenu);
           }}
         >
           Start
-        </h1>
-        <div id="panel" className="w-full h-full  flex justify-start"></div>
-        <h1 className="text-center my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
+        </button>
+        <div id="panel" className="w-[88%] h-full flex justify-start">
+          {runningApps.map((app) => (
+            <div
+              className={clsx("w-full max-w-sm h-full border-2 shadow shadow-black border-black flex", {
+                "bg-[#dfe6e6] border-b-white border-r-white": runningApp === app,
+                "bg-[#BBC2C2] border-t-white border-l-white": runningApp !== app,
+              })}
+              onClick={() => {
+                handleItemClick(app, "single");
+              }}
+            >
+              <img className="h-10 w-10 -m-1.5" src={app.icon} alt="" />
+              <h1 className="text-black text-left w-full m-auto font-bold text-xl">{app.name}</h1>
+            </div>
+          ))}
+        </div>
+        <h1 className="text-center w-[6%] my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
           {date.toLocaleTimeString().slice(0, -6) + date.toLocaleTimeString().split(" ")[1]}
         </h1>
       </div>

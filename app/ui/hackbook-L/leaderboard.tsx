@@ -7,7 +7,7 @@ export default async function Leaderboard() {
   return (
     <div
       id="leaderboard"
-      className="w-60 h-80 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
+      className="w-60 h-80 z-30 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
     >
       <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
       {topPlayers.map((player: any, index: number) => (
@@ -23,7 +23,7 @@ export function LeaderboardSkeleton() {
   return (
     <div
       id="leaderboard"
-      className="w-60 h-80 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
+      className="w-60 h-80 z-30 fixed transition-all duration-1000 top-0 right-0 rounded-l-lg shadow-gray-500/40 shadow bg-gray-400 text-zinc-400 bg-opacity-5 opacity-0 sm:opacity-100"
     >
       <h1 className="text-center m-2 text-zinc-100">LEADERBOARD</h1>
       <h3 className="mx-2 flex">

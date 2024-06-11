@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { execute } from "@/app/lib/commands";
 import { useFormState, useFormStatus } from "react-dom";
-import { DEFAULT_COMPUTER_MODEL, ROOT_DIRECTORY, CONFIRMATIONS } from "../../lib/constants";
+import { DEFAULT_COMPUTER_MODEL, ROOT_DIRECTORY, CONFIRMATIONS, MODELS } from "../../lib/constants";
+import clsx from "clsx";
 
 export default function Console({ user, device }: { user: string, device: string}) {
   // Computer Information
@@ -102,10 +103,10 @@ export default function Console({ user, device }: { user: string, device: string
   }, [state]);
 
   return (
-    <main className="h-screen w-full bg-zinc-900 text-white">
-      <ul id="console">
-        <li id="command-prompt">
-          <form action={dispatch}>
+    <main className=" bg-zinc-900 text-white w-full h-full">
+      <ul id="console" className="w-full h-full">
+        <li id="command-prompt" className="w-full h-full">
+          <form action={dispatch} className="w-full h-full">
             {state.require === "amount" && (
               <>
                 <h3>{state.command}</h3>
@@ -163,7 +164,7 @@ export default function Console({ user, device }: { user: string, device: string
                 <textarea
                   name="command"
                   id="command-line"
-                  className="bg-zinc-900 outline-none w-full h-screen"
+                  className="bg-transparent outline-none w-full h-full"
                   onChange={(e) => {
                     if (e.target.value.length < prompt.length) {
                       e.target.value = prompt;
