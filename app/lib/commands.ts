@@ -2,7 +2,7 @@ import { State, Command } from "@/app/lib/definitions";
 import { action, logout } from "./actions";
 import { redirect } from "next/navigation";
 
-export async function execute(prompt: string, prevState: State, formData: FormData) {
+export async function execute(prompt: string, device: string, prevState: State, formData: FormData) {
   // Get the command and arguments from the form data
   const commandWithPrompt = (formData.get("command") as string) || prevState.command || "";
   const password = formData.get("password") as string;
@@ -137,7 +137,7 @@ export async function execute(prompt: string, prevState: State, formData: FormDa
   }
 
   // Perform the action on the server
-  const response = await action(command, data);
+  const response = await action(command, data, device);
 
   // Actions to be taken based on the response from the server
   if (response.requirePassword) {
@@ -168,11 +168,11 @@ export async function execute(prompt: string, prevState: State, formData: FormDa
     };
   }
 
-  if(response.logout){
+  if (response.logout) {
     await logout();
   }
 
-  if(response.shutdown){
+  if (response.shutdown) {
     redirect("/dashboard");
   }
 

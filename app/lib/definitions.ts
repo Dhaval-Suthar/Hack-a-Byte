@@ -16,6 +16,18 @@ export type State = {
   clear?: Boolean;
 };
 
+export class App {
+  name: string;
+  icon: string;
+  fullscreen: boolean;
+
+  constructor(name: string, icon: string) {
+    this.name = name;
+    this.icon = icon;
+    this.fullscreen = false;
+  }
+}
+
 export class Command {
   confirm: string;
   optionalArguments: number;

@@ -3,6 +3,7 @@ export const DEFAULT_USER_ID = "0";
 export const DEFAULT_COMPUTER_MODEL = "HackBook-L";
 export const ROOT_DIRECTORY = "~";
 export const DEFAULT_PASSWORD = "1000";
+export const DEFAULT_LINK = "https://www.wikipedia.com";
 
 export const SOFTWARES = {
   virus: {
@@ -63,4 +64,5 @@ export const ERRORS = {
   PROVIDE_SOFTWARE_NAME: "Provide Software Name",
   INVALID_COMMAND: "Invalid Command",
   ZERO_AMOUNT: "Amount can't be 0",
+  DEVICE_NOT_FOUND: "Device Not Found",
 };

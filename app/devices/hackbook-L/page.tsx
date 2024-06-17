@@ -25,7 +25,9 @@ export default async function Page() {
       <Suspense fallback={<LeaderboardSkeleton />}>
         <Leaderboard />
       </Suspense>
-      <Console user={username || DEFAULT_USERNAME} />
+      <div className="w-screen h-screen fixed overflow-auto">
+        <Console user={username || DEFAULT_USERNAME} device={MODELS.L} />
+      </div>
       <Bot />
     </>
   );

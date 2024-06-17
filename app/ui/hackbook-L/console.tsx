@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import { execute } from "@/app/lib/commands";
 import { useFormState, useFormStatus } from "react-dom";
-import { DEFAULT_COMPUTER_MODEL, ROOT_DIRECTORY, CONFIRMATIONS } from "../../lib/constants";
+import {  ROOT_DIRECTORY, CONFIRMATIONS, MODELS } from "../../lib/constants";
+import clsx from "clsx";
 
-export default function Console({ user }: { user: string }) {
+export default function Console({ user, device }: { user: string, device: string}) {
   // Computer Information
-  const [computerModel, setComputerModel] = useState(DEFAULT_COMPUTER_MODEL);
+  const [computerModel, setComputerModel] = useState(device);
   const [presentWorkingDiractory, setPresentWorkingDiractory] = useState(ROOT_DIRECTORY);
 
   // Terminal Information
   const prompt = `${user}@${computerModel} ${presentWorkingDiractory} % `;
-  const executeWithPrompt = execute.bind(null, prompt);
+  const executeWithPrompt = execute.bind(null, prompt, device);
   const [state, dispatch] = useFormState(executeWithPrompt, {});
   const [commands, setCommands] = useState([""]);
   const [index, setIndex] = useState(0);
@@ -102,10 +103,10 @@ export default function Console({ user }: { user: string }) {
   }, [state]);
 
   return (
-    <main className="h-screen w-full bg-zinc-900 text-white">
-      <ul id="console">
-        <li id="command-prompt">
-          <form action={dispatch}>
+    <main className=" bg-zinc-900 text-white w-full h-full">
+      <ul id="console" className="w-full h-full">
+        <li id="command-prompt" className="w-full h-full">
+          <form action={dispatch} className="w-full h-full">
             {state.require === "amount" && (
               <>
                 <h3>{state.command}</h3>
@@ -148,9 +149,9 @@ export default function Console({ user }: { user: string }) {
                       className="w-4 h-4 -rotate-45 m-auto text-black"
                     >
                       <path
-                        fill-rule="evenodd"
+                        fillRule="evenodd"
                         d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z"
-                        clip-rule="evenodd"
+                        clipRule="evenodd"
                       />
                     </svg>
                   </div>
@@ -163,7 +164,7 @@ export default function Console({ user }: { user: string }) {
                 <textarea
                   name="command"
                   id="command-line"
-                  className="bg-zinc-900 outline-none w-full h-screen"
+                  className="bg-transparent outline-none w-full h-full"
                   onChange={(e) => {
                     if (e.target.value.length < prompt.length) {
                       e.target.value = prompt;
