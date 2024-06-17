@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import Draggable from "react-draggable";
+import { Rnd } from "react-rnd";
 
 import Inbox from "@/app/ui/hackbook-W95/apps/Inbox";
 import InternetExplorer from "@/app/ui/hackbook-W95/apps/InternetExplorer";
@@ -85,12 +85,12 @@ const Page = () => {
     setLink("https://hack-a-byte.vercel.app/" + link);
   }
 
-  function getComponent() {
+  function getComponent(name: string) {
     if (!runningApp) {
       return null;
     }
 
-    switch (runningApp.name) {
+    switch (name) {
       case "Internet Explorer":
         return <InternetExplorer link={link} />;
       case "My Computer":
@@ -123,22 +123,31 @@ const Page = () => {
   }, []);
 
   return (
-    <main id="screen" className=" h-screen w-screen fixed">
-      <div className="w-full absolute flex justify-center pointer-events-none z-20 h-full">
-        {APPS.map((app) => (
-          <Draggable disabled={app.fullscreen} key={app.name}>
-            <div
-              id="screen"
-              key={app.name}
-              className={clsx(
-                "bg-[#BBC2C2] pointer-events-auto overscroll-none m-auto shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white ",
-                {
-                  "w-[100%] h-[100%] !translate-x-0 !translate-y-0": app.fullscreen,
-                  "w-[80%] h-[80%]": !app.fullscreen,
-                  hidden: runningApp !== app,
-                }
-              )}
-            >
+    <main id="screen" className="h-screen w-screen overscroll-none fixed">
+      {APPS.map((app) => (
+        <div
+          key={app.name}
+          className={clsx("", {
+            hidden: runningApp !== app,
+          })}
+        >
+          <Rnd
+            default={{
+              x: 80,
+              y: 40,
+              width: "80vw",
+              height: "80vh",
+            }}
+            minWidth={app.fullscreen ? "100vw" : "60vw"}
+            minHeight={app.fullscreen ? "100vh" : "60vh"}
+            className={clsx("z-30", {
+              "!translate-x-0 !translate-y-0 ": app.fullscreen,
+            })}
+            enableResizing={!app.fullscreen}
+            disableDragging={app.fullscreen}
+            bounds="window"
+          >
+            <div className="bg-[#BBC2C2] overscroll-none m-auto h-full w-full shadow shadow-black rounded-sm border-2 border-black border-t-white border-l-white">
               <div className="h-[5%] w-auto bg-blue-800 m-[0.5%] flex ">
                 <img src={app.icon} alt="" />
                 <h1 className="text-white text-left w-full m-auto font-bold text-xl">{app.name}</h1>
@@ -221,20 +230,20 @@ const Page = () => {
                 <div className="border w-full h-1 bg-transparent border-t-white border-b-black"></div>
 
                 <div
-                  className={clsx(" w-[99.8%] fixed overflow-auto bg-zinc-900", {
+                  className={clsx("w-[99.8%] fixed bg-zinc-900", {
                     "h-[82.2%]": app.name === "Internet Explorer",
                     "h-[87.2%]": app.name !== "Internet Explorer",
                   })}
                 >
-                  {getComponent()}
+                  {getComponent(app.name)}
                 </div>
               </div>
             </div>
-          </Draggable>
-        ))}
-      </div>
+          </Rnd>
+        </div>
+      ))}
 
-      <div className="w-full h-[96%] absolute z-0" onClick={deSelect}></div>
+      {/* <div className="w-full h-[96%] absolute z-0" onClick={deSelect}></div> */}
 
       <div
         id="desktop"
@@ -333,6 +342,7 @@ const Page = () => {
         <div id="panel" className="w-[88%] h-full flex justify-start">
           {runningApps.map((app) => (
             <div
+              key={app.name}
               className={clsx("w-full max-w-sm h-full border-2 shadow shadow-black border-black flex", {
                 "bg-[#dfe6e6] border-b-white border-r-white": runningApp === app,
                 "bg-[#BBC2C2] border-t-white border-l-white": runningApp !== app,
