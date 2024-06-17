@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getHint } from "./utils";
 import { COMMANDS } from "./commands";
+import { isRedirectError } from "next/dist/client/components/redirect";
 
 const DATABASE_NAME = process.env.DATABASE_NAME;
 
@@ -811,6 +812,10 @@ export async function authenticate(prevState: string | undefined, formData: Form
       }
     } else if (error instanceof z.ZodError) {
       return error.errors[0].message;
+    }
+
+    if (isRedirectError(error) ) { 
+      throw error
     }
 
     return "Server Error";
