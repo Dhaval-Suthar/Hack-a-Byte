@@ -238,7 +238,7 @@ export const COMMANDS = {
     usage: "shutdown",
   }),
   browse: new Command({
-    info: "Browses the specified website",
+    info: "Fetches Link of random 10 websites",
     usage: "browse [flags]",
     optionalArguments: 1,
     format: (data: string) => {
@@ -368,7 +368,7 @@ export const COMMANDS = {
     confirm: "install",
   }),
   deploy: new Command({
-    info: "Deploys the software with the specified softwareId and website link",
+    info: "Deploys the software if the  softwareId and website link are provided",
     usage: "deploy [softwareId] [link]",
   }),
   scan: new Command({
