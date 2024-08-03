@@ -3,13 +3,9 @@
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { dec2bin } from "../lib/utils";
-import { useFormState, useFormStatus } from "react-dom";
-import { authenticate, signup } from "@/app/lib/actions";
+import { handleGithub, handleGoogle } from "@/app/lib/actions";
 
 export default function Page() {
-  const [errorMessage, dispatch] = useFormState(authenticate, undefined);
-  const [signupMessage, signupDispatch] = useFormState(signup, undefined);
-
   // Theme Related
   const [theme, setTheme] = useState(0);
   const Backgrounds = [
@@ -22,9 +18,6 @@ export default function Page() {
     "url('./background/img6.jpg')",
     "url('./background/img7.jpg')",
   ];
-
-  // Panel Related
-  const [method, setMethod] = useState("none");
 
   // Moving Bytes Related
   const [number, setNumber] = useState(100);
@@ -62,125 +55,43 @@ export default function Page() {
             <div className="bg-zinc-800/95 w-full h-8 rounded-t-md"></div>
             <div className="bg-black/80 h-full w-full rounded-b-md text-white ">
               <h1 className=" text-center w-full text-2xl p-2"> &gt; Welcome to Hack a byte_ </h1>
-              <h3 className="px-2"> Select one </h3>
+              <h3 className="px-2">Sign in via</h3>
               <div className="text-left px-3 w-full text-md flex">
                 {" "}
-                -{" "}
-                <h3
-                  className="hover:underline px-2 cursor-pointer"
-                  onClick={() => {
-                    setMethod("login");
-                  }}
-                >
-                  LogIn
-                </h3>
-                {method === "login" && <div className="h-2 w-2 my-2 bg-pink-800 rounded-full"></div>}
+                -
+                <form action={handleGithub}>
+                  <button className="hover:underline px-2 cursor-pointer" type="submit">
+                    GitHub
+                  </button>
+                </form>
               </div>
               <div className=" text-left px-3 w-full text-md flex">
                 {" "}
                 -{" "}
-                <h3
-                  className="hover:underline px-2 cursor-pointer"
-                  onClick={() => {
-                    setMethod("signup");
-                  }}
-                >
-                  SignUp
-                </h3>
-                {method === "signup" && <div className="h-2 w-2 my-2 bg-pink-800 rounded-full"></div>}
-              </div>
-              <div className=" text-left px-3 w-full text-md flex">
-                {" "}
-                -{" "}
-                <h3
-                  className="hover:underline px-2 cursor-pointer"
-                  onClick={() => {
-                    setMethod("overview");
-                  }}
-                >
-                  Overview
-                </h3>
-                {method === "overview" && <div className="h-2 w-2 my-2 bg-pink-800 rounded-full"></div>}
-              </div>
-              {method === "login" && (
-                <form action={dispatch}>
-                  <h3 className="p-2 pb-0">
-                    Username:{" "}
-                    <input min={3} max={20} name="username" className="bg-transparent outline-none" type="text" />
-                  </h3>
-                  <h3 className="p-2 pt-0">
-                    Password:{" "}
-                    <input min={3} max={20} name="password" className="bg-transparent outline-none" type="password" />
-                  </h3>
-                  <button type="submit" className="px-4 hover:underline">
-                    submit
+                <form action={handleGoogle}>
+                  <button className="hover:underline px-2 cursor-pointer flex" type="submit">
+                    Google
                   </button>
-                  <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
-                    {errorMessage && (
-                      <>
-                        <p className="text-sm p-2 text-red-500">{errorMessage}</p>
-                      </>
-                    )}
-                  </div>
                 </form>
-              )}
-              {method === "signup" && (
-                <form action={signupDispatch}>
-                  <h3 className="p-2 pb-0">
-                    Username:{" "}
-                    <input min={3} max={20} name="username" className="bg-transparent outline-none" type="text" />
-                  </h3>
-                  <h3 className="px-2">
-                    Email: <input name="email" className="bg-transparent outline-none" type="email" />
-                  </h3>
-                  <h3 className=" px-2">
-                    Password:{" "}
-                    <input min={3} max={20} name="password" className="bg-transparent outline-none" type="password" />
-                  </h3>
-                  <h3 className="p-2 pt-0">
-                    Confirm Password:{" "}
-                    <input
-                      min={3}
-                      max={20}
-                      name="confirm-password"
-                      className="bg-transparent outline-none"
-                      type="password"
-                    />
-                  </h3>
-                  <button type="submit" className="px-4 hover:underline">
-                    submit
-                  </button>
-                  <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
-                    {signupMessage && (
-                      <>
-                        <p className="p-2 text-sm text-red-500">{signupMessage}</p>
-                      </>
-                    )}
-                  </div>
-                </form>
-              )}
-              {method === "overview" && (
-                <>
-                  <div className="p-2 flex">
-                    <h2 className="md:pr-4">Select Theme:</h2>
-                    <div className="w-full md:w-2/3 h-24  grid   grid-rows-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={clsx("hover:underline cursor-pointer", {
-                            "underline text-pink-800": theme === i,
-                          })}
-                          onClick={() => {
-                            setTheme(i);
-                          }}
-                        >
-                          Theme{i}
-                        </div>
-                      ))}
+              </div>
+              <div className="p-2 flex mt-5">
+                <h2 className="md:pr-4">Overview:</h2>
+                <div className="w-full md:w-2/3 h-24  grid   grid-rows-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={clsx("hover:underline cursor-pointer", {
+                        "underline text-pink-800": theme === i,
+                      })}
+                      onClick={() => {
+                        setTheme(i);
+                      }}
+                    >
+                      Theme{i}
                     </div>
-                  </div>
-                </>
-              )}
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

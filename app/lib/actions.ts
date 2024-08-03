@@ -971,3 +971,11 @@ export async function sendDailyEmails() {
 
   return;
 }
+
+export async function handleGithub() {
+  await signIn("github");
+}
+
+export async function handleGoogle() {
+  await signIn("google");
+}
