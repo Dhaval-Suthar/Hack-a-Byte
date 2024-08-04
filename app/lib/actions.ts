@@ -12,6 +12,7 @@ import { cookies } from "next/headers";
 import { getHint } from "./utils";
 import { COMMANDS } from "./commands";
 import { isRedirectError } from "next/dist/client/components/redirect";
+import { generateFromEmail, generateUsername } from "unique-username-generator";
 
 const DATABASE_NAME = process.env.DATABASE_NAME;
 
@@ -797,60 +798,39 @@ export async function action(commandName: string, data: any, device: string = MO
   }
 }
 
-export async function authenticate(prevState: string | undefined, formData: FormData) {
-  try {
-    const { username, password } = loginSchema.parse({
-      username: formData.get("username"),
-      password: formData.get("password"),
-    });
-
-    await signIn("credentials", { username, password });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return "Invalid credentials.";
-        default:
-          return "Something went wrong.";
-      }
-    } else if (error instanceof z.ZodError) {
-      return error.errors[0].message;
-    }
-
-    if (isRedirectError(error) ) { 
-      throw error
-    }
-
-    return "Server Error";
-  }
-}
-
 export async function logout() {
   await signOut();
 }
 
-export async function signup(prevState: string | undefined, formData: FormData) {
+export async function signUp(email: string) {
   try {
-    const { username, password, email, confirmPassword } = UserSchema.parse({
-      username: formData.get("username"),
-      password: formData.get("password"),
-      email: formData.get("email"),
-      confirmPassword: formData.get("confirm-password"),
-    });
-
-    if (password !== confirmPassword) return "Passwords do not match";
-
-    const encryptedPassword = await bcrypt.hash(password, 10);
-
     const client = await clientPromise;
     const db = client.db(DATABASE_NAME);
 
-    // checking if user with same username exist and sending error
-    const usernameInUse = await db.collection("users").findOne({ username: username });
-    if (usernameInUse) return "Username is already taken";
-
+    // checking if user with same email already exists
     const emailInUse = await db.collection("users").findOne({ email: email });
     if (emailInUse) return "Email is already registered";
+
+    // Select a random username
+    let username = generateFromEmail(email, 5);
+
+    // Check if the username is already taken
+    const user = await db.collection("users").findOne({ username: username });
+
+    if (user) username = username + Date.now().toString(16);
+
+    const models = {
+      "Hackbook-L": {
+        password: "-",
+        storage: {
+          used: 1 * 1024 * 1024,
+          system: 1 * 1024 * 1024,
+          total: 10 * 1024 * 1024,
+        },
+        softwares: [],
+        infected: 0,
+      },
+    };
 
     const session = client.startSession();
 
@@ -858,21 +838,9 @@ export async function signup(prevState: string | undefined, formData: FormData) 
       await session.withTransaction(async () => {
         await db.collection("users").insertOne({
           username: username,
-          password: encryptedPassword,
           email: email,
           balance: 200,
-          models: {
-            "Hackbook-L": {
-              password: "-",
-              storage: {
-                used: 1 * 1024 * 1024,
-                system: 1 * 1024 * 1024,
-                total: 10 * 1024 * 1024,
-              },
-              softwares: [],
-              infected: 0,
-            },
-          },
+          models: models,
         });
 
         await db.collection("websites").insertOne({
@@ -887,7 +855,7 @@ export async function signup(prevState: string | undefined, formData: FormData) 
       session.endSession();
     }
 
-    await signIn("credentials", { username: username, password: password });
+    return models;
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -913,9 +881,11 @@ export async function getModels() {
     const client = await clientPromise;
     const db = client.db(DATABASE_NAME);
 
-    const user = await db.collection("users").findOne({ username: session.user.name });
+    const user = await db.collection("users").findOne({ email: session.user.email });
 
-    if (!user) return "User does not exists";
+    if (!user) {
+      return await signUp(session.user.email as string);
+    }
 
     return user?.models;
   } catch (error) {
@@ -932,13 +902,23 @@ export async function setUp(formData: FormData) {
     const client = await clientPromise;
     const db = client.db(DATABASE_NAME);
 
-    const user = await db.collection("users").findOne({ username: session.user.name });
+    const user = await db.collection("users").findOne({ email: session.user.email });
 
     if (!user) return "User does not exists";
 
     if (!user.models["Hackbook-L"]) return "You do not own Hackbook-L";
 
-    await db.collection("users").updateOne(user, { $set: { "models.Hackbook-L.password": formData.get("password") } });
+    const passwordLess = formData.get("password-less");
+
+    const password = passwordLess ? "none" : (formData.get("password") as string);
+
+    if (password.length < 4) return "Password should contain atleast 4 characters";
+
+    if (password !== "none" && Number.isNaN(Number(password))) return "Password should be a number";
+
+    await db.collection("users").updateOne(user, {
+      $set: { "models.Hackbook-L.password": password, username: formData.get("username") },
+    });
 
     revalidatePath("/devices/hackbook-L");
   } catch (error) {
@@ -978,4 +958,21 @@ export async function handleGithub() {
 
 export async function handleGoogle() {
   await signIn("google");
+}
+
+export async function getUsername() {
+  const session = await auth();
+
+  if (!session?.user) return "You are not logged in";
+
+  const client = await clientPromise;
+  const db = client.db(DATABASE_NAME);
+
+  const user = await db.collection("users").findOne({ email: session.user.email });
+
+  if (!user) {
+    return "";
+  }
+
+  return user.username;
 }
