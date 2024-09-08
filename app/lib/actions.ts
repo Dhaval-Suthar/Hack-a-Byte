@@ -6,12 +6,13 @@ import { DEFAULT_USERNAME, DEFAULT_USER_ID, ERRORS, MODELS, SOFTWARES } from "./
 import { INVALID, z } from "zod";
 import { signIn, signOut, auth } from "@/auth";
 import { AuthError } from "next-auth";
-import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getHint } from "./utils";
 import { COMMANDS } from "./commands";
 import { isRedirectError } from "next/dist/client/components/redirect";
+import { generateFromEmail, generateUsername } from "unique-username-generator";
 
 const DATABASE_NAME = process.env.DATABASE_NAME;
 
@@ -67,19 +68,21 @@ export async function action(commandName: string, data: any, device: string = MO
     const newSoftwareId = new ObjectId();
 
     if (commandData.requiresLogin) {
-      // Get the logged in user info
-      storedUsername = cookies().get("username")?.value;
-      storedPassword = cookies().get("password")?.value;
+      // Get the token from the cookies
+      const sessionToken = cookies().get(device + "-token")?.value;
+
+      // Check if the token is present
+      if (!sessionToken) return { error: ERRORS.LOGIN_REQUIRED };
+
+      // Verify the token
+      const data = jwt.verify(sessionToken, process.env.JWT_SECRET + device) as any;
 
       // Check the credentials of the logged in user
-      if (!storedUsername) return { error: ERRORS.LOGIN_REQUIRED };
+      if (!data.user.id) return { error: ERRORS.LOGIN_REQUIRED };
 
-      loggedUser = await users.findOne({ username: storedUsername });
+      loggedUser = await users.findOne({ _id: new ObjectId(data.user.id) });
+
       if (!loggedUser) return { error: ERRORS.INVALID_LOGIN };
-
-      userPassword = loggedUser.models[device].password;
-      if (userPassword !== storedPassword && !["-", "none"].includes(userPassword))
-        return { error: ERRORS.INVALID_LOGIN };
 
       // Check if the owner owns the device
       if (!loggedUser.models[device]) return { error: ERRORS.DEVICE_NOT_FOUND };
@@ -148,6 +151,8 @@ export async function action(commandName: string, data: any, device: string = MO
     // Commands
     switch (commandName) {
       case "login":
+        if (!user.models[device]) return { error: ERRORS.USER_NOT_FOUND };
+
         const userPassword = user.models[device].password;
 
         if (!["-", "none"].includes(userPassword)) {
@@ -284,8 +289,17 @@ export async function action(commandName: string, data: any, device: string = MO
               break;
           }
         }
-        cookies().set("username", username);
-        cookies().set("password", password);
+
+        const usertoken = jwt.sign(
+          {
+            user: {
+              id: user._id,
+            },
+          },
+          process.env.JWT_SECRET + device
+        );
+
+        cookies().set(device + "-token", usertoken);
 
         return {
           data: `Welcome ${username}`,
@@ -797,60 +811,39 @@ export async function action(commandName: string, data: any, device: string = MO
   }
 }
 
-export async function authenticate(prevState: string | undefined, formData: FormData) {
-  try {
-    const { username, password } = loginSchema.parse({
-      username: formData.get("username"),
-      password: formData.get("password"),
-    });
-
-    await signIn("credentials", { username, password });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return "Invalid credentials.";
-        default:
-          return "Something went wrong.";
-      }
-    } else if (error instanceof z.ZodError) {
-      return error.errors[0].message;
-    }
-
-    if (isRedirectError(error) ) { 
-      throw error
-    }
-
-    return "Server Error";
-  }
-}
-
 export async function logout() {
   await signOut();
 }
 
-export async function signup(prevState: string | undefined, formData: FormData) {
+export async function signUp(email: string) {
   try {
-    const { username, password, email, confirmPassword } = UserSchema.parse({
-      username: formData.get("username"),
-      password: formData.get("password"),
-      email: formData.get("email"),
-      confirmPassword: formData.get("confirm-password"),
-    });
-
-    if (password !== confirmPassword) return "Passwords do not match";
-
-    const encryptedPassword = await bcrypt.hash(password, 10);
-
     const client = await clientPromise;
     const db = client.db(DATABASE_NAME);
 
-    // checking if user with same username exist and sending error
-    const usernameInUse = await db.collection("users").findOne({ username: username });
-    if (usernameInUse) return "Username is already taken";
-
+    // checking if user with same email already exists
     const emailInUse = await db.collection("users").findOne({ email: email });
     if (emailInUse) return "Email is already registered";
+
+    // Select a random username
+    let username = generateFromEmail(email, 5);
+
+    // Check if the username is already taken
+    const user = await db.collection("users").findOne({ username: username });
+
+    if (user) username = username + Date.now().toString(16);
+
+    const models = {
+      "Hackbook-L": {
+        password: "-",
+        storage: {
+          used: 1 * 1024 * 1024,
+          system: 1 * 1024 * 1024,
+          total: 10 * 1024 * 1024,
+        },
+        softwares: [],
+        infected: 0,
+      },
+    };
 
     const session = client.startSession();
 
@@ -858,21 +851,9 @@ export async function signup(prevState: string | undefined, formData: FormData) 
       await session.withTransaction(async () => {
         await db.collection("users").insertOne({
           username: username,
-          password: encryptedPassword,
           email: email,
           balance: 200,
-          models: {
-            "Hackbook-L": {
-              password: "-",
-              storage: {
-                used: 1 * 1024 * 1024,
-                system: 1 * 1024 * 1024,
-                total: 10 * 1024 * 1024,
-              },
-              softwares: [],
-              infected: 0,
-            },
-          },
+          models: models,
         });
 
         await db.collection("websites").insertOne({
@@ -887,7 +868,7 @@ export async function signup(prevState: string | undefined, formData: FormData) 
       session.endSession();
     }
 
-    await signIn("credentials", { username: username, password: password });
+    return models;
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -911,11 +892,14 @@ export async function getModels() {
     if (!session?.user) return "You are not logged in";
 
     const client = await clientPromise;
+
     const db = client.db(DATABASE_NAME);
 
-    const user = await db.collection("users").findOne({ username: session.user.name });
+    const user = await db.collection("users").findOne({ email: session.user.email });
 
-    if (!user) return "User does not exists";
+    if (!user) {
+      return await signUp(session.user.email as string);
+    }
 
     return user?.models;
   } catch (error) {
@@ -932,13 +916,23 @@ export async function setUp(formData: FormData) {
     const client = await clientPromise;
     const db = client.db(DATABASE_NAME);
 
-    const user = await db.collection("users").findOne({ username: session.user.name });
+    const user = await db.collection("users").findOne({ email: session.user.email });
 
     if (!user) return "User does not exists";
 
     if (!user.models["Hackbook-L"]) return "You do not own Hackbook-L";
 
-    await db.collection("users").updateOne(user, { $set: { "models.Hackbook-L.password": formData.get("password") } });
+    const passwordLess = formData.get("password-less");
+
+    const password = passwordLess ? "none" : (formData.get("password") as string);
+
+    if (password.length < 4) return "Password should contain atleast 4 characters";
+
+    if (password !== "none" && Number.isNaN(Number(password))) return "Password should be a number";
+
+    await db.collection("users").updateOne(user, {
+      $set: { "models.Hackbook-L.password": password, username: formData.get("username") },
+    });
 
     revalidatePath("/devices/hackbook-L");
   } catch (error) {
@@ -970,4 +964,29 @@ export async function sendDailyEmails() {
   console.log("Emails sent successfully");
 
   return;
+}
+
+export async function handleGithub() {
+  await signIn("github");
+}
+
+export async function handleGoogle() {
+  await signIn("google");
+}
+
+export async function getUsername() {
+  const session = await auth();
+
+  if (!session?.user) return "You are not logged in";
+
+  const client = await clientPromise;
+  const db = client.db(DATABASE_NAME);
+
+  const user = await db.collection("users").findOne({ email: session.user.email });
+
+  if (!user) {
+    return "";
+  }
+
+  return user.username;
 }
