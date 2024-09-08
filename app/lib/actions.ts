@@ -6,7 +6,7 @@ import { DEFAULT_USERNAME, DEFAULT_USER_ID, ERRORS, MODELS, SOFTWARES } from "./
 import { INVALID, z } from "zod";
 import { signIn, signOut, auth } from "@/auth";
 import { AuthError } from "next-auth";
-import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getHint } from "./utils";
@@ -68,19 +68,21 @@ export async function action(commandName: string, data: any, device: string = MO
     const newSoftwareId = new ObjectId();
 
     if (commandData.requiresLogin) {
-      // Get the logged in user info
-      storedUsername = cookies().get("username")?.value;
-      storedPassword = cookies().get("password")?.value;
+      // Get the token from the cookies
+      const sessionToken = cookies().get(device + "-token")?.value;
+
+      // Check if the token is present
+      if (!sessionToken) return { error: ERRORS.LOGIN_REQUIRED };
+
+      // Verify the token
+      const data = jwt.verify(sessionToken, process.env.JWT_SECRET + device) as any;
 
       // Check the credentials of the logged in user
-      if (!storedUsername) return { error: ERRORS.LOGIN_REQUIRED };
+      if (!data.user.id) return { error: ERRORS.LOGIN_REQUIRED };
 
-      loggedUser = await users.findOne({ username: storedUsername });
+      loggedUser = await users.findOne({ _id: new ObjectId(data.user.id) });
+
       if (!loggedUser) return { error: ERRORS.INVALID_LOGIN };
-
-      userPassword = loggedUser.models[device].password;
-      if (userPassword !== storedPassword && !["-", "none"].includes(userPassword))
-        return { error: ERRORS.INVALID_LOGIN };
 
       // Check if the owner owns the device
       if (!loggedUser.models[device]) return { error: ERRORS.DEVICE_NOT_FOUND };
@@ -149,6 +151,8 @@ export async function action(commandName: string, data: any, device: string = MO
     // Commands
     switch (commandName) {
       case "login":
+        if (!user.models[device]) return { error: ERRORS.USER_NOT_FOUND };
+
         const userPassword = user.models[device].password;
 
         if (!["-", "none"].includes(userPassword)) {
@@ -285,8 +289,17 @@ export async function action(commandName: string, data: any, device: string = MO
               break;
           }
         }
-        cookies().set("username", username);
-        cookies().set("password", password);
+
+        const usertoken = jwt.sign(
+          {
+            user: {
+              id: user._id,
+            },
+          },
+          process.env.JWT_SECRET + device
+        );
+
+        cookies().set(device + "-token", usertoken);
 
         return {
           data: `Welcome ${username}`,
@@ -879,6 +892,7 @@ export async function getModels() {
     if (!session?.user) return "You are not logged in";
 
     const client = await clientPromise;
+
     const db = client.db(DATABASE_NAME);
 
     const user = await db.collection("users").findOne({ email: session.user.email });

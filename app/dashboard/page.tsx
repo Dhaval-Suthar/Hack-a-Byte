@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getModels } from "@/app/lib/actions";
+import { MODELS } from "../lib/constants";
 
 export default async function Page() {
   const models = await getModels();
@@ -15,8 +16,8 @@ export default async function Page() {
           <p className="leading-relaxed text-base">
             Williamsburg occupy sustainable snackwave gochujang. Pinterest cornhole brunch, slow-carb neutra irony.
           </p>
-          {models["Hackbook-L"] ? (
-            models["Hackbook-L"].password === "-" ? (
+          {models[MODELS.L] ? (
+            models[MODELS.L].password === "-" ? (
               <Link href="/devices/hackbook-L/setup">
                 <button className="flex mx-auto mt-6 text-white bg-blue-500 border-0 py-2 px-5 focus:outline-none hover:bg-blue-600 rounded">
                   SetUp
@@ -43,8 +44,8 @@ export default async function Page() {
           <p className="leading-relaxed text-base">
             Williamsburg occupy sustainable snackwave gochujang. Pinterest cornhole brunch, slow-carb neutra irony.
           </p>
-          {models["Hackbook-W95"] ? (
-            models["Hackbook-W95"].password === "-" ? (
+          {models[MODELS.W95] ? (
+            models[MODELS.W95].password === "-" ? (
               <Link href="/devices/hackbook-W95/setup">
                 <button className="flex mx-auto mt-6 text-white bg-blue-500 border-0 py-2 px-5 focus:outline-none hover:bg-blue-600 rounded">
                   SetUp

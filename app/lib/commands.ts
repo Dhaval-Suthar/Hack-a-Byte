@@ -236,6 +236,7 @@ export const COMMANDS = {
   shutdown: new Command({
     info: "Shuts down the system",
     usage: "shutdown",
+    requiresLogin: false,
   }),
   browse: new Command({
     info: "Fetches Link of random 10 websites",
