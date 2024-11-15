@@ -1,5 +1,6 @@
-import { action } from "@/app/lib/actions";
-import { MODELS } from "@/app/lib/constants";
+import { execute } from "@/app/lib/actions";
+import { DefaultValues, Errors, Models } from "@/app/lib/constants";
+import { ProcessState } from "@/app/lib/definitions";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 
@@ -8,8 +9,25 @@ export default function OutboxMails({ openLink }: { openLink: any }) {
   const [mails, setMails] = useState([] as any);
 
   async function fetchMails() {
-    const response = await action("outbox", {}, MODELS.W95);
-    setMails(JSON.parse(response.data || "[]"));
+    const prompt = `${localStorage.getItem("user-" + Models.W95)}@${Models.W95} ${DefaultValues.ROOT_DIRECTORY} % `;
+
+    const formData = new FormData();
+    formData.append("command", prompt + "outbox");
+
+    const response = await execute(new ProcessState({}).toPlainObject() as ProcessState, formData);
+
+    if (response.error) {
+      return;
+    }
+
+    setMails(
+      response.message.split("\n").map((mail: string) => {
+        const mailData = mail.split(" ");
+        const receiver = mailData[3];
+        const link = mailData[6];
+        return { receiver, link };
+      })
+    );
   }
 
   useEffect(() => {
@@ -31,7 +49,7 @@ export default function OutboxMails({ openLink }: { openLink: any }) {
       >
         <img className="h-5 w-8 p-0.5 mt-0.5" src="/hackbook-W95/mail.png" alt="" />
         <h1 className="my-auto w-1/2  text-lg"> {mail.receiver}</h1>
-        <h1 className="my-auto w-1/2  text-lg">Reward</h1>
+        <h1 className="my-auto w-1/2  text-lg">-</h1>
       </div>
       <div
         className={clsx("mx-2 my-2 ", {
@@ -39,10 +57,9 @@ export default function OutboxMails({ openLink }: { openLink: any }) {
         })}
       >
         Visit
-        <h1 className="text-blue-800 underline cursor-pointer" onClick={()=>openLink(mail.link)}>
-          https://hack-a-byte.vercel.app/{mail.link}
+        <h1 className="text-blue-800 underline cursor-pointer" onClick={() => openLink(mail.link)}>
+          {mail.link}
         </h1>
-        to get your reward
       </div>
     </div>
   ));

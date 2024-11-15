@@ -65,7 +65,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ))}
 
           <form action={logout}>
-            <button type="submit" className="absolute bottom-0 flex justify-start ">
+            <button
+              type="submit"
+              onClick={() => {
+                localStorage.clear();
+              }}
+              className="absolute bottom-0 flex justify-start "
+            >
               <div className="h-10 w-10 m-5 p-2 rounded-full  hover:bg-zinc-900">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

@@ -1,23 +1,23 @@
 "use client";
 
 import react, { useEffect } from "react";
-import { action } from "../../lib/actions";
+// import { execute } from "../../lib/actions";
 
 const Page = ({ params }: { params: { emailId: string } }) => {
   const emailId = params.emailId;
   const [message, setMessage] = react.useState("");
 
   async function handleBrowser() {
-    const response = await action("visit", "https://hack-a-byte.vercel.app/" + emailId);
+    // const response = await action("visit", "https://hack-a-byte.vercel.app/" + emailId);
 
-    if (response.error) {
-      setMessage(response.error);
-      return;
-    }
+    // if (response.error) {
+    //   setMessage(response.error);
+    //   return;
+    // }
 
-    if (response.data) {
-      setMessage(response.data);
-    }
+    // if (response.data) {
+    //   setMessage(response.data);
+    // }
   }
 
   useEffect(() => {
