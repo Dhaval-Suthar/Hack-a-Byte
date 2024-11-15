@@ -1,26 +1,21 @@
 import Desktop from "../../ui/hackbook-W95/desktop";
-import { DEFAULT_USERNAME, MODELS } from "@/app/lib/constants";
-import { getModels } from "@/app/lib/actions";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { DefaultValues, Errors, Models } from "@/app/lib/constants";
+import { haveModel } from "@/app/lib/actions";
 
 export default async function Page() {
-  const models = await getModels();
-  const cookieStore = cookies();
-  const username = cookieStore.get("username")?.value;
+  const response = await haveModel(Models.W95);
 
-  if (!models[MODELS.W95]) {
-    redirect("/dashboard");
-  }
-
-  if (models[MODELS.W95].password === "-") {
-    redirect("/devices/hackbook-W95/login");
+  switch (response) {
+    case Errors.INVALID_LOGIN:
+      return <h1>Invalid Login</h1>; // TODO: Need Improvement
+    case Errors.DEVICE_NOT_FOUND:
+      return <h1>Model not found</h1>; // TODO: Need Improvement
   }
 
   return (
     <>
       <div className="w-screen h-screen fixed overflow-auto">
-        <Desktop user={username || DEFAULT_USERNAME} />
+        <Desktop />
       </div>
     </>
   );

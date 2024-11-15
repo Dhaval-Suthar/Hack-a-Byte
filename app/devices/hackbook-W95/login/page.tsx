@@ -2,11 +2,13 @@
 
 import React from "react";
 import { redirect } from "next/navigation";
-import { action } from "@/app/lib/actions";
-import { MODELS } from "@/app/lib/constants";
+import { execute } from "@/app/lib/actions";
 import Link from "next/link";
+import { DefaultValues, Models } from "@/app/lib/constants";
+import { ProcessState } from "@/app/lib/definitions";
 
 const page = () => {
+  
   const handleLogin = async (formData: FormData) => {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
@@ -16,17 +18,18 @@ const page = () => {
       return;
     }
 
-    const response = await action("login", { username, password }, MODELS.W95);
+    const prompt = `${username}@${Models.W95} ${DefaultValues.ROOT_DIRECTORY} % `;
+
+    formData.append("command", prompt + "login " + username);
+
+    const response = await execute(new ProcessState({}).toPlainObject() as ProcessState,  formData);
 
     if (response.error) {
       alert(response.error);
       return;
     }
 
-    if (!response.data) {
-      alert("Sorry! Some Error Occured!");
-      return;
-    }
+    localStorage.setItem("user-" + Models.W95, username);
 
     redirect("/devices/hackbook-W95");
   };

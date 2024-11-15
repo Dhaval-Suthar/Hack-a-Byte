@@ -1,13 +1,13 @@
 import { getModels, getUsername } from "@/app/lib/actions";
 import { redirect } from "next/navigation";
 import { setUp } from "@/app/lib/actions";
-import { MODELS } from "@/app/lib/constants";
+import { Models } from "@/app/lib/constants";
 
 export default async function Page() {
   const models = await getModels();
   const username = await getUsername();
 
-  if (models[MODELS.L] && models[MODELS.L].password !== "-") {
+  if (models[Models.L] && models[Models.L].password !== "-") {
     redirect("/devices/hackbook-L");
   }
 

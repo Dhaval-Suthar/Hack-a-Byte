@@ -1,33 +1,26 @@
 import Console from "../../ui/hackbook-L/console";
-import { DEFAULT_USERNAME, MODELS } from "@/app/lib/constants";
-import { getModels } from "@/app/lib/actions";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { Models, Errors } from "@/app/lib/constants";
+import { haveModel } from "@/app/lib/actions";
 import { Suspense } from "react";
 import Leaderboard, { LeaderboardSkeleton } from "@/app/ui/hackbook-L/leaderboard";
 import Bot from "@/app/ui/hackbook-L/bot";
 
 export default async function Page() {
-  const models = await getModels();
-  const cookieStore = cookies();
-  const username = cookieStore.get("username")?.value;
+  const response = await haveModel(Models.L);
 
-  if (!models[MODELS.L]) {
-    redirect("/dashboard");
-  }
-
-  if (models[MODELS.L].password === "-") {
-    redirect("/devices/hackbook-L/setup");
+  switch (response) {
+    case Errors.INVALID_LOGIN:
+      return <h1>Invalid Login</h1>; // TODO: Need Improvement
+    case Errors.DEVICE_NOT_FOUND:
+      return <h1>Model not found</h1>; // TODO: Need Improvement
   }
 
   return (
     <>
-      <Suspense fallback={<LeaderboardSkeleton />}>
+      {/* <Suspense fallback={<LeaderboardSkeleton />}>
         <Leaderboard />
-      </Suspense>
-      <div className="w-screen h-screen fixed overflow-auto">
-        <Console user={username || DEFAULT_USERNAME} device={MODELS.L} />
-      </div>
+      </Suspense> */}
+      <Console model={Models.L} />
       <Bot />
     </>
   );

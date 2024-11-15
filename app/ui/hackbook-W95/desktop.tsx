@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
@@ -11,7 +12,7 @@ import MyComputer from "@/app/ui/hackbook-W95/apps/MyComputer";
 import Console from "@/app/ui/hackbook-L/console";
 
 import { logout } from "@/app/lib/actions";
-import { DEFAULT_LINK, DEFAULT_USERNAME, MODELS } from "@/app/lib/constants";
+import { DefaultValues, Models } from "@/app/lib/constants";
 import { App } from "@/app/lib/definitions";
 
 const APPS: App[] = [
@@ -22,15 +23,15 @@ const APPS: App[] = [
   new App("Inbox", "/hackbook-W95/app-icon/inbox.png"),
 ];
 
-const Desktop = ({ user }: { user: string }) => {
+const Desktop = () => {
   const router = useRouter();
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null as App | null);
   const [runningApp, setRunningApp] = useState(null as App | null);
   const [runningApps, setRunningApps] = useState([] as App[]);
-  const [date, setDate] = useState(new Date());
-  const [link, setLink] = useState(DEFAULT_LINK);
+  const [date, setDate] = useState(Date.now());
+  const [link, setLink] = useState(DefaultValues.LINK as string);
 
   function deSelect() {
     setSelectedApp(null);
@@ -79,10 +80,10 @@ const Desktop = ({ user }: { user: string }) => {
     const searchBar = document.getElementById("searchBar") as HTMLInputElement;
 
     if (searchBar) {
-      searchBar.value = "https://hack-a-byte.vercel.app/" + link;
+      searchBar.value = link;
     }
 
-    setLink("https://hack-a-byte.vercel.app/" + link);
+    setLink(link);
   }
 
   function getComponent(name: string) {
@@ -96,7 +97,7 @@ const Desktop = ({ user }: { user: string }) => {
       case "My Computer":
         return <MyComputer />;
       case "Terminal":
-        return <Console user={user} device={MODELS.W95} />;
+        return <Console model={Models.W95} />;
       case "Recycle Bin":
         return <RecycleBin />;
       case "Inbox":
@@ -117,9 +118,19 @@ const Desktop = ({ user }: { user: string }) => {
       }
     });
 
-    setInterval(() => {
-      setDate(new Date());
+    const interval = setInterval(() => {
+      setDate(new Date().getTime());
     }, 1000);
+
+    return () => {
+      window.removeEventListener("keydown", (e) => {
+        if (e.key === "Enter" && selectedApp) {
+          open(selectedApp);
+        }
+      });
+
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -209,12 +220,8 @@ const Desktop = ({ user }: { user: string }) => {
                       <input
                         id="searchBar"
                         type="text"
-                        defaultValue={DEFAULT_LINK}
+                        defaultValue={DefaultValues.LINK}
                         className="bg-white h-7 w-full m-auto mx-10 border-2 shadow shadow-black border-black border-b-white border-r-white"
-                        onClick={(e) => {
-                          const input = e.target as HTMLInputElement;
-                          input.select();
-                        }}
                         onKeyDown={(e) => {
                           const input = e.target as HTMLInputElement;
                           if (e.key === "Enter") {
@@ -304,7 +311,13 @@ const Desktop = ({ user }: { user: string }) => {
 
         {/* Custom menu items */}
         <form action={logout} className=" hover:bg-blue-900 hover:text-white ">
-          <button type="submit" className="flex text-left">
+          <button
+            type="submit"
+            onClick={() => {
+              localStorage.clear();
+            }}
+            className="flex text-left"
+          >
             <img className="h-16 mx-3" src="/hackbook-W95/app-icon/log-out.png" alt="" />
             <h3 className="m-auto w-full">Log Out</h3>
           </button>
@@ -357,7 +370,7 @@ const Desktop = ({ user }: { user: string }) => {
           ))}
         </div>
         <h1 className="text-center w-[6%] my-auto px-3 mx-1 border-2 shadow shadow-black border-black border-b-white border-r-white">
-          {date.toLocaleTimeString().slice(0, -6) + date.toLocaleTimeString().split(" ")[1]}
+          {new Date(date).toTimeString().slice(0, 5)}
         </h1>
       </div>
     </main>
