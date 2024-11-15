@@ -36,7 +36,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-screen text-center text-zinc-400 font-extrabold w-64 peer-hover:translate-x-0 hover:translate-x-0 -translate-x-64 pt-20 duration-1000 bg-zinc-800 absolute z-0 flex flex-col justify-start">
           {links.map(({ href, label }) => (
             <Link href={href} key={href}>
-              
               <div
                 className={clsx(
                   "w-60 h-10 m-2 p-2 bg-zinc-700 hover:text-zinc-300 rounded-md hover:bg-zinc-600  flex cursor-pointer",
