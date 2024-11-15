@@ -3,11 +3,13 @@
 import clientPromise from "../lib/mongodb";
 import { ObjectId } from "mongodb";
 import { DefaultValues, Errors, Models, Success } from "./constants";
+import { DefaultValues, Errors, Models, Success } from "./constants";
 import { signIn, signOut, auth } from "@/auth";
 import { AuthError } from "next-auth";
 import jwt from "jsonwebtoken";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { convertToMegaBytes, getHint } from "./utils";
 import { convertToMegaBytes, getHint } from "./utils";
 import { COMMANDS } from "./commands";
 import { generateFromEmail } from "unique-username-generator";
@@ -31,10 +33,6 @@ const getDatabase = async () => {
   return client.db(process.env.DATABASE_NAME);
 };
 
-const setActiveDevice = async (device: string) => {
-  cookies().set("activeDevice", device);
-};
-
 // Main functions
 export async function execute(prevState: ProcessState, formData: FormData) {
   try {
@@ -50,8 +48,6 @@ export async function execute(prevState: ProcessState, formData: FormData) {
     const commandName = commandParts[3]; // As the first three parts are "0.0.0.0@HackBook-L ~ % "
     const returnState = new ProcessState({ command: command }).toPlainObject() as ProcessState;
     const argumentsPassed = commandParts.slice(4);
-
-    setActiveDevice(device);
 
     if (commandName === "") {
       returnState.message = "";
@@ -1087,7 +1083,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
           return returnState;
         }
 
-        if (!confirmation) {
+        if(!confirmation) {
           returnState.requires = "confirmation";
           returnState.message = `Changing username to ${argumentData.name}`;
           return returnState;
@@ -1301,6 +1297,7 @@ export async function sendDailyEmails() {
 
   const usersList = await users.find({}).toArray();
 
+  for (const user of usersList) {
   let websiteLink = process.env.SITE_URL || "http://localhost:3000/";
 
   for (const user of usersList) {
