@@ -31,6 +31,10 @@ const getDatabase = async () => {
   return client.db(process.env.DATABASE_NAME);
 };
 
+const setActiveDevice = async (device: string) => {
+  cookies().set("activeDevice", device);
+};
+
 // Main functions
 export async function execute(prevState: ProcessState, formData: FormData) {
   try {
@@ -46,6 +50,8 @@ export async function execute(prevState: ProcessState, formData: FormData) {
     const commandName = commandParts[3]; // As the first three parts are "0.0.0.0@HackBook-L ~ % "
     const returnState = new ProcessState({ command: command }).toPlainObject() as ProcessState;
     const argumentsPassed = commandParts.slice(4);
+
+    setActiveDevice(device);
 
     if (commandName === "") {
       returnState.message = "";
@@ -69,7 +75,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
     const emails = db.collection("emails");
 
     // Default values
-    let websiteLink = "https://hack-a-byte.vercel.app/";
+    let websiteLink = process.env.SITE_URL || "http://localhost:3000/";
     let website: any;
     let softwareData: any;
     let software: any;
@@ -1081,7 +1087,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
           return returnState;
         }
 
-        if(!confirmation) {
+        if (!confirmation) {
           returnState.requires = "confirmation";
           returnState.message = `Changing username to ${argumentData.name}`;
           return returnState;
@@ -1295,12 +1301,14 @@ export async function sendDailyEmails() {
 
   const usersList = await users.find({}).toArray();
 
+  let websiteLink = process.env.SITE_URL || "http://localhost:3000/";
+
   for (const user of usersList) {
     await emails.insertOne({
       sender: "hack-a-byte",
       receiver: user.username,
       username: "hack-a-byte",
-      link: `https://hack-a-byte.vercel.app/${website.insertedId}`,
+      link: websiteLink + website.insertedId,
     });
   }
 

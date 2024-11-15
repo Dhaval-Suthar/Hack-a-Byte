@@ -1,28 +1,27 @@
-"use client";
+"use server";
 
-import react, { useEffect } from "react";
-// import { execute } from "../../lib/actions";
+import { execute } from "../../lib/actions";
+import { cookies } from "next/headers";
+import { DefaultValues } from "@/app/lib/constants";
+import { ProcessState } from "@/app/lib/definitions";
 
-const Page = ({ params }: { params: { emailId: string } }) => {
+const Page = async ({ params }: { params: { emailId: string } }) => {
   const emailId = params.emailId;
-  const [message, setMessage] = react.useState("");
+  const device = cookies().get("active-device")?.value || DefaultValues.COMPUTER_MODEL;
+  let message = "Loading...";
 
-  async function handleBrowser() {
-    // const response = await action("visit", "https://hack-a-byte.vercel.app/" + emailId);
+  const prompt = `${DefaultValues.USERNAME}@${device} ${DefaultValues.ROOT_DIRECTORY} % `;
 
-    // if (response.error) {
-    //   setMessage(response.error);
-    //   return;
-    // }
+  const formData = new FormData();
+  formData.append("command", prompt + "visit " + process.env.SITE_URL + emailId);
 
-    // if (response.data) {
-    //   setMessage(response.data);
-    // }
+  const response = await execute(new ProcessState({}).toPlainObject() as ProcessState, formData);
+
+  if (response.message) {
+    message = response.message;
+  } else {
+    message = response.error;
   }
-
-  useEffect(() => {
-    handleBrowser();
-  }, []);
 
   return (
     <div className="flex justify-center h-screen w-screen text-center text-white flex-col">

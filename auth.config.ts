@@ -9,8 +9,9 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const isOnDevices = nextUrl.pathname.startsWith("/devices");
       const isOnDashBoard = nextUrl.pathname.startsWith("/dashboard");
+      const routes = nextUrl.pathname.split("/");
 
-      if (isOnDevices || isOnDashBoard) {
+      if (isOnDevices || isOnDashBoard || routes.length === 2) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       } else if (isLoggedIn) {
