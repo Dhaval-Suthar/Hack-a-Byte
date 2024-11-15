@@ -1,127 +1,178 @@
-import { fetchUserPassword } from "./actions";
+export function getHint(password: string) {
+  const passwordDigits = password.split("").map(Number);
 
-export async function askForPassword(passwordType: string) {
-  const passwordElement = document.createElement("li");
-  const consoleElement = document.getElementById("console-element");
-  const promptElement = document.getElementById("command-prompt");
-  const passwordInputElement = document.createElement("input");
+  const maxNumber = Math.max(...passwordDigits);
+  const lowestNumber = Math.min(...passwordDigits);
 
-  function focusInput() {
-    passwordInputElement.focus();
+  let hints = [
+    `the largest digit in the password is ${maxNumber}`,
+    `the lowest digit in the password is ${lowestNumber}`,
+  ];
+
+  // Check for repeating digits
+  const repeatingDigits = passwordDigits.filter((digit, index) => passwordDigits.indexOf(digit) !== index);
+  if (repeatingDigits.length > 0) {
+    hints.push(`there are repeating digits in the password`);
+
+    const repeatingDigitsCount = repeatingDigits.reduce((acc: { [key: number]: number }, digit) => {
+      if (acc[digit]) {
+        acc[digit] += 1;
+      } else {
+        acc[digit] = 1;
+      }
+      return acc;
+    }, {});
+
+    repeatingDigits.forEach((digit) => {
+      hints.push(`the digit ${digit} is repeating`);
+      hints.push(`the digit ${digit} is repeating ${repeatingDigitsCount[digit]} times`);
+    });
   }
 
-  // Properties of passwordInputElement
-  passwordInputElement.type = "password";
-  passwordInputElement.style.background = "transparent";
-  passwordInputElement.style.color = "transparent";
-  passwordInputElement.style.width = "0px";
-  passwordInputElement.style.outline = "none";
+  // Check for even or odd
+  const evenDigits = passwordDigits.filter((digit) => digit % 2 === 0);
+  const oddDigits = passwordDigits.filter((digit) => digit % 2 !== 0);
 
-  // Properties of passwordElement
-  passwordElement.style.display = "flex";
-  passwordElement.innerHTML = `
-      <h3 class="flex">${passwordType}:
-        <div class="w-4 h-5 rounded-md bg-gray-400 flex justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 -rotate-45 m-auto text-black">
-            <path fill-rule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clip-rule="evenodd" />
-          </svg>
-        </div>
-      </h3>`;
+  if (evenDigits.length > 0) {
+    hints.push(`there are even digits in the password`);
+    hints.push(`there are ${evenDigits.length} even digits in the password`);
+  } else {
+    hints.push(`there are no even digits in the password`);
+  }
 
-  // Add passwordInputElement
-  passwordElement.appendChild(passwordInputElement);
-  consoleElement?.appendChild(passwordElement);
+  if (oddDigits.length > 0) {
+    hints.push(`there are odd digits in the password`);
+    hints.push(`there are ${oddDigits.length} odd digits in the password`);
+  } else {
+    hints.push(`there are no odd digits in the password`);
+  }
 
-  // Focus passwordInputElement for every key down
-  window.addEventListener("keydown", focusInput);
-  window.addEventListener("click", focusInput);
+  // Check for binary
+  const binaryDigits = passwordDigits.filter((digit) => digit === 0 || digit === 1);
+  if (binaryDigits.length > 0) {
+    hints.push(`there are binary digits in the password`);
+    hints.push(`there are ${binaryDigits.length} binary digits in the password`);
+  } else {
+    hints.push(`there are no binary digits in the password`);
+  }
 
-  // Wait till user enters the password
-  return await new Promise<string>(
-    (resolve) =>
-      (passwordInputElement.onkeydown = (e) => {
-        if (e.key === "Enter") {
-          // Remove the event listeners
-          window.removeEventListener("keydown", focusInput);
-          window.removeEventListener("click", focusInput);
+  // Check for prime
+  const primeDigits = passwordDigits.filter((digit) => {
+    for (let i = 2; i < digit; i++) if (digit % i === 0) return false;
+    return digit > 1;
+  });
 
-          // Remove passwordInputElement
-          passwordElement && consoleElement?.removeChild(passwordElement);
+  if (primeDigits.length > 0) {
+    hints.push(`there are prime digits in the password`);
+    hints.push(`there are ${primeDigits.length} prime digits in the password`);
+  } else {
+    hints.push(`there are no prime digits in the password`);
+  }
 
-          // Add the prompt back
-          promptElement && consoleElement?.appendChild(promptElement);
+  // Check for palindrome
+  const isPalindrome = passwordDigits.join("") === passwordDigits.reverse().join("");
 
-          resolve(passwordInputElement.value);
-        }
-      })
-  );
+  if (isPalindrome) {
+    hints.push(`the password is a palindrome`);
+  } else {
+    hints.push(`the password is not a palindrome`);
+  }
+
+  // Check for ascending order
+  const isAscending = passwordDigits.join("") === passwordDigits.sort().join("");
+
+  if (isAscending) {
+    hints.push(`the digits are in ascending order`);
+  } else {
+    hints.push(`the digits are not in ascending order`);
+  }
+
+  // Check for descending order
+  const isDescending = passwordDigits.join("") === passwordDigits.sort().reverse().join("");
+
+  if (isDescending) {
+    hints.push(`the digits are in descending order`);
+  } else {
+    hints.push(`the digits are not in descending order`);
+  }
+
+  // Check for sum
+  const sum = passwordDigits.reduce((acc, digit) => acc + digit, 0);
+
+  hints.push(`the sum of the digits is ${sum}`);
+
+  // Check for product
+  const product = passwordDigits.reduce((acc, digit) => acc * digit, 1);
+
+  hints.push(`the product of the digits is ${product}`);
+
+  // Check for square
+  const isSquare = Math.sqrt(Number(password)) % 1 === 0;
+
+  if (isSquare) {
+    hints.push(`the password is a square number`);
+  } else {
+    hints.push(`the password is not a square number`);
+  }
+
+  // Check for cube
+  const isCube = Math.cbrt(Number(password)) % 1 === 0;
+
+  if (isCube) {
+    hints.push(`the password is a cube number`);
+  } else {
+    hints.push(`the password is not a cube number`);
+  }
+
+  // Check for fibonacci
+  const isFibonacci =
+    [0, 1].includes(Number(password)) ||
+    passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] + passwordDigits[index - 2]);
+
+  if (isFibonacci) {
+    hints.push(`the password is a fibonacci number`);
+  } else {
+    hints.push(`the password is not a fibonacci number`);
+  }
+
+  // Check for consecutive numbers
+  const isConsecutive = passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] + 1);
+
+  if (isConsecutive) {
+    hints.push(`the digits are consecutive`);
+  } else {
+    hints.push(`the digits are not consecutive`);
+  }
+
+  // Check for reverse consecutive numbers
+  const isReverseConsecutive = passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] - 1);
+
+  if (isReverseConsecutive) {
+    hints.push(`the digits are reverse consecutive`);
+  } else {
+    hints.push(`the digits are not reverse consecutive
+    `);
+  }
+
+  // Check for alternating numbers
+  const isAlternating = passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] * -1);
+
+  if (isAlternating) {
+    hints.push(`the digits are alternating`);
+  } else {
+    hints.push(`the digits are not alternating`);
+  }
+
+  const hint = hints[Math.floor(Math.random() * hints.length)];
+
+  return hint;
 }
 
-export async function genHint(username: string) {
-  // take username of the account to hack as input
-  const password = await fetchUserPassword(username);
+// Function to convert decimal to binary
+export function dec2bin(dec: number) {
+  return (dec >>> 0).toString(2);
+}
 
-  if (password.error) {
-    return { error: password.error, hints: {} };
-  }
-
-  let consecutive = true;
-  let reverseConsecutive = true;
-  let repeatedPattern = true;
-  let sameDigit = true;
-  let maxNumber = -Infinity;
-
-  for (let i = 0; i < password.length; i++) {
-    const currentDigit = parseInt(password[i]);
-    if (currentDigit > maxNumber) {
-      maxNumber = currentDigit;
-    }
-  }
-
-  let lowestNumber = Infinity;
-  for (let i = 0; i < password.length; i++) {
-    const currentDigit = parseInt(password[i]);
-    if (currentDigit < lowestNumber) {
-      lowestNumber = currentDigit;
-    }
-  }
-
-  for (let i = 0; i < password.length; i++) {
-    const currentDigit = parseInt(password[i]);
-    const previousDigit = parseInt(password[i - 1]);
-
-    if (currentDigit !== previousDigit + 1) {
-      consecutive = false;
-    }
-
-    if (currentDigit !== previousDigit - 1) {
-      reverseConsecutive = false;
-    }
-
-    if (password[i] !== password[i - 1]) {
-      repeatedPattern = false;
-    }
-
-    if (currentDigit !== parseInt(password[0])) {
-      sameDigit = false;
-      break;
-    }
-  }
-
-  if (sameDigit) {
-    repeatedPattern = false;
-  }
-
-  return {
-    hints: {
-      isCons: consecutive ? "The password is in sequence. e.g 1234" : false,
-      isReverseCon: reverseConsecutive ? "the password is in reverse sequence. e.g 5432" : false,
-      isRepeatedPattern: repeatedPattern ? "the password is a repeated pattern. e.g 1212" : false,
-      isSameDigit: sameDigit ? "the password is of the same digit. e.g 1111" : false,
-      maxNumber: `the largest digit in the password is ${maxNumber}`,
-      lowestNumber: `the lowest digit in the password is ${lowestNumber}`,
-      // password: `the pasword is ${password}`
-    },
-  };
-  // give the user the hint and make sure his 30-rs gets debited/
+export function convertToMegaBytes(bytes: number) {
+  return bytes / (1024 * 1024);
 }
