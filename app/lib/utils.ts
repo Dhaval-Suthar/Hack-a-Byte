@@ -14,12 +14,8 @@ export function getHint(password: string) {
   if (repeatingDigits.length > 0) {
     hints.push(`there are repeating digits in the password`);
 
-    const repeatingDigitsCount = repeatingDigits.reduce((acc: { [key: number]: number }, digit) => {
-      if (acc[digit]) {
-        acc[digit] += 1;
-      } else {
-        acc[digit] = 1;
-      }
+    const repeatingDigitsCount = passwordDigits.reduce((acc: { [key: number]: number }, digit) => {
+      acc[digit] += 1;
       return acc;
     }, {});
 
