@@ -1271,9 +1271,30 @@ export async function setUp(formData: FormData) {
 
     if (password !== "none" && Number.isNaN(Number(password))) return "Password should be a number";
 
-    await db.collection("users").updateOne(user, {
-      $set: { "models.Hackbook-L.password": password, username: formData.get("username") },
-    });
+    let dbSession = client.startSession();
+
+    try {
+      await dbSession.withTransaction(async () => {
+        await db.collection("users").updateOne(user, {
+          $set: { "models.Hackbook-L.password": password, username: formData.get("username") },
+        });
+
+        await db
+          .collection("websites")
+          .updateOne({ owner: user.username }, { $set: { owner: formData.get("username") } });
+
+        await db
+          .collection("transactions")
+          .updateMany({ from: user.username }, { $set: { from: formData.get("username") } });
+        await db
+          .collection("transactions")
+          .updateMany({ to: user.username }, { $set: { to: formData.get("username") } });
+      });
+    } catch (error) {
+      return "Something went wrong.";
+    } finally {
+      dbSession.endSession();
+    }
 
     revalidatePath("/devices/hackbook-L");
   } catch (error) {
