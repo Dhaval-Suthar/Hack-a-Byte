@@ -73,6 +73,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
     const websites = db.collection("websites");
     const softwares = db.collection("softwares");
     const emails = db.collection("emails");
+    const authSession = await auth();
 
     // Default values
     let websiteLink = process.env.SITE_URL || "http://localhost:3000/";
@@ -457,6 +458,16 @@ export async function execute(prevState: ProcessState, formData: FormData) {
             }
             returnState.requires = "old password";
             return returnState;
+        }
+
+        if (!authSession?.user) {
+          returnState.error = Errors.LOGIN_REQUIRED;
+          return returnState;
+        }
+
+        if (authSession.user.email !== loggedUser.email) {
+          returnState.error = Errors.NOT_ALLOWED;
+          return returnState;
         }
 
         if (device === Models.L) {
@@ -1077,6 +1088,16 @@ export async function execute(prevState: ProcessState, formData: FormData) {
 
         if (argumentData.name.length > 15) {
           returnState.error = Errors.USERNAME_LONG;
+          return returnState;
+        }
+
+        if (!authSession?.user) {
+          returnState.error = Errors.LOGIN_REQUIRED;
+          return returnState;
+        }
+
+        if (authSession.user.email !== loggedUser.email) {
+          returnState.error = Errors.NOT_ALLOWED;
           return returnState;
         }
 

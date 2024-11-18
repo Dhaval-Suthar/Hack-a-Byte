@@ -112,6 +112,7 @@ export enum Errors {
   NOT_YOUR_WEBSITE = "Not Your Website",
   DEVICE_NOT_OWNED = "You don't own this device",
   DEVICE_NOT_OWNED_BY_USER = "Device Not Owned By User",
+  NOT_ALLOWED = "Not Allowed",
 
   // Insufficient info Errors
   PROVIDE_RECEIVER = "Provide Receiver",
