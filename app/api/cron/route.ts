@@ -4,11 +4,11 @@ import { Software } from "@/app/lib/definitions";
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return new Response("Unauthorized", {
-  //     status: 401,
-  //   });
-  // }
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response("Unauthorized", {
+      status: 401,
+    });
+  }
 
   const client = await clientPromise;
   const db = client.db(process.env.DATABASE_NAME);
@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
           owner: "hack-a-byte",
           software: new Software({
             name: "Daily prize",
-            desc: "Get 5000 rupees daily",
+            desc: "Get 2000 rupees daily",
             type: "reward",
-            cost: 5000,
+            cost: 2000,
             category: "software",
           }),
           expiresAfter: new Date(Date.now() + 24 * 60 * 60 * 1000),
