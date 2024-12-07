@@ -7,6 +7,16 @@ export type User = {
   password: string;
 };
 
+export type Device = {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  owned: boolean;
+  price: number;
+  password: string;
+};
+
 export class ProcessState {
   error: string;
   command: string;

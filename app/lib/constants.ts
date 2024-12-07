@@ -93,7 +93,7 @@ export enum Errors {
   INVALID_SOFTWARE_ID = "Invalid SoftwareId",
   INVALID_AMOUNT = "Invalid Amount",
   INVALID_FLAG = "Invalid Flag",
-  INVALID_COMMAND = "Invalid Command",
+  INVALID_COMMAND = "Command not recognized. Type 'help' to see available commands",
   INVALID_DEVICE = "Invalid Device",
 
   // Not Found Errors

@@ -1,9 +1,8 @@
 import Console from "../../ui/hackbook-L/console";
 import { Models, Errors } from "@/app/lib/constants";
 import { haveModel } from "@/app/lib/actions";
-import { Suspense } from "react";
-import Leaderboard, { LeaderboardSkeleton } from "@/app/ui/hackbook-L/leaderboard";
 import Bot from "@/app/ui/hackbook-L/bot";
+import Terminal from "@/app/ui/hackbook-L/terminal";
 
 export default async function Page() {
   const response = await haveModel(Models.L);
@@ -20,8 +19,8 @@ export default async function Page() {
       {/* <Suspense fallback={<LeaderboardSkeleton />}>
         <Leaderboard />
       </Suspense> */}
-      <Console model={Models.L} />
-      <Bot />
+      <Terminal />
+      {/* <Bot /> */}
     </>
   );
 }

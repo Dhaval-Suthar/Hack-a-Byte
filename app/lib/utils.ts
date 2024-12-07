@@ -172,3 +172,12 @@ export function dec2bin(dec: number) {
 export function convertToMegaBytes(bytes: number) {
   return bytes / (1024 * 1024);
 }
+
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+

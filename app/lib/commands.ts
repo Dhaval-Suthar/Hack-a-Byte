@@ -117,8 +117,7 @@ export const COMMANDS = {
   }),
   help: new Command({
     desc: "Displays descrmation about the specified command",
-    usage: "help [command]",
-    args: [command],
+    usage: "help",
     requiresLogin: false,
   }),
 };

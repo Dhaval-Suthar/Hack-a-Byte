@@ -910,8 +910,8 @@ export async function execute(prevState: ProcessState, formData: FormData) {
         return returnState;
 
       case "help":
-        returnState.message =
-          argumentData.command + ": " + COMMANDS[argumentData.command as keyof typeof COMMANDS].desc;
+        returnState.message = Object.values(COMMANDS).map((command) => command.usage).join("\n");
+          
         return returnState;
 
       case "shutdown":
@@ -1475,4 +1475,17 @@ export async function buyModel(device: string) {
   }
 
   return Success.DEVICE_BOUGHT;
+}
+
+export async function getBalance() {
+  const sessionUser = await getSessionUser();
+  const db = await getDatabase();
+
+  const user = await db.collection("users").findOne({ email: sessionUser.email }, { projection: { balance: 1 } });
+
+  if (!user) {
+    return Errors.INVALID_LOGIN;
+  }
+
+  return user.balance;
 }
