@@ -28,6 +28,7 @@ export default function GamingTerminal() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const linesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -64,6 +65,12 @@ export default function GamingTerminal() {
     setOutput(newOutput);
 
     setInput("");
+
+    setTimeout(() => {
+      if (linesRef.current) {
+        linesRef.current.scrollTop = linesRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +165,7 @@ export default function GamingTerminal() {
         </div>
         <div className="flex space-x-4">
           <div className="flex-grow h-[85vh]">
-            <div className="h-[75vh] overflow-y-auto pr-4 mb-4 hide-scrollbar">
+            <div ref={linesRef} className="h-[75vh] overflow-y-auto pr-4 mb-4 hide-scrollbar">
               <AnimatePresence>
                 {output.map((line, index) => (
                   <motion.div
@@ -166,7 +173,7 @@ export default function GamingTerminal() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    transition={{ duration: 0.3, delay: index % 10 * 0.05 }}
                     className="mb-2"
                   >
                     {line}
