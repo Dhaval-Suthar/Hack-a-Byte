@@ -74,7 +74,9 @@ export default function GamingTerminal() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    playTypingSound();
+    if (typeof window !== "undefined" && /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)) {
+      playTypingSound();
+    }
     setInput(e.target.value);
   };
 
