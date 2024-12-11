@@ -3,7 +3,7 @@ import { Lock, Unlock, Plus } from "lucide-react";
 import Password from "@/components/ui/password";
 import BuyDevice from "@/components/ui/buyDevice";
 import Link from "next/link";
-import { getBalance, getModels } from "../lib/actions";
+import { getBalance, getModels, getUsername } from "../lib/actions";
 import PowerButton from "@/components/ui/powerButton";
 
 const HackingDashboard = async () => {
@@ -29,6 +29,7 @@ const HackingDashboard = async () => {
   ];
 
   const userDevices = await getModels();
+  const username = await getUsername();
 
   devices = devices.map((device) => {
     device.owned = userDevices[device.name] ? true : false;
@@ -108,14 +109,17 @@ const HackingDashboard = async () => {
                     <p className="text-indigo-300 text-sm mb-4">{device.description}</p>
 
                     {/* Action Button */}
-                    {device.owned ? <Password device={device} /> : <BuyDevice device={device} balance={balance} />}
+                    {device.owned ? (
+                      <Password device={device} username={username} />
+                    ) : (
+                      <BuyDevice device={device} balance={balance} />
+                    )}
                   </div>
                 </div>
               </Link>
             ))}
           </div>
         </div>
-
         <PowerButton />
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { Device } from "@/app/lib/definitions";
 import React, { useState } from "react";
 
-const Password = ({ device }: { device: Device }) => {
+const Password = ({ device, username }: { device: Device; username: string }) => {
   const [passwordRevealed, setPasswordRevealed] = useState(false);
 
   const revealPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -18,7 +18,7 @@ const Password = ({ device }: { device: Device }) => {
         onClick={revealPassword}
         className="w-full relative bg-gradient-to-r from-cyan-700 to-green-700 hover:from-cyan-600 hover:to-green-600 text-white py-3 rounded-lg transition-all"
       >
-        {passwordRevealed ? `Password: ${device.password}` : "Decrypt Password"}
+        {passwordRevealed ? `${username}: ${device.password}` : "Decrypt Password"}
       </button>
     </div>
   );
