@@ -107,6 +107,7 @@ export enum Errors {
   TRANSACTION_NOT_FOUND = "Transaction Not Found",
   WEBSITE_NOT_FOUND = "Website Not Found",
   COMMAND_NOT_FOUND = "Command Not Found",
+  CERTIFICATE_NOT_FOUND = "Certificate Not Found",
 
   // Unauthorized Errors
   NOT_YOUR_WEBSITE = "Not Your Website",

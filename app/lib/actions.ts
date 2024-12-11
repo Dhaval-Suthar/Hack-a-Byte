@@ -596,7 +596,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
 
         returnState.message = loggedUserInboxEmails
           .map((email, index) => {
-            return `${index + 1}. Email from ${email.sender} with link: ${email.link}`;
+            return `${index + 1}. Email from unknown with link: ${email.link}`;
           })
           .join("\n");
 
@@ -910,8 +910,10 @@ export async function execute(prevState: ProcessState, formData: FormData) {
         return returnState;
 
       case "help":
-        returnState.message = Object.values(COMMANDS).map((command) => command.usage).join("\n");
-          
+        returnState.message = Object.values(COMMANDS)
+          .map((command) => command.usage)
+          .join("\n");
+
         return returnState;
 
       case "shutdown":
@@ -1488,4 +1490,18 @@ export async function getBalance() {
   }
 
   return user.balance;
+}
+
+export async function getCertificate(id: string) {
+  const client = await clientPromise;
+  const db = client.db(process.env.DATABASE_NAME);
+  const certificates = db.collection("certificates");
+
+  if (!ObjectId.isValid(id)) {
+    return false;
+  }
+
+  const certificate = await certificates.findOne({ _id: new ObjectId(id) });
+
+  return certificate;
 }

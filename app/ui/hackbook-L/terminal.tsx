@@ -173,7 +173,7 @@ export default function GamingTerminal() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3, delay: index % 10 * 0.05 }}
+                    transition={{ duration: 0.3, delay: (index % 10) * 0.05 }}
                     className="mb-2"
                   >
                     {line}
@@ -192,6 +192,7 @@ export default function GamingTerminal() {
                     id="command-line"
                     value={input}
                     disabled={shuttingDown}
+                    autoComplete="off"
                     spellCheck="false"
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
@@ -209,6 +210,7 @@ export default function GamingTerminal() {
                     name="amount"
                     id="amount"
                     value={amount}
+                    autoComplete="off"
                     autoFocus
                     onChange={(e) => setAmount(parseInt(e.target.value))}
                     className="flex-grow bg-transparent focus:outline-none"
@@ -224,6 +226,7 @@ export default function GamingTerminal() {
                     type="text"
                     name="confirmation"
                     id="confirmation"
+                    autoComplete="off"
                     autoFocus
                     value={confirmation}
                     onChange={(e) => setConfirmation(e.target.value)}

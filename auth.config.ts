@@ -12,9 +12,10 @@ export const authConfig = {
       const isOnLogin = nextUrl.pathname.startsWith("/login");
       const isOnPrivacy = nextUrl.pathname.startsWith("/privacy-policy");
       const isOnTerms = nextUrl.pathname.startsWith("/terms-of-service");
+      const isOnCerticate = nextUrl.pathname.startsWith("/certificate");
       const routes = nextUrl.pathname.split("/");
 
-      if (isOnPrivacy || isOnTerms) {
+      if (isOnPrivacy || isOnTerms || isOnCerticate) {
         return true;
       } else if (isOnDevices || isOnDashBoard || (routes.length === 2 && !isOnLogin)) {
         if (isLoggedIn) return true;
