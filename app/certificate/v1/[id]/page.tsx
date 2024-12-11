@@ -81,7 +81,7 @@ export default async function Page({ params }: { params: { id: string } }) {
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: "PARTICIPANT TYPE", value: certificate.participantType },
-                    { label: "DATE", value: new Date(certificate.date).toDateString()},
+                    { label: "DATE", value: new Date(certificate.date).toDateString() },
                     { label: "TOTAL COMPETITORS", value: certificate.totalCompetitors },
                     { label: "RANK", value: certificate.rank },
                   ].map((item, index) => (
@@ -138,7 +138,7 @@ export default async function Page({ params }: { params: { id: string } }) {
               <div className="flex flex-col items-center">
                 <div className="relative w-24 h-24 mb-2">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://localhost:3000/certificate/v1/67580610aca274ed6a49d41e&color=22d3ee&bgcolor=000000`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://hack-a-byte.vercel.app/certificate/v1/${params.id}&color=22d3ee&bgcolor=000000`}
                     alt="QR Code"
                     className="absolute inset-0 w-full h-full opacity-100"
                   />
