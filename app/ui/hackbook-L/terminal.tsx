@@ -47,7 +47,9 @@ export default function GamingTerminal() {
       setIndex(commandHistory.length);
     }
 
-    playCommandSound();
+    if (typeof window !== "undefined" && /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)) {
+      playCommandSound();
+    }
 
     const commandOuput = await processCommand(input);
 
