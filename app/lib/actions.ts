@@ -534,6 +534,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
           }
 
           returnState.message = websitesList
+            .filter((website) => !website.hidden)
             .map((website, index) => `${index + 1}. ${websiteLink}${website._id.toString()}`)
             .join("\n");
 
