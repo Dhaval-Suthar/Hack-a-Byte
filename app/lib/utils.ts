@@ -159,6 +159,15 @@ export function getHint(password: string) {
     hints.push(`the digits are not alternating`);
   }
 
+  // More hints
+  hints.push(`The digit ${passwordDigits[0]} is the first digit`);
+  hints.push(`The digit ${passwordDigits[passwordDigits.length - 1]} is the last digit`);
+
+  hints.push(`${passwordDigits[0]} is present in the password`);
+  hints.push(`${passwordDigits[1]} is present in the password`);
+  hints.push(`${passwordDigits[2]} is present in the password`);
+  hints.push(`${passwordDigits[3]} is present in the password`);
+
   const hint = hints[Math.floor(Math.random() * hints.length)];
 
   return hint;
@@ -179,5 +188,3 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-
