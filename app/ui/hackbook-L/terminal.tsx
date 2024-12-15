@@ -152,6 +152,8 @@ export default function GamingTerminal() {
 
     if (response.error) return response.error;
 
+    if (response.requires) return "";
+
     return response.message;
   };
 
@@ -225,7 +227,7 @@ export default function GamingTerminal() {
 
               {processState.requires === "confirmation" && (
                 <>
-                  <span className="mr-2">{"Confirm? (y/n)"}</span>
+                  <span className="mr-2">{`${processState.message}: `}</span>
                   <input
                     type="text"
                     name="confirmation"

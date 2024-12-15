@@ -643,6 +643,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
 
         if (!confirmation) {
           returnState.requires = "confirmation";
+          returnState.message = "Are You Sure?";
           return returnState;
         }
 
@@ -1113,7 +1114,7 @@ export async function execute(prevState: ProcessState, formData: FormData) {
 
         if (!confirmation) {
           returnState.requires = "confirmation";
-          returnState.message = `Changing username to ${argumentData.name}`;
+          returnState.message = `Change username to ${argumentData.name}`;
           return returnState;
         }
 

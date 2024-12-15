@@ -14,16 +14,22 @@ export function getHint(password: string) {
   if (repeatingDigits.length > 0) {
     hints.push(`there are repeating digits in the password`);
 
-    const repeatingDigitsCount = passwordDigits.reduce((acc: { [key: number]: number }, digit) => {
-      acc[digit] += 1;
-      return acc;
-    }, {});
-
     repeatingDigits.forEach((digit) => {
       hints.push(`the digit ${digit} is repeating`);
-      hints.push(`the digit ${digit} is repeating ${repeatingDigitsCount[digit]} times`);
     });
   }
+
+  // Count the number of repeating digits
+  const repeatingDigitsCount = passwordDigits.reduce(
+    (acc: { [key: number]: number }, digit) => {
+      acc[digit] += 1;
+      return acc;
+    },
+    [...Array(password.length)].map(() => 0)
+  );
+
+  for (let digit in repeatingDigitsCount)
+    hints.push(`the digit ${digit} is repeating ${repeatingDigitsCount[digit]} times`);
 
   // Check for even or odd
   const evenDigits = passwordDigits.filter((digit) => digit % 2 === 0);
