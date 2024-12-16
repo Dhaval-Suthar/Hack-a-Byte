@@ -704,6 +704,11 @@ export async function execute(prevState: ProcessState, formData: FormData) {
         return returnState;
 
       case "visit":
+        if (website.owner === loggedUser.username) {
+          returnState.message = `You have visited your website`;
+          return returnState;
+        }
+
         if (website.malware && website.malware.type === "virus") {
           website.malware.installationDate = new Date();
 
