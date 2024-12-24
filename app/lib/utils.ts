@@ -157,17 +157,17 @@ export function getHint(password: string) {
   }
 
   // Check for alternating numbers
-  const isAlternating = passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] * -1);
+  // const isAlternating = passwordDigits.every((digit, index) => digit === passwordDigits[index - 1] * -1);
 
-  if (isAlternating) {
-    hints.push(`the digits are alternating`);
-  } else {
-    hints.push(`the digits are not alternating`);
-  }
+  // if (isAlternating) {
+  //   hints.push(`the digits are alternating`);
+  // } else {
+  //   hints.push(`the digits are not alternating`);
+  // }
 
   // More hints
-  hints.push(`The digit ${passwordDigits[0]} is the first digit`);
-  hints.push(`The digit ${passwordDigits[passwordDigits.length - 1]} is the last digit`);
+  hints.push(`The digit ${passwordDigits[passwordDigits.length - 1]} is the first digit`);
+  hints.push(`The digit ${passwordDigits[0]} is the last digit`);
 
   hints.push(`${passwordDigits[0]} is present in the password`);
   hints.push(`${passwordDigits[1]} is present in the password`);
