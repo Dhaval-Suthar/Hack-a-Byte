@@ -1,26 +1,43 @@
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import "@/app/ui/global.css";
 import type { Metadata } from "next";
-import { robotoMono } from "@/app/ui/fonts";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+// Import session provider (client component)
+import NextAuthSessionProvider from "@/components/providers/SessionProvider";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "Hack a Byte",
-  description: "Created by Virexela",
+  title: "HackaByte 2024 | The Ultimate Cyber Challenge",
+  description: "Join the elite cyber challenge that tests your hacking skills, problem-solving abilities, and security knowledge.",
+  keywords: ["hackathon", "cybersecurity", "hacking", "coding challenge", "security"],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
 };
 
+// This ensures our server components can use server-side auth while client components use client-side auth
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-      </head>
-      <body className={`${robotoMono.className} bg-zinc-900`}>
-        {children} <Analytics /> <SpeedInsights />
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <div className="min-h-screen flex flex-col">
+          <NextAuthSessionProvider>
+            <div className="flex-grow">
+              {children}
+            </div>
+          </NextAuthSessionProvider>
+        </div>
       </body>
     </html>
   );
