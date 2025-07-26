@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link"; 
 
 // TypeScript interfaces for component props
 interface TypingTextProps {
@@ -441,7 +442,7 @@ export default function Page() {
                         <span className="text-cyber-primary font-mono">01</span>
                       </div>
                       <div className="flex-1 h-[1px] mx-4 bg-gradient-to-r from-cyber-primary/80 to-transparent"></div>
-                      <button className="cyber-button rounded-md text-sm">ACCESS_SYSTEM</button>
+                      <Link href="/"><button className="cyber-button rounded-md text-sm">ACCESS_SYSTEM</button></Link>
                     </div>
                   </div>
                   <div>
