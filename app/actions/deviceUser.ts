@@ -17,7 +17,7 @@ export async function createDeviceUser(
     await connectDb();
 
     // Instead of trying to find by ID directly, let's check if the device exists by deviceId field
-    const device = await Device.findOne({ deviceId });
+    const device = await Device.findOne({ deviceMacAddress: deviceId });
     if (!device) {
       return { error: "Device not found" };
     }
@@ -25,29 +25,19 @@ export async function createDeviceUser(
     // Check if username is already taken on this device
     const existingUser = await DeviceUser.findOne({
       username,
-      deviceId,
+      deviceMacAddress: deviceId,
     });
 
     if (existingUser) {
       return { error: "Username already exists on this device" };
     }
 
-    // Generate a unique session ID
-    const sessionId = `${deviceId}_${deviceType}_${username}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Create the new device user
     const newUser = new DeviceUser({
-      sessionId,
       username,
-      deviceId, // Keep as string, not ObjectId
-      deviceType,
-      userData: {
-        passwordHash: password, // Store password in userData for compatibility
-        progress: {
-          unlockedApplications: ['Notepad', 'MyComputer'],
-          skills: {}
-        }
-      }
+      deviceMacAddress: deviceId, // Store MAC address
+      password
     });
 
     await newUser.save();
@@ -57,8 +47,7 @@ export async function createDeviceUser(
       deviceId,
       deviceType,
       userId: newUser._id.toString(),
-      username,
-      sessionId: newUser.sessionId
+      username
     });
 
     const cookieStore = await cookies();
@@ -76,13 +65,8 @@ export async function createDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: newUser._id.toString(), // Convert ObjectId to string
-        username: newUser.username,
-        sessionId: newUser.sessionId,
-        progress: newUser.userData?.progress || {
-          unlockedApplications: ['Notepad', 'MyComputer'],
-          skills: {}
-        }
+        _id: newUser._id.toString(),
+        username: newUser.username
       }
     };
   } catch (error) {
@@ -101,10 +85,11 @@ export async function loginDeviceUser(
   try {
     await connectDb();
 
+
     // Find the user on this device
     const user = await DeviceUser.findOne({
       username,
-      deviceId, // Keep as string, not ObjectId
+      deviceMacAddress: deviceId,
     });
 
     if (!user) {
@@ -112,7 +97,7 @@ export async function loginDeviceUser(
     }
 
     // Validate password from userData
-    const storedPasswordHash = user.userData?.passwordHash;
+    const storedPasswordHash = user.password;
     if (!storedPasswordHash || storedPasswordHash !== password) {
       return { error: "Invalid password" };
     }
@@ -127,8 +112,7 @@ export async function loginDeviceUser(
       deviceId,
       deviceType,
       userId: user._id.toString(),
-      username,
-      sessionId: user.sessionId
+      username
     });
 
     const cookieStore = await cookies();
@@ -146,13 +130,8 @@ export async function loginDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: user._id.toString(), // Convert ObjectId to string
-        username: user.username,
-        sessionId: user.sessionId,
-        progress: user.userData?.progress || {
-          unlockedApplications: ['Notepad', 'MyComputer'],
-          skills: {}
-        }
+        _id: user._id.toString(),
+        username: user.username
       }
     };
   } catch (error) {
@@ -178,11 +157,10 @@ export async function getDeviceUser(
     
     await connectDb();
     
+
     // Verify user still exists
     const user = await DeviceUser.findOne({
       _id: new mongoose.Types.ObjectId(userData.userId),
-      deviceId, // Keep as string
-      deviceType
     });
 
     if (!user) {
@@ -194,13 +172,8 @@ export async function getDeviceUser(
     return {
       isLoggedIn: true,
       user: {
-        _id: user._id.toString(), // Convert ObjectId to string
-        username: user.username,
-        sessionId: user.sessionId,
-        progress: user.userData?.progress || {
-          unlockedApplications: ['Notepad', 'MyComputer'],
-          skills: {}
-        }
+        _id: user._id.toString(),
+        username: user.username
       }
     };
   } catch (error) {
@@ -234,14 +207,15 @@ export async function getUsersByDeviceId(deviceId: string) {
     await connectDb();
 
     // Check if the device exists
-    const device = await Device.findOne({ deviceId });
+    const device = await Device.findOne({ deviceMacAddress: deviceId });
 
     if (!device) {
       return { error: "Device not found" };
     }
 
+
     // Get all users for this device
-    const users = await DeviceUser.find({ deviceId });
+    const users = await DeviceUser.find({ deviceMacAddress: deviceId });
 
     return { 
       success: true, 
