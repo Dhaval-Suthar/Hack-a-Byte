@@ -195,7 +195,7 @@ const TeamMember = ({ name, role, delay = 0, imageNumber }: TeamMemberProps) => 
       />
       <div className={`absolute inset-0 z-0 ${glitch ? "glitch" : ""}`}>
         <Image
-          src={`https://images.unsplash.com/flagged/photo-1570612861542-284f4c12e75f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHBlcnNvbnxlbnwwfHwwfHx8MA%3D%3D&sig=${imageNumber}`}
+          src={`https://images.unsplash.com/flagged/photo-1570612861542-284f4c12e75f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHBlcnNvbnxlbnwwfHwwfHx8MA%3D%3D&ixid=unique-${imageNumber}`}
           alt={name}
           fill
           className="object-cover"
