@@ -176,6 +176,12 @@ const Calculator: React.FC<CalculatorProps> = ({ onClose }) => {
           {renderButton("√", sqrt, "text-sm")}
         </div>
         
+        {/* Additional functions */}
+        <div className="flex h-8 mb-1">
+          {renderButton("1/x", reciprocal, "text-sm")}
+          <div className="flex-[4]"></div>
+        </div>
+        
         {/* Numbers and operations */}
         <div className="flex flex-1">
           {/* Numbers */}

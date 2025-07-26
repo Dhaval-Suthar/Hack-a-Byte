@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 interface Dot {
   top: number;
@@ -19,8 +18,15 @@ interface Message {
   time: string;
 }
 
+interface TypingTextProps {
+  text: string;
+  speed?: number;
+  className?: string;
+  onComplete?: () => void;
+}
+
 // Terminal typing effect component
-const TypingText = ({ text, speed = 30, className = "", onComplete = () => {} }) => {
+const TypingText = ({ text, speed = 30, className = "", onComplete = () => {} }: TypingTextProps) => {
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -205,7 +211,7 @@ export default function Page() {
       setTerminalCommand("");
       return;
     } else {
-      response = `Command not recognized: "${terminalCommand}". Type "help" for available commands.`;
+      response = `Command not recognized: "${terminalCommand}". Type &quot;help&quot; for available commands.`;
     }
     
     // Add response after a short delay
@@ -223,7 +229,7 @@ export default function Page() {
           <div className="bg-black/50 border border-cyber-primary/40 rounded-lg overflow-hidden">
             <div className="bg-cyber-primary/10 px-4 py-2 flex justify-between items-center">
               <h3 className="text-cyber-primary font-bold">COMMUNITY CHANNELS</h3>
-              <span className="text-xs text-cyber-secondary">// SELECT ACCESS POINT</span>
+              <span className="text-xs text-cyber-secondary">{/* SELECT ACCESS POINT */}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
               <button 
@@ -561,15 +567,22 @@ export default function Page() {
       {/* Background elements */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-black opacity-95" />
-        <div className="absolute inset-0" style={{ 
-          backgroundImage: "radial-gradient(circle at center, rgba(0, 255, 65, 0.1) 0%, transparent 70%)",
-        }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(circle at center, rgba(0, 255, 65, 0.1) 0%, transparent 70%)",
+          }}
+        />
         {scanlines && (
-          <div className="absolute inset-0" style={{ 
-            backgroundImage: "repeating-linear-gradient(transparent, transparent 2px, rgba(0, 0, 0, 0.5) 2px, rgba(0, 0, 0, 0.5) 4px)",
-            backgroundSize: "100% 4px",
-            opacity: 0.2,
-          }} />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 2px, rgba(0, 0, 0, 0.5) 2px, rgba(0, 0, 0, 0.5) 4px)",
+              backgroundSize: "100% 4px",
+              opacity: 0.2,
+            }}
+          />
         )}
       </div>
 
@@ -580,7 +593,7 @@ export default function Page() {
             <feGaussianBlur stdDeviation="2.5" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k1="0" k2="1" k3="0" k4="0" />
           </filter>
-          
+
           <g filter="url(#cyber-glow)">
             {dots.map((dot) => (
               <circle
@@ -593,7 +606,7 @@ export default function Page() {
               />
             ))}
           </g>
-          
+
           {mousePosition.x !== 0 &&
             dots
               .filter(
@@ -613,18 +626,18 @@ export default function Page() {
               ))}
         </svg>
       </div>
-      
+
       {/* Intro animation */}
       <AnimatePresence>
         {showIntro && (
-          <motion.div 
+          <motion.div
             className="fixed inset-0 bg-black z-50 flex flex-col justify-center items-center"
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
             <div className="max-w-md w-full px-8">
-              <TypingText 
-                text="> INITIALIZING COMMUNITY NETWORK..." 
+              <TypingText
+                text="> INITIALIZING COMMUNITY NETWORK..."
                 className="text-cyber-primary font-mono text-xl"
                 speed={20}
               />
@@ -636,13 +649,13 @@ export default function Page() {
                   transition={{ duration: 2 }}
                 />
               </div>
-              <TypingText 
-                text="> ESTABLISHING SECURE CONNECTION..." 
+              <TypingText
+                text="> ESTABLISHING SECURE CONNECTION..."
                 className="text-cyber-primary/80 font-mono"
                 speed={15}
               />
-              <TypingText 
-                text="> CONNECTION ESTABLISHED. WELCOME." 
+              <TypingText
+                text="> CONNECTION ESTABLISHED. WELCOME."
                 className="text-cyber-primary font-mono mt-2"
                 speed={20}
               />
@@ -654,13 +667,13 @@ export default function Page() {
       {/* Command Line Modal */}
       <AnimatePresence>
         {showCommandLine && (
-          <motion.div 
+          <motion.div
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.div 
+            <motion.div
               className="w-full max-w-2xl bg-black border border-cyber-primary/60 rounded-lg overflow-hidden"
               initial={{ y: 20, scale: 0.9 }}
               animate={{ y: 0, scale: 1 }}
@@ -668,28 +681,25 @@ export default function Page() {
             >
               <div className="bg-cyber-primary/20 px-4 py-2 flex justify-between items-center">
                 <h3 className="text-cyber-primary font-bold">HACKABYTE_TERMINAL</h3>
-                <button 
+                <button
                   onClick={() => setShowCommandLine(false)}
                   className="text-cyber-primary hover:text-cyber-secondary"
                 >
                   ✕
                 </button>
               </div>
-              
+
               <div className="h-80 bg-black p-4 font-mono text-sm overflow-y-auto">
-                <div className="text-cyber-primary mb-2">Type 'help' for available commands</div>
-                
+                <div className="text-cyber-primary mb-2">Type &apos;help&apos; for available commands</div>
+
                 {terminalOutput.map((line, i) => (
-                  <div 
-                    key={i} 
-                    className={`mb-1 ${line.startsWith('>') ? 'text-cyber-primary' : 'text-gray-300'}`}
-                  >
+                  <div key={i} className={`mb-1 ${line.startsWith(">") ? "text-cyber-primary" : "text-gray-300"}`}>
                     {line}
                   </div>
                 ))}
-                
+
                 <form onSubmit={handleTerminalSubmit} className="flex mt-2">
-                  <span className="text-cyber-primary mr-2">></span>
+                  <span className="text-cyber-primary mr-2">&gt;</span>
                   <input
                     type="text"
                     value={terminalCommand}
@@ -715,7 +725,7 @@ export default function Page() {
               HACKABYTE COMMUNITY
             </h1>
           </div>
-          
+
           <div className="hidden md:block">
             <div className="flex items-center space-x-1 text-xs text-gray-500">
               <span>STATUS:</span>

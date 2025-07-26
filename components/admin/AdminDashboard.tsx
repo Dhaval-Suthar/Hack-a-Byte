@@ -454,13 +454,6 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     }
   };
 
-  const handleViewDetails = (playspace: unknown) => {
-    // Open device management modal
-    const ps = playspace as AdminPlayspace;
-    setSelectedPlayspace(ps);
-    setShowDeviceManagementModal(true);
-  };
-
   const handleAssignAccessCodeToPlayspace = async (playspaceId: string, accessCodeId: string) => {
     try {
       const result = await assignPlayspaceToAccessCode(accessCodeId, playspaceId, authKey);
@@ -775,7 +768,6 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
               onTogglePlayspace={handleTogglePlayspace}
               onUpdatePlayspace={handleUpdatePlayspace}
               onDeletePlayspace={handleDeletePlayspace}
-              onViewDetails={handleViewDetails}
               onAssignAccessCode={handleAssignAccessCodeToPlayspace}
               onRemoveAccessCode={handleRemoveAccessCodeFromPlayspace}
               onGenerateAccessCodeForPlayspace={handleGenerateAccessCodeForPlayspace}
@@ -794,7 +786,6 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
               itemsPerPage={itemsPerPage}
               isLoading={isLoading}
               onCreateDevice={handleCreateDevice}
-              onAssignDevice={handleAssignDevice}
               onUnassignDevice={handleUnassignDevice}
               onDeleteDevice={handleDeleteDevice}
               onUpdateStatus={handleUpdateStatus}

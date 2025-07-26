@@ -111,12 +111,12 @@ export function useUserStorage<T>(
 
 // Helper for simple get/set operations without React state
 export const userStorage = {
-  getItem: (baseKey: string, defaultValue: any = null, options: { debug?: boolean; serialize?: boolean } = {}) => {
+  getItem: (baseKey: string, defaultValue: unknown = null, options: { debug?: boolean; serialize?: boolean } = {}) => {
     try {
       const { debug = false, serialize = true } = options;
       const fullKey = getUserStorageKey(baseKey, debug);
-      
-      if (typeof window !== 'undefined') {
+
+      if (typeof window !== "undefined") {
         const item = localStorage.getItem(fullKey);
         if (item === null) return defaultValue;
         return serialize ? JSON.parse(item) : item;
@@ -127,17 +127,14 @@ export const userStorage = {
       return defaultValue;
     }
   },
-  
-  setItem: (baseKey: string, value: any, options: { debug?: boolean; serialize?: boolean } = {}) => {
+
+  setItem: (baseKey: string, value: unknown, options: { debug?: boolean; serialize?: boolean } = {}) => {
     try {
       const { debug = false, serialize = true } = options;
       const fullKey = getUserStorageKey(baseKey, debug);
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(
-          fullKey,
-          serialize ? JSON.stringify(value) : String(value)
-        );
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem(fullKey, serialize ? JSON.stringify(value) : String(value));
         if (debug) console.log(`Saved ${fullKey} to localStorage:`, value);
         return true;
       }
@@ -147,13 +144,13 @@ export const userStorage = {
       return false;
     }
   },
-  
+
   removeItem: (baseKey: string, options: { debug?: boolean } = {}) => {
     try {
       const { debug = false } = options;
       const fullKey = getUserStorageKey(baseKey, debug);
-      
-      if (typeof window !== 'undefined') {
+
+      if (typeof window !== "undefined") {
         localStorage.removeItem(fullKey);
         if (debug) console.log(`Removed ${fullKey} from localStorage`);
         return true;
@@ -163,7 +160,7 @@ export const userStorage = {
       console.error(`Error removing ${baseKey} from localStorage:`, error);
       return false;
     }
-  }
+  },
 };
 
 export default useUserStorage;

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import InboxMails from "../Mails/InboxMails";
 import OutboxMails from "../Mails/OutboxMails";
 import Image from "next/image";
@@ -46,7 +46,7 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
     body: "",
     attachments: []
   });
-  const [contacts, setContacts] = useState<Contact[]>([
+  const [contacts] = useState<Contact[]>([
     { name: "Security Officer", email: "security@hackbyte.corp" },
     { name: "System Admin", email: "sysadmin@hackbyte.corp" },
     { name: "Help Desk", email: "helpdesk@hackbyte.corp" },

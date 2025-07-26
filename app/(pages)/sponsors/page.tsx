@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 interface Sponsor {
   id: number;
@@ -13,8 +12,23 @@ interface Sponsor {
   websiteUrl: string;
 }
 
+interface Hexagon {
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  pulse: boolean;
+}
+
+interface TypingTextProps {
+  text: string;
+  speed?: number;
+  className?: string;
+  onComplete?: () => void;
+}
+
 // Terminal typing effect component
-const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }) => {
+const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }: TypingTextProps) => {
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -41,7 +55,7 @@ export default function Page() {
   const [showIntro, setShowIntro] = useState(true);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [scanlines, setScanlines] = useState(true);
-  const [sponsorHexagons, setSponsorHexagons] = useState<any[]>([]);
+  const [sponsorHexagons, setSponsorHexagons] = useState<Hexagon[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Sponsor data
