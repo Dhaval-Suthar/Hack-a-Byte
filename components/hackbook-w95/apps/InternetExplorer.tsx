@@ -43,8 +43,8 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
     const loadUserData = async () => {
       try {
         const { UserPreferences } = await import('../hooks/useUserPreferences');
-        const savedBookmarks = UserPreferences.getAppData('ie_bookmarks', []);
-        const savedHistory = UserPreferences.getAppData('ie_history', []);
+        const savedBookmarks = UserPreferences.getAppData('ie_bookmarks', []) as Bookmark[];
+        const savedHistory = UserPreferences.getAppData('ie_history', []) as HistoryItem[];
         setBookmarks(savedBookmarks);
         setBrowserHistory(savedHistory);
       } catch (error) {

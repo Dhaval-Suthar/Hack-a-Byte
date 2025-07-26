@@ -109,58 +109,62 @@ export function useUserStorage<T>(
   return [storedValue, setValue];
 }
 
-// Helper for simple get/set operations without React state
+// Helper functions for simple get/set operations without React state
+function getUserStorageItem<T>(baseKey: string, defaultValue: T | null = null, options: { debug?: boolean; serialize?: boolean } = {}): T | null {
+  try {
+    const { debug = false, serialize = true } = options;
+    const fullKey = getUserStorageKey(baseKey, debug);
+
+    if (typeof window !== "undefined") {
+      const item = localStorage.getItem(fullKey);
+      if (item === null) return defaultValue;
+      return serialize ? JSON.parse(item) : (item as T);
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error(`Error getting ${baseKey} from localStorage:`, error);
+    return defaultValue;
+  }
+}
+
+function setUserStorageItem<T>(baseKey: string, value: T, options: { debug?: boolean; serialize?: boolean } = {}): boolean {
+  try {
+    const { debug = false, serialize = true } = options;
+    const fullKey = getUserStorageKey(baseKey, debug);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(fullKey, serialize ? JSON.stringify(value) : String(value));
+      if (debug) console.log(`Saved ${fullKey} to localStorage:`, value);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error setting ${baseKey} in localStorage:`, error);
+    return false;
+  }
+}
+
+function removeUserStorageItem(baseKey: string, options: { debug?: boolean } = {}): boolean {
+  try {
+    const { debug = false } = options;
+    const fullKey = getUserStorageKey(baseKey, debug);
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(fullKey);
+      if (debug) console.log(`Removed ${fullKey} from localStorage`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error removing ${baseKey} from localStorage:`, error);
+    return false;
+  }
+}
+
 export const userStorage = {
-  getItem: <T>(baseKey: string, defaultValue: T | null = null, options: { debug?: boolean; serialize?: boolean } = {}): T | null => {
-    try {
-      const { debug = false, serialize = true } = options;
-      const fullKey = getUserStorageKey(baseKey, debug);
-
-      if (typeof window !== "undefined") {
-        const item = localStorage.getItem(fullKey);
-        if (item === null) return defaultValue;
-        return serialize ? JSON.parse(item) : item;
-      }
-      return defaultValue;
-    } catch (error) {
-      console.error(`Error getting ${baseKey} from localStorage:`, error);
-      return defaultValue;
-    }
-  },
-
-  setItem: <T>(baseKey: string, value: T, options: { debug?: boolean; serialize?: boolean } = {}): boolean => {
-    try {
-      const { debug = false, serialize = true } = options;
-      const fullKey = getUserStorageKey(baseKey, debug);
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem(fullKey, serialize ? JSON.stringify(value) : String(value));
-        if (debug) console.log(`Saved ${fullKey} to localStorage:`, value);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error(`Error setting ${baseKey} in localStorage:`, error);
-      return false;
-    }
-  },
-
-  removeItem: (baseKey: string, options: { debug?: boolean } = {}) => {
-    try {
-      const { debug = false } = options;
-      const fullKey = getUserStorageKey(baseKey, debug);
-
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(fullKey);
-        if (debug) console.log(`Removed ${fullKey} from localStorage`);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error(`Error removing ${baseKey} from localStorage:`, error);
-      return false;
-    }
-  },
+  getItem: getUserStorageItem,
+  setItem: setUserStorageItem,
+  removeItem: removeUserStorageItem,
 };
 
 export default useUserStorage;

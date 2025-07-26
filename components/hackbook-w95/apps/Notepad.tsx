@@ -66,7 +66,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
           const { UserPreferences } = await import("../hooks/useUserPreferences");
 
           // Load file-specific content if available
-          const savedText = UserPreferences.getAppData(`notepad_${filePath}`, null);
+          const savedText = UserPreferences.getAppData(`notepad_${filePath}`, null) as string | null;
           if (savedText !== null) {
             setText(savedText);
           }

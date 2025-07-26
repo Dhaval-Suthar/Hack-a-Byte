@@ -52,7 +52,7 @@ export function useUserPreferences(options = { debug: false }) {
   // Initialize preferences from storage
   useEffect(() => {
     try {
-      const storedPrefs = userStorage.getItem('userPreferences', defaultPreferences);
+      const storedPrefs = userStorage.getItem('userPreferences', defaultPreferences) as UserPreferences;
       setPreferences(storedPrefs);
       if (debug) console.log('Loaded user preferences:', storedPrefs);
     } catch (error) {
@@ -119,8 +119,8 @@ export function useUserPreferences(options = { debug: false }) {
  * Non-hook utility for direct access to user preferences
  */
 export const UserPreferences = {
-  get: (defaultValue = defaultPreferences) => {
-    return userStorage.getItem("userPreferences", defaultValue);
+  get: (defaultValue = defaultPreferences): UserPreferences => {
+    return userStorage.getItem("userPreferences", defaultValue) as UserPreferences;
   },
 
   update: (newPrefs: Partial<UserPreferences>) => {

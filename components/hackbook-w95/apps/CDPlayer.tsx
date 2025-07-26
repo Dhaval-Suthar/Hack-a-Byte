@@ -26,7 +26,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
         const { UserPreferences } = await import('../hooks/useUserPreferences');
         
         // Get CD player settings from user-specific storage
-        const cdPlayerSettings = UserPreferences.getAppData('cdplayer', null);
+        const cdPlayerSettings = UserPreferences.getAppData('cdplayer', null) as { volume?: number; lastTrack?: number } | null;
         
         if (cdPlayerSettings) {
           if (cdPlayerSettings.volume !== undefined) setVolume(cdPlayerSettings.volume);
