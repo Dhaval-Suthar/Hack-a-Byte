@@ -40,7 +40,7 @@ const FileSystemNodeSchema = new Schema<FileSystemNode>({
 
 // Device model interface
 export interface Device extends Document {
-  deviceIP: string; // Unique identifier for the device instance
+  deviceMacAddress: string; // Unique identifier for the device instance
   deviceType: string; // e.g., 'hackbook-w95', 'hackdroid', 'hackphone'
   status: "online" | "offline" | "maintenance";
   playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to 
@@ -88,7 +88,7 @@ export interface Device extends Document {
 
 const DeviceSchema = new Schema<Device>(
   {
-    deviceIP: { type: String, unique: true }, // Will be auto-generated if not provided
+    deviceMacAddress: { type: String, unique: true, required: true }, // Will be auto-generated if not provided
     deviceType: { type: String, required: true },
     status: { type: String, enum: ["online", "offline", "maintenance"], default: "offline" },
     playspace: { type: mongoose.Schema.Types.ObjectId, ref: "Playspace" },
@@ -137,7 +137,7 @@ const DeviceSchema = new Schema<Device>(
 );
 
 // Create indexes for better query performance
-DeviceSchema.index({ deviceIP: 1 });
+DeviceSchema.index({ deviceMacAddress: 1 });
 DeviceSchema.index({ deviceType: 1 });
 
 // Helper method to add a log entry

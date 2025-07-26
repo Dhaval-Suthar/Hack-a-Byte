@@ -116,17 +116,13 @@ const Desktop = () => {
           setDeviceId(devId);
 
           // Check if user exists by calling getDeviceUser server action
-          const result = await getDeviceUser(deviceId || "", "hackbook-w95");
-          
+          const result = await getDeviceUser(devId || "", "hackbook-w95");   
+
           if (result.isLoggedIn && result.user) {
-            // Set user data compatible with existing interface
+            // Set user data compatible with updated schema
             setDeviceUser({
               _id: result.user._id,
-              username: result.user.username,
-              progress: result.user.progress || {
-                unlockedApplications: [],
-                skills: {}
-              }
+              username: result.user.username
             });
 
             // Check if user has seen mission briefing in user-specific storage

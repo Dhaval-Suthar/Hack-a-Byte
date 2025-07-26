@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { createDeviceUser, getDeviceUser } from "@/app/actions/deviceUser";
+import { createDeviceUser, getDeviceUser, loginDeviceUser } from "@/app/actions/deviceUser";
 import BootAnimation from "@/components/hackbook-w95/boot-animation";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 
@@ -107,46 +107,37 @@ const Page = () => {
   const handleLogin = async (formData: FormData) => {
     setIsLoading(true);
     setError(null);
-    
+
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
-    
+
     if (!username || !password) {
       setError("Please enter both username and password");
       setIsLoading(false);
       return;
     }
-    
+
     try {
       if (!playspaceId) {
-      setError("Playspace ID is required for login");
-      setIsLoading(false);
-      return;
+        setError("Playspace ID is required for login");
+        setIsLoading(false);
+        return;
       }
 
-      // Playspace-specific login using API
-      const response = await fetch("/api/playspace/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username,
-        password,
-        playspaceId,
-        deviceType: "hackbook-w95",
-        deviceId: deviceId // Include specific device ID if available
-      }),
-      });
-      
-      const data = await response.json();
-
-      if (!response.ok) {
-      setError(data.error || "Login failed");
-      setIsLoading(false);
-      return;
+      // Use server action for device user login
+      if (!deviceId) {
+        setError("Device ID is required for login");
+        setIsLoading(false);
+        return;
       }
-      
+      const result = await loginDeviceUser(username, password, deviceId, "hackbook-w95");
+
+      if (!result || !result.success || !result.user) {
+        setError(result?.error || "Login failed");
+        setIsLoading(false);
+        return;
+      }
+
       // Success - redirect to device with deviceId if available
       const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
       router.push(targetUrl);
