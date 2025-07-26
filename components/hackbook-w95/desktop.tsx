@@ -127,7 +127,7 @@ const Desktop = () => {
 
             // Check if user has seen mission briefing in user-specific storage
             import('./hooks/useUserStorage').then(({ userStorage }) => {
-              const missionSeen = userStorage.getItem("missionBriefingSeen", false);
+              const missionSeen = userStorage.getItem("missionBriefingSeen", false) as boolean;
               setHasSeenMission(missionSeen === true);
             });
 
@@ -808,7 +808,7 @@ const TerminalComponent: React.FC = () => {
     const checkHiddenFilesEnabled = async () => {
       try {
         const { userStorage } = await import('./hooks/useUserStorage');
-        const showHidden = userStorage.getItem("showHiddenFiles", false);
+        const showHidden = userStorage.getItem("showHiddenFiles", false) as boolean;
         setHiddenFilesEnabled(showHidden === true);
       } catch (error) {
         console.error("Error reading hidden files setting:", error);

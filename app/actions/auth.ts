@@ -2,18 +2,14 @@
 
 import connectDb from "@/db/connectDb";
 import User from "@/models/User";
-import { authOptions } from "@/lib/auth";
-import { getServerSession } from "next-auth/next";
-import { signIn } from "next-auth/react";
 import bcrypt from "bcryptjs";
-import { redirect } from "next/navigation";
 
 // This function is for server-side auth status checking
 export async function getAuthStatus() {
-  const session = await getServerSession(authOptions);
+  // Since NextAuth is removed, always return unauthenticated
   return {
-    isAuthenticated: !!session?.user,
-    user: session?.user || null
+    isAuthenticated: false,
+    user: null
   };
 }
 
@@ -75,8 +71,7 @@ export async function registerUser(formData: {
   }
 }
 
-// Note: Frontend login will still use the signIn function from next-auth/react
-// This is a server-side version for reference
+// Server-side login function for authentication
 export async function serverLogin(formData: {
   username: string;
   password: string;
@@ -114,8 +109,7 @@ export async function serverLogin(formData: {
       };
     }
     
-    // You would normally sign in the user here,
-    // but we'll use next-auth's signIn on the client side
+    // You would normally sign in the user here with a custom authentication system
     
     return { 
       success: true,

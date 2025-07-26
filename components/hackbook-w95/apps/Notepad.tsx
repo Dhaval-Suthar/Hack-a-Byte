@@ -25,7 +25,6 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
   const [searchHits, setSearchHits] = useState<number[]>([]);
   const [currentHit, setCurrentHit] = useState(-1);
   const [modified, setModified] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [caseSensitiveSearch, setCaseSensitiveSearch] = useState(false);
   const [showGoToLine, setShowGoToLine] = useState(false);
@@ -67,7 +66,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
           const { UserPreferences } = await import("../hooks/useUserPreferences");
 
           // Load file-specific content if available
-          const savedText = UserPreferences.getAppData(`notepad_${filePath}`, null);
+          const savedText = UserPreferences.getAppData(`notepad_${filePath}`, null) as string | null;
           if (savedText !== null) {
             setText(savedText);
           }
@@ -113,7 +112,8 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
       if (filePath) {
         saveFile();
       } else {
-        setShowSaveDialog(true);
+        // Show save as dialog - functionality not implemented yet
+        setStatusMessage("Save As functionality not implemented");
       }
     }
   };
@@ -177,46 +177,6 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
 
     setShowGoToLine(false);
     setGoToLineNumber("");
-  };
-
-  // Search for a term in the text
-  const handleSearch = () => {
-    if (!searchTerm) {
-      setStatusMessage("Please enter a search term");
-      return;
-    }
-
-    // Find all occurrences of the search term
-    const hits: number[] = [];
-    let index = -1;
-
-    do {
-      index = text.indexOf(searchTerm, index + 1);
-      if (index !== -1) {
-        hits.push(index);
-      }
-    } while (index !== -1);
-
-    if (hits.length === 0) {
-      setStatusMessage(`Cannot find "${searchTerm}"`);
-      return;
-    }
-
-    // Set the search hits and highlight the first one
-    setSearchHits(hits);
-    setCurrentHit(0);
-    highlightHit(hits[0]);
-
-    setStatusMessage(`Found ${hits.length} matches for "${searchTerm}"`);
-  };
-
-  // Highlight a specific search hit
-  const highlightHit = (position: number) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    textarea.focus();
-    textarea.setSelectionRange(position, position + searchTerm.length);
   };
 
   // Enhanced search functionality
@@ -316,33 +276,6 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
   };
 
   // Replace current hit with replacement text
-  const replaceHit = () => {
-    if (searchHits.length === 0 || currentHit === -1) {
-      handleSearch();
-      return;
-    }
-
-    const position = searchHits[currentHit];
-    const newText = text.substring(0, position) + replaceTerm + text.substring(position + searchTerm.length);
-    setText(newText);
-    setModified(true);
-
-    // Update search hits after replacement
-    handleSearch();
-  };
-
-  // Replace all occurrences
-  const replaceAll = () => {
-    if (!searchTerm) {
-      handleSearch();
-      return;
-    }
-
-    const newText = text.split(searchTerm).join(replaceTerm);
-    setText(newText);
-    setModified(true);
-    setStatusMessage(`Replaced all occurrences of "${searchTerm}" with "${replaceTerm}"`);
-  };
 
   // Save the current file
   const saveFile = () => {

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { handleAccessCode } from "@/lib/access-code";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,13 +15,13 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const terminalLines = [
+  const terminalLines = useMemo(() => [
     { text: "> INITIALIZING SYSTEM...", delay: 500 },
     { text: "> CHECKING SECURITY PROTOCOLS...", delay: 1200 },
     { text: "> LOADING MAIN DATABASE...", delay: 2000 },
     { text: "> CONNECTING TO SECURE SERVER...", delay: 2800 },
     { text: "> ACCESS GRANTED. WELCOME TO HACKABYTE.", delay: 3500 },
-  ];
+  ], []);
   const [displayedLines, setDisplayedLines] = useState<number>(0);
 
   // Matrix rain effect for canvas background
@@ -91,7 +91,7 @@ export default function Page() {
       // Display terminal lines sequentially
       terminalLines.forEach((line, index) => {
         setTimeout(() => {
-          setDisplayedLines((prev) => index + 1);
+          setDisplayedLines(index + 1);
         }, line.delay);
       });
 
@@ -101,7 +101,7 @@ export default function Page() {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, []);
+  }, [terminalLines]);
 
   // Handle access code input
   const handleCodeChange = (index: number, value: string) => {
@@ -167,7 +167,7 @@ export default function Page() {
         const firstInput = document.getElementById("code-0");
         if (firstInput) firstInput.focus();
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);

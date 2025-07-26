@@ -51,7 +51,6 @@ interface PlayspacesTabProps {
   onTogglePlayspace: (playspaceId: string, currentStatus: boolean) => void;
   onUpdatePlayspace: (playspace: Playspace) => void;
   onDeletePlayspace: (playspaceId: string) => void;
-  onViewDetails: (playspace: Playspace) => void;
   onAssignAccessCode?: (playspaceId: string, accessCodeId: string) => void;
   onRemoveAccessCode?: (playspaceId: string) => void;
   onGenerateAccessCodeForPlayspace?: (playspaceId: string, playspaceName: string) => void;
@@ -72,7 +71,6 @@ export default function PlayspacesTab({
   onCreatePlayspace,
   onUpdatePlayspace,
   onDeletePlayspace,
-  onViewDetails,
   onAssignAccessCode,
   onRemoveAccessCode,
   onGenerateAccessCodeForPlayspace,

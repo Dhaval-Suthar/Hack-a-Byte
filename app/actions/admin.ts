@@ -1,7 +1,5 @@
 "use server";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import connectDb from "@/db/connectDb";
 import User from "@/models/User";
 import AccessCode, { AccessCodeType } from "@/models/AccessCode";
@@ -28,28 +26,11 @@ async function checkAdminStatus(adminKey?: string) {
     }
   }
 
-  // Fallback to session-based authentication
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return {
-      isAdmin: false,
-      error: "Not authenticated",
-    };
-  }
-
-  await connectDb();
-
-  const admin = await User.findById(session.user.id);
-
-  if (!admin || !admin.isAdmin) {
-    return {
-      isAdmin: false,
-      error: "Unauthorized",
-    };
-  }
-
-  return { isAdmin: true, error: null };
+  // No session-based authentication fallback
+  return {
+    isAdmin: false,
+    error: "Authentication key required",
+  };
 }
 
 // User Actions
@@ -105,15 +86,6 @@ export async function updateUser(userId: string, action: string, adminKey?: stri
 
     if (!user) {
       return { error: "User not found" };
-    }
-
-    // Get the acting admin
-    const session = await getServerSession(authOptions);
-    const admin = await User.findById(session?.user.id);
-
-    // Prevent admin from modifying themselves
-    if (user._id.toString() === admin?._id.toString()) {
-      return { error: "Cannot modify your own admin status" };
     }
 
     // Perform the requested action
@@ -456,7 +428,6 @@ export async function createPlayspace(
 
   try {
     await connectDb();
-    const session = await getServerSession(authOptions);
 
     // Create the playspace
     const newPlayspace = new Playspace({
@@ -464,7 +435,7 @@ export async function createPlayspace(
       description,
       isPublic,
       devices,
-      creatorId: session?.user.id,
+      creatorId: null, // No creator tracking without sessions
     });
 
     await newPlayspace.save();
@@ -654,34 +625,20 @@ export async function getDevicesByPlayspaceId(playspaceId: string) {
 }
 
 // Admin verification and initialization
-export async function verifyAdmin() {
+export async function verifyAdmin(adminKey?: string) {
   try {
-    // Get session from next-auth
-    const session = await getServerSession(authOptions);
-
-    // Check if user is logged in
-    if (!session?.user) {
+    // Check admin status using key authentication
+    const { isAdmin, error } = await checkAdminStatus(adminKey);
+    
+    if (!isAdmin) {
       return {
         isAdmin: false,
-        error: "Not authenticated",
+        error: error || "Authentication required",
       };
     }
 
-    // Connect to database
-    await connectDb();
-
-    // Get user from database to check admin status
-    const user = await User.findById(session.user.id);
-
-    if (!user) {
-      return {
-        isAdmin: false,
-        error: "User not found",
-      };
-    }
-
-    // Return whether user is admin
-    return { isAdmin: !!user.isAdmin };
+    // Return admin status
+    return { isAdmin: true };
   } catch (error) {
     console.error("Error verifying admin status:", error);
     return {

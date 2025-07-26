@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface SystemSoundsProps {
   enabled?: boolean;
@@ -64,34 +64,34 @@ const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
     };
 
     // Register event listener
-    window.addEventListener('win95sound' as any, handleSystemSound as EventListener);
+    window.addEventListener('win95sound', handleSystemSound as EventListener);
     
     // Clean up
     return () => {
-      window.removeEventListener('win95sound' as any, handleSystemSound as EventListener);
+      window.removeEventListener('win95sound', handleSystemSound as EventListener);
     };
   }, [enabled]);
 
   // Helper function to play a system sound programmatically
-  const playSystemSound = (sound: SoundEvent) => {
+  const playSystemSound = useCallback((sound: SoundEvent) => {
     if (!enabled) return;
     
     const event = new CustomEvent('win95sound', { detail: sound });
     window.dispatchEvent(event);
-  };
+  }, [enabled]);
 
   // Expose the play function to the global window object
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).playWin95Sound = playSystemSound;
+      (window as typeof window & { playWin95Sound: typeof playSystemSound }).playWin95Sound = playSystemSound;
     }
     
     return () => {
       if (typeof window !== 'undefined') {
-        delete (window as any).playWin95Sound;
+        delete (window as typeof window & { playWin95Sound?: typeof playSystemSound }).playWin95Sound;
       }
     };
-  }, []);
+  }, [playSystemSound]);
 
   if (!enabled) return null;
 

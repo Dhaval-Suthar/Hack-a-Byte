@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 
 interface Cell {
   revealed: boolean;
@@ -25,11 +24,72 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [mineCount, setMineCount] = useState(10);
   const [timer, setTimer] = useState(0);
-  const [difficulty, setDifficulty] = useState(DIFFICULTY.BEGINNER);
+  const [difficulty] = useState(DIFFICULTY.BEGINNER);
   const [gameStarted, setGameStarted] = useState(false);
   const [faceState, setFaceState] = useState<"smile" | "wow" | "dead" | "cool">("smile");
 
   // Initialize the grid
+  useEffect(() => {
+    const initializeGrid = () => {
+      const { rows, cols, mines } = difficulty;
+      
+      // Create empty grid
+      const newGrid: Cell[][] = Array(rows).fill(null).map(() => 
+        Array(cols).fill(null).map(() => ({
+          revealed: false,
+          mine: false,
+          flagged: false,
+          adjacentMines: 0,
+        }))
+      );
+      
+      // Place mines randomly
+      let minesPlaced = 0;
+      while (minesPlaced < mines) {
+        const row = Math.floor(Math.random() * rows);
+        const col = Math.floor(Math.random() * cols);
+        
+        if (!newGrid[row][col].mine) {
+          newGrid[row][col].mine = true;
+          minesPlaced++;
+        }
+      }
+      
+      // Calculate adjacent mines
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (newGrid[row][col].mine) continue;
+          
+          let count = 0;
+          for (let r = -1; r <= 1; r++) {
+            for (let c = -1; c <= 1; c++) {
+              if (r === 0 && c === 0) continue;
+              
+              const newRow = row + r;
+              const newCol = col + c;
+              
+              if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                if (newGrid[newRow][newCol].mine) count++;
+              }
+            }
+          }
+          
+          newGrid[row][col].adjacentMines = count;
+        }
+      }
+      
+      setGrid(newGrid);
+      setMineCount(mines);
+      setTimer(0);
+      setGameState("playing");
+      setGameStarted(false);
+      setFaceState("smile");
+    };
+
+    initializeGrid();
+  }, [difficulty]);
+
+  // Separate initializeGrid function for reset button
   const initializeGrid = () => {
     const { rows, cols, mines } = difficulty;
     
@@ -85,10 +145,6 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
     setGameStarted(false);
     setFaceState("smile");
   };
-  
-  useEffect(() => {
-    initializeGrid();
-  }, [difficulty]);
   
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;

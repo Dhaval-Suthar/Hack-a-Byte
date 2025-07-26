@@ -36,7 +36,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
     const loadHiddenFilesSetting = async () => {
       try {
         const { userStorage } = await import('@/components/hackbook-w95/hooks/useUserStorage');
-        const showHidden = userStorage.getItem('showHiddenFiles', false);
+        const showHidden = userStorage.getItem('showHiddenFiles', false) as boolean;
         setShowHiddenFiles(showHidden === true);
       } catch (error) {
         console.error('Error loading hidden files setting:', error);

@@ -37,7 +37,7 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
       context.fillRect(0, 0, canvas.width, canvas.height);
       contextRef.current = context;
     }
-  }, []);
+  }, [color, brushSize]);
 
   useEffect(() => {
     if (contextRef.current) {

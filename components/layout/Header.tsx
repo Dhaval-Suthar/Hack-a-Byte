@@ -5,15 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import Button from "@/components/ui/Button";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [timeString, setTimeString] = useState("");
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,18 +36,8 @@ export default function Header() {
     { name: "About", path: "/about" },
     { name: "Event", path: "/event" },
     { name: "Sponsors", path: "/sponsors" },
-    { name: "Community", path: "/community" },
+    { name: "Community", path: "/community" }
   ];
-
-  // Add device selection if logged in
-  if (session?.user) {
-    menuItems.push({ name: "Devices", path: "/device-selection" });
-  }
-
-  // Add admin dashboard for admin users
-  if (session?.user?.isAdmin) {
-    menuItems.push({ name: "Admin", path: "/admin" });
-  }
 
   return (
     <motion.header
@@ -140,7 +127,7 @@ export default function Header() {
                       whileHover={{ x: 10 }}
                       className={`${
                         pathname === item.path ? "text-cyber-primary shadow-cyber" : "text-gray-300"
-                      } hover:text-cyber-primary block px-3 py-2 text-base font-terminal flex items-center`}
+                      } hover:text-cyber-primary px-3 py-2 text-base font-terminal flex items-center`}
                     >
                       <span className="text-cyber-primary opacity-60 mr-2">{">"}</span>
                       {item.name}

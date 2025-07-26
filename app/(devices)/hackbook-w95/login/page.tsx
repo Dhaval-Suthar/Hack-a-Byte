@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +8,7 @@ import { createDeviceUser, getDeviceUser, loginDeviceUser } from "@/app/actions/
 import BootAnimation from "@/components/hackbook-w95/boot-animation";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 
-const Page = () => {
+const LoginPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -339,6 +339,14 @@ const Page = () => {
       </div>
       )}
     </main>
+  );
+};
+
+const Page = () => {
+  return (
+    <Suspense fallback={<BootAnimation />}>
+      <LoginPage />
+    </Suspense>
   );
 };
 

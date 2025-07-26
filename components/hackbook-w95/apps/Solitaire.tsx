@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 // Define card types
 type Suit = "hearts" | "diamonds" | "clubs" | "spades";
@@ -17,7 +17,6 @@ interface SolitaireProps {
 }
 
 const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
-  const [deck, setDeck] = useState<Card[]>([]);
   const [stock, setStock] = useState<Card[]>([]);
   const [waste, setWaste] = useState<Card[]>([]);
   const [foundations, setFoundations] = useState<Card[][]>(Array(4).fill([]));
@@ -33,9 +32,19 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
       dealNewGame();
       setGameStarted(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameStarted]);
   
-  const createDeck = (): Card[] => {
+  const shuffleDeck = useCallback((deck: Card[]): Card[] => {
+    const newDeck = [...deck];
+    for (let i = newDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+    }
+    return newDeck;
+  }, []);
+  
+  const createDeck = useCallback((): Card[] => {
     const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
     const ranks: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
     const newDeck: Card[] = [];
@@ -53,18 +62,9 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
     
     // Shuffle the deck
     return shuffleDeck(newDeck);
-  };
+  }, [shuffleDeck]);
   
-  const shuffleDeck = (deck: Card[]): Card[] => {
-    const newDeck = [...deck];
-    for (let i = newDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
-    }
-    return newDeck;
-  };
-  
-  const dealNewGame = () => {
+  const dealNewGame = useCallback(() => {
     const newDeck = createDeck();
     const newTableaus: Card[][] = Array(7).fill([]).map(() => []);
     
@@ -80,7 +80,6 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
       }
     }
     
-    setDeck(newDeck);
     setStock(newDeck);
     setWaste([]);
     setFoundations([[], [], [], []]);
@@ -88,7 +87,7 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
     setSelectedCard(null);
     setScore(0);
     setMoves(0);
-  };
+  }, [createDeck]);
   
   // Simplified card rendering - in a real app, you'd have actual card images
   const renderCard = (card: Card | null, idx: number, source: string) => {
