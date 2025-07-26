@@ -23,7 +23,6 @@ interface DevicesTabProps {
   itemsPerPage: number;
   isLoading: boolean;
   onCreateDevice: (deviceType: string) => void;
-  onAssignDevice: (deviceId: string, playspaceId?: string) => void;
   onUnassignDevice: (deviceId: string) => void;
   onDeleteDevice: (deviceId: string) => void;
   onUpdateStatus: (deviceId: string, newStatus: string) => void;
@@ -38,7 +37,6 @@ export default function DevicesTab({
   itemsPerPage,
   isLoading,
   onCreateDevice,
-  onAssignDevice,
   onUnassignDevice,
   onDeleteDevice,
   onUpdateStatus

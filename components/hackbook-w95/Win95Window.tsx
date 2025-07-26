@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Rnd } from "react-rnd";
 import clsx from "clsx";
 import Image from "next/image";
@@ -42,7 +42,7 @@ const Win95Window: React.FC<WindowProps> = ({
   const wasFullscreenRef = useRef(position.isFullscreen);
   
   // Function to play system sounds
-  const playSound = (sound: SoundEvent) => {
+  const playSound = useCallback((sound: SoundEvent) => {
     if (typeof window !== 'undefined' && (window as any).playWin95Sound) {
       (window as any).playWin95Sound(sound);
     } else {
@@ -55,7 +55,7 @@ const Win95Window: React.FC<WindowProps> = ({
         console.error("Sound playback error:", error);
       }
     }
-  };
+  }, []);
   
   // Handle window resize/reposition
   const handleDragStop = (_e: any, d: { x: number; y: number }) => {
@@ -97,7 +97,7 @@ const Win95Window: React.FC<WindowProps> = ({
     return () => {
       playSound('close');
     };
-  }, []);
+  }, [playSound]);
 
   // Handle fullscreen toggling
   useEffect(() => {

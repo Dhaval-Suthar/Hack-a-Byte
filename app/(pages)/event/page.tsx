@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 interface Event {
   id: number;
@@ -32,7 +31,14 @@ interface Event {
 }
 
 // Terminal typing effect component
-const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }) => {
+interface TypingTextProps {
+  text: string;
+  speed?: number;
+  className?: string;
+  onComplete?: () => void;
+}
+
+const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }: TypingTextProps) => {
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -54,7 +60,11 @@ const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} })
 };
 
 // Countdown timer component
-const CountdownTimer = ({ targetDate }) => {
+interface CountdownTimerProps {
+  targetDate: string;
+}
+
+const CountdownTimer = ({ targetDate }: CountdownTimerProps) => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -100,7 +110,11 @@ const CountdownTimer = ({ targetDate }) => {
 };
 
 // Interactive difficulty meter component
-const DifficultyMeter = ({ level }) => {
+interface DifficultyMeterProps {
+  level: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+}
+
+const DifficultyMeter = ({ level }: DifficultyMeterProps) => {
   const difficultyLevels = ["Beginner", "Intermediate", "Advanced", "Expert"];
   const levelIndex = difficultyLevels.indexOf(level);
   
@@ -338,7 +352,7 @@ export default function Page() {
     };
   }, []);
 
-  const handleRegister = (eventId) => {
+  const handleRegister = (eventId: number) => {
     if (registeredEvents.includes(eventId)) {
       setRegisteredEvents(prev => prev.filter(id => id !== eventId));
     } else {
@@ -348,7 +362,7 @@ export default function Page() {
     }
   };
 
-  const renderEventCard = (event) => {
+  const renderEventCard = (event: Event) => {
     const isRegistered = registeredEvents.includes(event.id);
     const isPast = new Date(event.date) < new Date(currentDate);
     
@@ -387,7 +401,7 @@ export default function Page() {
           </p>
           
           <div className="flex flex-wrap gap-1 mb-4">
-            {event.tags.map((tag, index) => (
+            {event.tags.map((tag: string, index: number) => (
               <span
                 key={index}
                 className="bg-black/50 text-cyber-primary text-xs px-2 py-1 rounded border border-cyber-primary/40"

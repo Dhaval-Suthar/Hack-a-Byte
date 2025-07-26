@@ -195,8 +195,7 @@ const TeamMember = ({ name, role, delay = 0, imageNumber }: TeamMemberProps) => 
       />
       <div className={`absolute inset-0 z-0 ${glitch ? "glitch" : ""}`}>
         <Image
-          // src={`/bg${imageNumber}.jpg`}
-          src={`https://images.unsplash.com/flagged/photo-1570612861542-284f4c12e75f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHBlcnNvbnxlbnwwfHwwfHx8MA%3D%3D`}
+          src={`https://images.unsplash.com/flagged/photo-1570612861542-284f4c12e75f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHBlcnNvbnxlbnwwfHwwfHx8MA%3D%3D&ixid=unique-${imageNumber}`}
           alt={name}
           fill
           className="object-cover"
@@ -258,14 +257,17 @@ const AchievementBadge = ({ number, label, delay = 0 }: AchievementBadgeProps) =
       { threshold: 0.1 }
     );
 
-    if (badgeRef.current) {
-      observer.observe(badgeRef.current);
+    const currentRef = badgeRef.current;
+    
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (badgeRef.current) {
-        observer.disconnect();
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
+      observer.disconnect();
     };
   }, []);
 
@@ -308,10 +310,18 @@ export default function Page() {
   const [activeSection, setActiveSection] = useState(0);
   const [bootSequenceComplete, setBootSequenceComplete] = useState(false);
   const [scanlines, setScanlines] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(1200); // Default width for SSR
   const sections = ["Welcome", "Mission", "Team", "Stats"];
 
   // Boot sequence effect
   useEffect(() => {
+    // Set initial window width on client side
+    setWindowWidth(window.innerWidth);
+    
+    // Handle window resize
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    
     setTimeout(() => {
       setBootSequenceComplete(true);
     }, 2500);
@@ -322,7 +332,10 @@ export default function Page() {
       setTimeout(() => setScanlines(true), 100);
     }, 5000);
 
-    return () => clearInterval(scanlinesInterval);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearInterval(scanlinesInterval);
+    };
   }, []);
 
   return (
@@ -799,7 +812,7 @@ export default function Page() {
             className="absolute text-cyber-primary/10 whitespace-nowrap font-mono text-xs"
             initial={{ 
               y: Math.random() * 2000 - 1000, 
-              x: Math.random() * window.innerWidth,
+              x: Math.random() * windowWidth,
               opacity: 0.3
             }}
             animate={{ 

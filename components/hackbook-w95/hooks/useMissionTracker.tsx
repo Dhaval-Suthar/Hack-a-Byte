@@ -26,7 +26,7 @@ export function useMissionTracker() {
   // Load missions from storage
   useEffect(() => {
     try {
-      const savedMissions = userStorage.getItem('win95Missions', {});
+      const savedMissions = userStorage.getItem('win95Missions', {}) as Record<string, Mission>;
       setMissions(savedMissions);
       setLoaded(true);
     } catch (error) {
@@ -150,7 +150,7 @@ export const MissionTracker = {
     if (missions[missionId]?.completed) return true;
     
     // Fall back to legacy format
-    return userStorage.getItem(`${missionId}Completed`, false);
+    return userStorage.getItem(`${missionId}Completed`, false) as boolean;
   },
   
   completeMission: (missionId: string): void => {

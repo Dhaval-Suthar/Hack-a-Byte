@@ -20,7 +20,6 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
-  const [totalSize, setTotalSize] = useState<number>(0);
   const [isConfirmingEmpty, setIsConfirmingEmpty] = useState<boolean>(false);
 
   // Load deleted items from file system on mount
@@ -70,11 +69,11 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
 
       if (canNavigate) {
         try {
-          // Set up the clipboard to prepare for pasting
-          fs.setClipboard({
-            items: [restoredItem],
-            operation: "copy",
-          });
+          // Set the selected items to the item we want to restore
+          fs.setSelectedItems([restoredItem]);
+          
+          // Copy to clipboard
+          fs.copyToClipboard("copy");
 
           // Paste the item to restore it
           const pasteSuccess = fs.pasteFromClipboard();
@@ -98,7 +97,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
           }
         } catch (error) {
           console.error("Error restoring item:", error);
-          setStatusMessage("Error restoring item: " + error.message);
+          setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
         }
       }
     } catch (error) {
@@ -169,17 +168,6 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
     setViewMode(mode);
     setIsViewMenuOpen(false);
   };
-
-  // Calculate total size of all items
-  useEffect(() => {
-    let size = 0;
-    deletedItems.forEach((item) => {
-      if (item.type === "file" && item.size) {
-        size += item.size;
-      }
-    });
-    setTotalSize(size);
-  }, [deletedItems]);
 
   return (
     <div className="h-full w-full flex flex-col">
