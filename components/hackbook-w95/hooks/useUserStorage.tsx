@@ -111,7 +111,7 @@ export function useUserStorage<T>(
 
 // Helper for simple get/set operations without React state
 export const userStorage = {
-  getItem: (baseKey: string, defaultValue: unknown = null, options: { debug?: boolean; serialize?: boolean } = {}) => {
+  getItem: <T>(baseKey: string, defaultValue: T | null = null, options: { debug?: boolean; serialize?: boolean } = {}): T | null => {
     try {
       const { debug = false, serialize = true } = options;
       const fullKey = getUserStorageKey(baseKey, debug);
