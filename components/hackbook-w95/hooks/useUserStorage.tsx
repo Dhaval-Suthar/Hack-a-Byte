@@ -128,7 +128,7 @@ export const userStorage = {
     }
   },
 
-  setItem: (baseKey: string, value: unknown, options: { debug?: boolean; serialize?: boolean } = {}) => {
+  setItem: <T>(baseKey: string, value: T, options: { debug?: boolean; serialize?: boolean } = {}): boolean => {
     try {
       const { debug = false, serialize = true } = options;
       const fullKey = getUserStorageKey(baseKey, debug);
