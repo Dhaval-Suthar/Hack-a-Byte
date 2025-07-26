@@ -1182,7 +1182,7 @@ export async function createDevice(
         break;
     }
 
-    // Generate a unique device MacAdress
+    // Generate a unique device MacAddress
     const deviceMacAddress = `${generateMacAddress()}`;
 
     // Create new device
