@@ -19,6 +19,7 @@
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "cookies-next": "^5.1.0",
+    "framer-motion": "^12.23.9",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.2",
     "motion": "^12.12.1",
