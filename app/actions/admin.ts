@@ -11,6 +11,7 @@ import Device from "@/models/Device";
 import Event from "@/models/Event";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
+import { generateMacAddress } from "@/lib/utils";
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -633,12 +634,12 @@ export async function getDevicesByPlayspaceId(playspaceId: string) {
     // We need to query the Device collection to find all devices belonging to this playspace
     const devices = await Device.find({
       playspace: new mongoose.Types.ObjectId(playspaceId),
-    }).select("deviceIP deviceType status");
+    }).select("deviceMacAddress deviceType status");
 
     return {
       success: true,
       devices: devices.map((device) => ({
-        id: device.deviceIP,
+        id: device.deviceMacAddress,
         type: device.deviceType, // This is what's used for matching in the UI
         status: device.status,
       })),
@@ -1075,13 +1076,13 @@ export async function getAllDevices(adminKey?: string) {
 
     const devices = await Device.find({})
       .populate('playspace', 'name description')
-      .select('_id deviceIP deviceType status playspace createdAt')
+      .select('_id deviceMacAddress deviceType status playspace createdAt')
       .lean();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedDevices = devices.map((device: any) => ({
       _id: device._id?.toString() || '',
-      deviceId: device.deviceIP || '',
+      deviceId: device.deviceMacAddress || '',
       deviceType: device.deviceType || '',
       status: device.status || 'offline',
       playspace: device.playspace ? {
@@ -1181,13 +1182,13 @@ export async function createDevice(
         break;
     }
 
-    // Generate a unique device IP
-    const deviceIP = `${deviceType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a unique device MacAddress
+    const deviceMacAddress = `${generateMacAddress()}`;
 
     // Create new device
     const newDevice = new Device({
-      deviceIP,
       deviceType,
+      deviceMacAddress,
       status: "offline",
       configuration: defaultConfig,
       logs: [],
@@ -1202,7 +1203,7 @@ export async function createDevice(
       message: `Device ${deviceType} created successfully`,
       device: {
         _id: newDevice._id.toString(),
-        deviceId: newDevice.deviceIP,
+        deviceId: newDevice.deviceMacAddress,
         deviceType: newDevice.deviceType,
         status: newDevice.status,
         playspace: null,
