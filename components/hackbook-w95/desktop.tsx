@@ -19,6 +19,9 @@ import Paint from "@/components/hackbook-w95/apps/Paint";
 import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
+import RestartAnimation from "@/components/hackbook-w95/restart-animation";
+import ShutdownAnimation from "@/components/hackbook-w95/shutdown-animation";
+import LogoutAnimation from "@/components/hackbook-w95/logout-animation";
 
 import SystemSounds from "@/components/hackbook-w95/SystemSounds";
 import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
@@ -68,6 +71,9 @@ const Desktop = () => {
   const [showProgramsMenu, setShowProgramsMenu] = useState(false);
   const [hasSeenMission, setHasSeenMission] = useState(false);
   const [showShutdownDialog, setShowShutdownDialog] = useState(false);
+  const [showRestartAnimation, setShowRestartAnimation] = useState(false);
+  const [showShutdownAnimation, setShowShutdownAnimation] = useState(false);
+  const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
   const [runningApps, setRunningApps] = useState<App[]>([]);
 
   // Device user state
@@ -170,6 +176,12 @@ const Desktop = () => {
 
   // Handle logout from device
   const handleLogout = async () => {
+    // Show logout animation immediately
+    setShowLogoutAnimation(true);
+  };
+
+  // Handle logout animation completion
+  const handleLogoutComplete = async () => {
     try {
       if (playspaceId && deviceUser) {
         // Logout from device session - this will clear the httpOnly cookie on server side
@@ -178,24 +190,40 @@ const Desktop = () => {
           "hackbook-w95"
         );
 
-        // Clear localStorage
+        // Clear only device-specific localStorage items, preserve playspaceId
         if (typeof window !== "undefined") {
-          localStorage.removeItem("playspaceId");
-          localStorage.removeItem("selectedDeviceId");
+          // Keep playspaceId and selectedDeviceId for proper redirection
+          // Only remove device type to reset device-specific state
           localStorage.removeItem("selectedDeviceType");
         }
       }
 
-      // Navigate back to device selection
-      router.push("/device-selection");
+      // Navigate back to hackbook-w95 login with preserved playspaceId and deviceId
+      const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
+      const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
+      
+      if (storedPlayspaceId && storedDeviceId) {
+        router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
+      } else {
+        // Fallback to device selection only if we don't have the required IDs
+        router.push("/device-selection");
+      }
     } catch (error) {
       console.error("Error logging out:", error);
-      // Even if logout fails, clear local data and redirect
+      // Even if logout fails, try to redirect to hackbook-w95 login with preserved IDs
       if (typeof window !== "undefined") {
-        localStorage.removeItem("playspaceId");
-        localStorage.removeItem("selectedDeviceId");
+        const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
+        const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
+        
+        if (storedPlayspaceId && storedDeviceId) {
+          router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
+        } else {
+          // Only clear localStorage and go to device selection as last resort
+          localStorage.removeItem("playspaceId");
+          localStorage.removeItem("selectedDeviceId");
+          router.push("/device-selection");
+        }
       }
-      router.push("/device-selection");
     }
   };
 
@@ -665,17 +693,43 @@ const Desktop = () => {
         <ShutdownDialog
           onCancel={() => setShowShutdownDialog(false)}
           onShutDown={() => {
-            playSound("shutdown");
-            setTimeout(() => {
-              router.push("/");
-            }, 2000);
+            setShowShutdownDialog(false);
+            setShowShutdownAnimation(true);
           }}
           onRestart={() => {
             setShowShutdownDialog(false);
-            window.location.reload();
+            setShowRestartAnimation(true);
           }}
           onLogout={handleLogout}
           showLogout={!!deviceUser}
+        />
+      )}
+
+      {/* Restart animation */}
+      {showRestartAnimation && (
+        <RestartAnimation
+          onComplete={() => {
+            setShowRestartAnimation(false);
+            // Animation completes without reloading the page
+          }}
+        />
+      )}
+
+      {/* Shutdown animation */}
+      {showShutdownAnimation && (
+        <ShutdownAnimation
+          onComplete={() => {
+            setShowShutdownAnimation(false);
+            router.push("/device-selection");
+          }}
+        />
+      )}
+
+      {/* Logout animation */}
+      {showLogoutAnimation && (
+        <LogoutAnimation
+          username={deviceUser?.username || "User"}
+          onComplete={handleLogoutComplete}
         />
       )}
 
