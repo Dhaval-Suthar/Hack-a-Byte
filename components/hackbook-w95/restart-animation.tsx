@@ -17,7 +17,7 @@ const RestartAnimation: React.FC<RestartAnimationProps> = ({ onComplete }) => {
   }, [onComplete]);
 
   useEffect(() => {
-    // Play shutdown sound only once
+    // Play shutdown sound (reused here for restart) only once
     try {
       const shutdownSound = new Audio("/hackbook-w95/sounds/shutdown.mp3");
       shutdownSound.play().catch(e => console.log("Audio play failed:", e));
