@@ -17,7 +17,7 @@ const ShutdownAnimation: React.FC<ShutdownAnimationProps> = ({ onComplete }) => 
   }, [onComplete]);
 
   useEffect(() => {
-    // Play shutdown sound only once
+    // Intentionally play the shutdown sound only once on component mount
     try {
       const shutdownSound = new Audio("/hackbook-w95/sounds/shutdown.mp3");
       shutdownSound.play().catch(e => console.log("Audio play failed:", e));
