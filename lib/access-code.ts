@@ -1,0 +1,121 @@
+"use server";
+
+import connectDb from "../db/connectDb";
+import { cookies } from "next/headers";
+import AccessCodeModel from "../models/AccessCode";
+
+export const handleAccessCode = async (formData: FormData) => {
+  try {
+    // Connect to the database
+    await connectDb();
+
+    // Get the submitted access code
+    let accessCode = "";
+    for (let i = 0; i < 6; i++) {
+      const digit = formData.get(`code-${i}`) as string;
+      if (!digit) {
+        return { success: false, error: "Please enter a complete 6-digit access code" };
+      }
+      accessCode += digit;
+    }
+
+    // Check if the code is valid (all digits)
+    const isFormatValid = /^\d{6}$/.test(accessCode);
+    if (!isFormatValid) {
+      return { success: false, error: "Invalid code format" };
+    }
+
+    // Find the code in the database
+    const codeDocument = await AccessCodeModel.findOne({ code: accessCode });
+
+    if (!codeDocument) {
+      return { success: false, error: "Invalid access code" };
+    }
+
+    // Check if code is active
+    if (!codeDocument.isActive) {
+      return { success: false, error: "This access code is no longer active" };
+    }
+
+    // Check if code has expired (time-limited codes)
+    if (codeDocument.type === "time-limited" && codeDocument.expiresAt && new Date() > codeDocument.expiresAt) {
+      return { success: false, error: "This access code has expired" };
+    }
+
+    // Check if code has reached usage limit (usage-limited codes)
+    if (
+      codeDocument.type === "usage-limited" &&
+      codeDocument.maxUsages &&
+      codeDocument.usageCount >= codeDocument.maxUsages
+    ) {
+      return { success: false, error: "This access code has reached its usage limit" };
+    }
+
+    // Increment usage count for all code types
+    codeDocument.usageCount += 1;
+    await codeDocument.save();
+
+    // Set cookies for the user session - use await with cookies()
+    const cookieStore = await cookies();
+
+    // Get the first assigned playspace if available
+    const playspaceId = codeDocument.assignedPlayspace.toString();
+
+    // Store playspaceId in cookie if available
+    if (playspaceId) {
+      cookieStore.set("playspaceId", playspaceId, {
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        httpOnly: true,
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+    }
+
+    return {
+      success: true,
+      redirect: "/device-selection",
+      userData: codeDocument.userData || {},
+      playspaceId: playspaceId,
+    };
+  } catch (error) {
+    console.error("Database error:", error);
+    return { success: false, error: "Database connection failed" };
+  }
+};
+
+// Helper function to generate new access codes
+export const generateAccessCode = async (options = {}) => {
+  try {
+    await connectDb();
+
+    const codeLength = 6;
+    let code = "";
+
+    // Generate a random code
+    for (let i = 0; i < codeLength; i++) {
+      code += Math.floor(Math.random() * 10).toString();
+    }
+
+    // Default options
+    const defaultOptions = {
+      isOneTimeUse: true,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      username: "QuantumHacker",
+    };
+
+    const codeOptions = { ...defaultOptions, ...options };
+
+    // Create the new code in MongoDB
+    const newCode = await AccessCodeModel.create({
+      code,
+      isExpired: false,
+      ...codeOptions,
+    });
+
+    return { success: true, code, document: newCode.toObject() };
+  } catch (error) {
+    console.error("Error generating access code:", error);
+    return { success: false, error: "Failed to generate access code" };
+  }
+};
