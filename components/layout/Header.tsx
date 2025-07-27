@@ -36,7 +36,7 @@ export default function Header() {
     { name: "About", path: "/about" },
     { name: "Event", path: "/event" },
     { name: "Sponsors", path: "/sponsors" },
-    { name: "Community", path: "/community" }
+    // { name: "Community", path: "/community" }
   ];
 
   return (
