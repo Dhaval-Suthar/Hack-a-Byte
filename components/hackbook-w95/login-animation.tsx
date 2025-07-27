@@ -93,7 +93,7 @@ const LoginAnimation: React.FC<LoginAnimationProps> = ({ username, onComplete })
         <div className="text-center">
           <div className="bg-[#c0c0c0] text-black p-8 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] shadow-lg">
             <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-blue-500 text-white flex items-center justify-center font-bold mr-3">👤</div>
+              <div className="w-8 h-8 bg-blue-500 text-white flex items-center justify-center font-bold mr-3" aria-label="User Profile Icon">👤</div>
               <h2 className="text-lg font-bold">Loading User Profile</h2>
             </div>
             <p className="mb-4">Welcome back, {username}!</p>
