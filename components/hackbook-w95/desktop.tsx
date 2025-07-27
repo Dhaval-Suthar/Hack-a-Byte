@@ -710,7 +710,7 @@ const Desktop = () => {
         <RestartAnimation
           onComplete={() => {
             setShowRestartAnimation(false);
-            // Animation completes without reloading the page
+            // Animation completes without reloading the page. This is intentional for the hackbook-w95 simulation and does not perform a full restart.
           }}
         />
       )}
