@@ -28,7 +28,7 @@ const RestartAnimation: React.FC<RestartAnimationProps> = ({ onComplete }) => {
     // Start the sequence
     const timeouts: NodeJS.Timeout[] = [];
     
-    // Stage 1: Shutdown message
+    // Stage 1: Restart message
     const stage1 = setTimeout(() => {
       setRestartStage(1);
     }, 500);
