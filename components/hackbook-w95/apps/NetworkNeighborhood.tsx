@@ -13,33 +13,15 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
   const [targetIP, setTargetIP] = useState("");
   const [showBriefing, setShowBriefing] = useState(true);
 
-  // Check if this is the first time opening the app in this session
+  // Auto-start the game when the app opens
   useEffect(() => {
-    const sessionKey = 'networkNeighborhoodOpened';
-    const wasOpened = sessionStorage.getItem(sessionKey);
+    // Start the game immediately after a brief delay
+    const timer = setTimeout(() => {
+      setShowBriefing(false);
+      setShowIPFinder(true);
+    }, 500);
     
-    if (!wasOpened) {
-      // First time opening in this session - show briefing
-      setShowBriefing(true);
-      setMissionCompleted(false);
-      sessionStorage.setItem(sessionKey, 'true');
-    } else {
-      // Check actual mission status for subsequent opens
-      const checkMissionStatus = async () => {
-        try {
-          const { MissionTracker } = await import('../hooks/useMissionTracker');
-          const completed = MissionTracker.isMissionCompleted('mission2');
-          setMissionCompleted(completed);
-          if (completed) {
-            setShowBriefing(false);
-          }
-        } catch (error) {
-          console.error('Error checking mission status:', error);
-        }
-      };
-      
-      checkMissionStatus();
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   const handleStartMission = () => {
@@ -105,10 +87,22 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
                 <h4 className="font-bold">Objective:</h4>
                 <ul className="list-disc ml-6 space-y-1">
                   <li>Analyze network activity logs for suspicious behavior</li>
-                  <li>Identify ShadowByte&apos;s IP address from fragmented clues</li>
-                  <li>Locate their virtual machine on the network map</li>
-                  <li>Establish connection to confirm target</li>
+                  <li>Click on log entries with red borders (these are clues!)</li>
+                  <li>Selected clues will highlight devices on the network map</li>
+                  <li>Click the correct target device to establish connection</li>
+                  <li><strong>⚠️ WARNING: Only 3 attempts allowed!</strong></li>
                 </ul>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-bold">How to Play:</h4>
+                <ol className="list-decimal ml-6 space-y-1 text-sm">
+                  <li>Look for log entries with <span className="text-red-600">red borders</span> - these contain clues</li>
+                  <li>Click suspicious entries to highlight potential target devices</li>
+                  <li>Cross-reference log IPs with devices on the network map</li>
+                  <li>When confident, click the target device to attempt connection</li>
+                  <li>Success locates the target, failure uses up an attempt</li>
+                </ol>
               </div>
 
               <div className="space-y-2">

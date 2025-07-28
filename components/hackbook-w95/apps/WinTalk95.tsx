@@ -34,6 +34,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationSent, setConversationSent] = useState<Set<string>>(new Set());
   const [contacts] = useState<Contact[]>([
     { username: "Cipher_Master", status: 'online' },
     { username: "Shadow_Ops", status: 'away' },
@@ -43,6 +44,46 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved state on component mount
+  useEffect(() => {
+    try {
+      const savedState = sessionStorage.getItem('wintalk95State');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        setIsConnected(state.isConnected || false);
+        setShowLogin(!state.isConnected);
+        setUsername(state.username || "");
+        // Reconstruct messages with proper Date objects
+        const reconstructedMessages = (state.messages || []).map((msg: Message) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(reconstructedMessages);
+        setConversationSent(new Set(state.conversationSent || []));
+      }
+    } catch (error) {
+      console.error('Error loading WinTalk95 state:', error);
+      // Reset to default state if there's an error
+      setIsConnected(false);
+      setShowLogin(true);
+      setMessages([]);
+      setConversationSent(new Set());
+    }
+  }, []);
+
+  // Save state when it changes
+  useEffect(() => {
+    if (isConnected) {
+      const state = {
+        isConnected,
+        username,
+        messages,
+        conversationSent: Array.from(conversationSent)
+      };
+      sessionStorage.setItem('wintalk95State', JSON.stringify(state));
+    }
+  }, [isConnected, username, messages, conversationSent]);
 
   // Play sound effect
   const playSound = useCallback((soundType: 'connect' | 'message' | 'error' | 'click') => {
@@ -85,15 +126,20 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
       setShowLogin(false);
       playSound('connect');
       
-      // Add system connection message
-      const systemMessage: Message = {
-        id: 'system_connect',
-        sender: 'System',
-        content: `Connected to ${server}:${port}`,
-        timestamp: new Date(),
-        isSystem: true
-      };
-      setMessages([systemMessage]);
+      // Add system connection message only if not already present
+      setMessages(prev => {
+        const hasSystemMessage = prev.some(msg => msg.id === 'system_connect');
+        if (hasSystemMessage) return prev;
+        
+        const systemMessage: Message = {
+          id: 'system_connect',
+          sender: 'System',
+          content: `Connected to ${server}:${port}`,
+          timestamp: new Date(),
+          isSystem: true
+        };
+        return [systemMessage];
+      });
 
       // Save mission progress
       import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
@@ -113,8 +159,8 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     setSelectedContact(contactUsername);
     playSound('click');
 
-    // If selecting Cipher_Master, show their messages
-    if (contactUsername === 'Cipher_Master') {
+    // If selecting Cipher_Master and haven't sent conversation yet, show their messages
+    if (contactUsername === 'Cipher_Master' && !conversationSent.has(contactUsername)) {
       // Generate dynamic mission briefing
       const threats = [
         {
@@ -196,6 +242,12 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           timestamp: new Date('1995-11-29T09:16:45'),
         },
         {
+          id: 'game_instructions',
+          sender: 'Cipher_Master',
+          content: '🎯 HOW TO PLAY: 1) Click suspicious log entries (red border) to highlight devices 2) Analyze patterns to find the target IP 3) Click the correct device on the network map 4) You have only 3 attempts - choose wisely!',
+          timestamp: new Date('1995-11-29T09:16:50'),
+        },
+        {
           id: 'intelligence',
           sender: 'Cipher_Master',
           content: `INTEL: Look for IP ${threat.expectedIP} in the logs. ${threat.name} specializes in ${threat.specialty}. Time is critical!`,
@@ -214,6 +266,9 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           timestamp: new Date('1995-11-29T09:17:40'),
         }
       ];
+
+      // Mark conversation as sent
+      setConversationSent(prev => new Set(prev).add(contactUsername));
 
       // Add messages with slight delays to simulate real-time conversation
       const delay = 1000;
@@ -234,6 +289,19 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         }, delay + (index * 3000));
       });
     }
+  }, [playSound, conversationSent]);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    setIsConnected(false);
+    setShowLogin(true);
+    setSelectedContact(null);
+    setMessages([]);
+    setConversationSent(new Set());
+    setUsername("");
+    setPassword("");
+    sessionStorage.removeItem('wintalk95State');
+    playSound('click');
   }, [playSound]);
 
   // Handle sending message
@@ -331,6 +399,14 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Edit</span>
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">View</span>
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Tools</span>
+          {isConnected && (
+            <span 
+              className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer text-red-600"
+              onClick={handleLogout}
+            >
+              Disconnect
+            </span>
+          )}
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Help</span>
         </div>
       </div>
@@ -471,7 +547,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-auto bg-white p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto bg-white p-2 space-y-2 max-h-80">
                   {messages
                     .filter(msg => msg.isSystem || msg.sender === selectedContact || msg.sender === username)
                     .map((message) => (
@@ -490,7 +566,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                           "bg-gray-100 text-gray-600 italic text-xs": message.isSystem
                         })}
                       >
-                        <div className="break-words">{message.content}</div>
+                        <div className="break-words whitespace-pre-wrap">{message.content}</div>
                         <div className="text-xs opacity-75 mt-1">
                           {formatTime(message.timestamp)}
                         </div>
