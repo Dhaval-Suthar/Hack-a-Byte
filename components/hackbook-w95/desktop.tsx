@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
-import { useDevToolsContext } from "@/components/hackbook-w95/hooks/useDevToolsContext";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -77,7 +76,6 @@ const DefaultValues = {
 const Desktop = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { devToolsVisible } = useDevToolsContext(); // Get the devToolsVisible state
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -107,6 +105,9 @@ const Desktop = () => {
   // Mission 2 completion state for Number Jumping Game
   const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
   const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
+
+  // Dev Tools availability state
+  const [devToolsUnlocked, setDevToolsUnlocked] = useState(false);
 
   // Check if Mission 1 is completed to show Network Neighborhood
   useEffect(() => {
@@ -444,6 +445,19 @@ const Desktop = () => {
       window.removeEventListener('missionComplete', handleMissionComplete as EventListener);
     };
   }, [playSound, windowManager, mission2JustCompleted]);
+
+  // Listen for zebra code activation to unlock Dev Tools
+  useEffect(() => {
+    const handleZebraCodeActivation = () => {
+      setDevToolsUnlocked(true);
+      playSound("ding");
+    };
+
+    window.addEventListener('zebraCodeActivated', handleZebraCodeActivation);
+    return () => {
+      window.removeEventListener('zebraCodeActivated', handleZebraCodeActivation);
+    };
+  }, [playSound]);
 
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
@@ -833,26 +847,21 @@ const Desktop = () => {
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
             {APPS.filter(app => {
-              // Hide certain apps unless DevTools is active (zebra code typed)
-              if (!devToolsVisible) {
-                if (app.name === "Network Neighborhood" || 
-                    app.name === "Neural Network Analyzer" ||
-                    app.name === "Dev Tools") {
-                  return false;
-                }
-              }
-              
               // Regular game progression filters
               // Network Neighborhood is hidden until network tool is installed
               if (app.name === "Network Neighborhood" && !networkToolInstalled) {
                 return false;
               }
-              // Neural Network Analyzer is hidden until unlocked
-              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) {
+              // Neural Network Analyzer is hidden by default
+              if (app.name === "Neural Network Analyzer") {
                 return false;
               }
               // Secure Vault is hidden until neural network is completed
               if (app.name === "Secure Vault" && !vaultUnlocked) {
+                return false;
+              }
+              // Dev Tools is hidden until zebra code is activated
+              if (app.name === "Dev Tools" && !devToolsUnlocked) {
                 return false;
               }
               return true;
@@ -1232,7 +1241,6 @@ const TerminalComponent: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const fs = useFileSystem();
-  const { checkZebraCode } = useDevToolsContext(); // Get the checkZebraCode function
 
   // Function to play terminal sounds
   const playTerminalSound = (soundType: string) => {
@@ -1463,18 +1471,18 @@ const TerminalComponent: React.FC = () => {
       // Add command to history with proper formatting
       setCommandHistory((prev) => [...prev, `${formatPath(currentDirectory)} ${currentCommand}`]);
 
-      // Check if the command is the zebra code
-      const isZebraCode = checkZebraCode(command);
-      
-      if (isZebraCode) {
-        // It's the zebra code
-        output = "Developer Tools activated! Hidden apps are now visible on desktop.";
-        playTerminalSound("success");
-      } else {
-        // Process different commands (case-insensitive)
-        const cmdLower = command.toLowerCase();
+      // Process different commands (case-insensitive)
+      const cmdLower = command.toLowerCase();
 
-      if (cmdLower === "help") {
+      if (cmdLower === "zebra") {
+        // Zebra code activated - unlock Dev Tools
+        output = "🦓 ZEBRA CODE ACTIVATED!\nDeveloper Tools unlocked! Check your desktop for the new Dev Tools app.";
+        
+        // Trigger the zebra code activation event
+        window.dispatchEvent(new CustomEvent('zebraCodeActivated'));
+        
+        playTerminalSound("success");
+      } else if (cmdLower === "help") {
         output =
           "Available commands:\n" +
           "help         - Show this help message\n" +
@@ -1769,7 +1777,6 @@ Total memory    16,384K     6,157K     10,227K
         }, 1000);
       } else {
         output = `'${command}' is not recognized as an internal or external command,\noperable program or batch file.`;
-      }
       }
 
       // Add output to history if there's any

@@ -11,7 +11,7 @@ interface QuickEventPresserProps {
 
 interface QuickEvent {
   id: string;
-  type: "keypress" | "click" | "type" | "drag" | "rightclick";
+  type: "click" | "type" | "drag" | "rightclick"; // Removed "keypress" - no hotkeys allowed
   instruction: string;
   target?: string;
   position?: { x: number; y: number };
@@ -44,12 +44,12 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Define event types with increasing difficulty
+  // Define event types with increasing difficulty - ALL CLICK/MOUSE BASED (NO HOTKEYS)
   const eventTypes = React.useMemo(() => [
     {
-      type: "keypress" as const,
-      instruction: "SMASH ESC!",
-      target: "Escape",
+      type: "click" as const,
+      instruction: "CLICK EMERGENCY STOP!",
+      target: "emergency-button",
       duration: 3000,
     },
     {
@@ -65,9 +65,9 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
       duration: 4000,
     },
     {
-      type: "keypress" as const,
-      instruction: "HIT ENTER NOW!",
-      target: "Enter",
+      type: "click" as const,
+      instruction: "CLICK CONFIRM NOW!",
+      target: "confirm-button",
       duration: 2000,
     },
     {
@@ -83,9 +83,9 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
       duration: 4000,
     },
     {
-      type: "keypress" as const,
-      instruction: "SPAM SPACEBAR!",
-      target: " ",
+      type: "click" as const,
+      instruction: "RAPID CLICK SHUTDOWN!",
+      target: "rapid-click-button",
       duration: 2000,
     },
     {
@@ -101,9 +101,9 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
       duration: 2000,
     },
     {
-      type: "keypress" as const,
-      instruction: "PRESS CTRL+ALT+DEL!",
-      target: "Control+Alt+Delete",
+      type: "click" as const,
+      instruction: "CLICK FORCE STOP!",
+      target: "force-stop-button",
       duration: 3500,
     },
   ], []);
@@ -165,9 +165,17 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
 
     // Set drag target position if it's a drag event
     if (event.type === "drag") {
+      // Container is 384px wide, 256px tall, with 64px draggable element
+      // Zone is 64px diameter, so we need safe bounds
       setDragTarget({
-        x: Math.random() * 300 + 100,
-        y: Math.random() * 200 + 100,
+        x: Math.random() * 250 + 50,  // Safe range: 50px to 300px (leaves room for 64px zone)
+        y: Math.random() * 150 + 50,  // Safe range: 50px to 200px (leaves room for 64px zone)
+      });
+      
+      // Reset drag position to opposite corner for challenge
+      setDragPosition({
+        x: 20,  // Start near top-left
+        y: 20,
       });
     }
 
@@ -212,25 +220,8 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound]);
 
   // Handle keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!gameStarted || gameOver || !currentEvent) return;
-
-      if (currentEvent.type === "keypress") {
-        if (currentEvent.target === "Control+Alt+Delete") {
-          if (e.ctrlKey && e.altKey && e.key === "Delete") {
-            e.preventDefault();
-            completeEvent();
-          }
-        } else if (currentEvent.target === e.key) {
-          completeEvent();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [gameStarted, gameOver, currentEvent, completeEvent]);
+  // NO KEYBOARD EVENT LISTENERS - Game is now purely click/mouse based
+  // Removed keyboard event handling to avoid hotkey conflicts
 
   // Handle type input
   useEffect(() => {
@@ -239,13 +230,21 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     }
   }, [typeInput, currentEvent, completeEvent]);
 
-  // Handle drag completion
+  // Handle drag completion - IMPROVED DETECTION
   useEffect(() => {
     if (currentEvent?.type === "drag" && dragTarget) {
+      // Calculate distance between center of draggable element and center of target zone
+      const dragCenterX = dragPosition.x + 48; // 96px width / 2
+      const dragCenterY = dragPosition.y + 32; // 64px height / 2
+      const targetCenterX = dragTarget.x + 32; // 64px zone width / 2
+      const targetCenterY = dragTarget.y + 32; // 64px zone height / 2
+      
       const distance = Math.sqrt(
-        Math.pow(dragPosition.x - dragTarget.x, 2) + Math.pow(dragPosition.y - dragTarget.y, 2)
+        Math.pow(dragCenterX - targetCenterX, 2) + Math.pow(dragCenterY - targetCenterY, 2)
       );
-      if (distance < 30) {
+      
+      // Success when draggable overlaps significantly with target (within 40px)
+      if (distance < 40) {
         completeEvent();
       }
     }
@@ -310,25 +309,39 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     playPanicSound("alarm");
   };
 
-  // Handle mouse events for dragging
-  const handleMouseDown = () => {
+  // Handle mouse events for dragging - FIXED VERSION
+  const handleMouseDown = (e: React.MouseEvent) => {
     if (currentEvent?.type === "drag") {
+      e.preventDefault();
       setIsDragging(true);
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && gameRef.current) {
-      const rect = gameRef.current.getBoundingClientRect();
-      setDragPosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+    if (isDragging && currentEvent?.type === "drag") {
+      // Get the drag container element
+      const dragContainer = e.currentTarget.querySelector('.drag-container') as HTMLElement;
+      if (dragContainer) {
+        const rect = dragContainer.getBoundingClientRect();
+        const newX = e.clientX - rect.left - 48; // Offset by half draggable width (96px / 2)
+        const newY = e.clientY - rect.top - 32;  // Offset by half draggable height (64px / 2)
+        
+        // Constrain within container bounds
+        const constrainedX = Math.max(0, Math.min(newX, 320)); // 384px container - 64px draggable
+        const constrainedY = Math.max(0, Math.min(newY, 200)); // 256px container - 64px draggable
+        
+        setDragPosition({
+          x: constrainedX,
+          y: constrainedY,
+        });
+      }
     }
   };
 
   const handleMouseUp = () => {
-    setIsDragging(false);
+    if (isDragging) {
+      setIsDragging(false);
+    }
   };
 
   if (!gameStarted) {
@@ -446,14 +459,63 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
               {currentEvent.instruction}
             </h2>
             
-            {/* Event-specific UI */}
+            {/* Event-specific UI - ALL CLICK/MOUSE BASED */}
             {currentEvent.type === "click" && (
-              <Button
-                onClick={completeEvent}
-                className="bg-green-600 hover:bg-green-700 text-2xl px-8 py-4"
-              >
-                {currentEvent.target === "ok-button" ? "OK" : "CANCEL"}
-              </Button>
+              <div className="space-y-4">
+                {currentEvent.target === "emergency-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-red-600 hover:bg-red-700 text-3xl px-12 py-6 font-bold animate-pulse"
+                  >
+                    🚨 EMERGENCY STOP 🚨
+                  </Button>
+                )}
+                
+                {currentEvent.target === "ok-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-green-600 hover:bg-green-700 text-2xl px-8 py-4"
+                  >
+                    OK
+                  </Button>
+                )}
+                
+                {currentEvent.target === "confirm-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-blue-600 hover:bg-blue-700 text-2xl px-8 py-4 font-bold"
+                  >
+                    CONFIRM NOW!
+                  </Button>
+                )}
+                
+                {currentEvent.target === "rapid-click-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-orange-600 hover:bg-orange-700 text-2xl px-8 py-4 font-bold animate-bounce"
+                  >
+                    RAPID SHUTDOWN!
+                  </Button>
+                )}
+                
+                {currentEvent.target === "cancel-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-gray-600 hover:bg-gray-700 text-2xl px-8 py-4"
+                  >
+                    CANCEL
+                  </Button>
+                )}
+                
+                {currentEvent.target === "force-stop-button" && (
+                  <Button
+                    onClick={completeEvent}
+                    className="bg-purple-600 hover:bg-purple-700 text-2xl px-8 py-4 font-bold"
+                  >
+                    FORCE STOP!
+                  </Button>
+                )}
+              </div>
             )}
 
             {currentEvent.type === "type" && (
@@ -482,28 +544,38 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             )}
 
             {currentEvent.type === "drag" && dragTarget && (
-              <div className="relative w-96 h-64">
-                {/* Drag zone */}
-                <div
-                  className="absolute bg-green-500 border-4 border-green-300 w-16 h-16 rounded-full flex items-center justify-center text-black font-bold"
-                  style={{
-                    left: `${dragTarget.x}px`,
-                    top: `${dragTarget.y}px`,
-                  }}
-                >
-                  ZONE
-                </div>
-                
-                {/* Draggable window */}
-                <div
-                  className="absolute w-24 h-16 bg-blue-600 border-2 border-white cursor-move flex items-center justify-center text-white font-bold"
-                  style={{
-                    left: `${dragPosition.x}px`,
-                    top: `${dragPosition.y}px`,
-                  }}
-                  onMouseDown={handleMouseDown}
-                >
-                  DRAG
+              <div className="drag-container relative w-96 h-64 bg-gray-800 border-4 border-yellow-300 mx-auto" style={{ userSelect: 'none' }}>
+                <div className="absolute inset-2 bg-gray-900 border-2 border-gray-600">
+                  <div className="text-center text-yellow-300 p-2 text-sm font-bold">
+                    DRAG THE BLUE WINDOW TO THE GREEN ZONE!
+                  </div>
+                  
+                  {/* Drag zone - Fixed position in container */}
+                  <div
+                    className="absolute bg-green-500 border-4 border-green-300 w-16 h-16 rounded-full flex items-center justify-center text-black font-bold text-xs"
+                    style={{
+                      left: `${dragTarget.x}px`,
+                      top: `${dragTarget.y + 20}px`, // Offset for instruction text
+                    }}
+                  >
+                    ZONE
+                  </div>
+                  
+                  {/* Draggable window - Responsive to mouse */}
+                  <div
+                    className={`absolute w-24 h-16 bg-blue-600 border-2 border-white cursor-move flex items-center justify-center text-white font-bold text-xs select-none ${
+                      isDragging ? 'shadow-lg scale-110' : ''
+                    }`}
+                    style={{
+                      left: `${dragPosition.x}px`,
+                      top: `${dragPosition.y + 20}px`, // Offset for instruction text
+                      transition: isDragging ? 'none' : 'all 0.2s ease',
+                      zIndex: isDragging ? 50 : 10,
+                    }}
+                    onMouseDown={handleMouseDown}
+                  >
+                    DRAG
+                  </div>
                 </div>
               </div>
             )}
