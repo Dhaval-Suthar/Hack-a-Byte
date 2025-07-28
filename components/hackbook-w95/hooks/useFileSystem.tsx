@@ -32,6 +32,8 @@ const getStorageKey = (debug = false) => {
 };
 
 // Example initial file system structure
+const FILE_SYSTEM_VERSION = "1.1.0"; // Version for migration support
+
 const initialFileSystem: FileSystemItem[] = [
   {
     id: 'd-drive',
@@ -100,6 +102,38 @@ const initialFileSystem: FileSystemItem[] = [
             path: 'C:\\Documents\\Readme.txt',
             lastModified: new Date('2025-05-01'),
             content: 'Welcome to HackBook W95!\n\nThis system is designed for security training purposes. As you progress through missions, you will gain access to more tools and features.\n\nYour first mission is to explore the system and familiarize yourself with its interface.\n\nGood luck!'
+          },
+          {
+            id: 'c-documents-old-files',
+            name: 'Old_Files',
+            type: 'directory',
+            path: 'C:\\Documents\\Old_Files',
+            lastModified: new Date('1995-11-28'),
+            children: [
+              {
+                id: 'c-documents-old-files-archive',
+                name: 'Archive.zip',
+                type: 'file',
+                size: 4096,
+                path: 'C:\\Documents\\Old_Files\\Archive.zip',
+                lastModified: new Date('1995-10-16'),
+                content: 'ZIP_ARCHIVE_PROTECTED',
+                metadata: {
+                  isPasswordProtected: true,
+                  password: 'GHOST',
+                  compressionType: 'deflate'
+                }
+              },
+              {
+                id: 'c-documents-old-files-note',
+                name: 'READ_ME_FIRST.txt',
+                type: 'file',
+                size: 512,
+                path: 'C:\\Documents\\Old_Files\\READ_ME_FIRST.txt',
+                lastModified: new Date('1995-11-28'),
+                content: 'CONFIDENTIAL RECOVERY MISSION\n\nAgent,\n\nYou have been assigned to recover important data from a damaged client system. The attached ZIP file contains the only recoverable files from their hard drive.\n\nThe archive is password protected for security. Use your skills to gain access to the files within.\n\nOnce you have recovered the data, check the contents for further instructions.\n\nGood luck.\n\n-- GHOST Network'
+              }
+            ]
           },
           {
             id: 'c-documents-personal',
@@ -234,6 +268,16 @@ const initialFileSystem: FileSystemItem[] = [
                 path: 'C:\\Windows\\System32\\.hidden_data',
                 lastModified: new Date('2025-05-16'),
                 content: 'DECRYPTION KEY: 3\nENCRYPTION TYPE: CAESAR\n\nTo decrypt Caesar cipher:\nShift each letter back by the key value.\nExample: D with key 3 becomes A\n\nComplete decryption to unlock password: HACKBOOK',
+                isHidden: true
+              },
+              {
+                id: 'c-windows-system32-secure-notes',
+                name: '.secure_notes.txt',
+                type: 'file',
+                size: 512,
+                path: 'C:\\Windows\\System32\\.secure_notes.txt',
+                lastModified: new Date('1995-11-28'),
+                content: 'Security Notes:\n\nImportant: The Caesar cipher uses a shift of 3 positions.\nRemember to use "access FIRST_MISSION_1995" to gain access to secure terminal functions.\n\nThe mission files are in: C:\\Documents\\Encrypted\\\n\nFor the ZIP recovery mission:\n- File location: C:\\Documents\\Old_Files\\Archive.zip\n- Password hint: Network codename (5 letters)\n- Brute force option available if password unknown\n\nNext phase: Connect to secure messaging after ZIP recovery.',
                 isHidden: true
               }
             ]
@@ -417,7 +461,99 @@ export default function useFileSystem(options = { debug: false }) {
   // Debug mode for logging
   const debugMode = options.debug || false;
 
-  // Function to recursively restore Date objects in the file system
+  // Migration function to update existing file systems
+  const migrateFileSystem = useCallback((savedFileSystem: FileSystemItem[]): FileSystemItem[] => {
+    try {
+      // Find the C: drive
+      const cDriveIndex = savedFileSystem.findIndex(item => item.path === 'C:');
+      if (cDriveIndex === -1) return initialFileSystem; // Fallback if C: drive not found
+
+      // Find the Documents folder
+      const documentsIndex = savedFileSystem[cDriveIndex].children?.findIndex(
+        item => item.path === 'C:\\Documents'
+      );
+      
+      if (documentsIndex === undefined || documentsIndex === -1) {
+        // Documents folder doesn't exist, use initial file system
+        return initialFileSystem;
+      }
+
+      // Check if Old_Files directory already exists
+      const oldFilesExists = savedFileSystem[cDriveIndex].children?.[documentsIndex]?.children?.some(
+        item => item.path === 'C:\\Documents\\Old_Files'
+      );
+
+      if (!oldFilesExists) {
+        // Add the Old_Files directory with the ZIP file
+        const newFileSystem = JSON.parse(JSON.stringify(savedFileSystem)); // Deep clone
+        
+        const oldFilesDir = {
+          id: 'c-documents-old-files',
+          name: 'Old_Files',
+          type: 'directory' as const,
+          path: 'C:\\Documents\\Old_Files',
+          lastModified: new Date('1995-11-28'),
+          children: [
+            {
+              id: 'c-documents-old-files-archive',
+              name: 'Archive.zip',
+              type: 'file' as const,
+              size: 4096,
+              path: 'C:\\Documents\\Old_Files\\Archive.zip',
+              lastModified: new Date('1995-10-16'),
+              content: 'ZIP_ARCHIVE_PROTECTED',
+              metadata: {
+                isPasswordProtected: true,
+                password: 'GHOST',
+                compressionType: 'deflate'
+              }
+            },
+            {
+              id: 'c-documents-old-files-note',
+              name: 'READ_ME_FIRST.txt',
+              type: 'file' as const,
+              size: 512,
+              path: 'C:\\Documents\\Old_Files\\READ_ME_FIRST.txt',
+              lastModified: new Date('1995-11-28'),
+              content: 'CONFIDENTIAL RECOVERY MISSION\n\nAgent,\n\nYou have been assigned to recover important data from a damaged client system. The attached ZIP file contains the only recoverable files from their hard drive.\n\nThe archive is password protected for security. Use your skills to gain access to the files within.\n\nOnce you have recovered the data, check the contents for further instructions.\n\nGood luck.\n\n-- GHOST Network'
+            }
+          ]
+        };
+
+        if (newFileSystem[cDriveIndex].children?.[documentsIndex]?.children) {
+          newFileSystem[cDriveIndex].children[documentsIndex].children.push(oldFilesDir);
+        }
+
+        if (debugMode) console.log('Migrated file system: Added Old_Files directory with ZIP file');
+        return newFileSystem;
+      }
+
+      return savedFileSystem; // No migration needed
+    } catch (error) {
+      console.error('Migration failed, using initial file system:', error);
+      return initialFileSystem;
+    }
+  }, [debugMode]);
+
+  // Debug function to reset file system (for development/testing)
+  const resetFileSystem = useCallback(() => {
+    try {
+      const storageKey = getStorageKey(debugMode);
+      localStorage.removeItem(storageKey);
+      setFileSystem(initialFileSystem);
+      setCurrentDirectory('C:');
+      console.log('File system reset to initial state');
+    } catch (error) {
+      console.error('Failed to reset file system:', error);
+    }
+  }, [debugMode]);
+
+  // Expose reset function globally for development
+  useEffect(() => {
+    if (debugMode && typeof window !== 'undefined') {
+      (window as Window & { resetWin95FileSystem?: () => void }).resetWin95FileSystem = resetFileSystem;
+    }
+  }, [debugMode, resetFileSystem]);
   const restoreDates = useCallback((items: FileSystemItem[]): FileSystemItem[] => {
     const processItem = (item: FileSystemItem): FileSystemItem => {
       const newItem = {...item};
@@ -467,8 +603,18 @@ export default function useFileSystem(options = { debug: false }) {
             try {
               const parsedFileSystem = JSON.parse(savedFileSystem);
               if (Array.isArray(parsedFileSystem)) {
-                setFileSystem(restoreDates(parsedFileSystem));
-                if (debugMode) console.log(`Successfully loaded file system for ${storageKey}`);
+                // Apply migration to ensure new features are available
+                const migratedFileSystem = migrateFileSystem(parsedFileSystem);
+                setFileSystem(restoreDates(migratedFileSystem));
+                
+                // Save the migrated file system back to localStorage
+                try {
+                  localStorage.setItem(storageKey, JSON.stringify(migratedFileSystem));
+                } catch (saveError) {
+                  console.error("Error saving migrated file system:", saveError);
+                }
+                
+                if (debugMode) console.log(`Successfully loaded and migrated file system for ${storageKey}`);
               } else {
                 throw new Error("Invalid file system format");
               }
@@ -510,7 +656,7 @@ export default function useFileSystem(options = { debug: false }) {
     }, 100);
 
     return () => clearTimeout(initTimeout);
-  }, [restoreDates, debugMode]);
+  }, [restoreDates, debugMode, migrateFileSystem]);
 
   // Save to localStorage on changes with debouncing and error handling
   useEffect(() => {

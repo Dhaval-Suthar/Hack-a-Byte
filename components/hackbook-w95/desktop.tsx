@@ -17,6 +17,8 @@ import Notepad from "@/components/hackbook-w95/apps/Notepad";
 import Calculator from "@/components/hackbook-w95/apps/Calculator";
 import Paint from "@/components/hackbook-w95/apps/Paint";
 import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
+import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
+import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
 import RestartAnimation from "@/components/hackbook-w95/restart-animation";
@@ -54,6 +56,7 @@ const APPS: App[] = [
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
   new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
+  new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
 ];
 
 const DefaultValues = {
@@ -437,6 +440,17 @@ const Desktop = () => {
           return <Paint onClose={() => handleCloseApp(app)} />;
         case "Solitaire":
           return <Solitaire onClose={() => handleCloseApp(app)} />;
+        case "WinTalk 95":
+          return <WinTalk95 onClose={() => handleCloseApp(app)} />;
+        case "ZIP Archive":
+          return (
+            <ZipArchive
+              onClose={() => handleCloseApp(app)}
+              filePath={app.metadata?.filePath as string}
+              isLocked={Boolean(app.metadata?.isPasswordProtected)}
+              password={app.metadata?.password as string}
+            />
+          );
         default:
           return null;
       }
@@ -467,6 +481,16 @@ const Desktop = () => {
           // Open the app
           handleOpenApp(notepadApp);
         }
+      } else if (fileData.extension === "zip") {
+        // Create a new ZIP Archive app instance
+        const zipApp = new App("ZIP Archive", "/hackbook-w95/file-icons/archive.png");
+        zipApp.metadata = {
+          filePath: fileData.path,
+          isPasswordProtected: fileData.isPasswordProtected,
+          password: fileData.password
+        };
+        // Open the app
+        handleOpenApp(zipApp);
       }
     };
 
