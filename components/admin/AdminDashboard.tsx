@@ -315,7 +315,6 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     if (!selectedAccessCode) {
       // Open edit modal
       setSelectedAccessCode(accessCode);
-      setShowEditAccessCodeModal(true);
       return;
     }
 
@@ -747,9 +746,10 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
               isLoading={isLoading}
               onGenerateAccessCode={handleGenerateAccessCode}
               onToggleAccessCode={handleToggleAccessCode}
-              onEditAccessCode={handleEditAccessCode}
+              setShowEditAccessCodeModal={setShowEditAccessCodeModal}
               onDeleteAccessCode={handleDeleteAccessCode}
               onAssignPlayspace={handleAssignPlayspace}
+              setSelectedAccessCode={setSelectedAccessCode}
             />
           )}
           
