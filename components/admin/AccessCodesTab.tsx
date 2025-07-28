@@ -133,8 +133,6 @@ export default function AccessCodesTab({
     closeGeneralAccessCodeModal();
   };
 
-  // Remove handleUpdateAccessCode
-
   // Filter and pagination logic
   const filteredCodes = accessCodes.filter(
     (code) =>
