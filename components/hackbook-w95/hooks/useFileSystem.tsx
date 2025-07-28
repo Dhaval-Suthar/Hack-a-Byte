@@ -32,8 +32,6 @@ const getStorageKey = (debug = false) => {
 };
 
 // Example initial file system structure
-const FILE_SYSTEM_VERSION = "1.1.0"; // Version for migration support
-
 const initialFileSystem: FileSystemItem[] = [
   {
     id: 'd-drive',
