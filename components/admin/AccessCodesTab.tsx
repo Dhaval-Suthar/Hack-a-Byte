@@ -46,9 +46,10 @@ interface AccessCodesTabProps {
   isLoading: boolean;
   onGenerateAccessCode: (data?: GenerateAccessCodeData) => void;
   onToggleAccessCode: (codeId: string, currentStatus: boolean) => void;
-  onEditAccessCode: (accessCode: AccessCode) => void;
+  setShowEditAccessCodeModal: (open: boolean) => void;
   onDeleteAccessCode: (codeId: string) => void;
   onAssignPlayspace: (codeId: string, playspaceId: string | null) => void;
+  setSelectedAccessCode: (accessCode: AccessCode | null) => void;
 }
 
 export default function AccessCodesTab({
@@ -62,18 +63,14 @@ export default function AccessCodesTab({
   isLoading,
   onGenerateAccessCode,
   onToggleAccessCode,
-  onEditAccessCode,
+  setShowEditAccessCodeModal,
   onDeleteAccessCode,
-  onAssignPlayspace
+  onAssignPlayspace,
+  setSelectedAccessCode
 }: AccessCodesTabProps) {
   // Modal states
   const [generalAccessCodeModal, setGeneralAccessCodeModal] = useState({
     isOpen: false,
-  });
-
-  const [editAccessCodeModal, setEditAccessCodeModal] = useState({
-    isOpen: false,
-    accessCode: null as AccessCode | null,
   });
 
   // Form states
@@ -86,14 +83,7 @@ export default function AccessCodesTab({
     playspaceId: "",
   });
 
-  const [editAccessCodeForm, setEditAccessCodeForm] = useState({
-    code: "",
-    type: "permanent",
-    priority: 5,
-    description: "",
-    maxUsages: "",
-    expiresInHours: "",
-  });
+  // Remove local editAccessCodeForm and editAccessCodeModal state
 
   // Modal handlers
   const openGeneralAccessCodeModal = () => {
@@ -112,35 +102,7 @@ export default function AccessCodesTab({
     });
   };
 
-  const openEditAccessCodeModal = (accessCode: AccessCode) => {
-    setEditAccessCodeModal({
-      isOpen: true,
-      accessCode,
-    });
-    setEditAccessCodeForm({
-      code: accessCode.code,
-      type: accessCode.type,
-      priority: accessCode.priority,
-      description: accessCode.description || "",
-      maxUsages: accessCode.maxUsages?.toString() || "",
-      expiresInHours: "", // Calculate from expiresAt if needed
-    });
-  };
-
-  const closeEditAccessCodeModal = () => {
-    setEditAccessCodeModal({
-      isOpen: false,
-      accessCode: null,
-    });
-    setEditAccessCodeForm({
-      code: "",
-      type: "permanent",
-      priority: 5,
-      description: "",
-      maxUsages: "",
-      expiresInHours: "",
-    });
-  };
+  // Remove openEditAccessCodeModal and closeEditAccessCodeModal
 
   // Form change handlers
   const handleAccessCodeFormChange = (
@@ -153,15 +115,7 @@ export default function AccessCodesTab({
     }));
   };
 
-  const handleEditAccessCodeFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setEditAccessCodeForm((prev) => ({
-      ...prev,
-      [name]: type === "number" ? Number(value) : value,
-    }));
-  };
+  // Remove handleEditAccessCodeFormChange
 
   // Submit handlers
   const handleGenerateAccessCodeWithForm = () => {
@@ -179,24 +133,7 @@ export default function AccessCodesTab({
     closeGeneralAccessCodeModal();
   };
 
-  const handleUpdateAccessCode = () => {
-    if (!editAccessCodeModal.accessCode) return;
-
-    const updatedAccessCode = {
-      ...editAccessCodeModal.accessCode,
-      code: editAccessCodeForm.code,
-      type: editAccessCodeForm.type,
-      priority: editAccessCodeForm.priority,
-      description: editAccessCodeForm.description,
-      maxUsages: editAccessCodeForm.maxUsages ? parseInt(editAccessCodeForm.maxUsages) : undefined,
-      expiresAt: editAccessCodeForm.expiresInHours 
-        ? new Date(Date.now() + parseInt(editAccessCodeForm.expiresInHours) * 60 * 60 * 1000).toISOString()
-        : undefined,
-    };
-
-    onEditAccessCode(updatedAccessCode);
-    closeEditAccessCodeModal();
-  };
+  // Remove handleUpdateAccessCode
 
   // Filter and pagination logic
   const filteredCodes = accessCodes.filter(
@@ -315,7 +252,10 @@ export default function AccessCodesTab({
                       {code.isActive ? "Deactivate" : "Activate"}
                     </button>
                     <button
-                      onClick={() => openEditAccessCodeModal(code)}
+                      onClick={() => {
+                        setSelectedAccessCode(code);
+                        setShowEditAccessCodeModal(true);
+                      }}
                       className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors"
                       title="Edit access code"
                     >
@@ -504,134 +444,7 @@ export default function AccessCodesTab({
         )}
       </AnimatePresence>
 
-      {/* Edit Access Code Modal */}
-      <AnimatePresence>
-        {editAccessCodeModal.isOpen && editAccessCodeModal.accessCode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={closeEditAccessCodeModal}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Edit Access Code</h2>
-                <button
-                  onClick={closeEditAccessCodeModal}
-                  className="text-gray-400 hover:text-white text-2xl leading-none"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 mb-2">Access Code</label>
-                  <input
-                    type="text"
-                    name="code"
-                    value={editAccessCodeForm.code}
-                    onChange={handleEditAccessCodeFormChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white font-mono"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    placeholder="123456"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 mb-2">Code Type</label>
-                  <select
-                    name="type"
-                    value={editAccessCodeForm.type}
-                    onChange={handleEditAccessCodeFormChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white"
-                  >
-                    <option value="permanent">Permanent</option>
-                    <option value="time-limited">Time Limited</option>
-                    <option value="usage-limited">Usage Limited</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 mb-2">Priority (1-9)</label>
-                  <input
-                    type="number"
-                    name="priority"
-                    min="1"
-                    max="9"
-                    value={editAccessCodeForm.priority}
-                    onChange={handleEditAccessCodeFormChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 mb-2">Description</label>
-                  <textarea
-                    name="description"
-                    value={editAccessCodeForm.description}
-                    onChange={handleEditAccessCodeFormChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white"
-                    rows={3}
-                  />
-                </div>
-
-                {editAccessCodeForm.type === "usage-limited" && (
-                  <div>
-                    <label className="block text-gray-300 mb-2">Max Usages</label>
-                    <input
-                      type="number"
-                      name="maxUsages"
-                      min="1"
-                      value={editAccessCodeForm.maxUsages}
-                      onChange={handleEditAccessCodeFormChange}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white"
-                    />
-                  </div>
-                )}
-
-                {editAccessCodeForm.type === "time-limited" && (
-                  <div>
-                    <label className="block text-gray-300 mb-2">Expires In (Hours)</label>
-                    <input
-                      type="number"
-                      name="expiresInHours"
-                      min="1"
-                      value={editAccessCodeForm.expiresInHours}
-                      onChange={handleEditAccessCodeFormChange}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:border-cyber-primary text-white"
-                      placeholder="Enter hours until expiration"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex space-x-4 mt-6">
-                <button
-                  onClick={closeEditAccessCodeModal}
-                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateAccessCode}
-                  className="flex-1 px-4 py-2 bg-cyber-primary hover:bg-cyber-primary/90 text-white rounded transition-colors"
-                >
-                  Update Code
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Edit Access Code Modal is now handled by parent */}
     </div>
   );
 }
