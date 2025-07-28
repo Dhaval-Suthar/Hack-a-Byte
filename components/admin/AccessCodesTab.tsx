@@ -115,8 +115,6 @@ export default function AccessCodesTab({
     }));
   };
 
-  // Remove handleEditAccessCodeFormChange
-
   // Submit handlers
   const handleGenerateAccessCodeWithForm = () => {
     const { codeType, priority, maxUsages, expiresInHours, description, playspaceId } = accessCodeForm;
