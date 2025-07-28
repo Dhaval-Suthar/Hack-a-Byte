@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
+import { useDevToolsContext } from "@/components/hackbook-w95/hooks/useDevToolsContext";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -22,6 +23,8 @@ import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
 import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
 import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
+import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
+import DevTools from "@/components/hackbook-w95/apps/DevTools";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
 import RestartAnimation from "@/components/hackbook-w95/restart-animation";
@@ -62,6 +65,8 @@ const APPS: App[] = [
   new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
   new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
   new App("Neural Network Analyzer", "/hackbook-W95/app-icon/network.svg"), // Hidden app - will be revealed through gameplay
+  new App("Secure Vault", "/hackbook-W95/app-icon/lock.svg"), // Hidden app - will be revealed after neural network completion
+  new App("Dev Tools", "/hackbook-W95/app-icon/settings.png"), // Development app for testing missions
 ];
 
 const DefaultValues = {
@@ -71,6 +76,7 @@ const DefaultValues = {
 const Desktop = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { devToolsVisible } = useDevToolsContext(); // Get the devToolsVisible state
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -92,6 +98,10 @@ const Desktop = () => {
   const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
   const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
   const [neuralDataDiscovered, setNeuralDataDiscovered] = useState(false);
+
+  // Secure Vault availability state
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [showVaultNotification, setShowVaultNotification] = useState(false);
 
   // Mission 2 completion state for Number Jumping Game
   const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
@@ -382,9 +392,23 @@ const Desktop = () => {
       }, 6000);
     };
 
+    const handleNeuralNetworkComplete = () => {
+      // When neural network is completed, unlock the secure vault
+      setVaultUnlocked(true);
+      setShowVaultNotification(true);
+      playSound("ding");
+      
+      // Hide notification after 6 seconds
+      setTimeout(() => {
+        setShowVaultNotification(false);
+      }, 6000);
+    };
+
     window.addEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+    window.addEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
     return () => {
       window.removeEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+      window.removeEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
     };
   }, [playSound]);
 
@@ -512,6 +536,22 @@ const Desktop = () => {
     [windowManager, deSelect, playSound, runningApps, neuralDataDiscovered]
   );
 
+  // Listen for development app launch events
+  useEffect(() => {
+    const handleDevLaunchApp = (event: CustomEvent) => {
+      const { appName } = event.detail;
+      const app = APPS.find(a => a.name === appName);
+      if (app) {
+        handleOpenApp(app);
+      }
+    };
+
+    window.addEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+    return () => {
+      window.removeEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+    };
+  }, [handleOpenApp]);
+
   // Toggle fullscreen for a window
   const handleToggleFullscreen = useCallback(
     (app: App) => {
@@ -619,6 +659,8 @@ const Desktop = () => {
               onClose={() => handleCloseApp(app)} 
               onSuccess={(data) => {
                 console.log("Neural Network Data Restored:", data);
+                // Trigger vault unlock
+                window.dispatchEvent(new CustomEvent('neuralNetworkCompleted'));
                 // Handle the success - maybe open a new file or trigger next mission
                 // For now, just close the app
                 handleCloseApp(app);
@@ -626,6 +668,10 @@ const Desktop = () => {
               difficulty="intermediate"
             />
           );
+        case "Secure Vault":
+          return <FingerprintHack onClose={() => handleCloseApp(app)} />;
+        case "Dev Tools":
+          return <DevTools onClose={() => handleCloseApp(app)} />;
         case "Firewall Bypass":
           return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
         case "ZIP Archive":
@@ -730,12 +776,26 @@ const Desktop = () => {
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
             {APPS.filter(app => {
+              // Hide certain apps unless DevTools is active (zebra code typed)
+              if (!devToolsVisible) {
+                if (app.name === "Network Neighborhood" || 
+                    app.name === "Neural Network Analyzer" ||
+                    app.name === "Dev Tools") {
+                  return false;
+                }
+              }
+              
+              // Regular game progression filters
               // Network Neighborhood is hidden until network tool is installed
               if (app.name === "Network Neighborhood" && !networkToolInstalled) {
                 return false;
               }
               // Neural Network Analyzer is hidden until unlocked
               if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) {
+                return false;
+              }
+              // Secure Vault is hidden until neural network is completed
+              if (app.name === "Secure Vault" && !vaultUnlocked) {
                 return false;
               }
               return true;
@@ -1065,6 +1125,22 @@ const Desktop = () => {
         </div>
       )}
 
+      {/* Secure Vault Unlock Notification */}
+      {showVaultNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-red-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🔐 VAULT ACCESS DETECTED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">🗝️ ShadowByte&apos;s Secure Archive Located</p>
+            <p className="text-sm">Biometric Scanner Required!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Access the secure vault to retrieve critical intel.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mission 2 Completion Notification */}
       {mission2JustCompleted && !showNumberJumpingGame && (
         <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
@@ -1099,6 +1175,7 @@ const TerminalComponent: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const fs = useFileSystem();
+  const { checkZebraCode } = useDevToolsContext(); // Get the checkZebraCode function
 
   // Function to play terminal sounds
   const playTerminalSound = (soundType: string) => {
@@ -1328,8 +1405,16 @@ const TerminalComponent: React.FC = () => {
       // Add command to history with proper formatting
       setCommandHistory((prev) => [...prev, `${formatPath(currentDirectory)} ${currentCommand}`]);
 
-      // Process different commands (case-insensitive)
-      const cmdLower = command.toLowerCase();
+      // Check if the command is the zebra code
+      const isZebraCode = checkZebraCode(command);
+      
+      if (isZebraCode) {
+        // It's the zebra code
+        output = "Developer Tools activated! Hidden apps are now visible on desktop.";
+        playTerminalSound("success");
+      } else {
+        // Process different commands (case-insensitive)
+        const cmdLower = command.toLowerCase();
 
       if (cmdLower === "help") {
         output =
@@ -1606,6 +1691,7 @@ Total memory    16,384K     6,157K     10,227K
         }, 1000);
       } else {
         output = `'${command}' is not recognized as an internal or external command,\noperable program or batch file.`;
+      }
       }
 
       // Add output to history if there's any
