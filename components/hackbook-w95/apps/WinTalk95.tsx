@@ -34,6 +34,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationSent, setConversationSent] = useState<Set<string>>(new Set());
   const [contacts] = useState<Contact[]>([
     { username: "Cipher_Master", status: 'online' },
     { username: "Shadow_Ops", status: 'away' },
@@ -43,6 +44,46 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved state on component mount
+  useEffect(() => {
+    try {
+      const savedState = sessionStorage.getItem('wintalk95State');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        setIsConnected(state.isConnected || false);
+        setShowLogin(!state.isConnected);
+        setUsername(state.username || "");
+        // Reconstruct messages with proper Date objects
+        const reconstructedMessages = (state.messages || []).map((msg: Message) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(reconstructedMessages);
+        setConversationSent(new Set(state.conversationSent || []));
+      }
+    } catch (error) {
+      console.error('Error loading WinTalk95 state:', error);
+      // Reset to default state if there's an error
+      setIsConnected(false);
+      setShowLogin(true);
+      setMessages([]);
+      setConversationSent(new Set());
+    }
+  }, []);
+
+  // Save state when it changes
+  useEffect(() => {
+    if (isConnected) {
+      const state = {
+        isConnected,
+        username,
+        messages,
+        conversationSent: Array.from(conversationSent)
+      };
+      sessionStorage.setItem('wintalk95State', JSON.stringify(state));
+    }
+  }, [isConnected, username, messages, conversationSent]);
 
   // Play sound effect
   const playSound = useCallback((soundType: 'connect' | 'message' | 'error' | 'click') => {
@@ -85,15 +126,20 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
       setShowLogin(false);
       playSound('connect');
       
-      // Add system connection message
-      const systemMessage: Message = {
-        id: 'system_connect',
-        sender: 'System',
-        content: `Connected to ${server}:${port}`,
-        timestamp: new Date(),
-        isSystem: true
-      };
-      setMessages([systemMessage]);
+      // Add system connection message only if not already present
+      setMessages(prev => {
+        const hasSystemMessage = prev.some(msg => msg.id === 'system_connect');
+        if (hasSystemMessage) return prev;
+        
+        const systemMessage: Message = {
+          id: 'system_connect',
+          sender: 'System',
+          content: `Connected to ${server}:${port}`,
+          timestamp: new Date(),
+          isSystem: true
+        };
+        return [systemMessage];
+      });
 
       // Save mission progress
       import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
@@ -113,41 +159,116 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     setSelectedContact(contactUsername);
     playSound('click');
 
-    // If selecting Cipher_Master, show their messages
-    if (contactUsername === 'Cipher_Master') {
-      // Predefined conversation with Cipher_Master
-      const cipherMasterMessages: Message[] = [
+    // If selecting Cipher_Master and haven't sent conversation yet, show their messages
+    if (contactUsername === 'Cipher_Master' && !conversationSent.has(contactUsername)) {
+      // Generate dynamic mission briefing
+      const threats = [
         {
-          id: 'welcome',
-          sender: 'Cipher_Master',
-          content: 'Welcome to the secure network, agent. I see you successfully cracked the archive.',
-          timestamp: new Date('1995-11-28T14:30:00'),
+          name: "ShadowByte",
+          description: "A rival hacker codenamed 'ShadowByte' has infiltrated our network",
+          specialty: "SSH attacks and encrypted communications on ports 1337 and 31337",
+          expectedIP: "192.168.1.142"
         },
         {
-          id: 'mission_intro',
-          sender: 'Cipher_Master',
-          content: 'Your performance on the first task was impressive. The GHOST network has more challenging assignments ahead.',
-          timestamp: new Date('1995-11-28T14:30:15'),
+          name: "CyberPhantom",
+          description: "The elusive 'CyberPhantom' has breached our secure channels",
+          specialty: "FTP exploitation and SSL tunneling through proxy servers",
+          expectedIP: "192.168.1.187"
         },
         {
-          id: 'next_mission',
-          sender: 'Cipher_Master',
-          content: 'Your next mission involves infiltrating a corporate database. Check your secure email for detailed instructions.',
-          timestamp: new Date('1995-11-28T14:30:30'),
+          name: "DarkNet Operative",
+          description: "A DarkNet infiltrator has compromised our communications",
+          specialty: "Tor traffic and IRC command channels with steganographic data",
+          expectedIP: "192.168.1.221"
         },
         {
-          id: 'tools_info',
-          sender: 'Cipher_Master',
-          content: 'The tools you used today are just the beginning. Advanced cryptography and network penetration await.',
-          timestamp: new Date('1995-11-28T14:30:45'),
+          name: "Ghost Protocol Agent",
+          description: "A rogue Ghost Protocol agent has turned against the network",
+          specialty: "DNS tunneling and email protocol exploitation",
+          expectedIP: "192.168.1.156"
         },
         {
-          id: 'closing',
-          sender: 'Cipher_Master',
-          content: 'Stay alert and trust no one. The digital underground is full of both allies and enemies. Good luck.',
-          timestamp: new Date('1995-11-28T14:31:00'),
+          name: "Binary Assassin",
+          description: "The notorious 'Binary Assassin' has launched buffer overflow attacks",
+          specialty: "RPC exploits, SMB vulnerabilities, and SQL injection techniques",
+          expectedIP: "192.168.1.199"
         }
       ];
+
+      // Randomly select a threat scenario
+      const threat = threats[Math.floor(Math.random() * threats.length)];
+
+      const cipherMasterMessages: Message[] = [
+        {
+          id: 'welcome_back',
+          sender: 'Cipher_Master',
+          content: 'Excellent work on the archive recovery, agent. Your skills impressed the network.',
+          timestamp: new Date('1995-11-29T09:15:00'),
+        },
+        {
+          id: 'urgent_mission',
+          sender: 'Cipher_Master',
+          content: `🚨 URGENT: We have a critical security breach. ${threat.description}.`,
+          timestamp: new Date('1995-11-29T09:15:15'),
+        },
+        {
+          id: 'threat_assessment',
+          sender: 'Cipher_Master',
+          content: 'THREAT LEVEL: HIGH - They\'ve stolen sensitive data and compromised our communication channels.',
+          timestamp: new Date('1995-11-29T09:15:30'),
+        },
+        {
+          id: 'mission_briefing',
+          sender: 'Cipher_Master',
+          content: `Your mission: Use network analysis to locate ${threat.name}'s virtual machine and establish contact.`,
+          timestamp: new Date('1995-11-29T09:15:45'),
+        },
+        {
+          id: 'tool_preparation',
+          sender: 'Cipher_Master',
+          content: 'I\'ll upload specialized tools to your system. These are restricted GHOST network assets.',
+          timestamp: new Date('1995-11-29T09:16:15'),
+        },
+        {
+          id: 'tool_download',
+          sender: 'Cipher_Master',
+          content: '📥 DOWNLOAD: I\'m sending you our Network Neighborhood tool for advanced network analysis.',
+          timestamp: new Date('1995-11-29T09:16:30'),
+        },
+        {
+          id: 'tool_install',
+          sender: 'Cipher_Master',
+          content: '💾 Installing Network Neighborhood on your desktop... Installation complete! Double-click the icon to launch.',
+          timestamp: new Date('1995-11-29T09:16:45'),
+        },
+        {
+          id: 'game_instructions',
+          sender: 'Cipher_Master',
+          content: '🎯 HOW TO PLAY: 1) Find the target IP address hidden in the number grid 2) Click 4 numbers in the correct sequence 3) Use the intel hints to identify the correct IP 4) You have only 3 attempts - stealth is critical!',
+          timestamp: new Date('1995-11-29T09:16:50'),
+        },
+        {
+          id: 'intelligence',
+          sender: 'Cipher_Master',
+          content: `INTEL: ${threat.name} specializes in ${threat.specialty}. Decode their location from the intercepted network data!`,
+          timestamp: new Date('1995-11-29T09:17:00'),
+        },
+        {
+          id: 'warning',
+          sender: 'Cipher_Master',
+          content: `⚠️ WARNING: ${threat.name} has advanced security protocols. Failed connection attempts will trigger countermeasures. Study the intelligence reports carefully!`,
+          timestamp: new Date('1995-11-29T09:17:20'),
+        },
+        {
+          id: 'closing_mission2',
+          sender: 'Cipher_Master',
+          content: 'Breach their digital fortress and establish contact. Our network security depends on your success. Stay sharp, agent. Ghost out.',
+          timestamp: new Date('1995-11-29T09:17:40'),
+        }
+      ];
+
+      // Mark conversation as sent
+      setConversationSent(prev => new Set(prev).add(contactUsername));
 
       // Add messages with slight delays to simulate real-time conversation
       const delay = 1000;
@@ -155,9 +276,32 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         setTimeout(() => {
           setMessages(prev => [...prev, msg]);
           playSound('message');
+          
+          // Special action for tool installation message
+          if (msg.id === 'tool_install') {
+            setTimeout(() => {
+              // Trigger desktop icon addition notification
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('networkToolInstalled'));
+              }
+            }, 2000);
+          }
         }, delay + (index * 3000));
       });
     }
+  }, [playSound, conversationSent]);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    setIsConnected(false);
+    setShowLogin(true);
+    setSelectedContact(null);
+    setMessages([]);
+    setConversationSent(new Set());
+    setUsername("");
+    setPassword("");
+    sessionStorage.removeItem('wintalk95State');
+    playSound('click');
   }, [playSound]);
 
   // Handle sending message
@@ -255,6 +399,14 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Edit</span>
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">View</span>
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Tools</span>
+          {isConnected && (
+            <span 
+              className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer text-red-600"
+              onClick={handleLogout}
+            >
+              Disconnect
+            </span>
+          )}
           <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Help</span>
         </div>
       </div>
@@ -395,7 +547,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-auto bg-white p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto bg-white p-2 space-y-2 max-h-80">
                   {messages
                     .filter(msg => msg.isSystem || msg.sender === selectedContact || msg.sender === username)
                     .map((message) => (
@@ -414,7 +566,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                           "bg-gray-100 text-gray-600 italic text-xs": message.isSystem
                         })}
                       >
-                        <div className="break-words">{message.content}</div>
+                        <div className="break-words whitespace-pre-wrap">{message.content}</div>
                         <div className="text-xs opacity-75 mt-1">
                           {formatTime(message.timestamp)}
                         </div>

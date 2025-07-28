@@ -164,14 +164,14 @@ Good luck with your assignment.
     setShowBruteForce(false);
     playSound('success');
     
-    // Save mission progress
+    // Save mission progress - Mark Mission 1 as complete
     import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
-      MissionTracker.completeMission('brute_force_complete');
+      MissionTracker.completeMission('mission1');
     });
 
-    // Show success dialog
+    // Show success dialog with instructions to check client_data.txt
     setTimeout(() => {
-      alert("Access Granted! The ZIP file has been unlocked successfully.");
+      alert("Access Granted! The ZIP file has been unlocked successfully.\n\nIMPORTANT: Open 'client_data.txt' to find your next mission credentials!");
     }, 500);
   }, [playSound]);
 
