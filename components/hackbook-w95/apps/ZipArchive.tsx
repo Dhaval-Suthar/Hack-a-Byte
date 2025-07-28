@@ -208,7 +208,6 @@ Good luck with your assignment.
   if (showBruteForce) {
     return (
       <BruteForceGame
-        targetPassword={password}
         targetFileName="Archive.zip"
         onSuccess={handleBruteForceSuccess}
         onClose={() => setShowBruteForce(false)}

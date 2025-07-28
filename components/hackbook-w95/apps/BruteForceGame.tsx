@@ -6,18 +6,28 @@ import clsx from "clsx";
 interface BruteForceGameProps {
   onSuccess: (password: string) => void;
   onClose: () => void;
-  targetPassword: string;
   targetFileName?: string;
 }
 
 const BruteForceGame: React.FC<BruteForceGameProps> = ({
   onSuccess,
   onClose,
-  targetPassword,
   targetFileName = "Archive.zip"
 }) => {
+  // Generate a random password for the game
+  const generateRandomPassword = useCallback(() => {
+    const passwordChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const length = Math.floor(Math.random() * 3) + 4; // Random length between 4-6 characters
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += passwordChars[Math.floor(Math.random() * passwordChars.length)];
+    }
+    return password;
+  }, []);
+
+  const [gamePassword] = useState(() => generateRandomPassword());
   const [currentSlot, setCurrentSlot] = useState(0);
-  const [crackedChars, setCrackedChars] = useState<string[]>(new Array(targetPassword.length).fill(""));
+  const [crackedChars, setCrackedChars] = useState<string[]>(new Array(gamePassword.length).fill(""));
   const [currentChar, setCurrentChar] = useState("");
   const [isAnimating, setIsAnimating] = useState(true);
   const [speed, setSpeed] = useState(800); // Start slower for better gameplay, then increase
@@ -72,9 +82,9 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
 
   // Animation loop for character cycling with weighted target character frequency
   useEffect(() => {
-    if (isAnimating && gameStarted && currentSlot < targetPassword.length) {
+    if (isAnimating && gameStarted && currentSlot < gamePassword.length) {
       animationRef.current = setInterval(() => {
-        const targetChar = targetPassword[currentSlot];
+        const targetChar = gamePassword[currentSlot];
         let randomChar;
         
         // 40% chance to show the target character, 60% chance for random
@@ -95,11 +105,11 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         }
       };
     }
-  }, [isAnimating, gameStarted, currentSlot, speed, characters, targetPassword]);
+  }, [isAnimating, gameStarted, currentSlot, speed, characters, gamePassword]);
 
   // Handle character selection (click or keypress)
   const handleCharacterSelect = useCallback(() => {
-    const targetChar = targetPassword[currentSlot];
+    const targetChar = gamePassword[currentSlot];
     setAttempts(prev => prev + 1);
 
     if (currentChar === targetChar) {
@@ -112,13 +122,13 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
       
       // Move to next slot
       const nextSlot = currentSlot + 1;
-      if (nextSlot >= targetPassword.length) {
+      if (nextSlot >= gamePassword.length) {
         // Password complete!
         setGameComplete(true);
         setIsAnimating(false);
         playSound('success');
         setTimeout(() => {
-          onSuccess(targetPassword);
+          onSuccess(gamePassword); // Pass the generated password to the parent
         }, 1500);
       } else {
         setCurrentSlot(nextSlot);
@@ -126,11 +136,16 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         setSpeed(prev => Math.max(150, prev - 50)); // Minimum 150ms, decrease by 50ms each time for faster progression
       }
     } else {
-      // Incorrect character
+      // Incorrect character - reset progress
       playSound('error');
       setMisses(prev => prev + 1);
       setShowMismatchDialog(true);
       setScrambleEffect(true);
+      
+      // Reset progress after failure
+      setCrackedChars(new Array(gamePassword.length).fill(""));
+      setCurrentSlot(0);
+      setSpeed(800); // Reset speed to initial value
       
       // Auto-hide mismatch dialog and continue
       setTimeout(() => {
@@ -138,7 +153,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         setScrambleEffect(false);
       }, 1500);
     }
-  }, [currentChar, targetPassword, currentSlot, crackedChars, playSound, onSuccess]);
+  }, [currentChar, gamePassword, currentSlot, crackedChars, playSound, onSuccess]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -184,7 +199,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
           <div>Attempts: <span className="text-yellow-400">{attempts}</span></div>
           <div>Misses: <span className="text-red-400">{misses}</span></div>
           <div>Speed: <span className="text-cyan-400">{(1000/speed).toFixed(1)} Hz</span></div>
-          <div>Progress: <span className="text-green-400">{currentSlot}/{targetPassword.length}</span></div>
+          <div>Progress: <span className="text-green-400">{currentSlot}/{gamePassword.length}</span></div>
         </div>
       </div>
 
@@ -195,7 +210,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         </div>
         
         <div className="flex justify-center space-x-2 mb-4">
-          {Array.from({ length: targetPassword.length }).map((_, index) => (
+          {Array.from({ length: gamePassword.length }).map((_, index) => (
             <div
               key={index}
               className={clsx(
@@ -226,7 +241,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
       </div>
 
       {/* Current Character Display */}
-      {gameStarted && isAnimating && currentSlot < targetPassword.length && (
+      {gameStarted && isAnimating && currentSlot < gamePassword.length && (
         <div className="text-center mb-6">
           <div className="text-sm mb-2">SCANNING SLOT {currentSlot + 1}:</div>
           <div className={clsx(
@@ -250,7 +265,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
       {gameStarted && isAnimating && !showMismatchDialog && !gameComplete && (
         <div className="text-center text-sm">
           <div className="mb-2">Click the character or press <span className="bg-green-900 px-2 py-1 rounded">SPACE</span> when the correct character appears!</div>
-          <div className="text-xs text-gray-400">Target character: <span className="text-yellow-300 font-bold">{targetPassword[currentSlot]}</span></div>
+          <div className="text-xs text-gray-400">Target character: <span className="text-yellow-300 font-bold">{gamePassword[currentSlot]}</span></div>
         </div>
       )}
 
@@ -260,7 +275,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
           <div className="text-2xl text-green-300 font-bold mb-4 animate-pulse">
             ACCESS GRANTED!
           </div>
-          <div className="text-lg">Password: <span className="text-yellow-300">{targetPassword}</span></div>
+          <div className="text-lg">Password: <span className="text-yellow-300">{gamePassword}</span></div>
           <div className="text-sm mt-2 text-gray-400">Launching file viewer...</div>
         </div>
       )}
