@@ -20,7 +20,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
   const [crackedChars, setCrackedChars] = useState<string[]>(new Array(targetPassword.length).fill(""));
   const [currentChar, setCurrentChar] = useState("");
   const [isAnimating, setIsAnimating] = useState(true);
-  const [speed, setSpeed] = useState(500); // milliseconds between character changes - slower for better gameplay
+  const [speed, setSpeed] = useState(800); // Start slower for better gameplay, then increase
   const [attempts, setAttempts] = useState(0);
   const [misses, setMisses] = useState(0);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
@@ -70,11 +70,22 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
     }
   }, []);
 
-  // Animation loop for character cycling
+  // Animation loop for character cycling with weighted target character frequency
   useEffect(() => {
     if (isAnimating && gameStarted && currentSlot < targetPassword.length) {
       animationRef.current = setInterval(() => {
-        const randomChar = characters[Math.floor(Math.random() * characters.length)];
+        const targetChar = targetPassword[currentSlot];
+        let randomChar;
+        
+        // 40% chance to show the target character, 60% chance for random
+        if (Math.random() < 0.4) {
+          randomChar = targetChar;
+        } else {
+          // Select a random character that's not the target
+          const otherChars = characters.split('').filter(char => char !== targetChar);
+          randomChar = otherChars[Math.floor(Math.random() * otherChars.length)];
+        }
+        
         setCurrentChar(randomChar);
       }, speed);
 
@@ -84,7 +95,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         }
       };
     }
-  }, [isAnimating, gameStarted, currentSlot, speed, characters, targetPassword.length]);
+  }, [isAnimating, gameStarted, currentSlot, speed, characters, targetPassword]);
 
   // Handle character selection (click or keypress)
   const handleCharacterSelect = useCallback(() => {
@@ -111,8 +122,8 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         }, 1500);
       } else {
         setCurrentSlot(nextSlot);
-        // Increase speed slightly for next character - smaller increments for better gameplay
-        setSpeed(prev => Math.max(200, prev - 15)); // Minimum 200ms, decrease by 15ms each time
+        // Increase speed progressively - start slow, get faster
+        setSpeed(prev => Math.max(150, prev - 50)); // Minimum 150ms, decrease by 50ms each time for faster progression
       }
     } else {
       // Incorrect character
