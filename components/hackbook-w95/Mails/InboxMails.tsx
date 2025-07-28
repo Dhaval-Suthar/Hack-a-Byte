@@ -53,41 +53,6 @@ P.S. This message will self-destruct after reading. No evidence must remain.
 
 [ATTACHMENT: Old_Files directory location mapped to your system]`,
       isRead: false,
-    },
-    {
-      id: "mission-1",
-      sender: "Security Officer",
-      subject: "CONFIDENTIAL: First Mission Brief",
-      date: "1995-11-28",
-      content: `TOP SECRET - SECURITY CLEARANCE LEVEL 1
-      
-AGENT: NEW RECRUIT
-MISSION: DATA RETRIEVAL 001
-
-This is your first mission briefing. You have been granted access to a secure terminal with potential sensitive information.
-
-OBJECTIVE:
-1. Locate the encrypted files in the system
-2. Find the decryption key in the hidden system files
-3. Use the Terminal to decrypt the protected data
-4. Retrieve the final password
-
-INSTRUCTIONS:
-- Open "My Computer" to navigate the file system
-- Look for files in C:\\Documents\\Encrypted
-- Check C:\\Windows\\System32 for hidden files (files starting with '.')
-- Use the Terminal and enter "help" for available commands
-- When you find the access code, use "access [CODE]" in the Terminal
-- Use "decrypt-file" with the correct parameters to access encrypted information
-
-NOTE: For security reasons, some files are encrypted with a Caesar cipher using a shift of 3.
-
-IMPORTANT: Do not share this mission with unauthorized personnel.
-
-DELETE THIS MESSAGE AFTER READING
-
--- Security Officer`,
-      isRead: false,
     }
   ]);
 
