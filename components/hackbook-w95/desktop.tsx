@@ -20,6 +20,7 @@ import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
 import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
 import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
+import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
 import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
@@ -60,6 +61,7 @@ const APPS: App[] = [
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
   new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
   new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
+  new App("Neural Network Analyzer", "/hackbook-W95/app-icon/network.svg"), // Hidden app - will be revealed through gameplay
 ];
 
 const DefaultValues = {
@@ -86,6 +88,11 @@ const Desktop = () => {
   const [networkToolInstalled, setNetworkToolInstalled] = useState(false);
   const [showInstallNotification, setShowInstallNotification] = useState(false);
 
+  // Neural Network Analyzer availability state
+  const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
+  const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
+  const [neuralDataDiscovered, setNeuralDataDiscovered] = useState(false);
+
   // Mission 2 completion state for Number Jumping Game
   const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
   const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
@@ -104,6 +111,39 @@ const Desktop = () => {
     
     checkMission1Status();
   }, []);
+
+  // Check if Neural Network data is discovered to show Neural Network Analyzer
+  useEffect(() => {
+    const checkNeuralNetworkUnlock = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        // Unlock Neural Network Analyzer when network tool is installed and user has progressed
+        const mission1Complete = MissionTracker.isMissionCompleted('mission1');
+        const neuralDataDiscovered = MissionTracker.isMissionCompleted('neural_data_discovered');
+        
+        if ((mission1Complete && networkToolInstalled) || neuralDataDiscovered) {
+          setNeuralNetworkUnlocked(true);
+        }
+      } catch (error) {
+        console.error('Error checking neural network unlock status:', error);
+      }
+    };
+    
+    checkNeuralNetworkUnlock();
+
+    // Temporary testing: Auto-unlock neural network analyzer 5 seconds after network tool is installed
+    if (networkToolInstalled && !neuralNetworkUnlocked) {
+      const timer = setTimeout(() => {
+        setNeuralDataDiscovered(true);
+        window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
+        import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
+          MissionTracker.completeMission('neural_data_discovered');
+        });
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [networkToolInstalled, neuralNetworkUnlocked]);
 
   // Check if Mission 2 is already completed on load
   useEffect(() => {
@@ -328,6 +368,26 @@ const Desktop = () => {
     };
   }, [playSound]);
 
+  // Listen for neural network data discovery
+  useEffect(() => {
+    const handleNeuralNetworkDiscovery = () => {
+      setNeuralNetworkUnlocked(true);
+      setShowNeuralNetworkNotification(true);
+      // Play discovery sound
+      playSound("ding");
+      
+      // Hide notification after 6 seconds
+      setTimeout(() => {
+        setShowNeuralNetworkNotification(false);
+      }, 6000);
+    };
+
+    window.addEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+    return () => {
+      window.removeEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+    };
+  }, [playSound]);
+
   // Listen for mission 2 completion to trigger Number Jumping Game
   useEffect(() => {
     const handleMissionComplete = (event: CustomEvent) => {
@@ -435,9 +495,21 @@ const Desktop = () => {
         
         // Close any open menus
         deSelect();
+
+        // Special handling for Network Neighborhood - trigger neural data discovery
+        if (app.name === "Network Neighborhood" && !neuralDataDiscovered) {
+          setTimeout(() => {
+            setNeuralDataDiscovered(true);
+            window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
+            // Mark in mission tracker
+            import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
+              MissionTracker.completeMission('neural_data_discovered');
+            });
+          }, 3000); // Trigger after 3 seconds of opening Network Neighborhood
+        }
       }
     },
-    [windowManager, deSelect, playSound, runningApps]
+    [windowManager, deSelect, playSound, runningApps, neuralDataDiscovered]
   );
 
   // Toggle fullscreen for a window
@@ -541,6 +613,19 @@ const Desktop = () => {
           return <Solitaire onClose={() => handleCloseApp(app)} />;
         case "WinTalk 95":
           return <WinTalk95 onClose={() => handleCloseApp(app)} />;
+        case "Neural Network Analyzer":
+          return (
+            <UntangleNeuralNetwork 
+              onClose={() => handleCloseApp(app)} 
+              onSuccess={(data) => {
+                console.log("Neural Network Data Restored:", data);
+                // Handle the success - maybe open a new file or trigger next mission
+                // For now, just close the app
+                handleCloseApp(app);
+              }}
+              difficulty="intermediate"
+            />
+          );
         case "Firewall Bypass":
           return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
         case "ZIP Archive":
@@ -644,9 +729,17 @@ const Desktop = () => {
         {/* App icons - using grid layout with consistent sizing */}
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
-            {APPS.filter(app => 
-              app.name !== "Network Neighborhood" || networkToolInstalled
-            ).map((app) => (
+            {APPS.filter(app => {
+              // Network Neighborhood is hidden until network tool is installed
+              if (app.name === "Network Neighborhood" && !networkToolInstalled) {
+                return false;
+              }
+              // Neural Network Analyzer is hidden until unlocked
+              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) {
+                return false;
+              }
+              return true;
+            }).map((app) => (
               <div
                 key={app.name}
                 className={clsx("flex flex-col items-center z-10 p-1 w-24", {
@@ -951,6 +1044,22 @@ const Desktop = () => {
             <p className="text-sm">Installation Complete!</p>
             <p className="text-xs text-gray-600 mt-2">
               New desktop icon added. Double-click to launch.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Neural Network Discovery Notification */}
+      {showNeuralNetworkNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-purple-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🧠 NEURAL DATA DISCOVERED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">🔍 Fragmented Intelligence Found</p>
+            <p className="text-sm">Neural Network Analyzer Unlocked!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Restore the fragmented data to reveal critical intelligence.
             </p>
           </div>
         </div>
