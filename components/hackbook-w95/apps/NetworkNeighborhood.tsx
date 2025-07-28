@@ -174,17 +174,20 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
             </div>
 
             <div className="mt-6 text-center">
+              <div className="mb-4 p-4 bg-green-100 border-2 border-green-400 rounded">
+                <p className="text-sm text-green-800">
+                  🎉 Excellent work, agent! Target successfully infiltrated.
+                  <br />
+                  Your skills are becoming legendary in the underground.
+                  <br />
+                  <span className="font-bold">Return to WinTalk95 for your next assignment.</span>
+                </p>
+              </div>
               <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 font-bold border-2 border-outset mr-4"
-                onClick={() => setShowIPFinder(true)}
-              >
-                Replay Mission
-              </button>
-              <button
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 font-bold border-2 border-outset"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 font-bold border-2 border-outset"
                 onClick={onClose}
               >
-                Close
+                Return to Desktop
               </button>
             </div>
           </div>

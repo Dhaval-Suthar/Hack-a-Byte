@@ -3,16 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 
-interface NetworkDevice {
-  id: string;
-  name: string;
-  ip: string;
-  x: number;
-  y: number;
-  isTarget: boolean;
-  isActive: boolean;
-}
-
 interface IPFinderProps {
   onSuccess: (targetIP: string) => void;
   onClose: () => void;
@@ -20,241 +10,222 @@ interface IPFinderProps {
 
 const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [attempts, setAttempts] = useState(0);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
   const [gameFailed, setGameFailed] = useState(false);
   const [targetIP, setTargetIP] = useState("");
+  const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
+  const [currentIP, setCurrentIP] = useState("");
   const [showConnectionRefused, setShowConnectionRefused] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
-  const [scenarioDescription, setScenarioDescription] = useState("Locating Target System");
-  const [hint, setHint] = useState("");
+  const [timeLeft, setTimeLeft] = useState(90);
+  const [numberGrid, setNumberGrid] = useState<string[]>([]);
   
-  const MAX_ATTEMPTS = 5; // Increased for easier gameplay
+  const MAX_ATTEMPTS = 3;
 
-  // Generate simple hint system
-  const generateHint = useCallback((): string => {
-    const hints = [
-      `Look for a device with suspicious activity - it has an unusual name`,
-      `The target device doesn't look like normal office equipment`,
-      `Scan for devices that stand out from typical network hardware`,
-      `The target has a hacker-style name that's different from others`,
-      `One of these devices doesn't belong in a normal office network`
-    ];
-    
-    return hints[Math.floor(Math.random() * hints.length)];
-  }, []);
-
-  // Generate network devices with simpler logic
-  const generateNetworkDevices = useCallback((): NetworkDevice[] => {
-    const deviceNames = [
-      "Office Printer", "Coffee Machine", "Router Gateway", "File Server",
-      "Game Console", "Lab Computer", "Mail Server", "Database Server",
-      "Backup Server", "Security Camera", "Employee PC #1", "Employee PC #2"
-    ];
-
+  // Generate number grid with target IP hidden
+  const generateNumberGrid = useCallback((): { grid: string[], target: string } => {
     // Dynamic target scenarios
     const scenarios = [
-      {
-        targetName: "ShadowByte's Lair",
-        targetIP: "192.168.1.142",
-        description: "Locating ShadowByte's Virtual Lair"
-      },
-      {
-        targetName: "CyberPhantom's Den", 
-        targetIP: "192.168.1.187",
-        description: "Tracking CyberPhantom's Hideout"
-      },
-      {
-        targetName: "DarkNet Infiltrator",
-        targetIP: "192.168.1.221",
-        description: "Finding DarkNet Operative Base"
-      },
-      {
-        targetName: "Ghost Protocol Hub",
-        targetIP: "192.168.1.156",
-        description: "Locating Rogue Ghost Agent"
-      },
-      {
-        targetName: "Binary Assassin HQ",
-        targetIP: "192.168.1.199",
-        description: "Hunting Binary Assassin's Station"
-      }
+      { targetIP: "192.168.1.142", description: "ShadowByte's Lair" },
+      { targetIP: "10.0.0.187", description: "CyberPhantom's Den" },
+      { targetIP: "172.16.5.221", description: "DarkNet Operative" },
+      { targetIP: "192.168.2.156", description: "Ghost Protocol" },
+      { targetIP: "10.1.1.199", description: "Binary Assassin" }
     ];
 
-    // Randomly select a scenario
     const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-    const targetIndex = Math.floor(Math.random() * deviceNames.length);
+    const targetOctets = scenario.targetIP.split('.');
     
-    // Replace one device name with the target
-    deviceNames[targetIndex] = scenario.targetName;
+    // Create 10x8 grid (80 numbers)
+    const grid: string[] = [];
+    const targetPositions = new Set<number>();
     
-    const devices: NetworkDevice[] = [];
+    // Randomly place target IP octets
+    while (targetPositions.size < 4) {
+      const pos = Math.floor(Math.random() * 80);
+      if (!targetPositions.has(pos)) {
+        targetPositions.add(pos);
+      }
+    }
     
-    deviceNames.forEach((name, index) => {
-      const isTarget = index === targetIndex;
-      const baseIP = "192.168.1.";
-      const lastOctet = isTarget ? scenario.targetIP.split('.')[3] : (100 + index).toString();
-      
-      devices.push({
-        id: `device_${index}`,
-        name,
-        ip: baseIP + lastOctet,
-        x: 80 + (index % 4) * 160,
-        y: 60 + Math.floor(index / 4) * 120,
-        isTarget,
-        isActive: Math.random() > 0.2 // Most devices are active
+    // Fill grid
+    const targetArray = Array.from(targetPositions);
+    for (let i = 0; i < 80; i++) {
+      if (targetPositions.has(i)) {
+        const octetIndex = targetArray.indexOf(i);
+        grid[i] = targetOctets[octetIndex];
+      } else {
+        // Generate random numbers
+        grid[i] = Math.floor(Math.random() * 256).toString().padStart(2, '0');
+      }
+    }
+    
+    return { grid, target: scenario.targetIP };
+  }, []);
+
+  // Initialize game
+  useEffect(() => {
+    const { grid, target } = generateNumberGrid();
+    setNumberGrid(grid);
+    setTargetIP(target);
+    setGameStarted(true);
+    
+    // Start countdown timer
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setGameFailed(true);
+          setShowGameOver(true);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
       });
-    });
-
-    setTargetIP(scenario.targetIP);
-    setScenarioDescription(scenario.description);
+    }, 1000);
     
-    // Generate hint for the target
-    setHint(generateHint());
+    return () => clearInterval(timer);
+  }, [generateNumberGrid]);
+
+  // Handle number click
+  const handleNumberClick = (index: number, value: string) => {
+    if (gameComplete || gameFailed || selectedNumbers.length >= 4) return;
     
-    return devices;
-  }, [generateHint]);
-
-  const [networkDevices] = useState(() => generateNetworkDevices());
-
-  // Handle device click
-  const handleDeviceClick = (device: NetworkDevice) => {
-    setAttempts(prev => prev + 1);
-
-    if (device.isTarget) {
-      // Success!
-      setGameComplete(true);
-      setShowSuccessAnimation(true);
+    const newSelected = [...selectedNumbers, value];
+    setSelectedNumbers(newSelected);
+    setCurrentIP(newSelected.join('.'));
+    
+    // Check if complete IP
+    if (newSelected.length === 4) {
+      const attemptedIP = newSelected.join('.');
       
       setTimeout(() => {
-        onSuccess(device.ip);
-      }, 2000);
-    } else {
-      // Wrong device
-      const newWrongAttempts = wrongAttempts + 1;
-      setWrongAttempts(newWrongAttempts);
-      
-      if (newWrongAttempts >= MAX_ATTEMPTS) {
-        // Game over - too many wrong attempts
-        setGameFailed(true);
-        setShowGameOver(true);
-      } else {
-        setShowConnectionRefused(true);
-        setTimeout(() => {
-          setShowConnectionRefused(false);
-        }, 2000);
-      }
+        if (attemptedIP === targetIP) {
+          setGameComplete(true);
+          setShowSuccessAnimation(true);
+          setTimeout(() => onSuccess(attemptedIP), 2000);
+        } else {
+          const newWrongAttempts = wrongAttempts + 1;
+          setWrongAttempts(newWrongAttempts);
+          
+          if (newWrongAttempts >= MAX_ATTEMPTS) {
+            setGameFailed(true);
+            setShowGameOver(true);
+          } else {
+            setShowConnectionRefused(true);
+            setSelectedNumbers([]);
+            setCurrentIP("");
+            setTimeout(() => setShowConnectionRefused(false), 2500);
+          }
+        }
+      }, 1000);
     }
   };
 
-  // Start game immediately
-  useEffect(() => {
-    setGameStarted(true);
-  }, []);
+  // Format time
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const milliseconds = Math.floor(Math.random() * 999);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
+  };
+
+  // Check if number is part of target
+  const isTargetNumber = (value: string) => {
+    return targetIP.split('.').includes(value);
+  };
 
   return (
-    <div className="w-full h-full bg-[#c0c0c0] p-2 relative">
+    <div className="w-full h-full bg-black relative overflow-hidden">
+      {/* Matrix background effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-black to-black"></div>
+      
       {/* Header */}
-      <div className="bg-[#000080] text-white p-2 mb-2 text-center">
-        <h2 className="font-bold">Network Reconnaissance Tool v2.1</h2>
-        <p className="text-sm">{scenarioDescription}</p>
+      <div className="relative z-10 bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-4 border-b-2 border-cyan-400">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-cyan-400 rounded-full flex items-center justify-center">
+              <span className="text-black font-bold">🔒</span>
+            </div>
+            <div>
+              <h2 className="font-mono font-bold text-xl">CONNECTING TO THE HOST</h2>
+              <p className="text-sm text-cyan-200 font-mono">COMPROMISING GLOBAL SECURITY ONE SLIP AT A TIME</p>
+            </div>
+          </div>
+          
+          {/* Signal strength */}
+          <div className="flex space-x-1">
+            {[4, 5, 6, 3, 4].map((height, i) => (
+              <div key={i} className={`w-2 bg-cyan-400`} style={{ height: `${height * 4}px` }}></div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {!gameStarted ? (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-pulse text-lg mb-4">Initializing Network Scanner...</div>
-            <div className="w-32 h-2 bg-[#808080] border-2 border-inset">
-              <div className="w-full h-full bg-green-500 animate-pulse"></div>
+          <div className="text-center text-cyan-400">
+            <div className="text-2xl font-mono mb-4 animate-pulse">INITIALIZING BREACH PROTOCOL...</div>
+            <div className="w-64 h-2 bg-gray-800 border border-cyan-600">
+              <div className="w-full h-full bg-cyan-400 animate-pulse"></div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex h-full gap-2">
-          {/* Hint Panel */}
-          <div className="w-1/3 bg-white border-2 border-inset p-2">
-            <div className="bg-[#000080] text-white p-1 mb-2">
-              <h3 className="font-bold text-sm">Mission Intel</h3>
+        <div className="relative z-10 p-8 text-white h-full flex flex-col items-center">
+          {/* Target IP Display */}
+          <div className="text-center mb-8">
+            <div className="text-7xl font-mono text-red-500 mb-4 tracking-wider animate-pulse">
+              {currentIP || targetIP}
             </div>
-            
-            <div className="space-y-3">
-              <div className="bg-yellow-100 border-2 border-yellow-400 p-2 rounded">
-                <h4 className="font-bold text-sm mb-1">🎯 Objective:</h4>
-                <p className="text-xs">Find and click on the target device to establish connection.</p>
-              </div>
-              
-              <div className="bg-blue-100 border-2 border-blue-400 p-2 rounded">
-                <h4 className="font-bold text-sm mb-1">💡 Hint:</h4>
-                <p className="text-xs">{hint}</p>
-              </div>
-              
-              <div className="bg-gray-100 border-2 border-gray-400 p-2 rounded">
-                <h4 className="font-bold text-sm mb-1">📊 Status:</h4>
-                <p className="text-xs">Attempts: {attempts}</p>
-                <p className="text-xs">Wrong: {wrongAttempts}/{MAX_ATTEMPTS}</p>
-                <p className="text-xs">Online Devices: {networkDevices.filter(d => d.isActive).length}</p>
-              </div>
-              
-              {wrongAttempts >= MAX_ATTEMPTS - 1 && wrongAttempts < MAX_ATTEMPTS && (
-                <div className="bg-red-100 border-2 border-red-400 p-2 rounded">
-                  <p className="text-xs font-bold">⚠️ FINAL ATTEMPT!</p>
-                  <p className="text-xs">Choose carefully!</p>
-                </div>
-              )}
+            <div className="text-2xl font-mono text-cyan-400">
+              {formatTime(timeLeft)}
             </div>
           </div>
 
-          {/* Network Map Panel */}
-          <div className="w-2/3 bg-white border-2 border-inset p-2 relative">
-            <div className="bg-[#000080] text-white p-1 mb-2">
-              <h3 className="font-bold text-sm">Network Topology Map</h3>
-              <p className="text-xs">Click on a device to attempt connection</p>
-            </div>
-            
-            <div className="relative h-80 bg-[#008080] border-2 border-inset overflow-auto">
-              {/* Network devices container */}
-              <div className="relative" style={{ height: '480px', width: '640px' }}>
-                {networkDevices.map((device) => (
+          {/* Number Matrix Grid */}
+          <div className="mb-6">
+            <div className="grid grid-cols-10 gap-2 p-6 bg-black/70 border-2 border-cyan-600 rounded-lg backdrop-blur-sm">
+              {numberGrid.map((number, index) => {
+                const isSelected = selectedNumbers.includes(number);
+                const isTarget = isTargetNumber(number) && (wrongAttempts > 0 || gameComplete);
+                
+                return (
                   <div
-                    key={device.id}
+                    key={index}
                     className={clsx(
-                      "absolute cursor-pointer transform transition-all duration-300 hover:scale-110",
+                      "w-14 h-10 flex items-center justify-center text-lg font-mono cursor-pointer transition-all duration-300 border",
+                      "hover:scale-110 hover:shadow-lg",
                       {
-                        "opacity-60": !device.isActive,
-                        "animate-pulse": device.isTarget && attempts > 2 // Give subtle hint after some attempts
+                        "text-white bg-gray-900 border-cyan-800 hover:border-cyan-400 hover:bg-cyan-900": !isSelected && !isTarget,
+                        "text-red-400 bg-red-900/50 border-red-500 animate-pulse": isTarget && !isSelected,
+                        "text-black bg-cyan-400 border-cyan-300": isSelected,
+                        "opacity-50 cursor-not-allowed": selectedNumbers.length >= 4 && !isSelected
                       }
                     )}
-                    style={{ left: device.x, top: device.y }}
-                    onClick={() => !gameComplete && !gameFailed && handleDeviceClick(device)}
+                    onClick={() => selectedNumbers.length < 4 && !isSelected && handleNumberClick(index, number)}
                   >
-                    {/* Device icon */}
-                    <div className={clsx(
-                      "w-12 h-12 border-2 rounded flex items-center justify-center text-xs",
-                      {
-                        "bg-gray-400 border-gray-600": !device.isActive,
-                        "bg-blue-400 border-blue-600": device.isActive && !device.isTarget,
-                        "bg-green-400 border-green-600": device.isActive && device.isTarget && attempts <= 2,
-                        "bg-red-400 border-red-600": device.isActive && device.isTarget && attempts > 2
-                      }
-                    )}>
-                      💻
-                    </div>
-                    
-                    {/* Device label */}
-                    <div className="text-xs text-center mt-1 bg-white px-1 rounded max-w-24">
-                      <div className="truncate font-bold">{device.name}</div>
-                      <div className="text-gray-600">{device.ip}</div>
-                    </div>
-                    
-                    {/* Connection indicator */}
-                    {device.isActive && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    )}
+                    {number}
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="text-center">
+            <div className="text-cyan-400 font-mono text-lg mb-2">
+              Hack the <span className="text-green-400 animate-pulse">laptop</span>.
+            </div>
+            {selectedNumbers.length > 0 && (
+              <div className="text-yellow-400 font-mono text-xl">
+                {selectedNumbers.join('.')}
+                {selectedNumbers.length < 4 && '...'}
               </div>
+            )}
+            <div className="text-gray-400 text-sm mt-2">
+              Attempts: {wrongAttempts}/{MAX_ATTEMPTS} | Time: {timeLeft}s
             </div>
           </div>
         </div>
@@ -262,69 +233,34 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
 
       {/* Connection Refused Dialog */}
       {showConnectionRefused && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#c0c0c0] border-2 border-outset p-4 min-w-64">
-            <div className="bg-red-600 text-white p-2 mb-4 text-center">
-              <h3 className="font-bold">Connection Refused!</h3>
-            </div>
-            <p className="text-center mb-4">
-              Wrong target device selected.
-              <br />
-              Look for the suspicious device name.
-              <br />
-              <span className="text-red-600 font-bold">
-                Remaining attempts: {MAX_ATTEMPTS - wrongAttempts}
-              </span>
-            </p>
-            <div className="text-center">
-              <button
-                className="bg-[#c0c0c0] border-2 border-outset px-4 py-1"
-                onClick={() => setShowConnectionRefused(false)}
-              >
-                Continue
-              </button>
-            </div>
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-red-900 border-2 border-red-500 p-6 rounded text-white text-center">
+            <h3 className="font-mono text-xl mb-4">CONNECTION REFUSED</h3>
+            <p className="font-mono">Invalid IP sequence: {currentIP}</p>
+            <p className="text-red-400 mt-2">Attempts remaining: {MAX_ATTEMPTS - wrongAttempts}</p>
           </div>
         </div>
       )}
 
       {/* Game Over Dialog */}
       {showGameOver && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#c0c0c0] border-2 border-outset p-4 min-w-80">
-            <div className="bg-red-600 text-white p-2 mb-4 text-center">
-              <h3 className="font-bold">MISSION FAILED!</h3>
-            </div>
-            <div className="text-center space-y-2">
-              <p className="font-bold text-red-600">Target security system activated!</p>
-              <p className="text-sm">
-                Too many failed connection attempts detected.
-                <br />
-                The target has gone into lockdown mode.
-              </p>
-              <p className="text-xs text-gray-600">
-                You exceeded the maximum allowed attempts ({MAX_ATTEMPTS}).
-                <br />
-                Return to WinTalk95 for further instructions.
-              </p>
-            </div>
-            <div className="text-center mt-4">
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-red-900 border-2 border-red-500 p-6 rounded text-white text-center max-w-md">
+            <h3 className="font-mono text-2xl mb-4">BREACH FAILED</h3>
+            <p className="font-mono mb-2">Security protocols activated</p>
+            <p className="text-red-400">Target IP was: {targetIP}</p>
+            <div className="mt-6 space-x-4">
               <button
-                className="bg-red-600 text-white border-2 border-outset px-4 py-1 mr-2"
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 font-mono"
                 onClick={onClose}
               >
-                Close
+                DISCONNECT
               </button>
               <button
-                className="bg-[#c0c0c0] border-2 border-outset px-4 py-1"
-                onClick={() => {
-                  setShowGameOver(false);
-                  setGameFailed(false);
-                  setWrongAttempts(0);
-                  setAttempts(0);
-                }}
+                className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 font-mono"
+                onClick={() => window.location.reload()}
               >
-                Retry
+                RETRY
               </button>
             </div>
           </div>
@@ -333,37 +269,25 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
 
       {/* Success Animation */}
       {showSuccessAnimation && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#c0c0c0] border-2 border-outset p-4 min-w-80">
-            <div className="bg-green-600 text-white p-2 mb-4 text-center">
-              <h3 className="font-bold">Target Acquired!</h3>
-            </div>
-            <div className="text-center space-y-2">
-              <p className="animate-pulse">Initiating Connection...</p>
-              <div className="font-mono text-lg text-green-600">PING {targetIP}</div>
-              <div className="w-full h-2 bg-[#808080] border-2 border-inset">
-                <div className="h-full bg-green-500 animate-pulse"></div>
-              </div>
-              <p className="text-sm">
-                Target location confirmed: <strong>{targetIP}</strong>
-              </p>
-              <p className="text-xs text-gray-600">
-                Preparing to bypass target defenses...
-              </p>
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-green-900 border-2 border-green-500 p-6 rounded text-white text-center">
+            <h3 className="font-mono text-2xl mb-4">BREACH SUCCESSFUL</h3>
+            <p className="font-mono text-green-400 text-xl">{targetIP}</p>
+            <p className="font-mono mt-2">Establishing connection...</p>
+            <div className="w-full h-2 bg-gray-800 border border-green-500 mt-4">
+              <div className="h-full bg-green-400 animate-pulse"></div>
             </div>
           </div>
         </div>
       )}
 
       {/* Close button */}
-      {!showSuccessAnimation && (
-        <button
-          className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 text-xs"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-      )}
+      <button
+        className="absolute top-4 right-4 text-white hover:text-red-400 z-20"
+        onClick={onClose}
+      >
+        ✕
+      </button>
     </div>
   );
 };

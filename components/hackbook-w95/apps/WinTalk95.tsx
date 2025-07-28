@@ -244,25 +244,25 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         {
           id: 'game_instructions',
           sender: 'Cipher_Master',
-          content: '🎯 HOW TO PLAY: 1) Click suspicious log entries (red border) to highlight devices 2) Analyze patterns to find the target IP 3) Click the correct device on the network map 4) You have only 3 attempts - choose wisely!',
+          content: '🎯 HOW TO PLAY: 1) Find the target IP address hidden in the number grid 2) Click 4 numbers in the correct sequence 3) Use the intel hints to identify the correct IP 4) You have only 3 attempts - stealth is critical!',
           timestamp: new Date('1995-11-29T09:16:50'),
         },
         {
           id: 'intelligence',
           sender: 'Cipher_Master',
-          content: `INTEL: Look for IP ${threat.expectedIP} in the logs. ${threat.name} specializes in ${threat.specialty}. Time is critical!`,
+          content: `INTEL: ${threat.name} specializes in ${threat.specialty}. Decode their location from the intercepted network data!`,
           timestamp: new Date('1995-11-29T09:17:00'),
         },
         {
           id: 'warning',
           sender: 'Cipher_Master',
-          content: `⚠️ WARNING: ${threat.name} is extremely cunning. Wrong connection attempts may trigger their security systems.`,
+          content: `⚠️ WARNING: ${threat.name} has advanced security protocols. Failed connection attempts will trigger countermeasures. Study the intelligence reports carefully!`,
           timestamp: new Date('1995-11-29T09:17:20'),
         },
         {
           id: 'closing_mission2',
           sender: 'Cipher_Master',
-          content: 'Find their location and establish contact. The network\'s security depends on you. Ghost out.',
+          content: 'Breach their digital fortress and establish contact. Our network security depends on your success. Stay sharp, agent. Ghost out.',
           timestamp: new Date('1995-11-29T09:17:40'),
         }
       ];
