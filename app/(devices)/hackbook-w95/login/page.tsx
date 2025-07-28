@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createDeviceUser, getDeviceUser, loginDeviceUser } from "@/app/actions/deviceUser";
 import BootAnimation from "@/components/hackbook-w95/boot-animation";
+import LoginAnimation from "@/components/hackbook-w95/login-animation";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 
 const LoginPage = () => {
@@ -18,16 +19,26 @@ const LoginPage = () => {
   const [playspaceId, setPlayspaceId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [showBootScreen, setShowBootScreen] = useState(true);
+  const [showLoginAnimation, setShowLoginAnimation] = useState(false);
+  const [loggedInUsername, setLoggedInUsername] = useState<string>("");
   
   // Show boot animation on initial load
   useEffect(() => {
-    // Show boot screen for 9 seconds (matches the boot animation timing)
-    const bootTimer = setTimeout(() => {
-      setShowBootScreen(false);
-    }, 9000);
+    // Check if this is a logout redirect to skip boot animation
+    const fromLogout = searchParams.get('fromLogout') === 'true';
     
-    return () => clearTimeout(bootTimer);
-  }, []);
+    if (fromLogout) {
+      // Skip boot animation for logout redirects
+      setShowBootScreen(false);
+    } else {
+      // Show boot screen for 9 seconds (matches the boot animation timing) for fresh visits
+      const bootTimer = setTimeout(() => {
+        setShowBootScreen(false);
+      }, 9000);
+      
+      return () => clearTimeout(bootTimer);
+    }
+  }, [searchParams]);
   
   useEffect(() => {
     // Get playspace ID and device ID using our utility (checks cookies and localStorage)
@@ -138,9 +149,10 @@ const LoginPage = () => {
         return;
       }
 
-      // Success - redirect to device with deviceId if available
-      const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
-      router.push(targetUrl);
+      // Success - show login animation with username
+      setLoggedInUsername(username);
+      setShowLoginAnimation(true);
+      setIsLoading(false);
     } catch (err) {
       console.error("Login error:", err);
       setError("An error occurred during login");
@@ -183,9 +195,10 @@ const LoginPage = () => {
         return;
       }
 
-      // Success - redirect to device with deviceId if available
-      const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
-      router.push(targetUrl);
+      // Success - show login animation with username
+      setLoggedInUsername(username);
+      setShowLoginAnimation(true);
+      setIsLoading(false);
       return;
     } catch (err) {
       console.error("Signup error:", err);
@@ -202,8 +215,23 @@ const LoginPage = () => {
     }
   };
 
+  const handleLoginAnimationComplete = () => {
+    // After login animation completes, redirect to the desktop
+    const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
+    router.push(targetUrl);
+  };
+
   if (showBootScreen) {
     return <BootAnimation />;
+  }
+
+  if (showLoginAnimation) {
+    return (
+      <LoginAnimation 
+        username={loggedInUsername} 
+        onComplete={handleLoginAnimationComplete} 
+      />
+    );
   }
 
   return (
@@ -227,7 +255,7 @@ const LoginPage = () => {
             >
               ?
             </div>
-            <Link href="/dashboard">
+            <Link href="/device-selection">
               <div className="bg-[#BBC2C2] h-7 w-7 m-0.5 hover:border-b-white hover:border-r-white hover:border-l-black hover:border-t-black border-2 shadow shadow-black border-black border-t-white border-l-white">
                 X
               </div>

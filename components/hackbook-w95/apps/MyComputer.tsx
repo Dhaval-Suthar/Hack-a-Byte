@@ -123,6 +123,18 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           }
         });
         window.dispatchEvent(event);
+      }
+      // ZIP files - open in ZIP archive viewer
+      else if (extension === 'zip') {
+        const event = new CustomEvent('win95openfile', {
+          detail: {
+            path: item.path,
+            extension: 'zip',
+            isPasswordProtected: item.metadata?.isPasswordProtected,
+            password: item.metadata?.password
+          }
+        });
+        window.dispatchEvent(event);
       } else {
         setStatusMessage(`Cannot open this file type`);
       }

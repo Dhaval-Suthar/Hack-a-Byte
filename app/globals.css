@@ -245,3 +245,17 @@ body::after {
 .win95-button:active {
   box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
 }
+
+/* Shutdown animation */
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fade-out 3s ease-in-out infinite alternate;
+}

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
+import { useDevToolsContext } from "@/components/hackbook-w95/hooks/useDevToolsContext";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -17,8 +18,18 @@ import Notepad from "@/components/hackbook-w95/apps/Notepad";
 import Calculator from "@/components/hackbook-w95/apps/Calculator";
 import Paint from "@/components/hackbook-w95/apps/Paint";
 import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
+import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
+import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
+import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
+import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
+import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
+import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
+import DevTools from "@/components/hackbook-w95/apps/DevTools";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
+import RestartAnimation from "@/components/hackbook-w95/restart-animation";
+import ShutdownAnimation from "@/components/hackbook-w95/shutdown-animation";
+import LogoutAnimation from "@/components/hackbook-w95/logout-animation";
 
 import SystemSounds from "@/components/hackbook-w95/SystemSounds";
 import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
@@ -43,6 +54,7 @@ const APPS: App[] = [
   new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png"),
   new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png"),
   new App("Inbox", "/hackbook-W95/app-icon/inbox.png"),
+  new App("Network Neighborhood", "/hackbook-W95/app-icon/ie.png"), // Using IE icon as network placeholder
   new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png"),
   new App("Minesweeper", "/hackbook-W95/app-icon/minesweeper.png"),
   new App("CD Player", "/hackbook-W95/app-icon/cdplayer.png"),
@@ -51,6 +63,10 @@ const APPS: App[] = [
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
   new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
+  new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
+  new App("Neural Network Analyzer", "/hackbook-W95/app-icon/network.svg"), // Hidden app - will be revealed through gameplay
+  new App("Secure Vault", "/hackbook-W95/app-icon/lock.svg"), // Hidden app - will be revealed after neural network completion
+  new App("Dev Tools", "/hackbook-W95/app-icon/settings.png"), // Development app for testing missions
 ];
 
 const DefaultValues = {
@@ -60,6 +76,7 @@ const DefaultValues = {
 const Desktop = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { devToolsVisible } = useDevToolsContext(); // Get the devToolsVisible state
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -68,7 +85,94 @@ const Desktop = () => {
   const [showProgramsMenu, setShowProgramsMenu] = useState(false);
   const [hasSeenMission, setHasSeenMission] = useState(false);
   const [showShutdownDialog, setShowShutdownDialog] = useState(false);
+  const [showRestartAnimation, setShowRestartAnimation] = useState(false);
+  const [showShutdownAnimation, setShowShutdownAnimation] = useState(false);
+  const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
   const [runningApps, setRunningApps] = useState<App[]>([]);
+
+  // Network Neighborhood availability state
+  const [networkToolInstalled, setNetworkToolInstalled] = useState(false);
+  const [showInstallNotification, setShowInstallNotification] = useState(false);
+
+  // Neural Network Analyzer availability state
+  const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
+  const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
+  const [neuralDataDiscovered, setNeuralDataDiscovered] = useState(false);
+
+  // Secure Vault availability state
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [showVaultNotification, setShowVaultNotification] = useState(false);
+
+  // Mission 2 completion state for Number Jumping Game
+  const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
+  const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
+
+  // Check if Mission 1 is completed to show Network Neighborhood
+  useEffect(() => {
+    const checkMission1Status = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        const mission1Complete = MissionTracker.isMissionCompleted('mission1');
+        setNetworkToolInstalled(mission1Complete);
+      } catch (error) {
+        console.error('Error checking mission status:', error);
+      }
+    };
+    
+    checkMission1Status();
+  }, []);
+
+  // Check if Neural Network data is discovered to show Neural Network Analyzer
+  useEffect(() => {
+    const checkNeuralNetworkUnlock = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        // Unlock Neural Network Analyzer when network tool is installed and user has progressed
+        const mission1Complete = MissionTracker.isMissionCompleted('mission1');
+        const neuralDataDiscovered = MissionTracker.isMissionCompleted('neural_data_discovered');
+        
+        if ((mission1Complete && networkToolInstalled) || neuralDataDiscovered) {
+          setNeuralNetworkUnlocked(true);
+        }
+      } catch (error) {
+        console.error('Error checking neural network unlock status:', error);
+      }
+    };
+    
+    checkNeuralNetworkUnlock();
+
+    // Temporary testing: Auto-unlock neural network analyzer 5 seconds after network tool is installed
+    if (networkToolInstalled && !neuralNetworkUnlocked) {
+      const timer = setTimeout(() => {
+        setNeuralDataDiscovered(true);
+        window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
+        import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
+          MissionTracker.completeMission('neural_data_discovered');
+        });
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [networkToolInstalled, neuralNetworkUnlocked]);
+
+  // Check if Mission 2 is already completed on load
+  useEffect(() => {
+    const checkMission2Status = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        const mission2Complete = MissionTracker.isMissionCompleted('mission2');
+        if (mission2Complete && !mission2JustCompleted) {
+          // Mission 2 was completed previously, don't show the notification again
+          // but make the firewall bypass available if needed
+          console.log('Mission 2 already completed');
+        }
+      } catch (error) {
+        console.error('Error checking mission 2 status:', error);
+      }
+    };
+    
+    checkMission2Status();
+  }, [mission2JustCompleted]);
 
   // Device user state
   const [deviceUser, setDeviceUser] = useState<{
@@ -170,6 +274,12 @@ const Desktop = () => {
 
   // Handle logout from device
   const handleLogout = async () => {
+    // Show logout animation immediately
+    setShowLogoutAnimation(true);
+  };
+
+  // Handle logout animation completion
+  const handleLogoutComplete = async () => {
     try {
       if (playspaceId && deviceUser) {
         // Logout from device session - this will clear the httpOnly cookie on server side
@@ -178,24 +288,40 @@ const Desktop = () => {
           "hackbook-w95"
         );
 
-        // Clear localStorage
+        // Clear only device-specific localStorage items, preserve playspaceId
         if (typeof window !== "undefined") {
-          localStorage.removeItem("playspaceId");
-          localStorage.removeItem("selectedDeviceId");
+          // Keep playspaceId and selectedDeviceId for proper redirection
+          // Only remove device type to reset device-specific state
           localStorage.removeItem("selectedDeviceType");
         }
       }
 
-      // Navigate back to device selection
-      router.push("/device-selection");
+      // Navigate back to hackbook-w95 login with preserved playspaceId and deviceId
+      const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
+      const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
+      
+      if (storedPlayspaceId && storedDeviceId) {
+        router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
+      } else {
+        // Fallback to device selection only if we don't have the required IDs
+        router.push("/device-selection");
+      }
     } catch (error) {
       console.error("Error logging out:", error);
-      // Even if logout fails, clear local data and redirect
+      // Even if logout fails, try to redirect to hackbook-w95 login with preserved IDs
       if (typeof window !== "undefined") {
-        localStorage.removeItem("playspaceId");
-        localStorage.removeItem("selectedDeviceId");
+        const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
+        const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
+        
+        if (storedPlayspaceId && storedDeviceId) {
+          router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
+        } else {
+          // Only clear localStorage and go to device selection as last resort
+          localStorage.removeItem("playspaceId");
+          localStorage.removeItem("selectedDeviceId");
+          router.push("/device-selection");
+        }
       }
-      router.push("/device-selection");
     }
   };
 
@@ -231,6 +357,92 @@ const Desktop = () => {
       }
     }
   }, []);
+
+  // Listen for network tool installation from WinTalk95
+  useEffect(() => {
+    const handleNetworkToolInstall = () => {
+      setNetworkToolInstalled(true);
+      setShowInstallNotification(true);
+      // Play installation sound
+      playSound("ding");
+      
+      // Hide notification after 5 seconds
+      setTimeout(() => {
+        setShowInstallNotification(false);
+      }, 5000);
+    };
+
+    window.addEventListener('networkToolInstalled', handleNetworkToolInstall);
+    return () => {
+      window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
+    };
+  }, [playSound]);
+
+  // Listen for neural network data discovery
+  useEffect(() => {
+    const handleNeuralNetworkDiscovery = () => {
+      setNeuralNetworkUnlocked(true);
+      setShowNeuralNetworkNotification(true);
+      // Play discovery sound
+      playSound("ding");
+      
+      // Hide notification after 6 seconds
+      setTimeout(() => {
+        setShowNeuralNetworkNotification(false);
+      }, 6000);
+    };
+
+    const handleNeuralNetworkComplete = () => {
+      // When neural network is completed, unlock the secure vault
+      setVaultUnlocked(true);
+      setShowVaultNotification(true);
+      playSound("ding");
+      
+      // Hide notification after 6 seconds
+      setTimeout(() => {
+        setShowVaultNotification(false);
+      }, 6000);
+    };
+
+    window.addEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+    window.addEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
+    return () => {
+      window.removeEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
+      window.removeEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
+    };
+  }, [playSound]);
+
+  // Listen for mission 2 completion to trigger Number Jumping Game
+  useEffect(() => {
+    const handleMissionComplete = (event: CustomEvent) => {
+      const { missionId } = event.detail;
+      
+      if (missionId === 'mission2' && !mission2JustCompleted) {
+        setMission2JustCompleted(true);
+        
+        // Show a brief notification, then automatically open the Number Jumping Game
+        setTimeout(() => {
+          // Create the Firewall Bypass app instance
+          const firewallApp = new App("Firewall Bypass", "/hackbook-W95/app-icon/key.png");
+          firewallApp.id = `firewallBypass_${Date.now()}`;
+          
+          // Register and open the app
+          windowManager.registerWindow(firewallApp.id);
+          setRunningApps((prev) => [...prev, firewallApp]);
+          setSelectedApp(firewallApp);
+          windowManager.activateWindow(firewallApp.id);
+          playSound("ding");
+          
+          setShowNumberJumpingGame(true);
+        }, 2000);
+      }
+    };
+
+    window.addEventListener('missionComplete', handleMissionComplete as EventListener);
+    return () => {
+      window.removeEventListener('missionComplete', handleMissionComplete as EventListener);
+    };
+  }, [playSound, windowManager, mission2JustCompleted]);
 
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
@@ -307,10 +519,38 @@ const Desktop = () => {
         
         // Close any open menus
         deSelect();
+
+        // Special handling for Network Neighborhood - trigger neural data discovery
+        if (app.name === "Network Neighborhood" && !neuralDataDiscovered) {
+          setTimeout(() => {
+            setNeuralDataDiscovered(true);
+            window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
+            // Mark in mission tracker
+            import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
+              MissionTracker.completeMission('neural_data_discovered');
+            });
+          }, 3000); // Trigger after 3 seconds of opening Network Neighborhood
+        }
       }
     },
-    [windowManager, deSelect, playSound, runningApps]
+    [windowManager, deSelect, playSound, runningApps, neuralDataDiscovered]
   );
+
+  // Listen for development app launch events
+  useEffect(() => {
+    const handleDevLaunchApp = (event: CustomEvent) => {
+      const { appName } = event.detail;
+      const app = APPS.find(a => a.name === appName);
+      if (app) {
+        handleOpenApp(app);
+      }
+    };
+
+    window.addEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+    return () => {
+      window.removeEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+    };
+  }, [handleOpenApp]);
 
   // Toggle fullscreen for a window
   const handleToggleFullscreen = useCallback(
@@ -375,6 +615,8 @@ const Desktop = () => {
           return <InternetExplorer link={link} setLink={setLink} onClose={() => handleCloseApp(app)} />;
         case "Inbox":
           return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} />;
+        case "Network Neighborhood":
+          return <NetworkNeighborhood onClose={() => handleCloseApp(app)} />;
         case "Recycle Bin":
           return <RecycleBin onClose={() => handleCloseApp(app)} />;
         case "Minesweeper":
@@ -409,6 +651,38 @@ const Desktop = () => {
           return <Paint onClose={() => handleCloseApp(app)} />;
         case "Solitaire":
           return <Solitaire onClose={() => handleCloseApp(app)} />;
+        case "WinTalk 95":
+          return <WinTalk95 onClose={() => handleCloseApp(app)} />;
+        case "Neural Network Analyzer":
+          return (
+            <UntangleNeuralNetwork 
+              onClose={() => handleCloseApp(app)} 
+              onSuccess={(data) => {
+                console.log("Neural Network Data Restored:", data);
+                // Trigger vault unlock
+                window.dispatchEvent(new CustomEvent('neuralNetworkCompleted'));
+                // Handle the success - maybe open a new file or trigger next mission
+                // For now, just close the app
+                handleCloseApp(app);
+              }}
+              difficulty="intermediate"
+            />
+          );
+        case "Secure Vault":
+          return <FingerprintHack onClose={() => handleCloseApp(app)} />;
+        case "Dev Tools":
+          return <DevTools onClose={() => handleCloseApp(app)} />;
+        case "Firewall Bypass":
+          return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
+        case "ZIP Archive":
+          return (
+            <ZipArchive
+              onClose={() => handleCloseApp(app)}
+              filePath={app.metadata?.filePath as string}
+              isLocked={Boolean(app.metadata?.isPasswordProtected)}
+              password={app.metadata?.password as string}
+            />
+          );
         default:
           return null;
       }
@@ -439,6 +713,16 @@ const Desktop = () => {
           // Open the app
           handleOpenApp(notepadApp);
         }
+      } else if (fileData.extension === "zip") {
+        // Create a new ZIP Archive app instance
+        const zipApp = new App("ZIP Archive", "/hackbook-w95/file-icons/archive.png");
+        zipApp.metadata = {
+          filePath: fileData.path,
+          isPasswordProtected: fileData.isPasswordProtected,
+          password: fileData.password
+        };
+        // Open the app
+        handleOpenApp(zipApp);
       }
     };
 
@@ -491,7 +775,31 @@ const Desktop = () => {
         {/* App icons - using grid layout with consistent sizing */}
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
-            {APPS.map((app) => (
+            {APPS.filter(app => {
+              // Hide certain apps unless DevTools is active (zebra code typed)
+              if (!devToolsVisible) {
+                if (app.name === "Network Neighborhood" || 
+                    app.name === "Neural Network Analyzer" ||
+                    app.name === "Dev Tools") {
+                  return false;
+                }
+              }
+              
+              // Regular game progression filters
+              // Network Neighborhood is hidden until network tool is installed
+              if (app.name === "Network Neighborhood" && !networkToolInstalled) {
+                return false;
+              }
+              // Neural Network Analyzer is hidden until unlocked
+              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) {
+                return false;
+              }
+              // Secure Vault is hidden until neural network is completed
+              if (app.name === "Secure Vault" && !vaultUnlocked) {
+                return false;
+              }
+              return true;
+            }).map((app) => (
               <div
                 key={app.name}
                 className={clsx("flex flex-col items-center z-10 p-1 w-24", {
@@ -665,17 +973,43 @@ const Desktop = () => {
         <ShutdownDialog
           onCancel={() => setShowShutdownDialog(false)}
           onShutDown={() => {
-            playSound("shutdown");
-            setTimeout(() => {
-              router.push("/");
-            }, 2000);
+            setShowShutdownDialog(false);
+            setShowShutdownAnimation(true);
           }}
           onRestart={() => {
             setShowShutdownDialog(false);
-            window.location.reload();
+            setShowRestartAnimation(true);
           }}
           onLogout={handleLogout}
           showLogout={!!deviceUser}
+        />
+      )}
+
+      {/* Restart animation */}
+      {showRestartAnimation && (
+        <RestartAnimation
+          onComplete={() => {
+            setShowRestartAnimation(false);
+            // Animation completes without reloading the page. This is intentional for the hackbook-w95 simulation and does not perform a full restart.
+          }}
+        />
+      )}
+
+      {/* Shutdown animation */}
+      {showShutdownAnimation && (
+        <ShutdownAnimation
+          onComplete={() => {
+            setShowShutdownAnimation(false);
+            router.push("/device-selection");
+          }}
+        />
+      )}
+
+      {/* Logout animation */}
+      {showLogoutAnimation && (
+        <LogoutAnimation
+          username={deviceUser?.username || "User"}
+          onComplete={handleLogoutComplete}
         />
       )}
 
@@ -758,6 +1092,71 @@ const Desktop = () => {
           </div>
         </div>
       </div>
+
+      {/* Network Tool Installation Notification */}
+      {showInstallNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-green-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">Software Installation</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">📥 Network Neighborhood v2.1</p>
+            <p className="text-sm">Installation Complete!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              New desktop icon added. Double-click to launch.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Neural Network Discovery Notification */}
+      {showNeuralNetworkNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-purple-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🧠 NEURAL DATA DISCOVERED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">🔍 Fragmented Intelligence Found</p>
+            <p className="text-sm">Neural Network Analyzer Unlocked!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Restore the fragmented data to reveal critical intelligence.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Secure Vault Unlock Notification */}
+      {showVaultNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-red-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🔐 VAULT ACCESS DETECTED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">🗝️ ShadowByte&apos;s Secure Archive Located</p>
+            <p className="text-sm">Biometric Scanner Required!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Access the secure vault to retrieve critical intel.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Mission 2 Completion Notification */}
+      {mission2JustCompleted && !showNumberJumpingGame && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
+          <div className="bg-[#000080] text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🔒 SECURITY PROTOCOL ACTIVATED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2 font-bold">TARGET LOCATED!</p>
+            <p className="text-sm mb-2">ShadowByte&apos;s IP has been identified.</p>
+            <p className="text-sm mb-2">⚠️ FIREWALL BREACH PROTOCOL REQUIRED</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Initializing bypass tools...
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
@@ -776,6 +1175,7 @@ const TerminalComponent: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const fs = useFileSystem();
+  const { checkZebraCode } = useDevToolsContext(); // Get the checkZebraCode function
 
   // Function to play terminal sounds
   const playTerminalSound = (soundType: string) => {
@@ -1005,8 +1405,16 @@ const TerminalComponent: React.FC = () => {
       // Add command to history with proper formatting
       setCommandHistory((prev) => [...prev, `${formatPath(currentDirectory)} ${currentCommand}`]);
 
-      // Process different commands (case-insensitive)
-      const cmdLower = command.toLowerCase();
+      // Check if the command is the zebra code
+      const isZebraCode = checkZebraCode(command);
+      
+      if (isZebraCode) {
+        // It's the zebra code
+        output = "Developer Tools activated! Hidden apps are now visible on desktop.";
+        playTerminalSound("success");
+      } else {
+        // Process different commands (case-insensitive)
+        const cmdLower = command.toLowerCase();
 
       if (cmdLower === "help") {
         output =
@@ -1283,6 +1691,7 @@ Total memory    16,384K     6,157K     10,227K
         }, 1000);
       } else {
         output = `'${command}' is not recognized as an internal or external command,\noperable program or batch file.`;
+      }
       }
 
       // Add output to history if there's any
