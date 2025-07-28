@@ -115,8 +115,43 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
 
     // If selecting Cipher_Master, show their messages
     if (contactUsername === 'Cipher_Master') {
-      // Since users can only access WinTalk95 after completing Mission 1,
-      // we always show the Mission 2 conversation
+      // Generate dynamic mission briefing
+      const threats = [
+        {
+          name: "ShadowByte",
+          description: "A rival hacker codenamed 'ShadowByte' has infiltrated our network",
+          specialty: "SSH attacks and encrypted communications on ports 1337 and 31337",
+          expectedIP: "192.168.1.142"
+        },
+        {
+          name: "CyberPhantom",
+          description: "The elusive 'CyberPhantom' has breached our secure channels",
+          specialty: "FTP exploitation and SSL tunneling through proxy servers",
+          expectedIP: "192.168.1.187"
+        },
+        {
+          name: "DarkNet Operative",
+          description: "A DarkNet infiltrator has compromised our communications",
+          specialty: "Tor traffic and IRC command channels with steganographic data",
+          expectedIP: "192.168.1.221"
+        },
+        {
+          name: "Ghost Protocol Agent",
+          description: "A rogue Ghost Protocol agent has turned against the network",
+          specialty: "DNS tunneling and email protocol exploitation",
+          expectedIP: "192.168.1.156"
+        },
+        {
+          name: "Binary Assassin",
+          description: "The notorious 'Binary Assassin' has launched buffer overflow attacks",
+          specialty: "RPC exploits, SMB vulnerabilities, and SQL injection techniques",
+          expectedIP: "192.168.1.199"
+        }
+      ];
+
+      // Randomly select a threat scenario
+      const threat = threats[Math.floor(Math.random() * threats.length)];
+
       const cipherMasterMessages: Message[] = [
         {
           id: 'welcome_back',
@@ -127,7 +162,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         {
           id: 'urgent_mission',
           sender: 'Cipher_Master',
-          content: '🚨 URGENT: We have a critical security breach. A rival hacker codenamed "ShadowByte" has infiltrated our network.',
+          content: `🚨 URGENT: We have a critical security breach. ${threat.description}.`,
           timestamp: new Date('1995-11-29T09:15:15'),
         },
         {
@@ -139,7 +174,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         {
           id: 'mission_briefing',
           sender: 'Cipher_Master',
-          content: 'Your mission: Use network analysis to locate ShadowByte\'s virtual machine and establish contact.',
+          content: `Your mission: Use network analysis to locate ${threat.name}'s virtual machine and establish contact.`,
           timestamp: new Date('1995-11-29T09:15:45'),
         },
         {
@@ -163,13 +198,13 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         {
           id: 'intelligence',
           sender: 'Cipher_Master',
-          content: 'INTEL: Look for IP 192.168.1.142 in the logs. ShadowByte uses SSH attempts and encrypted communications. Time is critical!',
+          content: `INTEL: Look for IP ${threat.expectedIP} in the logs. ${threat.name} specializes in ${threat.specialty}. Time is critical!`,
           timestamp: new Date('1995-11-29T09:17:00'),
         },
         {
           id: 'warning',
           sender: 'Cipher_Master',
-          content: '⚠️ WARNING: ShadowByte is extremely cunning. Wrong connection attempts may trigger their security systems.',
+          content: `⚠️ WARNING: ${threat.name} is extremely cunning. Wrong connection attempts may trigger their security systems.`,
           timestamp: new Date('1995-11-29T09:17:20'),
         },
         {

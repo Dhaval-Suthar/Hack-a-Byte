@@ -13,22 +13,33 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
   const [targetIP, setTargetIP] = useState("");
   const [showBriefing, setShowBriefing] = useState(true);
 
-  // Check if mission is already completed
+  // Check if this is the first time opening the app in this session
   useEffect(() => {
-    const checkMissionStatus = async () => {
-      try {
-        const { MissionTracker } = await import('../hooks/useMissionTracker');
-        const completed = MissionTracker.isMissionCompleted('mission2');
-        setMissionCompleted(completed);
-        if (completed) {
-          setShowBriefing(false);
-        }
-      } catch (error) {
-        console.error('Error checking mission status:', error);
-      }
-    };
+    const sessionKey = 'networkNeighborhoodOpened';
+    const wasOpened = sessionStorage.getItem(sessionKey);
     
-    checkMissionStatus();
+    if (!wasOpened) {
+      // First time opening in this session - show briefing
+      setShowBriefing(true);
+      setMissionCompleted(false);
+      sessionStorage.setItem(sessionKey, 'true');
+    } else {
+      // Check actual mission status for subsequent opens
+      const checkMissionStatus = async () => {
+        try {
+          const { MissionTracker } = await import('../hooks/useMissionTracker');
+          const completed = MissionTracker.isMissionCompleted('mission2');
+          setMissionCompleted(completed);
+          if (completed) {
+            setShowBriefing(false);
+          }
+        } catch (error) {
+          console.error('Error checking mission status:', error);
+        }
+      };
+      
+      checkMissionStatus();
+    }
   }, []);
 
   const handleStartMission = () => {
