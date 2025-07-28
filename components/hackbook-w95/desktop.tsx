@@ -20,6 +20,7 @@ import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
 import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
 import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
+import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
 import RestartAnimation from "@/components/hackbook-w95/restart-animation";
@@ -85,6 +86,10 @@ const Desktop = () => {
   const [networkToolInstalled, setNetworkToolInstalled] = useState(false);
   const [showInstallNotification, setShowInstallNotification] = useState(false);
 
+  // Mission 2 completion state for Number Jumping Game
+  const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
+  const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
+
   // Check if Mission 1 is completed to show Network Neighborhood
   useEffect(() => {
     const checkMission1Status = async () => {
@@ -99,6 +104,25 @@ const Desktop = () => {
     
     checkMission1Status();
   }, []);
+
+  // Check if Mission 2 is already completed on load
+  useEffect(() => {
+    const checkMission2Status = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        const mission2Complete = MissionTracker.isMissionCompleted('mission2');
+        if (mission2Complete && !mission2JustCompleted) {
+          // Mission 2 was completed previously, don't show the notification again
+          // but make the firewall bypass available if needed
+          console.log('Mission 2 already completed');
+        }
+      } catch (error) {
+        console.error('Error checking mission 2 status:', error);
+      }
+    };
+    
+    checkMission2Status();
+  }, [mission2JustCompleted]);
 
   // Device user state
   const [deviceUser, setDeviceUser] = useState<{
@@ -304,6 +328,38 @@ const Desktop = () => {
     };
   }, [playSound]);
 
+  // Listen for mission 2 completion to trigger Number Jumping Game
+  useEffect(() => {
+    const handleMissionComplete = (event: CustomEvent) => {
+      const { missionId } = event.detail;
+      
+      if (missionId === 'mission2' && !mission2JustCompleted) {
+        setMission2JustCompleted(true);
+        
+        // Show a brief notification, then automatically open the Number Jumping Game
+        setTimeout(() => {
+          // Create the Firewall Bypass app instance
+          const firewallApp = new App("Firewall Bypass", "/hackbook-W95/app-icon/key.png");
+          firewallApp.id = `firewallBypass_${Date.now()}`;
+          
+          // Register and open the app
+          windowManager.registerWindow(firewallApp.id);
+          setRunningApps((prev) => [...prev, firewallApp]);
+          setSelectedApp(firewallApp);
+          windowManager.activateWindow(firewallApp.id);
+          playSound("ding");
+          
+          setShowNumberJumpingGame(true);
+        }, 2000);
+      }
+    };
+
+    window.addEventListener('missionComplete', handleMissionComplete as EventListener);
+    return () => {
+      window.removeEventListener('missionComplete', handleMissionComplete as EventListener);
+    };
+  }, [playSound, windowManager, mission2JustCompleted]);
+
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
     setSelectedApp(null);
@@ -485,6 +541,8 @@ const Desktop = () => {
           return <Solitaire onClose={() => handleCloseApp(app)} />;
         case "WinTalk 95":
           return <WinTalk95 onClose={() => handleCloseApp(app)} />;
+        case "Firewall Bypass":
+          return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
         case "ZIP Archive":
           return (
             <ZipArchive
@@ -893,6 +951,23 @@ const Desktop = () => {
             <p className="text-sm">Installation Complete!</p>
             <p className="text-xs text-gray-600 mt-2">
               New desktop icon added. Double-click to launch.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Mission 2 Completion Notification */}
+      {mission2JustCompleted && !showNumberJumpingGame && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
+          <div className="bg-[#000080] text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">🔒 SECURITY PROTOCOL ACTIVATED</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2 font-bold">TARGET LOCATED!</p>
+            <p className="text-sm mb-2">ShadowByte&apos;s IP has been identified.</p>
+            <p className="text-sm mb-2">⚠️ FIREWALL BREACH PROTOCOL REQUIRED</p>
+            <p className="text-xs text-gray-600 mt-2">
+              Initializing bypass tools...
             </p>
           </div>
         </div>
