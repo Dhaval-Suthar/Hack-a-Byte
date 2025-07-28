@@ -431,11 +431,24 @@ export default function DeviceSelectionPage() {
                     <p>© 2025 HackaByte Security Systems</p>
                   </div>
                   <button
-                    onClick={() => handleDeviceSelect(device.id, currentPlayspaceId || undefined)}
-                    className="w-full bg-green-900/30 border border-green-500 text-green-400 px-4 py-2 rounded font-mono hover:bg-green-800/30 transition-colors flex items-center justify-center"
-                  >
-                    <span className="inline-block w-1.5 h-1.5 bg-green-500 mr-2"></span>
-                    CONNECT TO {deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE
+                    onClick={() => {
+                     if (selectedInstance?.status !== "offline") {
+                        handleDeviceSelect(device.id, currentPlayspaceId || undefined);
+                         }
+                           }}
+                          disabled={selectedInstance?.status === "offline"}
+                           className={`w-full px-4 py-2 rounded font-mono flex items-center justify-center border transition-colors ${
+                         selectedInstance?.status === "offline"
+                           ? "bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed"
+                       : "bg-green-900/30 border-green-500 text-green-400 hover:bg-green-800/30"
+                            }`}
+>
+                              <span
+                           className={`inline-block w-1.5 h-1.5 mr-2 rounded-full ${
+                           selectedInstance?.status === "offline" ? "bg-gray-500" : "bg-green-500"
+                          }`}
+                          ></span>
+                        CONNECT TO {deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE
                   </button>
                 </div>
               </motion.div>
