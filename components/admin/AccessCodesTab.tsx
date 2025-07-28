@@ -440,7 +440,6 @@ export default function AccessCodesTab({
         )}
       </AnimatePresence>
 
-      {/* Edit Access Code Modal is now handled by parent */}
     </div>
   );
 }
