@@ -102,7 +102,7 @@ export default function AccessCodesTab({
     });
   };
 
-  // Remove openEditAccessCodeModal and closeEditAccessCodeModal
+  
 
   // Form change handlers
   const handleAccessCodeFormChange = (
