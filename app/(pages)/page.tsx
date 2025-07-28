@@ -159,6 +159,7 @@ export default function Page() {
           console.log("Stored playspaceId in localStorage:", result.playspaceId);
         }
         router.push(result.redirect || "/device-selection");
+        document.documentElement.requestFullscreen();
       } else {
         setError(result.error || "Invalid access code. Please try again.");
         // Clear the input fields on error
