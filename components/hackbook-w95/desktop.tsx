@@ -24,6 +24,7 @@ import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborh
 import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
 import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
 import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
+import QuickEventPresser from "@/components/hackbook-w95/apps/QuickEventPresser";
 import DevTools from "@/components/hackbook-w95/apps/DevTools";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
@@ -539,10 +540,17 @@ const Desktop = () => {
   // Listen for development app launch events
   useEffect(() => {
     const handleDevLaunchApp = (event: CustomEvent) => {
-      const { appName } = event.detail;
-      const app = APPS.find(a => a.name === appName);
-      if (app) {
-        handleOpenApp(app);
+      const { appName, app: customApp } = event.detail;
+      
+      if (customApp) {
+        // Handle custom app object
+        handleOpenApp(customApp);
+      } else if (appName) {
+        // Handle app by name
+        const app = APPS.find(a => a.name === appName);
+        if (app) {
+          handleOpenApp(app);
+        }
       }
     };
 
@@ -669,7 +677,56 @@ const Desktop = () => {
             />
           );
         case "Secure Vault":
-          return <FingerprintHack onClose={() => handleCloseApp(app)} />;
+          return (
+            <FingerprintHack 
+              onClose={() => handleCloseApp(app)}
+              onSuccess={() => {
+                console.log("Vault accessed successfully!");
+                
+                // Close the vault
+                handleCloseApp(app);
+                
+                // Trigger the emergency protocol after a brief delay
+                setTimeout(() => {
+                  // Show alert about remote wipe
+                  alert("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
+                  
+                  // Auto-launch the emergency protocol
+                  const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+                  quickEventApp.metadata = {
+                    type: "quick-event"
+                  };
+                  
+                  handleOpenApp(quickEventApp);
+                }, 2000);
+              }}
+            />
+          );
+        case "Emergency Protocol":
+          return (
+            <QuickEventPresser 
+              onClose={() => handleCloseApp(app)}
+              onSuccess={() => {
+                // Handle successful completion of emergency protocol
+                console.log("Emergency protocol completed successfully!");
+                
+                // Trigger final mission completion
+                window.dispatchEvent(new CustomEvent('finalMissionComplete'));
+                
+                // Close the app
+                handleCloseApp(app);
+                
+                // Show completion message after brief delay
+                setTimeout(() => {
+                  alert("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nMission accomplished, Agent!");
+                }, 1000);
+              }}
+              onFailure={() => {
+                console.log("Emergency protocol failed!");
+                // Could trigger a game over state or restart
+              }}
+            />
+          );
         case "Dev Tools":
           return <DevTools onClose={() => handleCloseApp(app)} />;
         case "Firewall Bypass":
@@ -687,7 +744,7 @@ const Desktop = () => {
           return null;
       }
     },
-    [handleCloseApp, link, setLink, openLink]
+    [handleCloseApp, handleOpenApp, link, setLink, openLink]
   );
 
   // Handle keyboard events and file opening
@@ -1255,6 +1312,7 @@ const TerminalComponent: React.FC = () => {
     "show hidden files",
     "access",
     "decrypt-file",
+    "emergency-abort",
     "ver",
     "date",
     "time",
@@ -1437,7 +1495,9 @@ const TerminalComponent: React.FC = () => {
           "\nAdvanced commands:\n" +
           "show hidden files - Make hidden files visible in explorer\n" +
           "access <code>    - Access secure system (requires security code)\n" +
-          "decrypt-file     - Decrypt a file (requires path and key)";
+          "decrypt-file     - Decrypt a file (requires path and key)\n" +
+          "\nEmergency commands:\n" +
+          "emergency-abort  - Activate emergency protocol (DANGER!)";
       } else if (cmdLower === "clear" || cmdLower === "cls") {
         setCommandHistory([]);
         setCurrentCommand("");
@@ -1503,6 +1563,24 @@ const TerminalComponent: React.FC = () => {
               'Usage: decrypt-file --path "file_path" --key key_value\n\nExample: decrypt-file --path "C:\\Documents\\Encrypted\\MISSION_DATA.txt" --key 3';
           }
         }
+      } else if (cmdLower === "emergency-abort") {
+        // Hidden command to trigger the quick event presser directly
+        output = "🚨 EMERGENCY PROTOCOL ACTIVATED 🚨\nRemote wipe detected! Opening emergency tools...";
+        
+        // Trigger the quick event presser after a brief delay
+        setTimeout(() => {
+          const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+          quickEventApp.metadata = {
+            type: "quick-event"
+          };
+          
+          // Dispatch custom event to open the app
+          window.dispatchEvent(new CustomEvent('devLaunchApp', {
+            detail: { app: quickEventApp }
+          }));
+        }, 2000);
+        
+        playTerminalSound("error");
       } else if (cmdLower === "dir") {
         // Get the items from the current directory
         const items = fs.getCurrentItems();
