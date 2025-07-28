@@ -121,7 +121,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       playSound("error");
       setAttempts(prev => {
         const newAttempts = prev + 1;
-        if (newAttempts >= 3) {
+        if (newAttempts >= 5) {
           setGameState("failed");
           clearInterval(timerRef.current!);
           setTimeout(() => onClose(), 2500);
@@ -137,7 +137,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       <div className="w-full bg-[#121212] text-green-500 p-2 flex justify-between items-center border-b border-green-800">
         <span className="font-bold">FINGERPRINT HACK - VAULT ACCESS</span>
         <div className="flex items-center gap-4">
-          <span className="text-amber-500 font-mono">ATTEMPTS: {3 - attempts}/3</span>
+          <span className="text-amber-500 font-mono">ATTEMPTS: {5 - attempts}/5</span>
           <span className="text-green-500 font-mono">
             {gameState === "playing" ? `TIME: ${String(Math.floor(timeLeft/60)).padStart(2,'0')}:${String(timeLeft%60).padStart(2,'0')}` : null}
           </span>
@@ -286,7 +286,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                         {[...Array(attempts)].map((_, i) => (
                           <span key={i} className="text-red-500 mx-px">■</span>
                         ))}
-                        {[...Array(3 - attempts)].map((_, i) => (
+                        {[...Array(5 - attempts)].map((_, i) => (
                           <span key={i} className="text-gray-800 mx-px">■</span>
                         ))}
                       </>
