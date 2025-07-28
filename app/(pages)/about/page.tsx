@@ -470,7 +470,7 @@ export default function Page() {
                           </div>
                         </div>
                         
-                        <div className="p-4 mt-6">
+                        <div className="p-4 mt-6 space-y-9">
                           <TerminalSection 
                             command="whoami"
                             content="[HackaByte Agent] - A participant in the most challenging cybersecurity competition ever created."
