@@ -548,8 +548,10 @@ export default function useFileSystem(options = { debug: false }) {
 
   // Expose reset function globally for development
   useEffect(() => {
-    if (debugMode && typeof window !== 'undefined') {
+    if (process.env.NODE_ENV === 'development' && debugMode && typeof window !== 'undefined') {
       (window as Window & { resetWin95FileSystem?: () => void }).resetWin95FileSystem = resetFileSystem;
+    } else if (typeof window !== 'undefined') {
+      delete (window as Window & { resetWin95FileSystem?: () => void }).resetWin95FileSystem;
     }
   }, [debugMode, resetFileSystem]);
   const restoreDates = useCallback((items: FileSystemItem[]): FileSystemItem[] => {
