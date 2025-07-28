@@ -101,6 +101,7 @@ body {
   font-family: var(--terminal-font);
   position: relative;
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 body::before {
