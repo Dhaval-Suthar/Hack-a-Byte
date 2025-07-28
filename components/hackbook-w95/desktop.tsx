@@ -19,6 +19,7 @@ import Paint from "@/components/hackbook-w95/apps/Paint";
 import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
 import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
 import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
+import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
 import RestartAnimation from "@/components/hackbook-w95/restart-animation";
@@ -48,6 +49,7 @@ const APPS: App[] = [
   new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png"),
   new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png"),
   new App("Inbox", "/hackbook-W95/app-icon/inbox.png"),
+  new App("Network Neighborhood", "/hackbook-W95/app-icon/ie.png"), // Using IE icon as network placeholder
   new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png"),
   new App("Minesweeper", "/hackbook-W95/app-icon/minesweeper.png"),
   new App("CD Player", "/hackbook-W95/app-icon/cdplayer.png"),
@@ -78,6 +80,25 @@ const Desktop = () => {
   const [showShutdownAnimation, setShowShutdownAnimation] = useState(false);
   const [showLogoutAnimation, setShowLogoutAnimation] = useState(false);
   const [runningApps, setRunningApps] = useState<App[]>([]);
+
+  // Network Neighborhood availability state
+  const [networkToolInstalled, setNetworkToolInstalled] = useState(false);
+  const [showInstallNotification, setShowInstallNotification] = useState(false);
+
+  // Check if Mission 1 is completed to show Network Neighborhood
+  useEffect(() => {
+    const checkMission1Status = async () => {
+      try {
+        const { MissionTracker } = await import('./hooks/useMissionTracker');
+        const mission1Complete = MissionTracker.isMissionCompleted('mission1');
+        setNetworkToolInstalled(mission1Complete);
+      } catch (error) {
+        console.error('Error checking mission status:', error);
+      }
+    };
+    
+    checkMission1Status();
+  }, []);
 
   // Device user state
   const [deviceUser, setDeviceUser] = useState<{
@@ -263,6 +284,26 @@ const Desktop = () => {
     }
   }, []);
 
+  // Listen for network tool installation from WinTalk95
+  useEffect(() => {
+    const handleNetworkToolInstall = () => {
+      setNetworkToolInstalled(true);
+      setShowInstallNotification(true);
+      // Play installation sound
+      playSound("ding");
+      
+      // Hide notification after 5 seconds
+      setTimeout(() => {
+        setShowInstallNotification(false);
+      }, 5000);
+    };
+
+    window.addEventListener('networkToolInstalled', handleNetworkToolInstall);
+    return () => {
+      window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
+    };
+  }, [playSound]);
+
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
     setSelectedApp(null);
@@ -406,6 +447,8 @@ const Desktop = () => {
           return <InternetExplorer link={link} setLink={setLink} onClose={() => handleCloseApp(app)} />;
         case "Inbox":
           return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} />;
+        case "Network Neighborhood":
+          return <NetworkNeighborhood onClose={() => handleCloseApp(app)} />;
         case "Recycle Bin":
           return <RecycleBin onClose={() => handleCloseApp(app)} />;
         case "Minesweeper":
@@ -543,7 +586,9 @@ const Desktop = () => {
         {/* App icons - using grid layout with consistent sizing */}
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
-            {APPS.map((app) => (
+            {APPS.filter(app => 
+              app.name !== "Network Neighborhood" || networkToolInstalled
+            ).map((app) => (
               <div
                 key={app.name}
                 className={clsx("flex flex-col items-center z-10 p-1 w-24", {
@@ -836,6 +881,22 @@ const Desktop = () => {
           </div>
         </div>
       </div>
+
+      {/* Network Tool Installation Notification */}
+      {showInstallNotification && (
+        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+          <div className="bg-green-600 text-white p-2 mb-2 text-center">
+            <h3 className="font-bold">Software Installation</h3>
+          </div>
+          <div className="text-center">
+            <p className="mb-2">📥 Network Neighborhood v2.1</p>
+            <p className="text-sm">Installation Complete!</p>
+            <p className="text-xs text-gray-600 mt-2">
+              New desktop icon added. Double-click to launch.
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

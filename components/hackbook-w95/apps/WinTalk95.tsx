@@ -115,37 +115,68 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
 
     // If selecting Cipher_Master, show their messages
     if (contactUsername === 'Cipher_Master') {
-      // Predefined conversation with Cipher_Master
+      // Since users can only access WinTalk95 after completing Mission 1,
+      // we always show the Mission 2 conversation
       const cipherMasterMessages: Message[] = [
         {
-          id: 'welcome',
+          id: 'welcome_back',
           sender: 'Cipher_Master',
-          content: 'Welcome to the secure network, agent. I see you successfully cracked the archive.',
-          timestamp: new Date('1995-11-28T14:30:00'),
+          content: 'Excellent work on the archive recovery, agent. Your skills impressed the network.',
+          timestamp: new Date('1995-11-29T09:15:00'),
         },
         {
-          id: 'mission_intro',
+          id: 'urgent_mission',
           sender: 'Cipher_Master',
-          content: 'Your performance on the first task was impressive. The GHOST network has more challenging assignments ahead.',
-          timestamp: new Date('1995-11-28T14:30:15'),
+          content: '🚨 URGENT: We have a critical security breach. A rival hacker codenamed "ShadowByte" has infiltrated our network.',
+          timestamp: new Date('1995-11-29T09:15:15'),
         },
         {
-          id: 'next_mission',
+          id: 'threat_assessment',
           sender: 'Cipher_Master',
-          content: 'Your next mission involves infiltrating a corporate database. Check your secure email for detailed instructions.',
-          timestamp: new Date('1995-11-28T14:30:30'),
+          content: 'THREAT LEVEL: HIGH - They\'ve stolen sensitive data and compromised our communication channels.',
+          timestamp: new Date('1995-11-29T09:15:30'),
         },
         {
-          id: 'tools_info',
+          id: 'mission_briefing',
           sender: 'Cipher_Master',
-          content: 'The tools you used today are just the beginning. Advanced cryptography and network penetration await.',
-          timestamp: new Date('1995-11-28T14:30:45'),
+          content: 'Your mission: Use network analysis to locate ShadowByte\'s virtual machine and establish contact.',
+          timestamp: new Date('1995-11-29T09:15:45'),
         },
         {
-          id: 'closing',
+          id: 'tool_preparation',
           sender: 'Cipher_Master',
-          content: 'Stay alert and trust no one. The digital underground is full of both allies and enemies. Good luck.',
-          timestamp: new Date('1995-11-28T14:31:00'),
+          content: 'I\'ll upload specialized tools to your system. These are restricted GHOST network assets.',
+          timestamp: new Date('1995-11-29T09:16:15'),
+        },
+        {
+          id: 'tool_download',
+          sender: 'Cipher_Master',
+          content: '📥 DOWNLOAD: I\'m sending you our Network Neighborhood tool for advanced network analysis.',
+          timestamp: new Date('1995-11-29T09:16:30'),
+        },
+        {
+          id: 'tool_install',
+          sender: 'Cipher_Master',
+          content: '💾 Installing Network Neighborhood on your desktop... Installation complete! Double-click the icon to launch.',
+          timestamp: new Date('1995-11-29T09:16:45'),
+        },
+        {
+          id: 'intelligence',
+          sender: 'Cipher_Master',
+          content: 'INTEL: Look for IP 192.168.1.142 in the logs. ShadowByte uses SSH attempts and encrypted communications. Time is critical!',
+          timestamp: new Date('1995-11-29T09:17:00'),
+        },
+        {
+          id: 'warning',
+          sender: 'Cipher_Master',
+          content: '⚠️ WARNING: ShadowByte is extremely cunning. Wrong connection attempts may trigger their security systems.',
+          timestamp: new Date('1995-11-29T09:17:20'),
+        },
+        {
+          id: 'closing_mission2',
+          sender: 'Cipher_Master',
+          content: 'Find their location and establish contact. The network\'s security depends on you. Ghost out.',
+          timestamp: new Date('1995-11-29T09:17:40'),
         }
       ];
 
@@ -155,6 +186,16 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         setTimeout(() => {
           setMessages(prev => [...prev, msg]);
           playSound('message');
+          
+          // Special action for tool installation message
+          if (msg.id === 'tool_install') {
+            setTimeout(() => {
+              // Trigger desktop icon addition notification
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('networkToolInstalled'));
+              }
+            }, 2000);
+          }
         }, delay + (index * 3000));
       });
     }
