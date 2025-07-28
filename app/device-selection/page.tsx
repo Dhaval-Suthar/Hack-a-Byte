@@ -147,7 +147,7 @@ export default function DeviceSelectionPage() {
     {
       id: "hackbook-w95",
       name: "HackBook W95",
-      icon: "/hackbook-W95/app-icon/windows-logo.png",
+      icon: "/hackbook-w95/app-icon/windows-logo.png",
       description: "Classic Windows 95 experience, perfect for learning fundamental hacking techniques.",
       path: "/hackbook-w95/login",
       platform: "desktop",
