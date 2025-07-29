@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 
 const Page = () => {
@@ -48,7 +47,7 @@ const Page = () => {
           <h2 className="text-cyber-primary text-2xl font-semibold mb-4">Why Are Access Codes Important?</h2>
           <p className="text-gray-300">
             Access codes maintain integrity, security, and progression throughout the HackaByte platform. Without them, users would be able
-            to jump ahead or enter areas without proving their readiness. They're essential for:
+            to jump ahead or enter areas without proving their readiness. They&rsquo;re essential for:
           </p>
           <ul className="list-disc list-inside text-gray-300 space-y-2 mt-2">
             <li>Enforcing permission boundaries</li>

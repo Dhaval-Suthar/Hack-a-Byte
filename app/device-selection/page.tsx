@@ -119,7 +119,7 @@ export default function DeviceSelectionPage() {
         setLoading(false);
       }
     }
-  }, [fetchDevices]);
+  }, [fetchDevices,router]);
 
   // Fullscreen handling
   useEffect(() => {
