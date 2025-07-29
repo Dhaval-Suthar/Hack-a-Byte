@@ -18,7 +18,7 @@ const ShutdownDialog: React.FC<ShutdownDialogProps> = ({
   onLogout, 
   showLogout = false 
 }) => {
-  const [option, setOption] = useState<"shutdown" | "restart" | "dos" | "logout">("shutdown");
+  const [option, setOption] = useState<"shutdown" | "restart" | "logout">("shutdown");
   
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -85,17 +85,6 @@ const ShutdownDialog: React.FC<ShutdownDialogProps> = ({
               <span className="text-sm">Restart the computer</span>
             </label>
             
-            <label className="flex items-center">
-              <input 
-                type="radio" 
-                name="shutdown" 
-                checked={option === "dos"} 
-                onChange={() => setOption("dos")}
-                className="mr-2"
-              />
-              <span className="text-sm">Restart the computer in MS-DOS mode</span>
-            </label>
-            
             {showLogout && onLogout && (
               <label className="flex items-center">
                 <input 
@@ -119,9 +108,6 @@ const ShutdownDialog: React.FC<ShutdownDialogProps> = ({
                   onRestart();
                 } else if (option === "logout" && onLogout) {
                   onLogout();
-                } else {
-                  // DOS mode not implemented
-                  onCancel();
                 }
               }}
               className="bg-[#c0c0c0] px-4 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"

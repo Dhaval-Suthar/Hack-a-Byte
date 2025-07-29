@@ -18,38 +18,40 @@ export default function InboxMails({ openLink, setUnreadCount }: { openLink: (li
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const [mails, setMails] = useState<Mail[]>([
     {
-      id: "mission-1",
-      sender: "Security Officer",
-      subject: "CONFIDENTIAL: First Mission Brief",
+      id: "ghost-contract",
+      sender: "Ghost",
+      subject: "CONFIDENTIAL: First Contract - Password Recovery",
       date: "1995-11-28",
-      content: `TOP SECRET - SECURITY CLEARANCE LEVEL 1
+      content: `ENCRYPTED TRANSMISSION - GHOST NETWORK
       
-AGENT: NEW RECRUIT
-MISSION: DATA RETRIEVAL 001
+AGENT STATUS: PROBATIONARY
+CONTRACT: #001-ZIP-RECOVERY
 
-This is your first mission briefing. You have been granted access to a secure terminal with potential sensitive information.
+Welcome to the digital underground, new recruit. 
 
-OBJECTIVE:
-1. Locate the encrypted files in the system
-2. Find the decryption key in the hidden system files
-3. Use the Terminal to decrypt the protected data
-4. Retrieve the final password
+Your first assignment is a simple data recovery operation - consider it your initiation test. We've received a request from a client who has lost access to critical files stored in an old ZIP archive.
 
-INSTRUCTIONS:
-- Open "My Computer" to navigate the file system
-- Look for files in C:\\Documents\\Encrypted
-- Check C:\\Windows\\System32 for hidden files (files starting with '.')
-- Use the Terminal and enter "help" for available commands
-- When you find the access code, use "access [CODE]" in the Terminal
-- Use "decrypt-file" with the correct parameters to access encrypted information
+MISSION OBJECTIVES:
+1. Locate the password-protected ZIP file at: C:\\Documents\\Old_Files\\Archive.zip
+2. Recover the forgotten password using any means necessary
+3. Extract the contents and examine all recovered files
+4. Follow the instructions contained within
 
-NOTE: For security reasons, some files are encrypted with a Caesar cipher using a shift of 3.
+TOOLS AVAILABLE:
+- Basic brute force utilities (password length: 5 characters)
+- Your wit and determination
 
-IMPORTANT: Do not share this mission with unauthorized personnel.
+The client's data contains sensitive information about secure communication channels. Success will grant you access to our encrypted messaging network and more lucrative contracts.
 
-DELETE THIS MESSAGE AFTER READING
+Remember: In this business, trust is earned through results.
 
--- Security Officer`,
+Good hunting.
+
+-- GHOST
+
+P.S. This message will self-destruct after reading. No evidence must remain.
+
+[ATTACHMENT: Old_Files directory location mapped to your system]`,
       isRead: false,
     }
   ]);
