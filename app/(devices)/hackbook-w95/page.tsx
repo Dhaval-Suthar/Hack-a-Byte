@@ -1,4 +1,4 @@
-import Desktop from "@/components/hackbook-w95/desktop";
+import DesktopWithDevTools from "@/components/hackbook-w95/DesktopWithDevTools";
 import { Metadata } from "next";
 import { Suspense } from "react";
 import BootAnimation from "@/components/hackbook-w95/boot-animation";
@@ -13,7 +13,7 @@ export default async function Page() {
     <>
       <div className="w-screen h-screen fixed overflow-auto">
         <Suspense fallback={<BootAnimation />}>
-          <Desktop />
+          <DesktopWithDevTools />
         </Suspense>
       </div>
     </>
