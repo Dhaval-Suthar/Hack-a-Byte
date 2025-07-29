@@ -109,7 +109,7 @@ const Desktop = () => {
   // Dev Tools availability state
   const [devToolsUnlocked, setDevToolsUnlocked] = useState(false);
 
-  // Check if Mission 1 is completed to show Network Neighborhood
+  // Check if Mission 1 is completed to show Network Neighborhood.
   useEffect(() => {
     const checkMission1Status = async () => {
       try {
