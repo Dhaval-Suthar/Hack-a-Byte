@@ -115,6 +115,7 @@ export default function DeviceSelectionPage() {
         fetchDevices(urlPlayspaceId);
       } else {
         // No playspace ID found, show all devices
+        router.push('/');
         setLoading(false);
       }
     }

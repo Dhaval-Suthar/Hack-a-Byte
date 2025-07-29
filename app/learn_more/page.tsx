@@ -6,71 +6,105 @@ import { motion } from "framer-motion";
 
 const Page = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center px-4">
+    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-black px-6 py-24 flex items-center justify-center">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-2xl w-full text-center"
+        className="max-w-4xl w-full"
       >
-        <div className="inline-block px-3 py-1 border border-cyber-primary/50 text-cyber-primary text-xs mb-4 rounded-sm">
-          [SYSTEM:LEARN_MORE]
+        {/* Header */}
+        <div className="mb-10">
+          <div className="inline-block px-3 py-1 border border-cyber-primary/50 text-cyber-primary text-xs rounded-sm mb-4">
+            [SYSTEM:ACCESS_CODES_DOCS]
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyber-primary to-cyber-secondary mb-4">
+            Understanding Access Codes
+          </h1>
+          <p className="text-gray-300 text-lg">
+            Access Codes are secure digital keys that control access to specific zones, simulations, or restricted environments within HackaByte.
+            They ensure a progressive, permission-based structure for each participant.
+          </p>
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyber-primary to-cyber-secondary mb-6">
-          Learn More About HackaByte
-        </h1>
+        {/* Types of Codes */}
+        <section className="mb-12">
+          <h2 className="text-cyber-primary text-2xl font-semibold mb-4">Types of Access Codes</h2>
+          <ul className="list-disc list-inside text-gray-300 space-y-3">
+            <li>
+              <span className="font-semibold text-cyber-secondary">Permanent:</span> Unlimited use; grants core access to standard challenges and tools.
+            </li>
+            <li>
+              <span className="font-semibold text-cyber-secondary">Time-Limited:</span> Valid only during specific hours or events; ideal for timed tests.
+            </li>
+            <li>
+              <span className="font-semibold text-cyber-secondary">Usage-Limited:</span> Allows a limited number of attempts to access a resource or simulation.
+            </li>
+          </ul>
+        </section>
 
-        <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-          Discover the ultimate cybersecurity challenge that tests your hacking skills, problem-solving abilities, and
-          security knowledge through immersive simulations.
-        </p>
+        {/* Why They Matter */}
+        <section className="mb-12">
+          <h2 className="text-cyber-primary text-2xl font-semibold mb-4">Why Are Access Codes Important?</h2>
+          <p className="text-gray-300">
+            Access codes maintain integrity, security, and progression throughout the HackaByte platform. Without them, users would be able
+            to jump ahead or enter areas without proving their readiness. They're essential for:
+          </p>
+          <ul className="list-disc list-inside text-gray-300 space-y-2 mt-2">
+            <li>Enforcing permission boundaries</li>
+            <li>Regulating timed or limited-access challenges</li>
+            <li>Unlocking premium or hidden features</li>
+          </ul>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="bg-black/50 border border-cyber-primary/30 rounded-lg p-6"
-          >
-            <h3 className="text-cyber-primary text-xl font-bold mb-3">Realistic Simulations</h3>
-            <p className="text-gray-400">
-              Experience authentic operating systems and security scenarios in our virtual environments.
-            </p>
-          </motion.div>
+        {/* Process to Use Codes */}
+        <section className="mb-12">
+          <h2 className="text-cyber-primary text-2xl font-semibold mb-4">How to Use an Access Code</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                title: "Step 1: Obtain Code",
+                desc: "Codes may be given via email, event dashboards, or earned through challenges. Keep it secure.",
+              },
+              {
+                title: "Step 2: Navigate to Entry",
+                desc: "Visit the simulation or restricted tool you want to access. The code prompt will appear.",
+              },
+              {
+                title: "Step 3: Input & Validate",
+                desc: "Enter your 6-digit access code. If valid, your permissions are updated instantly.",
+              },
+              {
+                title: "Step 4: Start Mission",
+                desc: "Once validated, the environment will unlock. Prepare your tools and begin your mission.",
+              },
+              {
+                title: "Step 5: Code Tracking",
+                desc: "Each use is logged to your profile. Usage-limited codes will decrement with each attempt.",
+              },
+            ].map((card, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.05 }}
+                className="bg-black/50 border border-cyber-primary/30 rounded-lg p-5"
+              >
+                <h3 className="text-cyber-secondary font-semibold text-lg mb-2">{card.title}</h3>
+                <p className="text-gray-300 text-sm">{card.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="bg-black/50 border border-cyber-primary/30 rounded-lg p-6"
-          >
-            <h3 className="text-cyber-primary text-xl font-bold mb-3">Skill Development</h3>
-            <p className="text-gray-400">
-              Build expertise in penetration testing, digital forensics, and cybersecurity defense.
-            </p>
-          </motion.div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/about">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-cyber-primary text-black font-semibold rounded-md hover:bg-cyber-secondary transition-colors"
-            >
-              About HackaByte
-            </motion.button>
-          </Link>
-
-          <Link href="/signup">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 border border-cyber-primary text-cyber-primary font-semibold rounded-md hover:bg-cyber-primary hover:text-black transition-colors"
-            >
-              Get Started
-            </motion.button>
-          </Link>
-        </div>
+        {/* Outro */}
+        <section>
+          <p className="text-gray-400 italic text-sm">
+            Refer to the <span className="text-cyber-secondary underline">HackaByte documentation</span> or contact system admins for code-specific issues.
+          </p>
+        </section>
       </motion.div>
-    </div>
+    </main>
+
   );
 };
 

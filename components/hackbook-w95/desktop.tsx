@@ -50,7 +50,7 @@ const APPS: App[] = [
   new App("Notepad", "/hackbook-W95/app-icon/notepad.png"),
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
-  new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
+  // new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
 ];
 
 const DefaultValues = {
@@ -407,8 +407,8 @@ const Desktop = () => {
           return <Calculator onClose={() => handleCloseApp(app)} />;
         case "Paint":
           return <Paint onClose={() => handleCloseApp(app)} />;
-        case "Solitaire":
-          return <Solitaire onClose={() => handleCloseApp(app)} />;
+        // case "Solitaire":
+        //   return <Solitaire onClose={() => handleCloseApp(app)} />;
         default:
           return null;
       }
@@ -469,13 +469,17 @@ const Desktop = () => {
         }
       }, 3000);
     }
-
+    
+    
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("win95openfile", handleOpenFile as EventListener);
       clearInterval(interval);
     };
   }, [handleOpenApp, selectedApp, hasSeenMission, deviceUser]);
+
+  
+
 
   return (
     <main id="screen" className="h-screen w-screen overscroll-none fixed text-black">
@@ -757,6 +761,7 @@ const Desktop = () => {
             {new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
+
       </div>
     </main>
   );
@@ -841,6 +846,8 @@ const TerminalComponent: React.FC = () => {
       'Type "help" for a list of available commands.',
     ]);
   }, []);
+
+  
 
   // List of available commands for autocompletion
   const availableCommands = [
