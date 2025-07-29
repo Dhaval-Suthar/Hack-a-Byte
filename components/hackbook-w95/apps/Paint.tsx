@@ -15,6 +15,7 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [previousPos, setPreviousPos] = useState({ x: 0, y: 0 });
 
+  // Initialize canvas only once
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -30,14 +31,12 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
     if (context) {
       context.lineCap = "round";
       context.lineJoin = "round";
-      context.strokeStyle = color;
-      context.lineWidth = brushSize;
       // Fill with white background
       context.fillStyle = "white";
       context.fillRect(0, 0, canvas.width, canvas.height);
       contextRef.current = context;
     }
-  }, [color, brushSize]);
+  }, []); // Empty dependency array - run once on mount
 
   useEffect(() => {
     if (contextRef.current) {
@@ -56,8 +55,40 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
     
     if (tool === "fill") {
       if (contextRef.current) {
-        contextRef.current.fillStyle = color;
-        contextRef.current.fillRect(0, 0, canvas.width, canvas.height);
+        const imageData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        
+        // Get the color at clicked position
+        const startPos = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
+        const startR = pixels[startPos];
+        const startG = pixels[startPos + 1];
+        const startB = pixels[startPos + 2];
+        
+        // Convert selected color to RGB
+        const fillColor = {
+          r: parseInt(color.substr(1,2), 16),
+          g: parseInt(color.substr(3,2), 16),
+          b: parseInt(color.substr(5,2), 16)
+        };
+
+        // Flood fill algorithm
+        const pixelsToCheck = [[x, y]];
+        while (pixelsToCheck.length > 0) {
+          const [px, py] = pixelsToCheck.pop()!;
+          const pos = (Math.floor(py) * canvas.width + Math.floor(px)) * 4;
+          
+          if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+          if (pixels[pos] !== startR || pixels[pos + 1] !== startG || pixels[pos + 2] !== startB) continue;
+          
+          pixels[pos] = fillColor.r;
+          pixels[pos + 1] = fillColor.g;
+          pixels[pos + 2] = fillColor.b;
+          pixels[pos + 3] = 255;
+          
+          pixelsToCheck.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
+        }
+        
+        contextRef.current.putImageData(imageData, 0, 0);
       }
       return;
     }
@@ -97,6 +128,41 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
       context.fillStyle = "white";
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
+  };
+
+  const saveDrawing = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.download = 'drawing.png';  // Set filename
+    link.href = canvas.toDataURL('image/png');  // Convert canvas to PNG
+    document.body.appendChild(link);
+    link.click();  // Trigger download
+    document.body.removeChild(link);
+  };
+
+  const loadDrawing = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !contextRef.current || !canvasRef.current) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Clear canvas
+        contextRef.current!.fillStyle = "white";
+        contextRef.current!.fillRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+        // Draw loaded image
+        contextRef.current!.drawImage(img, 0, 0);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset the input value to allow loading the same file again
+    e.target.value = '';
   };
 
   const toolButtons = [
@@ -143,6 +209,27 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
           onClick={clearCanvas}
         >
           Clear
+        </button>
+
+        <button
+          className="px-2 py-1 mx-1 text-xs border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
+          onClick={saveDrawing}
+        >
+          Save
+        </button>
+
+        <input
+          type="file"
+          id="loadDrawing"
+          accept="image/png"
+          onChange={loadDrawing}
+          className="hidden"
+        />
+        <button
+          className="px-2 py-1 mx-1 text-xs border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
+          onClick={() => document.getElementById('loadDrawing')?.click()}
+        >
+          Open
         </button>
         
         <div className="mx-2">
