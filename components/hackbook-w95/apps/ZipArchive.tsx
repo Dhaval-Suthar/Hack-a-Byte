@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import clsx from "clsx";
 import Image from "next/image";
 import BruteForceGame from "./BruteForceGame";
+import { getSessionCreds } from "@/lib/creds";
 
 interface ZipFile {
   name: string;
@@ -34,6 +35,9 @@ const ZipArchive: React.FC<ZipArchiveProps> = ({
   const [selectedFile, setSelectedFile] = useState<ZipFile | null>(null);
   const [showFileContent, setShowFileContent] = useState(false);
 
+  // Use shared credentials for the session
+  const creds = getSessionCreds();
+
   // Contents of the ZIP file (revealed after unlocking)
   const zipContents: ZipFile[] = [
     {
@@ -50,8 +54,8 @@ Date: October 15, 1995
 
 IMPORTANT: This data contains encrypted access credentials for the secure messaging system.
 
-Username: ghost_agent_001
-Password: PHANTOM95
+Username: ${creds.username}
+Password: ${creds.password}
 Server: secure.ghostnet.corp
 Port: 2847
 
