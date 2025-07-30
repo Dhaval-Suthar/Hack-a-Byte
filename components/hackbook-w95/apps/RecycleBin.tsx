@@ -317,8 +317,8 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
                     <Image
                       src={
                         item.type === "directory"
-                          ? "/hackbook-w95/file-icons/folder.png"
-                          : "/hackbook-w95/file-icons/file.png"
+                          ? "/hackbook-W95/file-icons/folder.png"
+                          : "/hackbook-W95/file-icons/file.png"
                       }
                       alt={item.type}
                       width={32}
