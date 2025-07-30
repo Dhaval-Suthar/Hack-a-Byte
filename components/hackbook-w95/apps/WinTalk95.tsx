@@ -337,9 +337,17 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     }
   }, [currentMessage, selectedContact, username, playSound]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change, but only if user is at (or near) the bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const chatContainer = messagesEndRef.current?.parentElement;
+    if (!chatContainer) return;
+    // Calculate if user is at (or near) the bottom (allowing a small threshold)
+    const threshold = 40; // px
+    const isAtBottom =
+      chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < threshold;
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Focus message input when contact is selected
