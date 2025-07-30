@@ -57,9 +57,10 @@ P.S. This message will self-destruct after reading. No evidence must remain.
   ]);
 
   // Update unread count whenever mails state changes
-  const updateUnreadCount = () => {
+  const updateUnreadCount = (mailsArg?: Mail[]) => {
     if (setUnreadCount) {
-      const unreadCount = mails.filter(mail => !mail.isRead).length - 1;
+      const mailsToCheck = mailsArg || mails;
+      const unreadCount = mailsToCheck.filter(mail => !mail.isRead).length;
       setUnreadCount(unreadCount);
     }
   };
@@ -71,7 +72,7 @@ P.S. This message will self-destruct after reading. No evidence must remain.
         m.id === mail.id ? { ...m, isRead: true } : m
       );
       setMails(updatedMails);
-      setTimeout(updateUnreadCount, 0);
+      updateUnreadCount(updatedMails);
     }
     setSelectedMail(mail);
   };
