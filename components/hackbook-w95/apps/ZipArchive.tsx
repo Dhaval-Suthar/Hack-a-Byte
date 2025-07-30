@@ -221,7 +221,7 @@ Good luck with your assignment.
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <div className="flex items-center">
           <Image
-            src="/hackbook-w95/file-icons/archive.png"
+            src="/hackbook-W95/file-icons/archive.png"
             alt="ZIP icon"
             width={16}
             height={16}
@@ -275,7 +275,7 @@ Good luck with your assignment.
             <div className="bg-[#c0c0c0] border-2 border-[#808080] p-6 text-center max-w-md">
               <div className="mb-4">
                 <Image
-                  src="/hackbook-w95/app-icon/lock.png"
+                  src="/hackbook-W95/app-icon/lock.png"
                   alt="Lock icon"
                   width={48}
                   height={48}
@@ -336,8 +336,8 @@ Good luck with your assignment.
                   <div className="w-1/2 flex items-center">
                     <Image
                       src={file.type === 'directory' 
-                        ? "/hackbook-w95/file-icons/folder.png"
-                        : "/hackbook-w95/file-icons/text.png"
+                        ? "/hackbook-W95/file-icons/folder.png"
+                        : "/hackbook-W95/file-icons/text.png"
                       }
                       alt={file.type}
                       width={16}

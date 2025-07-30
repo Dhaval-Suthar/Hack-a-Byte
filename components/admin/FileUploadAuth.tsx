@@ -221,7 +221,7 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
 
         <div className="mt-6 text-center">
           <Link 
-            href="/" 
+            href="/device-selection" 
             className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
           >
             ← Back to Home
