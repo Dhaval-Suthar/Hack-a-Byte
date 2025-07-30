@@ -691,7 +691,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
             onClick={() => fs.navigateUp()}
           >
             <Image 
-              src="/hackbook-W95/file-icons/up.png" 
+              src="/hackbook-W95/up-arrow.png" 
               alt="Up" 
               width={16} 
               height={16} 
@@ -705,7 +705,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
         <div className="w-px h-6 bg-[#808080] mx-2"></div>
 
         <button 
-          className={clsx("h-6 w-6 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
+          className={clsx("h-8 w-8 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
             "opacity-50": !selectedItem
           })}
           onClick={() => selectedItem && handleCut()}
@@ -721,7 +721,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
         </button>
         
         <button 
-          className={clsx("h-6 w-6 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
+          className={clsx("h-8 w-8 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
             "opacity-50": !selectedItem
           })}
           onClick={() => selectedItem && handleCopy()}
@@ -737,7 +737,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
         </button>
         
         <button 
-          className={clsx("h-6 w-6 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
+          className={clsx("h-8 w-8 mx-1 flex justify-center items-center border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]", {
             "opacity-50": clipboard.items.length === 0
           })}
           onClick={() => clipboard.items.length > 0 && handlePaste()}
@@ -759,10 +759,10 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           onClick={handleCreateNewFolder}
         >
           <Image 
-            src="/hackbook-W95/file-icons/new-folder.png" 
+            src="/hackbook-W95/file.png" 
             alt="New Folder" 
-            width={20} 
-            height={20} 
+            width={30} 
+            height={30} 
             className="mr-1" 
             priority
           />
@@ -781,8 +781,8 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           <Image 
             src="/hackbook-W95/file-icons/delete.png" 
             alt="Delete" 
-            width={16} 
-            height={16} 
+            width={25} 
+            height={25} 
             className="mr-1" 
             priority
           />
