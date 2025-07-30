@@ -91,8 +91,6 @@ export default function useWindowManager({ defaultZIndex = 100, onWindowActivate
         newPosition = {
           ...newPosition,
           isFullscreen: true,
-          x: 0,
-          y: 0
         };
       } else {
         newPosition = {
