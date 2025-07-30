@@ -100,7 +100,6 @@ const Desktop = () => {
   // Neural Network Analyzer availability state
   const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
   const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
-  const [neuralDataDiscovered, setNeuralDataDiscovered] = useState(false);
 
   // Secure Vault availability state
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
@@ -146,19 +145,6 @@ const Desktop = () => {
     };
     
     checkNeuralNetworkUnlock();
-
-    // Temporary testing: Auto-unlock neural network analyzer 5 seconds after network tool is installed
-    if (networkToolInstalled && !neuralNetworkUnlocked) {
-      const timer = setTimeout(() => {
-        setNeuralDataDiscovered(true);
-        window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
-        import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
-          MissionTracker.completeMission('neural_data_discovered');
-        });
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
   }, [networkToolInstalled, neuralNetworkUnlocked]);
 
   // Check if Mission 2 is already completed on load
@@ -546,21 +532,9 @@ const Desktop = () => {
         
         // Close any open menus
         deSelect();
-
-        // Special handling for Network Neighborhood - trigger neural data discovery
-        if (app.name === "Network Neighborhood" && !neuralDataDiscovered) {
-          setTimeout(() => {
-            setNeuralDataDiscovered(true);
-            window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
-            // Mark in mission tracker
-            import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
-              MissionTracker.completeMission('neural_data_discovered');
-            });
-          }, 3000); // Trigger after 3 seconds of opening Network Neighborhood
-        }
       }
     },
-    [windowManager, deSelect, playSound, runningApps, neuralDataDiscovered]
+    [windowManager, deSelect, playSound, runningApps]
   );
 
   // Listen for development app launch events
