@@ -691,7 +691,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
             onClick={() => fs.navigateUp()}
           >
             <Image 
-              src="/hackbook-w95/file-icons/up.png" 
+              src="/hackbook-W95/file-icons/up.png" 
               alt="Up" 
               width={16} 
               height={16} 
@@ -712,7 +712,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={!selectedItem}
         >
           <Image 
-            src="/hackbook-w95/file-icons/cut.png" 
+            src="/hackbook-W95/file-icons/cut.png" 
             alt="Cut" 
             width={16} 
             height={16} 
@@ -728,7 +728,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={!selectedItem}
         >
           <Image 
-            src="/hackbook-w95/file-icons/copy.png" 
+            src="/hackbook-W95/file-icons/copy.png" 
             alt="Copy" 
             width={16} 
             height={16} 
@@ -744,7 +744,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={clipboard.items.length === 0}
         >
           <Image 
-            src="/hackbook-w95/file-icons/paste.png" 
+            src="/hackbook-W95/file-icons/paste.png" 
             alt="Paste" 
             width={16} 
             height={16} 
@@ -759,7 +759,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           onClick={handleCreateNewFolder}
         >
           <Image 
-            src="/hackbook-w95/file-icons/new-folder.png" 
+            src="/hackbook-W95/file-icons/new-folder.png" 
             alt="New Folder" 
             width={16} 
             height={16} 
@@ -779,7 +779,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={!selectedItem}
         >
           <Image 
-            src="/hackbook-w95/file-icons/delete.png" 
+            src="/hackbook-W95/file-icons/delete.png" 
             alt="Delete" 
             width={16} 
             height={16} 
@@ -851,7 +851,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                 >
                   <div className="mr-4">
                     <Image 
-                      src="/hackbook-w95/hard-disk.png" 
+                      src="/hackbook-W95/hard-disk.png" 
                       alt={drive.name} 
                       width={32} 
                       height={32} 
