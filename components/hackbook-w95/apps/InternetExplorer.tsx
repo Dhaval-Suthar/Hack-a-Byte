@@ -345,7 +345,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           disabled={currentHistoryIndex === 0}
         >
           <Image 
-            src="/hackbook-w95/app-icon/back.png" 
+            src="/hackbook-W95/app-icon/back.png" 
             alt="Back" 
             width={16} 
             height={16} 
@@ -364,7 +364,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           disabled={currentHistoryIndex >= historyStack.length - 1}
         >
           <Image 
-            src="/hackbook-w95/app-icon/forward.png" 
+            src="/hackbook-W95/app-icon/forward.png" 
             alt="Forward" 
             width={16} 
             height={16} 
@@ -378,7 +378,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           onClick={stopLoading}
         >
           <Image 
-            src="/hackbook-w95/app-icon/stop.png" 
+            src="/hackbook-W95/app-icon/stop.png" 
             alt="Stop" 
             width={16} 
             height={16} 
@@ -392,7 +392,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           onClick={refreshPage}
         >
           <Image 
-            src="/hackbook-w95/app-icon/refresh.png" 
+            src="/hackbook-W95/app-icon/refresh.png" 
             alt="Refresh" 
             width={16} 
             height={16} 
@@ -408,7 +408,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           }}
         >
           <Image 
-            src="/hackbook-w95/app-icon/home.png" 
+            src="/hackbook-W95/app-icon/home.png" 
             alt="Home" 
             width={16} 
             height={16} 
@@ -426,7 +426,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           }}
         >
           <Image 
-            src="/hackbook-w95/app-icon/search.png" 
+            src="/hackbook-W95/app-icon/search.png" 
             alt="Search" 
             width={16} 
             height={16} 
@@ -444,7 +444,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             }}
           >
             <Image 
-              src="/hackbook-w95/app-icon/favorites.png" 
+              src="/hackbook-W95/app-icon/favorites.png" 
               alt="Favorites" 
               width={16} 
               height={16} 
@@ -488,7 +488,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             }}
           >
             <Image 
-              src="/hackbook-w95/app-icon/history.png" 
+              src="/hackbook-W95/app-icon/history.png" 
               alt="History" 
               width={16} 
               height={16} 
@@ -521,7 +521,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         
         <button className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]">
           <Image 
-            src="/hackbook-w95/app-icon/print.png" 
+            src="/hackbook-W95/app-icon/print.png" 
             alt="Print" 
             width={16} 
             height={16} 
@@ -627,7 +627,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         <div>{loadingStatus}</div>
         <div className="flex items-center">
           <Image 
-            src="/hackbook-w95/app-icon/ie.png" 
+            src="/hackbook-W95/app-icon/ie.png" 
             alt="Internet Explorer" 
             width={16} 
             height={16} 

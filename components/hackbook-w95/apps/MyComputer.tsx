@@ -691,7 +691,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
             onClick={() => fs.navigateUp()}
           >
             <Image 
-              src="/hackbook-W95/up-arrow.png" 
+              src="/hackbook-W95/file-icons/up.png" 
               alt="Up" 
               width={16} 
               height={16} 
@@ -712,7 +712,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={!selectedItem}
         >
           <Image 
-            src="/hackbook-W95/file-icons/scissors.png" 
+            src="/hackbook-W95/file-icons/cut.png" 
             alt="Cut" 
             width={16} 
             height={16} 
@@ -759,7 +759,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           onClick={handleCreateNewFolder}
         >
           <Image 
-            src="/hackbook-W95/file.png" 
+            src="/hackbook-W95/file-icons/new-folder.png" 
             alt="New Folder" 
             width={20} 
             height={20} 
@@ -779,7 +779,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           disabled={!selectedItem}
         >
           <Image 
-            src="/hackbook-W95/delete.png" 
+            src="/hackbook-W95/file-icons/delete.png" 
             alt="Delete" 
             width={16} 
             height={16} 
@@ -851,7 +851,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                 >
                   <div className="mr-4">
                     <Image 
-                      src="/hackbook-w95/hard-disk.png" 
+                      src="/hackbook-W95/hard-disk.png" 
                       alt={drive.name} 
                       width={32} 
                       height={32} 
