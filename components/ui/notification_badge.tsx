@@ -28,7 +28,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
         }
       `}</style>
       <Image
-        src="https://64.media.tumblr.com/016da1fe17e4448ffe5dec8245bc6de2/a56aedd6feaabeea-69/s540x810/0396db374112ada8381638997a7b4ace003c9476.png"
+        src="/hackbook-W95/window_95Alert.png"
         alt="Windows 95 Alert"
         width={48}
         height={48}
