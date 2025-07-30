@@ -434,13 +434,13 @@ export default function DeviceSelectionPage() {
                   </div>
                   <button
                     onClick={() => {
-                     if (selectedInstance?.status !== "offline") {
+                     if (!isOffline) {
                         handleDeviceSelect(device.id, currentPlayspaceId || undefined);
                          }
                            }}
-                          disabled={selectedInstance?.status === "offline"}
+                          disabled={isOffline}
                            className={`w-full px-4 py-2 rounded font-mono flex items-center justify-center border transition-colors ${
-                         selectedInstance?.status === "offline"
+                         isOffline
                            ? "bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed"
                        : "bg-green-900/30 border-green-500 text-green-400 hover:bg-green-800/30"
                             }`}
