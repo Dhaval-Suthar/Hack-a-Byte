@@ -41,7 +41,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     loadPreferences();
   }, []);
   
-  const tracks: Track[] = [
+  const tracks: Track[] = React.useMemo(() => [
     { 
       artist: "Pet Shop Boys", 
       title: "West End Girls", 
@@ -60,7 +60,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
       duration: "07:29", 
       audioFile: "/hackbook-w95/sounds/music/blue-monday.mp3" // Temporary for testing
     }
-  ];
+  ], []);
   
   useEffect(() => {
     const audio = audioRef.current;
@@ -71,7 +71,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
       console.log('Audio file loaded and ready to play:', audio.src);
     };
 
-    const handleError = (e: any) => {
+    const handleError = (e: Event) => {
       console.error('Audio loading error:', e);
     };
 
@@ -90,7 +90,6 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     
     const updateTime = () => {
       if (!audio) return;
-      
       const minutes = Math.floor(audio.currentTime / 60);
       const seconds = Math.floor(audio.currentTime % 60);
       setCurrentTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
@@ -100,7 +99,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
     };
-  }, [isPlaying]);
+  }, [isPlaying, selectedTrack, tracks]);
   
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
