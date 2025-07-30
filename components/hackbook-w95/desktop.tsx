@@ -225,7 +225,7 @@ const Desktop = () => {
           const result = await getDeviceUser(devId || "", "hackbook-w95");
 
           if (result.isLoggedIn && result.user) {
-            // Set user data compatible with updated schema
+            // Set user data compatible with updated schema.
             setDeviceUser({
               _id: result.user._id,
               username: result.user.username,
