@@ -71,6 +71,11 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
           b: parseInt(color.slice(5,7), 16)
         };
 
+        // Check if the target color is the same as the fill color
+        if (startR === fillColor.r && startG === fillColor.g && startB === fillColor.b) {
+          return; // No need to fill with the same color
+        }
+
         // Flood fill algorithm
         const pixelsToCheck = [[x, y]];
         const visited = new Array(canvas.width * canvas.height).fill(false);
