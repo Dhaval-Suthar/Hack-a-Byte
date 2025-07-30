@@ -130,7 +130,7 @@ export default function DeviceSelectionPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const toggleFullscreen = () => {
+ const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .then(() => setIsFullscreen(true))
@@ -141,6 +141,7 @@ export default function DeviceSelectionPage() {
     document.exitFullscreen().then(() => setIsFullscreen(false));
   }
 };
+
 
 
   // All possible device options - memoized to prevent re-creation on every render
