@@ -62,24 +62,35 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     }
   ], []);
   
+  // Handle audio element updates and playback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Add loading event listener
+    // Always update src and load when track changes
+    audio.src = tracks[selectedTrack].audioFile;
+    audio.load();
+    // Always set volume
+    audio.volume = volume / 100;
+
     const handleCanPlay = () => {
       console.log('Audio file loaded and ready to play:', audio.src);
     };
-
     const handleError = (e: Event) => {
       console.error('Audio loading error:', e);
+    };
+    const updateTime = () => {
+      if (!audio) return;
+      const minutes = Math.floor(audio.currentTime / 60);
+      const seconds = Math.floor(audio.currentTime % 60);
+      setCurrentTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
     };
 
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('error', handleError);
-    
+    audio.addEventListener('timeupdate', updateTime);
+
     if (isPlaying) {
-      console.log('Attempting to play:', tracks[selectedTrack].audioFile);
       audio.play().catch(err => {
         console.error("Failed to play audio:", err);
         setIsPlaying(false);
@@ -87,19 +98,13 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     } else {
       audio.pause();
     }
-    
-    const updateTime = () => {
-      if (!audio) return;
-      const minutes = Math.floor(audio.currentTime / 60);
-      const seconds = Math.floor(audio.currentTime % 60);
-      setCurrentTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    };
-    
-    audio.addEventListener("timeupdate", updateTime);
+
     return () => {
-      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('timeupdate', updateTime);
     };
-  }, [isPlaying, selectedTrack, tracks]);
+  }, [isPlaying, selectedTrack, tracks, volume]);
   
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
