@@ -1180,7 +1180,7 @@ const Desktop = () => {
 
       {/* Network Tool Installation Notification */}
       {showInstallNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-green-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">Software Installation</h3>
           </div>
@@ -1196,7 +1196,7 @@ const Desktop = () => {
 
       {/* Neural Network Discovery Notification */}
       {showNeuralNetworkNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-purple-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🧠 NEURAL DATA DISCOVERED</h3>
           </div>
@@ -1212,7 +1212,7 @@ const Desktop = () => {
 
       {/* Secure Vault Unlock Notification */}
       {showVaultNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-red-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🔐 VAULT ACCESS DETECTED</h3>
           </div>
@@ -1228,7 +1228,7 @@ const Desktop = () => {
 
       {/* Mission 2 Completion Notification */}
       {mission2JustCompleted && !showNumberJumpingGame && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
           <div className="bg-[#000080] text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🔒 SECURITY PROTOCOL ACTIVATED</h3>
           </div>
