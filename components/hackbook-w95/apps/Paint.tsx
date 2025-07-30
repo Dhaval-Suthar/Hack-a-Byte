@@ -20,22 +20,48 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas dimensions to match parent container
-    const parent = canvas.parentElement;
-    if (parent) {
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
-    }
+    const updateCanvasSize = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        // Store the current image data before resizing
+        const context = canvas.getContext("2d");
+        const imageData = context?.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Update canvas dimensions
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        // Restore context settings
+        if (context) {
+          context.lineCap = "round";
+          context.lineJoin = "round";
+          context.fillStyle = "white";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Restore the image data if it existed
+          if (imageData) {
+            context.putImageData(imageData, 0, 0);
+          }
+          
+          contextRef.current = context;
+        }
+      }
+    };
 
-    const context = canvas.getContext("2d");
-    if (context) {
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      // Fill with white background
-      context.fillStyle = "white";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      contextRef.current = context;
-    }
+    // Initial setup
+    updateCanvasSize();
+
+    // Add resize listener
+    const handleResize = () => {
+      updateCanvasSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []); // Empty dependency array - run once on mount
 
   useEffect(() => {
@@ -50,8 +76,10 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     
     if (tool === "fill") {
       if (contextRef.current) {
@@ -114,8 +142,10 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     
     contextRef.current?.lineTo(x, y);
     contextRef.current?.stroke();
