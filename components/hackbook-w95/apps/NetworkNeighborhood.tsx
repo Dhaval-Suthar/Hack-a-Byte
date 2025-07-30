@@ -41,6 +41,13 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
     } catch (error) {
       console.error('Error completing mission:', error);
     }
+
+    // Remove the Network Neighborhood app from desktop after completion
+    setTimeout(() => {
+      // Dispatch event to remove network tool from desktop
+      window.dispatchEvent(new CustomEvent('networkToolRemoved'));
+      onClose();
+    }, 2000); // 2 second delay to show completion briefly
   };
 
   if (showIPFinder) {
@@ -180,15 +187,13 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
                   <br />
                   Your skills are becoming legendary in the underground.
                   <br />
-                  <span className="font-bold">Return to WinTalk95 for your next assignment.</span>
+                  <span className="font-bold">Mission complete - removing traces...</span>
                 </p>
               </div>
-              <button
-                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 font-bold border-2 border-outset"
-                onClick={onClose}
-              >
-                Return to Desktop
-              </button>
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-2">Self-destructing in 2 seconds...</p>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+              </div>
             </div>
           </div>
         ) : (

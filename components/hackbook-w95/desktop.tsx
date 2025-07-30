@@ -378,9 +378,17 @@ const Desktop = () => {
       }, 5000);
     };
 
+    const handleNetworkToolRemove = () => {
+      setNetworkToolInstalled(false);
+      // Close any open Network Neighborhood windows
+      setRunningApps(prev => prev.filter(app => app.name !== "Network Neighborhood"));
+    };
+
     window.addEventListener('networkToolInstalled', handleNetworkToolInstall);
+    window.addEventListener('networkToolRemoved', handleNetworkToolRemove);
     return () => {
       window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
+      window.removeEventListener('networkToolRemoved', handleNetworkToolRemove);
     };
   }, [playSound]);
 
