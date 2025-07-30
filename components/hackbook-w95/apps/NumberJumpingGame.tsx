@@ -287,7 +287,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
       if (newSelectedCells.length === targetSequence.length) {
         setScore(prev => prev + (currentLevel * 100));
         
-        if (currentLevel >= 5) {
+        if (currentLevel >= 3) {
           // Game complete
           setTimeout(() => setGameState("success"), 1000);
         } else {
