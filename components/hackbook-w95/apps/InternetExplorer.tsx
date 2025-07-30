@@ -404,7 +404,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         <button 
           className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
           onClick={() => {
-            navigateTo('https://www.yahoo.com');
+            navigateTo('https://en.m.wikipedia.org/wiki/Main_Page');
           }}
         >
           <Image 
@@ -422,7 +422,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         <button 
           className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
           onClick={() => {
-            navigateTo('https://www.yahoo.com/search?q=' + encodeURIComponent(currentURL));
+            navigateTo('https://en.wikipedia.org/wiki/Special:Search?search=YOUR_QUERY' + encodeURIComponent(currentURL));
           }}
         >
           <Image 
@@ -519,17 +519,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           )}
         </div>
         
-        <button className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]">
-          <Image 
-            src="/hackbook-W95/app-icon/print.png" 
-            alt="Print" 
-            width={16} 
-            height={16} 
-            className="mr-1" 
-          />
-          <span className="text-xs">Print</span>
-        </button>
-
         <div className="flex-1"></div>
         
         <button 
