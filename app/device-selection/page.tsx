@@ -131,16 +131,17 @@ export default function DeviceSelectionPage() {
   }, []);
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+      .then(() => setIsFullscreen(true))
+      .catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
+  } else {
+    document.exitFullscreen().then(() => setIsFullscreen(false));
+  }
+};
+
 
   // All possible device options - memoized to prevent re-creation on every render
   const allDeviceOptions: DeviceOption[] = useMemo(() => [
