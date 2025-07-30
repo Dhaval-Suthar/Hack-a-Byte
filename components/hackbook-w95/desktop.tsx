@@ -35,6 +35,7 @@ import SystemSounds from "@/components/hackbook-w95/SystemSounds";
 import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
 import useWindowManager from "@/components/hackbook-w95/hooks/useWindowManager";
 import Win95Window from "@/components/hackbook-w95/Win95Window";
+import NotificationBadge from "../ui/notification_badge";
 class App {
   name: string;
   icon: string;
@@ -74,6 +75,9 @@ const DefaultValues = {
 };
 
 const Desktop = () => {
+  // Unread count state for Inbox
+  const [unreadCount, setUnreadCount] = useState(1); // Default to 1 for initial notification
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -636,7 +640,7 @@ const Desktop = () => {
         case "Internet Explorer":
           return <InternetExplorer link={link} setLink={setLink} onClose={() => handleCloseApp(app)} />;
         case "Inbox":
-          return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} />;
+          return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
         case "Network Neighborhood":
           return <NetworkNeighborhood onClose={() => handleCloseApp(app)} />;
         case "Recycle Bin":
@@ -758,7 +762,7 @@ const Desktop = () => {
           return null;
       }
     },
-    [handleCloseApp, handleOpenApp, link, setLink, openLink]
+    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount]
   );
 
   // Handle keyboard events and file opening
@@ -865,46 +869,53 @@ const Desktop = () => {
                 return false;
               }
               return true;
-            }).map((app) => (
-              <div
-                key={app.name}
-                className={clsx("flex flex-col items-center z-10 p-1 w-24", {
-                  "bg-[#000080]/40": app === selectedApp,
-                })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playSound("click");
-                  // Only handle selection on click, don't attempt to open
-                  if (selectedApp !== app) {
-                    setSelectedApp(app);
-                  }
-                }}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  playSound("click");
-                  // Direct call to handleOpenApp on double click
-                  handleOpenApp(app);
-                }}
-              >
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <Image
-                    className="object-contain max-w-full max-h-full"
-                    src={app.icon}
-                    alt={app.name}
-                    width={60}
-                    height={60}
-                    priority
-                  />
-                </div>
-                <h4
-                  className={clsx("w-24 mt-1 text-xs text-white text-center px-1 shadow-sm", {
-                    "bg-[#000080]": app === selectedApp,
+            }).map((app) => {
+              const isInbox = app.name === "Inbox";
+              return (
+                <div
+                  key={app.name}
+                  className={clsx("flex flex-col items-center z-10 p-1 w-24 relative", {
+                    "bg-[#000080]/40": app === selectedApp,
                   })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playSound("click");
+                    // Only handle selection on click, don't attempt to open
+                    if (selectedApp !== app) {
+                      setSelectedApp(app);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    playSound("click");
+                    // Direct call to handleOpenApp on double click
+                    handleOpenApp(app);
+                  }}
                 >
-                  {app.name}
-                </h4>
-              </div>
-            ))}
+                  <div className="w-12 h-12 flex items-center justify-center relative">
+                    <Image
+                      className="object-contain max-w-full max-h-full"
+                      src={app.icon}
+                      alt={app.name}
+                      width={60}
+                      height={60}
+                      priority
+                    />
+                    {/* Notification badge for Inbox */}
+                    {isInbox && unreadCount > 0 && (
+                      <NotificationBadge />
+                    )}
+                  </div>
+                  <h4
+                    className={clsx("w-24 mt-1 text-xs text-white text-center px-1 shadow-sm", {
+                      "bg-[#000080]": app === selectedApp,
+                    })}
+                  >
+                    {app.name}
+                  </h4>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
