@@ -6,6 +6,7 @@ interface Track {
   artist: string;
   title: string;
   duration: string;
+  audioFile: string;
 }
 
 interface CDPlayerProps {
@@ -41,17 +42,44 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
   }, []);
   
   const tracks: Track[] = [
-    { artist: "Pet Shop Boys", title: "Behaviour", duration: "03:45" },
-    { artist: "Depeche Mode", title: "Enjoy The Silence", duration: "04:15" },
-    { artist: "The Cure", title: "Lovesong", duration: "03:28" },
-    { artist: "New Order", title: "Blue Monday", duration: "07:29" },
+    { 
+      artist: "Pet Shop Boys", 
+      title: "West End Girls", 
+      duration: "03:55", 
+      audioFile: "/hackbook-w95/sounds/music/west-end-girls.mp3" // Temporary for testing
+    },
+    { 
+      artist: "Depeche Mode", 
+      title: "Just Can't Get Enough", 
+      duration: "03:45", 
+      audioFile: "/hackbook-w95/sounds/music/just-cant-get-enough.mp3" // Temporary for testing
+    },
+    { 
+      artist: "New Order", 
+      title: "Blue Monday", 
+      duration: "07:29", 
+      audioFile: "/hackbook-w95/sounds/music/blue-monday.mp3" // Temporary for testing
+    }
   ];
   
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    // Add loading event listener
+    const handleCanPlay = () => {
+      console.log('Audio file loaded and ready to play:', audio.src);
+    };
+
+    const handleError = (e: any) => {
+      console.error('Audio loading error:', e);
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('error', handleError);
     
     if (isPlaying) {
+      console.log('Attempting to play:', tracks[selectedTrack].audioFile);
       audio.play().catch(err => {
         console.error("Failed to play audio:", err);
         setIsPlaying(false);
@@ -150,7 +178,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
       {/* Audio element (hidden) */}
       <audio 
         ref={audioRef} 
-        src={`/hackbook-w95/sounds/placeholder-music.mp3`} 
+        src={tracks[selectedTrack].audioFile} 
         loop 
       />
       
