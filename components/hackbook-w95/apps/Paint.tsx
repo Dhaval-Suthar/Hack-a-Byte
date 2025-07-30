@@ -73,13 +73,16 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
 
         // Flood fill algorithm
         const pixelsToCheck = [[x, y]];
+        const visited = new Array(canvas.width * canvas.height).fill(false);
         while (pixelsToCheck.length > 0) {
-          const [px, py] = pixelsToCheck.pop()!;
+          const [px, py] = pixelsToCheck.shift()!;
           const pos = (Math.floor(py) * canvas.width + Math.floor(px)) * 4;
           
           if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+          if (visited[Math.floor(py) * canvas.width + Math.floor(px)]) continue;
           if (pixels[pos] !== startR || pixels[pos + 1] !== startG || pixels[pos + 2] !== startB) continue;
           
+          visited[Math.floor(py) * canvas.width + Math.floor(px)] = true;
           pixels[pos] = fillColor.r;
           pixels[pos + 1] = fillColor.g;
           pixels[pos + 2] = fillColor.b;
