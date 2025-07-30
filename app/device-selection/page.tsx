@@ -133,12 +133,13 @@ export default function DeviceSelectionPage() {
  const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
-      .then(() => setIsFullscreen(true))
       .catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
   } else {
-    document.exitFullscreen().then(() => setIsFullscreen(false));
+    document.exitFullscreen().catch((err) => {
+      console.error(`Error attempting to exit fullscreen: ${err.message}`);
+    });
   }
 };
 
@@ -434,23 +435,30 @@ export default function DeviceSelectionPage() {
                   </div>
                   <button
                     onClick={() => {
-                     if (!isOffline) {
+                      if (selectedInstance?.status === "online") {
                         handleDeviceSelect(device.id, currentPlayspaceId || undefined);
-                         }
-                           }}
-                          disabled={isOffline}
-                           className={`w-full px-4 py-2 rounded font-mono flex items-center justify-center border transition-colors ${
-                         isOffline
-                           ? "bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed"
-                       : "bg-green-900/30 border-green-500 text-green-400 hover:bg-green-800/30"
-                            }`}
+                      }
+                    }}
+                    disabled={selectedInstance?.status !== "online"}
+                    className={`w-full px-4 py-2 rounded font-mono flex items-center justify-center border transition-colors ${
+                      selectedInstance?.status !== "online"
+                        ? "bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed"
+                        : "bg-green-900/30 border-green-500 text-green-400 hover:bg-green-800/30"
+                    }`}
 >
                               <span
                            className={`inline-block w-1.5 h-1.5 mr-2 rounded-full ${
-                           selectedInstance?.status === "offline" ? "bg-gray-500" : "bg-green-500"
+                           selectedInstance?.status === "online" ? "bg-green-500" : "bg-gray-500"
                           }`}
                           ></span>
-                        CONNECT TO {deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE
+                        {selectedInstance?.status === "online" 
+                          ? `CONNECT TO ${deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE`
+                          : selectedInstance?.status === "maintenance"
+                          ? "DEVICE UNDER MAINTENANCE"
+                          : selectedInstance?.status === "offline"
+                          ? "DEVICE OFFLINE"
+                          : "DEVICE UNAVAILABLE"
+                        }
                   </button>
                 </div>
               </motion.div>
