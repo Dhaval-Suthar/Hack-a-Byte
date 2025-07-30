@@ -58,8 +58,9 @@ P.S. This message will self-destruct after reading. No evidence must remain.
 
   // Update unread count whenever mails state changes
   const updateUnreadCount = () => {
+    console.log('recieved read/unread update')
     if (setUnreadCount) {
-      const unreadCount = mails.filter(mail => !mail.isRead).length;
+      const unreadCount = mails.filter(mail => !mail.isRead).length - 1;
       setUnreadCount(unreadCount);
     }
   };
@@ -91,8 +92,8 @@ P.S. This message will self-destruct after reading. No evidence must remain.
     >
       <div
         className={clsx("flex items-center border-b border-[#e0e0e0] py-1 px-1 cursor-pointer", {
-          "bg-[#0000aa] text-white": selectedMail === mail,
-          "hover:bg-[#e0e0e0]": selectedMail !== mail,
+          "bg-[#0000aa] text-white": selectedMail?.id === mail.id,
+          "hover:bg-[#e0e0e0]": selectedMail?.id !== mail.id,
         })}
       >
         <div className="w-6 flex-shrink-0 flex items-center justify-center">
@@ -109,7 +110,7 @@ P.S. This message will self-destruct after reading. No evidence must remain.
         <div className="flex-1 px-2 text-sm text-right">{mail.date}</div>
       </div>
       
-      {selectedMail === mail && (
+      {selectedMail?.id === mail.id && (
         <div className="fixed inset-16 z-10 flex flex-col bg-white border-2 border-[#808080]">
           <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center">
             <div className="flex-1 text-sm font-bold">Welcome! - Microsoft Exchange</div>
