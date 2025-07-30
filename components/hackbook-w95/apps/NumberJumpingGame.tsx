@@ -30,6 +30,8 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [showPipeline, setShowPipeline] = useState(false);
   const [pipelineProgress, setPipelineProgress] = useState(0);
+  // Store the multiplier for the multiples pattern
+  const [currentMultiplier, setCurrentMultiplier] = useState<number | null>(null);
 
   // Sound effects
   const playSound = useCallback((sound: string) => {
@@ -92,13 +94,13 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   }, []);
 
   // Validate that a sequence matches the expected pattern
-  const validateSequence = useCallback((sequence: number[], pattern: Pattern): boolean => {
-    if (sequence.length === 0) return false;
-    
+  const validateSequence = useCallback((sequence: number[], pattern: Pattern, multiplierOverride?: number): boolean => {
+    if (!sequence || sequence.length === 0) return false;
     switch (pattern) {
-      case "multiples":
-        const multiplier = 3 + currentLevel;
+      case "multiples": {
+        const multiplier = multiplierOverride ?? currentMultiplier ?? 5;
         return sequence.every(num => num % multiplier === 0);
+      }
       case "ascending":
         return sequence.every((num, index) => index === 0 || num > sequence[index - 1]);
       case "descending":
@@ -109,61 +111,45 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
       default:
         return true; // For diagonal and l-shape, assume valid
     }
-  }, [currentLevel]);
+  }, [currentMultiplier]);
 
   // Generate target sequence based on pattern
-  const generateTargetSequence = useCallback((grid: GridCell[][], pattern: Pattern): number[] => {
+  const generateTargetSequence = useCallback((grid: GridCell[][], pattern: Pattern, multiplierOverride?: number): number[] => {
     const flatGrid = grid.flat();
-    
     switch (pattern) {
-      case "prime":
+      case "prime": {
         const primes = generatePrimes(99);
         return flatGrid
           .filter(cell => primes.includes(cell.value) && !cell.isTrap)
           .map(cell => cell.value)
           .sort((a, b) => a - b)
           .slice(0, Math.min(5, currentLevel + 2));
-          
+      }
       case "ascending":
         return flatGrid
           .filter(cell => !cell.isTrap)
           .map(cell => cell.value)
           .sort((a, b) => a - b)
           .slice(0, Math.min(6, currentLevel + 3));
-          
       case "descending":
         return flatGrid
           .filter(cell => !cell.isTrap)
           .map(cell => cell.value)
           .sort((a, b) => b - a)
           .slice(0, Math.min(6, currentLevel + 3));
-          
-      case "multiples":
-        const multiplier = 3 + currentLevel;
-        
+      case "multiples": {
+        // Use a random multiplier between 2 and 10
+        const multiplier = multiplierOverride ?? (Math.floor(Math.random() * 9) + 2);
         const availableMultiples = flatGrid
-          .filter(cell => !cell.isTrap && cell.value % multiplier === 0 && cell.value > 0)
+          .filter(cell => !cell.isTrap && cell.value % multiplier === 0)
           .map(cell => cell.value)
           .sort((a, b) => a - b);
-        
-        // If we don't have enough positive multiples, include 0 if it exists
         if (availableMultiples.length < 2) {
-          const allMultiples = flatGrid
-            .filter(cell => !cell.isTrap && cell.value % multiplier === 0)
-            .map(cell => cell.value)
-            .sort((a, b) => a - b);
-          
-          // Only return if we have at least 2 valid multiples
-          if (allMultiples.length >= 2) {
-            return allMultiples.slice(0, Math.min(4, currentLevel + 2));
-          } else {
-            return []; // Return empty array to trigger pattern change
-          }
+          return [];
         }
-        
         return availableMultiples.slice(0, Math.min(4, currentLevel + 2));
-          
-      case "diagonal":
+      }
+      case "diagonal": {
         const diagonal = [];
         for (let i = 0; i < Math.min(grid.length, grid[0].length); i++) {
           if (!grid[i][i].isTrap) {
@@ -171,10 +157,9 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
           }
         }
         return diagonal.slice(0, Math.min(4, currentLevel + 2));
-        
-      case "l-shape":
+      }
+      case "l-shape": {
         const lShape = [];
-        // L-shape: first row, then last column
         for (let col = 0; col < Math.min(3, grid[0].length); col++) {
           if (!grid[0][col].isTrap) {
             lShape.push(grid[0][col].value);
@@ -186,7 +171,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
           }
         }
         return lShape.slice(0, Math.min(4, currentLevel + 2));
-        
+      }
       default:
         return [];
     }
@@ -197,43 +182,62 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
     const gridSize = Math.min(6, 4 + Math.floor(currentLevel / 2));
     const patterns: Pattern[] = ["prime", "ascending", "descending", "multiples", "diagonal", "l-shape"];
     let selectedPattern = patterns[Math.floor(Math.random() * Math.min(patterns.length, 2 + currentLevel))];
-    
-    let newGrid;
-    let newTarget;
+    let newGrid: GridCell[][] = [];
+    let newTarget: number[] = [];
     let attempts = 0;
     let finalPattern = selectedPattern;
-    
+    let multiplierForMultiples: number | null = null;
     // Ensure we generate a valid puzzle
     do {
       newGrid = generateGrid(gridSize);
-      newTarget = generateTargetSequence(newGrid, selectedPattern);
+      if (selectedPattern === "multiples") {
+        // Pick a random multiplier and try to generate a valid sequence
+        let found = false;
+        for (let tryMult = 0; tryMult < 10; tryMult++) {
+          const randomMultiplier = Math.floor(Math.random() * 9) + 2; // 2-10
+          const candidateTarget = generateTargetSequence(newGrid, "multiples", randomMultiplier);
+          if (candidateTarget && candidateTarget.length >= 2 && validateSequence(candidateTarget, "multiples", randomMultiplier)) {
+            newTarget = candidateTarget;
+            multiplierForMultiples = randomMultiplier;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          newTarget = [];
+        }
+      } else {
+        newTarget = generateTargetSequence(newGrid, selectedPattern);
+      }
       attempts++;
-      
-      // Validate that the sequence actually matches the pattern
-      const isValid = validateSequence(newTarget, selectedPattern);
-      
-      // If the current pattern doesn't work or validation fails, try a different one
+      const isValid = selectedPattern === "multiples"
+        ? validateSequence(newTarget, "multiples", multiplierForMultiples ?? undefined)
+        : validateSequence(newTarget, selectedPattern);
       if ((newTarget.length < 2 || !isValid) && attempts < 10) {
         selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+        multiplierForMultiples = null;
       }
-    } while ((newTarget.length < 2 || !validateSequence(newTarget, selectedPattern)) && attempts < 10);
-    
+    } while ((newTarget.length < 2 || !(selectedPattern === "multiples"
+      ? validateSequence(newTarget, "multiples", multiplierForMultiples ?? undefined)
+      : validateSequence(newTarget, selectedPattern))) && attempts < 10);
     // If we still can't generate a good puzzle, fall back to ascending pattern
-    if (newTarget.length < 2 || !validateSequence(newTarget, selectedPattern)) {
+    if (newTarget.length < 2 || !(selectedPattern === "multiples"
+      ? validateSequence(newTarget, "multiples", multiplierForMultiples ?? undefined)
+      : validateSequence(newTarget, selectedPattern))) {
       finalPattern = "ascending";
-      newTarget = generateTargetSequence(newGrid, finalPattern);
+      newTarget = generateTargetSequence(newGrid, finalPattern) ?? [];
+      multiplierForMultiples = null;
     } else {
       finalPattern = selectedPattern;
     }
-    
     setCurrentPattern(finalPattern);
-    
     setGrid(newGrid);
-    setTargetSequence(newTarget);
+    setTargetSequence(newTarget ?? []);
     setSelectedCells([]);
     setErrorMessage("");
     setShowPipeline(false);
     setPipelineProgress(0);
+    setCurrentMultiplier(multiplierForMultiples);
   }, [currentLevel, generateGrid, generateTargetSequence, validateSequence]);
 
   // Handle cell click
@@ -335,12 +339,11 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
 
   // Get pattern description
   const getPatternDescription = (pattern: Pattern): string => {
-    const multiplier = 3 + currentLevel;
     switch (pattern) {
       case "prime": return "Select all prime numbers in ascending order";
       case "ascending": return "Select numbers in ascending order";
       case "descending": return "Select numbers in descending order";
-      case "multiples": return `Select multiples of ${multiplier} in ascending order`;
+      case "multiples": return `Select multiples of ${currentMultiplier ?? '?'} in ascending order`;
       case "diagonal": return "Select numbers along the main diagonal";
       case "l-shape": return "Select numbers in an L-shape pattern";
       default: return "";
