@@ -224,7 +224,7 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
         <input
           type="file"
           id="loadDrawing"
-          accept="image/png"
+          accept="image/png, image/jpeg, image/gif, image/webp"
           onChange={loadDrawing}
           className="hidden"
         />
