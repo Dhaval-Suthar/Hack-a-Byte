@@ -221,7 +221,7 @@ const Desktop = () => {
           setPlayspaceId(id);
           setDeviceId(devId);
 
-          // Check if user exists by calling getDeviceUser server action
+          // Check if user exists by calling getDeviceUser server action.
           const result = await getDeviceUser(devId || "", "hackbook-w95");
 
           if (result.isLoggedIn && result.user) {
