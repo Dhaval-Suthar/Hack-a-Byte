@@ -1,8 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import clsx from "clsx";
 import Image from "next/image";
+import { getSessionCreds } from "@/lib/creds";
 
 interface Message {
   id: string;
@@ -25,8 +27,10 @@ interface WinTalk95Props {
 const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  // Use shared credentials for login
+  const creds = getSessionCreds();
+  const [username, setUsername] = useState(creds.username);
+  const [password, setPassword] = useState(creds.password);
   const [server, setServer] = useState("secure.ghostnet.corp");
   const [port, setPort] = useState("2847");
   const [connectionError, setConnectionError] = useState("");
@@ -121,7 +125,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Check credentials (from the ZIP file)
-    if (username === "ghost_agent_001" && password === "PHANTOM95" && server === "secure.ghostnet.corp") {
+    if (username === creds.username && password === creds.password && server === "secure.ghostnet.corp") {
       setIsConnected(true);
       setShowLogin(false);
       playSound('connect');
@@ -152,7 +156,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     }
 
     setIsConnecting(false);
-  }, [username, password, server, port, playSound]);
+  }, [username, password, server, port, playSound, creds.username, creds.password]);
 
   // Handle contact selection
   const handleContactSelect = useCallback((contactUsername: string) => {
