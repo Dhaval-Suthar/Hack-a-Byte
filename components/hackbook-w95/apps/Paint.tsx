@@ -250,8 +250,16 @@ const Paint: React.FC<PaintProps> = ({ onClose }) => {
             <option value={1}>1px</option>
             <option value={2}>2px</option>
             <option value={3}>3px</option>
+            <option value={4}>4px</option>
             <option value={5}>5px</option>
+            <option value={6}>6px</option>
             <option value={8}>8px</option>
+            <option value={10}>10px</option>
+            <option value={12}>12px</option>
+            <option value={15}>15px</option>
+            <option value={20}>20px</option>
+            <option value={25}>25px</option>
+            <option value={30}>30px</option>
           </select>
         </div>
       </div>
