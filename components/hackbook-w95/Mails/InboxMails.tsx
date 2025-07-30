@@ -58,7 +58,6 @@ P.S. This message will self-destruct after reading. No evidence must remain.
 
   // Update unread count whenever mails state changes
   const updateUnreadCount = () => {
-    console.log('recieved read/unread update')
     if (setUnreadCount) {
       const unreadCount = mails.filter(mail => !mail.isRead).length - 1;
       setUnreadCount(unreadCount);
