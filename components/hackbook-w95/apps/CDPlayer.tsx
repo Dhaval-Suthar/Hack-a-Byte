@@ -6,6 +6,7 @@ interface Track {
   artist: string;
   title: string;
   duration: string;
+  audioFile: string;
 }
 
 interface CDPlayerProps {
@@ -40,17 +41,55 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     loadPreferences();
   }, []);
   
-  const tracks: Track[] = [
-    { artist: "Pet Shop Boys", title: "Behaviour", duration: "03:45" },
-    { artist: "Depeche Mode", title: "Enjoy The Silence", duration: "04:15" },
-    { artist: "The Cure", title: "Lovesong", duration: "03:28" },
-    { artist: "New Order", title: "Blue Monday", duration: "07:29" },
-  ];
+  const tracks: Track[] = React.useMemo(() => [
+    { 
+      artist: "Pet Shop Boys", 
+      title: "West End Girls", 
+      duration: "03:55", 
+      audioFile: "/hackbook-w95/sounds/music/west-end-girls.mp3" // Temporary for testing
+    },
+    { 
+      artist: "Depeche Mode", 
+      title: "Just Can't Get Enough", 
+      duration: "03:45", 
+      audioFile: "/hackbook-w95/sounds/music/just-cant-get-enough.mp3" // Temporary for testing
+    },
+    { 
+      artist: "New Order", 
+      title: "Blue Monday", 
+      duration: "07:29", 
+      audioFile: "/hackbook-w95/sounds/music/blue-monday.mp3" // Temporary for testing
+    }
+  ], []);
   
+  // Handle audio element updates and playback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
+    // Always update src and load when track changes
+    audio.src = tracks[selectedTrack].audioFile;
+    audio.load();
+    // Always set volume
+    audio.volume = volume / 100;
+
+    const handleCanPlay = () => {
+      console.log('Audio file loaded and ready to play:', audio.src);
+    };
+    const handleError = (e: Event) => {
+      console.error('Audio loading error:', e);
+    };
+    const updateTime = () => {
+      if (!audio) return;
+      const minutes = Math.floor(audio.currentTime / 60);
+      const seconds = Math.floor(audio.currentTime % 60);
+      setCurrentTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('timeupdate', updateTime);
+
     if (isPlaying) {
       audio.play().catch(err => {
         console.error("Failed to play audio:", err);
@@ -59,20 +98,13 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     } else {
       audio.pause();
     }
-    
-    const updateTime = () => {
-      if (!audio) return;
-      
-      const minutes = Math.floor(audio.currentTime / 60);
-      const seconds = Math.floor(audio.currentTime % 60);
-      setCurrentTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    };
-    
-    audio.addEventListener("timeupdate", updateTime);
+
     return () => {
-      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('timeupdate', updateTime);
     };
-  }, [isPlaying]);
+  }, [isPlaying, selectedTrack, tracks, volume]);
   
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -150,7 +182,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
       {/* Audio element (hidden) */}
       <audio 
         ref={audioRef} 
-        src={`/hackbook-w95/sounds/placeholder-music.mp3`} 
+        src={tracks[selectedTrack].audioFile} 
         loop 
       />
       
