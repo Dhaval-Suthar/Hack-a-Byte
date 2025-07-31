@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Win95Alert from "../Win95Alert";
 import clsx from "clsx";
 import Image from "next/image";
 import BruteForceGame from "./BruteForceGame";
@@ -34,6 +35,7 @@ const ZipArchive: React.FC<ZipArchiveProps> = ({
   const [passwordInput, setPasswordInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<ZipFile | null>(null);
   const [showFileContent, setShowFileContent] = useState(false);
+  const [showWinAlert, setShowWinAlert] = useState(false);
 
   // Use shared credentials for the session
   const creds = getSessionCreds();
@@ -167,15 +169,13 @@ Good luck with your assignment.
     setIsUnlocked(true);
     setShowBruteForce(false);
     playSound('success');
-    
     // Save mission progress - Mark Mission 1 as complete
     import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
       MissionTracker.completeMission('mission1');
     });
-
-    // Show success dialog with instructions to check client_data.txt
+    // Show Win95Alert dialog with instructions to check client_data.txt
     setTimeout(() => {
-      alert("Access Granted! The ZIP file has been unlocked successfully.\n\nIMPORTANT: Open 'client_data.txt' to find your next mission credentials!");
+      setShowWinAlert(true);
     }, 500);
   }, [playSound]);
 
@@ -370,6 +370,14 @@ Good luck with your assignment.
         </span>
         <span>Ready</span>
       </div>
+
+      {/* Win95Alert for brute force success */}
+      {showWinAlert && (
+        <Win95Alert
+          message={"Access Granted! The ZIP file has been unlocked successfully.\n\nIMPORTANT: Open 'client_data.txt' to find your next mission credentials!"}
+          onClose={() => setShowWinAlert(false)}
+        />
+      )}
 
       {/* Password Dialog */}
       {showPasswordDialog && (

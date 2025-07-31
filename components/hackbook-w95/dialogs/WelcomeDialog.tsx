@@ -9,6 +9,20 @@ interface WelcomeDialogProps {
 }
 
 const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ onClose, username = "User" }) => {
+  // Fullscreen toggle handler
+  const handleFullscreen = () => {
+    const el = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => void;
+      msRequestFullscreen?: () => void;
+    };
+    if (el.requestFullscreen) {
+      el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    } else if (el.msRequestFullscreen) {
+      el.msRequestFullscreen();
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
       {/* Main startup screen container */}
@@ -105,15 +119,21 @@ const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ onClose, username = "User
             </label>
           </div>
           
-          {/* Tip and button row */}
-          <div className="flex items-center justify-between">
+          {/* Tip, fullscreen, and button row */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center text-xs text-black">
               <div className="w-4 h-4 bg-yellow-400 border border-black mr-2 flex items-center justify-center text-black font-bold text-xs">
                 ?
               </div>
               <span>Tip: Press F1 for Help at any time</span>
             </div>
-            
+            <button
+              onClick={handleFullscreen}
+              className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-[#808080] border-b-[#808080] px-3 py-1 text-xs text-black hover:bg-[#d0d0d0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-white active:border-b-white mr-2"
+              type="button"
+            >
+              Go Fullscreen
+            </button>
             <button
               onClick={onClose}
               className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-[#808080] border-b-[#808080] px-4 py-1 text-sm text-black hover:bg-[#d0d0d0] active:border-t-[#808080] active:border-l-[#808080] active:border-r-white active:border-b-white"
