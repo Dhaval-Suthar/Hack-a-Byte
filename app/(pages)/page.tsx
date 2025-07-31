@@ -352,10 +352,10 @@ export default function Page() {
           className="mt-20 w-full max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-4"
         >
           {[
-            { label: "PARTICIPANTS", value: "500+" },
-            { label: "CHALLENGES", value: "20+" },
-            { label: "PRIZE POOL", value: "$10K" },
-            { label: "DAYS", value: "48:00:00" },
+            { label: "PARTICIPANTS", value: "100+" },
+            { label: "CHALLENGES", value: "6+" },
+            { label: "CERTIFICATES", value: "BUG BOUNTY" },
+            { label: "DURATION", value: "48 HOURS" },
           ].map((stat, index) => (
             <div key={index} className="cyber-border p-4 bg-black/30 rounded-lg backdrop-blur-sm text-center">
               <div className="text-2xl font-bold cyber-text mb-1">{stat.value}</div>
