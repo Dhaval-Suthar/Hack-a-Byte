@@ -101,7 +101,7 @@ const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ onClose, username = "User
                   }
                 }}
               />
-              Don't show this welcome screen again
+              Don&apos;t show this welcome screen again
             </label>
           </div>
           

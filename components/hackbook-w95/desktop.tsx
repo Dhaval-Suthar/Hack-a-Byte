@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
@@ -679,7 +678,10 @@ const Desktop = () => {
               <div className="flex justify-between items-start">
                 <div className="w-full">
                   <p className="font-bold mb-2">Microsoft(R) Windows 95 - MS-DOS Prompt</p>
-                  <TerminalComponent />
+                  <div className="text-green-500">
+                    <p>C:\WINDOWS&gt; _</p>
+                    <p className="mt-2 text-xs opacity-70">Terminal functionality not implemented in this demo</p>
+                  </div>
                 </div>
                 <button className="text-green-500 hover:text-white px-1" onClick={() => handleCloseApp(app)}>
                   X
