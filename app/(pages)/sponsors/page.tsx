@@ -656,10 +656,8 @@ export default function Page() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {/*
             {activeTab === 'sponsors' && renderSponsorsTab()}
             {activeTab === 'packages' && renderPackagesTab()}
-            */}
             {activeTab === 'contact' && renderContactTab()}
           </motion.div>
         </AnimatePresence>
