@@ -16,7 +16,7 @@ import CDPlayer from "@/components/hackbook-w95/apps/CDPlayer";
 import Notepad from "@/components/hackbook-w95/apps/Notepad";
 import Calculator from "@/components/hackbook-w95/apps/Calculator";
 import Paint from "@/components/hackbook-w95/apps/Paint";
-import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
+
 import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
 import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
@@ -63,7 +63,7 @@ const APPS: App[] = [
   new App("Notepad", "/hackbook-W95/app-icon/notepad.png"),
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
-  new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
+  // new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"), // REMOVED
   new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
   new App("Neural Network Analyzer", "/hackbook-W95/app-icon/network.svg"), // Hidden app - will be revealed through gameplay
   new App("Secure Vault", "/hackbook-W95/app-icon/lock.svg"), // Hidden app - will be revealed after neural network completion
@@ -71,7 +71,7 @@ const APPS: App[] = [
 ];
 
 const DefaultValues = {
-  LINK: "https://www.google.com",
+  LINK: "https://en.wikipedia.org/wiki/Wikipedia:About",
 };
 
 const Desktop = () => {
@@ -657,8 +657,8 @@ const Desktop = () => {
           return <Calculator onClose={() => handleCloseApp(app)} />;
         case "Paint":
           return <Paint onClose={() => handleCloseApp(app)} />;
-        case "Solitaire":
-          return <Solitaire onClose={() => handleCloseApp(app)} />;
+        // case "Solitaire":
+        //   return <Solitaire onClose={() => handleCloseApp(app)} />; // REMOVED
         case "WinTalk 95":
           return <WinTalk95 onClose={() => handleCloseApp(app)} />;
         case "Neural Network Analyzer":
@@ -848,6 +848,10 @@ const Desktop = () => {
               }
               // Dev Tools is hidden until zebra code is activated
               if (app.name === "Dev Tools" && !devToolsUnlocked) {
+                return false;
+              }
+              // Solitaire is removed
+              if (app.name === "Solitaire") {
                 return false;
               }
               return true;
@@ -1109,7 +1113,7 @@ const Desktop = () => {
 
         {/* Taskbar apps */}
         <div id="panel" className="w-[85%] h-full flex justify-start">
-          {runningApps.map((app) => {
+          {runningApps.filter(app => app.name !== "Solitaire").map((app) => {
             const windowId = app.id || app.name;
             const windowState = windowManager.getWindowState(windowId);
             if (!windowState) return null;

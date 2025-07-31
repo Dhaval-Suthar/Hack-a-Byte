@@ -20,7 +20,7 @@ export default function PageLayout({
   return (
     <>
       {showHeader && <Header />}
-      <main className={`pt-20 min-h-screen ${className}`}>
+      <main className={` min-h-screen ${className}`}>
         {animateContent ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
