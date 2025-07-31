@@ -340,7 +340,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full pt-20 relative">
+    <div className="min-h-screen w-full pt-40 relative">
       {/* Background elements */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-black opacity-95" />
