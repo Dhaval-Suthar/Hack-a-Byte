@@ -22,6 +22,7 @@ import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborh
 import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
 import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
 import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
+import BruteForceGame from "@/components/hackbook-w95/apps/BruteForceGame";
 import QuickEventPresser from "@/components/hackbook-w95/apps/QuickEventPresser";
 import DevTools from "@/components/hackbook-w95/apps/DevTools";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
@@ -775,6 +776,17 @@ const Desktop = () => {
           return <DevTools onClose={() => handleCloseApp(app)} />;
         case "Firewall Bypass":
           return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
+        case "Password Cracker":
+          return (
+            <BruteForceGame 
+              onClose={() => handleCloseApp(app)}
+              onSuccess={(password) => {
+                console.log("Password cracked:", password);
+                handleCloseApp(app);
+              }}
+              targetFileName="ShadowByte_Archive.zip"
+            />
+          );
         case "ZIP Archive":
           return (
             <ZipArchive
