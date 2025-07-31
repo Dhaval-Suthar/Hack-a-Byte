@@ -405,7 +405,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
             className="mr-2"
           />
           <span className="text-sm font-bold">
-            WinTalk95 - Connected to secure.ghostnet.corp
+            WinTalk 95 {isConnected ? `- Connected to ${server}` : '- Disconnected'}
           </span>
         </div>
         <button
