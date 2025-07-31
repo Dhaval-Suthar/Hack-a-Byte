@@ -101,6 +101,7 @@ body {
   font-family: var(--terminal-font);
   position: relative;
   overflow-x: hidden;
+  /* Removed overflow-y: hidden to allow legitimate scrolling */
 }
 
 body::before {

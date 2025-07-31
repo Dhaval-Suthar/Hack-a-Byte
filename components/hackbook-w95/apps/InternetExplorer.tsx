@@ -36,7 +36,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
   const [showEditMenu, setShowEditMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
-  const [showHelpMenu, setShowHelpMenu] = useState(false);
   
   // Load user-specific bookmarks and history from storage
   useEffect(() => {
@@ -203,7 +202,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
     setShowEditMenu(false);
     setShowViewMenu(false);
     setShowToolsMenu(false);
-    setShowHelpMenu(false);
     setShowBookmarks(false);
     setShowHistory(false);
   };
@@ -230,7 +228,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             setShowEditMenu(false);
             setShowViewMenu(false);
             setShowToolsMenu(false);
-            setShowHelpMenu(false);
           }}
         >
           File
@@ -242,7 +239,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             setShowFileMenu(false);
             setShowViewMenu(false);
             setShowToolsMenu(false);
-            setShowHelpMenu(false);
           }}
         >
           Edit
@@ -254,7 +250,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             setShowFileMenu(false);
             setShowEditMenu(false);
             setShowToolsMenu(false);
-            setShowHelpMenu(false);
           }}
         >
           View
@@ -266,22 +261,9 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             setShowFileMenu(false);
             setShowEditMenu(false);
             setShowViewMenu(false);
-            setShowHelpMenu(false);
           }}
         >
           Tools
-        </div>
-        <div 
-          className={`px-2 py-0.5 cursor-pointer ${showHelpMenu ? 'bg-[#000080] text-white' : ''}`}
-          onClick={() => {
-            setShowHelpMenu(!showHelpMenu);
-            setShowFileMenu(false);
-            setShowEditMenu(false);
-            setShowViewMenu(false);
-            setShowToolsMenu(false);
-          }}
-        >
-          Help
         </div>
       </div>
       
@@ -326,7 +308,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
             setShowEditMenu(false);
             setShowViewMenu(false);
             setShowToolsMenu(false);
-            setShowHelpMenu(false);
           }}>
             History
           </div>
@@ -404,7 +385,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         <button 
           className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
           onClick={() => {
-            navigateTo('https://www.yahoo.com');
+            navigateTo('https://en.m.wikipedia.org/wiki/Main_Page');
           }}
         >
           <Image 
@@ -422,7 +403,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         <button 
           className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]"
           onClick={() => {
-            navigateTo('https://www.yahoo.com/search?q=' + encodeURIComponent(currentURL));
+            navigateTo('https://en.wikipedia.org/wiki/Special:Search?search=YOUR_QUERY' + encodeURIComponent(currentURL));
           }}
         >
           <Image 
@@ -519,17 +500,6 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
           )}
         </div>
         
-        <button className="flex items-center mx-1 px-2 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040]">
-          <Image 
-            src="/hackbook-W95/app-icon/print.png" 
-            alt="Print" 
-            width={16} 
-            height={16} 
-            className="mr-1" 
-          />
-          <span className="text-xs">Print</span>
-        </button>
-
         <div className="flex-1"></div>
         
         <button 
