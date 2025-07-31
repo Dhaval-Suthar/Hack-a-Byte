@@ -405,7 +405,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
             className="mr-2"
           />
           <span className="text-sm font-bold">
-            WinTalk 95 {isConnected ? `- Connected to ${server}` : '- Disconnected'}
+            WinTalk95 - Connected to secure.ghostnet.corp
           </span>
         </div>
         <button
@@ -419,10 +419,6 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
       {/* Menu Bar */}
       <div className="bg-[#c0c0c0] border-b border-[#808080] px-2 py-1">
         <div className="flex space-x-4 text-sm">
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">File</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Edit</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">View</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Tools</span>
           {isConnected && (
             <span 
               className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer text-red-600"
@@ -431,7 +427,6 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
               Disconnect
             </span>
           )}
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Help</span>
         </div>
       </div>
 
@@ -601,7 +596,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                 </div>
 
                 {/* Message Input */}
-                <div className="bg-[#c0c0c0] border-t border-[#808080] p-3 flex gap-2">
+                <div className="bg-[#c0c0c0] border-t border-[#808080] p-2 flex">
                   <input
                     ref={messageInputRef}
                     type="text"
@@ -612,12 +607,12 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                         handleSendMessage();
                       }
                     }}
-                    className="flex-1 border border-[#808080] px-3 py-2 focus:outline-none focus:border-[#000080]"
+                    className="flex-1 border border-[#808080] px-2 py-1 mr-2"
                     placeholder="Type your message..."
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="bg-[#000080] text-white px-6 py-2 border-2 border-[#000080] hover:bg-[#0000aa] font-bold transition-colors"
+                    className="bg-[#000080] text-white px-4 py-1 border-2 border-[#000080] hover:bg-[#0000aa]"
                   >
                     Send
                   </button>
