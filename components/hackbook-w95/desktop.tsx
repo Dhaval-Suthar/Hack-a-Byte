@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
-import { useDevToolsContext } from "@/components/hackbook-w95/hooks/useDevToolsContext";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -17,13 +16,14 @@ import CDPlayer from "@/components/hackbook-w95/apps/CDPlayer";
 import Notepad from "@/components/hackbook-w95/apps/Notepad";
 import Calculator from "@/components/hackbook-w95/apps/Calculator";
 import Paint from "@/components/hackbook-w95/apps/Paint";
-import Solitaire from "@/components/hackbook-w95/apps/Solitaire";
+
 import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
 import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
 import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
 import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
 import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
 import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
+import QuickEventPresser from "@/components/hackbook-w95/apps/QuickEventPresser";
 import DevTools from "@/components/hackbook-w95/apps/DevTools";
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
@@ -35,6 +35,7 @@ import SystemSounds from "@/components/hackbook-w95/SystemSounds";
 import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
 import useWindowManager from "@/components/hackbook-w95/hooks/useWindowManager";
 import Win95Window from "@/components/hackbook-w95/Win95Window";
+import NotificationBadge from "../ui/notification_badge";
 class App {
   name: string;
   icon: string;
@@ -62,7 +63,7 @@ const APPS: App[] = [
   new App("Notepad", "/hackbook-W95/app-icon/notepad.png"),
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
-  new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"),
+  // new App("Solitaire", "/hackbook-W95/app-icon/solitaire.png"), // REMOVED
   new App("WinTalk 95", "/hackbook-W95/app-icon/wintalk.png"),
   new App("Neural Network Analyzer", "/hackbook-W95/app-icon/network.svg"), // Hidden app - will be revealed through gameplay
   new App("Secure Vault", "/hackbook-W95/app-icon/lock.svg"), // Hidden app - will be revealed after neural network completion
@@ -74,9 +75,11 @@ const DefaultValues = {
 };
 
 const Desktop = () => {
+  // Unread count state for Inbox
+  const [unreadCount, setUnreadCount] = useState(1); // Default to 1 for initial notification
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { devToolsVisible } = useDevToolsContext(); // Get the devToolsVisible state
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -97,7 +100,6 @@ const Desktop = () => {
   // Neural Network Analyzer availability state
   const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
   const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
-  const [neuralDataDiscovered, setNeuralDataDiscovered] = useState(false);
 
   // Secure Vault availability state
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
@@ -106,6 +108,9 @@ const Desktop = () => {
   // Mission 2 completion state for Number Jumping Game
   const [showNumberJumpingGame, setShowNumberJumpingGame] = useState(false);
   const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
+
+  // Dev Tools availability state
+  const [devToolsUnlocked, setDevToolsUnlocked] = useState(false);
 
   // Check if Mission 1 is completed to show Network Neighborhood
   useEffect(() => {
@@ -140,19 +145,6 @@ const Desktop = () => {
     };
     
     checkNeuralNetworkUnlock();
-
-    // Temporary testing: Auto-unlock neural network analyzer 5 seconds after network tool is installed
-    if (networkToolInstalled && !neuralNetworkUnlocked) {
-      const timer = setTimeout(() => {
-        setNeuralDataDiscovered(true);
-        window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
-        import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
-          MissionTracker.completeMission('neural_data_discovered');
-        });
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
   }, [networkToolInstalled, neuralNetworkUnlocked]);
 
   // Check if Mission 2 is already completed on load
@@ -372,9 +364,17 @@ const Desktop = () => {
       }, 5000);
     };
 
+    const handleNetworkToolRemove = () => {
+      setNetworkToolInstalled(false);
+      // Close any open Network Neighborhood windows
+      setRunningApps(prev => prev.filter(app => app.name !== "Network Neighborhood"));
+    };
+
     window.addEventListener('networkToolInstalled', handleNetworkToolInstall);
+    window.addEventListener('networkToolRemoved', handleNetworkToolRemove);
     return () => {
       window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
+      window.removeEventListener('networkToolRemoved', handleNetworkToolRemove);
     };
   }, [playSound]);
 
@@ -443,6 +443,19 @@ const Desktop = () => {
       window.removeEventListener('missionComplete', handleMissionComplete as EventListener);
     };
   }, [playSound, windowManager, mission2JustCompleted]);
+
+  // Listen for zebra code activation to unlock Dev Tools
+  useEffect(() => {
+    const handleZebraCodeActivation = () => {
+      setDevToolsUnlocked(true);
+      playSound("ding");
+    };
+
+    window.addEventListener('zebraCodeActivated', handleZebraCodeActivation);
+    return () => {
+      window.removeEventListener('zebraCodeActivated', handleZebraCodeActivation);
+    };
+  }, [playSound]);
 
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
@@ -519,30 +532,25 @@ const Desktop = () => {
         
         // Close any open menus
         deSelect();
-
-        // Special handling for Network Neighborhood - trigger neural data discovery
-        if (app.name === "Network Neighborhood" && !neuralDataDiscovered) {
-          setTimeout(() => {
-            setNeuralDataDiscovered(true);
-            window.dispatchEvent(new CustomEvent('neuralNetworkDiscovered'));
-            // Mark in mission tracker
-            import('./hooks/useMissionTracker').then(({ MissionTracker }) => {
-              MissionTracker.completeMission('neural_data_discovered');
-            });
-          }, 3000); // Trigger after 3 seconds of opening Network Neighborhood
-        }
       }
     },
-    [windowManager, deSelect, playSound, runningApps, neuralDataDiscovered]
+    [windowManager, deSelect, playSound, runningApps]
   );
 
   // Listen for development app launch events
   useEffect(() => {
     const handleDevLaunchApp = (event: CustomEvent) => {
-      const { appName } = event.detail;
-      const app = APPS.find(a => a.name === appName);
-      if (app) {
-        handleOpenApp(app);
+      const { appName, app: customApp } = event.detail;
+      
+      if (customApp) {
+        // Handle custom app object
+        handleOpenApp(customApp);
+      } else if (appName) {
+        // Handle app by name
+        const app = APPS.find(a => a.name === appName);
+        if (app) {
+          handleOpenApp(app);
+        }
       }
     };
 
@@ -614,7 +622,7 @@ const Desktop = () => {
         case "Internet Explorer":
           return <InternetExplorer link={link} setLink={setLink} onClose={() => handleCloseApp(app)} />;
         case "Inbox":
-          return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} />;
+          return <Inbox onClose={() => handleCloseApp(app)} openLink={openLink} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
         case "Network Neighborhood":
           return <NetworkNeighborhood onClose={() => handleCloseApp(app)} />;
         case "Recycle Bin":
@@ -649,8 +657,8 @@ const Desktop = () => {
           return <Calculator onClose={() => handleCloseApp(app)} />;
         case "Paint":
           return <Paint onClose={() => handleCloseApp(app)} />;
-        case "Solitaire":
-          return <Solitaire onClose={() => handleCloseApp(app)} />;
+        // case "Solitaire":
+        //   return <Solitaire onClose={() => handleCloseApp(app)} />; // REMOVED
         case "WinTalk 95":
           return <WinTalk95 onClose={() => handleCloseApp(app)} />;
         case "Neural Network Analyzer":
@@ -669,7 +677,56 @@ const Desktop = () => {
             />
           );
         case "Secure Vault":
-          return <FingerprintHack onClose={() => handleCloseApp(app)} />;
+          return (
+            <FingerprintHack 
+              onClose={() => handleCloseApp(app)}
+              onSuccess={() => {
+                console.log("Vault accessed successfully!");
+                
+                // Close the vault
+                handleCloseApp(app);
+                
+                // Trigger the emergency protocol after a brief delay
+                setTimeout(() => {
+                  // Show alert about remote wipe
+                  alert("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
+                  
+                  // Auto-launch the emergency protocol
+                  const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+                  quickEventApp.metadata = {
+                    type: "quick-event"
+                  };
+                  
+                  handleOpenApp(quickEventApp);
+                }, 2000);
+              }}
+            />
+          );
+        case "Emergency Protocol":
+          return (
+            <QuickEventPresser 
+              onClose={() => handleCloseApp(app)}
+              onSuccess={() => {
+                // Handle successful completion of emergency protocol
+                console.log("Emergency protocol completed successfully!");
+                
+                // Trigger final mission completion
+                window.dispatchEvent(new CustomEvent('finalMissionComplete'));
+                
+                // Close the app
+                handleCloseApp(app);
+                
+                // Show completion message after brief delay
+                setTimeout(() => {
+                  alert("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nMission accomplished, Agent!");
+                }, 1000);
+              }}
+              onFailure={() => {
+                console.log("Emergency protocol failed!");
+                // Could trigger a game over state or restart
+              }}
+            />
+          );
         case "Dev Tools":
           return <DevTools onClose={() => handleCloseApp(app)} />;
         case "Firewall Bypass":
@@ -687,7 +744,7 @@ const Desktop = () => {
           return null;
       }
     },
-    [handleCloseApp, link, setLink, openLink]
+    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount]
   );
 
   // Handle keyboard events and file opening
@@ -776,69 +833,75 @@ const Desktop = () => {
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
             {APPS.filter(app => {
-              // Hide certain apps unless DevTools is active (zebra code typed)
-              if (!devToolsVisible) {
-                if (app.name === "Network Neighborhood" || 
-                    app.name === "Neural Network Analyzer" ||
-                    app.name === "Dev Tools") {
-                  return false;
-                }
-              }
-              
               // Regular game progression filters
               // Network Neighborhood is hidden until network tool is installed
               if (app.name === "Network Neighborhood" && !networkToolInstalled) {
                 return false;
               }
-              // Neural Network Analyzer is hidden until unlocked
-              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) {
+              // Neural Network Analyzer is hidden by default
+              if (app.name === "Neural Network Analyzer") {
                 return false;
               }
               // Secure Vault is hidden until neural network is completed
               if (app.name === "Secure Vault" && !vaultUnlocked) {
                 return false;
               }
+              // Dev Tools is hidden until zebra code is activated
+              if (app.name === "Dev Tools" && !devToolsUnlocked) {
+                return false;
+              }
+              // Solitaire is removed
+              if (app.name === "Solitaire") {
+                return false;
+              }
               return true;
-            }).map((app) => (
-              <div
-                key={app.name}
-                className={clsx("flex flex-col items-center z-10 p-1 w-24", {
-                  "bg-[#000080]/40": app === selectedApp,
-                })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playSound("click");
-                  // Only handle selection on click, don't attempt to open
-                  if (selectedApp !== app) {
-                    setSelectedApp(app);
-                  }
-                }}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  playSound("click");
-                  // Direct call to handleOpenApp on double click
-                  handleOpenApp(app);
-                }}
-              >
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <Image
-                    className="object-contain max-w-full max-h-full"
-                    src={app.icon}
-                    alt={app.name}
-                    width={60}
-                    height={60}
-                    priority
-                  />
-                </div>
-                <h4
-                  className={clsx("w-24 mt-1 text-xs text-white text-center px-1 shadow-sm", {
-                    "bg-[#000080]": app === selectedApp,
+            }).map((app) => {
+              const isInbox = app.name === "Inbox";
+              return (
+                <div
+                  key={app.name}
+                  className={clsx("flex flex-col items-center z-10 p-1 w-24 relative", {
+                    "bg-[#000080]/40": app === selectedApp,
                   })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playSound("click");
+                    // Only handle selection on click, don't attempt to open
+                    if (selectedApp !== app) {
+                      setSelectedApp(app);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    playSound("click");
+                    // Direct call to handleOpenApp on double click
+                    handleOpenApp(app);
+                  }}
                 >
-                  {app.name}
-                </h4>
-              </div>
-            ))}
+                  <div className="w-12 h-12 flex items-center justify-center relative">
+                    <Image
+                      className="object-contain max-w-full max-h-full"
+                      src={app.icon}
+                      alt={app.name}
+                      width={60}
+                      height={60}
+                      priority
+                    />
+                    {/* Notification badge for Inbox */}
+                    {isInbox && unreadCount > 0 && (
+                      <NotificationBadge />
+                    )}
+                  </div>
+                  <h4
+                    className={clsx("w-24 mt-1 text-xs text-white text-center px-1 shadow-sm", {
+                      "bg-[#000080]": app === selectedApp,
+                    })}
+                  >
+                    {app.name}
+                  </h4>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1050,7 +1113,7 @@ const Desktop = () => {
 
         {/* Taskbar apps */}
         <div id="panel" className="w-[85%] h-full flex justify-start">
-          {runningApps.map((app) => {
+          {runningApps.filter(app => app.name !== "Solitaire").map((app) => {
             const windowId = app.id || app.name;
             const windowState = windowManager.getWindowState(windowId);
             if (!windowState) return null;
@@ -1095,7 +1158,7 @@ const Desktop = () => {
 
       {/* Network Tool Installation Notification */}
       {showInstallNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-green-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">Software Installation</h3>
           </div>
@@ -1111,7 +1174,7 @@ const Desktop = () => {
 
       {/* Neural Network Discovery Notification */}
       {showNeuralNetworkNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-purple-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🧠 NEURAL DATA DISCOVERED</h3>
           </div>
@@ -1127,7 +1190,7 @@ const Desktop = () => {
 
       {/* Secure Vault Unlock Notification */}
       {showVaultNotification && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-64 animate-pulse">
           <div className="bg-red-600 text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🔐 VAULT ACCESS DETECTED</h3>
           </div>
@@ -1143,7 +1206,7 @@ const Desktop = () => {
 
       {/* Mission 2 Completion Notification */}
       {mission2JustCompleted && !showNumberJumpingGame && (
-        <div className="absolute top-4 right-4 z-50 bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
+        <div className="absolute top-4 right-4 z-[9999] bg-[#c0c0c0] border-2 border-outset p-4 min-w-80 animate-pulse">
           <div className="bg-[#000080] text-white p-2 mb-2 text-center">
             <h3 className="font-bold">🔒 SECURITY PROTOCOL ACTIVATED</h3>
           </div>
@@ -1175,7 +1238,6 @@ const TerminalComponent: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const fs = useFileSystem();
-  const { checkZebraCode } = useDevToolsContext(); // Get the checkZebraCode function
 
   // Function to play terminal sounds
   const playTerminalSound = (soundType: string) => {
@@ -1255,6 +1317,7 @@ const TerminalComponent: React.FC = () => {
     "show hidden files",
     "access",
     "decrypt-file",
+    "emergency-abort",
     "ver",
     "date",
     "time",
@@ -1405,18 +1468,18 @@ const TerminalComponent: React.FC = () => {
       // Add command to history with proper formatting
       setCommandHistory((prev) => [...prev, `${formatPath(currentDirectory)} ${currentCommand}`]);
 
-      // Check if the command is the zebra code
-      const isZebraCode = checkZebraCode(command);
-      
-      if (isZebraCode) {
-        // It's the zebra code
-        output = "Developer Tools activated! Hidden apps are now visible on desktop.";
-        playTerminalSound("success");
-      } else {
-        // Process different commands (case-insensitive)
-        const cmdLower = command.toLowerCase();
+      // Process different commands (case-insensitive)
+      const cmdLower = command.toLowerCase();
 
-      if (cmdLower === "help") {
+      if (cmdLower === "zebra") {
+        // Zebra code activated - unlock Dev Tools
+        output = "🦓 ZEBRA CODE ACTIVATED!\nDeveloper Tools unlocked! Check your desktop for the new Dev Tools app.";
+        
+        // Trigger the zebra code activation event
+        window.dispatchEvent(new CustomEvent('zebraCodeActivated'));
+        
+        playTerminalSound("success");
+      } else if (cmdLower === "help") {
         output =
           "Available commands:\n" +
           "help         - Show this help message\n" +
@@ -1437,7 +1500,9 @@ const TerminalComponent: React.FC = () => {
           "\nAdvanced commands:\n" +
           "show hidden files - Make hidden files visible in explorer\n" +
           "access <code>    - Access secure system (requires security code)\n" +
-          "decrypt-file     - Decrypt a file (requires path and key)";
+          "decrypt-file     - Decrypt a file (requires path and key)\n" +
+          "\nEmergency commands:\n" +
+          "emergency-abort  - Activate emergency protocol (DANGER!)";
       } else if (cmdLower === "clear" || cmdLower === "cls") {
         setCommandHistory([]);
         setCurrentCommand("");
@@ -1503,6 +1568,24 @@ const TerminalComponent: React.FC = () => {
               'Usage: decrypt-file --path "file_path" --key key_value\n\nExample: decrypt-file --path "C:\\Documents\\Encrypted\\MISSION_DATA.txt" --key 3';
           }
         }
+      } else if (cmdLower === "emergency-abort") {
+        // Hidden command to trigger the quick event presser directly
+        output = "🚨 EMERGENCY PROTOCOL ACTIVATED 🚨\nRemote wipe detected! Opening emergency tools...";
+        
+        // Trigger the quick event presser after a brief delay
+        setTimeout(() => {
+          const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+          quickEventApp.metadata = {
+            type: "quick-event"
+          };
+          
+          // Dispatch custom event to open the app
+          window.dispatchEvent(new CustomEvent('devLaunchApp', {
+            detail: { app: quickEventApp }
+          }));
+        }, 2000);
+        
+        playTerminalSound("error");
       } else if (cmdLower === "dir") {
         // Get the items from the current directory
         const items = fs.getCurrentItems();
@@ -1691,7 +1774,6 @@ Total memory    16,384K     6,157K     10,227K
         }, 1000);
       } else {
         output = `'${command}' is not recognized as an internal or external command,\noperable program or batch file.`;
-      }
       }
 
       // Add output to history if there's any

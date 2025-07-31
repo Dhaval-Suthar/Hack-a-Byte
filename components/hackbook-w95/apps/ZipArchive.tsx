@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import clsx from "clsx";
 import Image from "next/image";
 import BruteForceGame from "./BruteForceGame";
+import { getSessionCreds } from "@/lib/creds";
 
 interface ZipFile {
   name: string;
@@ -34,6 +35,9 @@ const ZipArchive: React.FC<ZipArchiveProps> = ({
   const [selectedFile, setSelectedFile] = useState<ZipFile | null>(null);
   const [showFileContent, setShowFileContent] = useState(false);
 
+  // Use shared credentials for the session
+  const creds = getSessionCreds();
+
   // Contents of the ZIP file (revealed after unlocking)
   const zipContents: ZipFile[] = [
     {
@@ -50,8 +54,8 @@ Date: October 15, 1995
 
 IMPORTANT: This data contains encrypted access credentials for the secure messaging system.
 
-Username: ghost_agent_001
-Password: PHANTOM95
+Username: ${creds.username}
+Password: ${creds.password}
 Server: secure.ghostnet.corp
 Port: 2847
 
@@ -221,7 +225,7 @@ Good luck with your assignment.
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <div className="flex items-center">
           <Image
-            src="/hackbook-w95/file-icons/archive.png"
+            src="/hackbook-W95/file-icons/archive.png"
             alt="ZIP icon"
             width={16}
             height={16}
@@ -275,7 +279,7 @@ Good luck with your assignment.
             <div className="bg-[#c0c0c0] border-2 border-[#808080] p-6 text-center max-w-md">
               <div className="mb-4">
                 <Image
-                  src="/hackbook-w95/app-icon/lock.png"
+                  src="/hackbook-W95/app-icon/lock.png"
                   alt="Lock icon"
                   width={48}
                   height={48}
@@ -336,8 +340,8 @@ Good luck with your assignment.
                   <div className="w-1/2 flex items-center">
                     <Image
                       src={file.type === 'directory' 
-                        ? "/hackbook-w95/file-icons/folder.png"
-                        : "/hackbook-w95/file-icons/text.png"
+                        ? "/hackbook-W95/file-icons/folder.png"
+                        : "/hackbook-W95/file-icons/text.png"
                       }
                       alt={file.type}
                       width={16}

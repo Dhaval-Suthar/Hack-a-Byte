@@ -115,10 +115,11 @@ export default function DeviceSelectionPage() {
         fetchDevices(urlPlayspaceId);
       } else {
         // No playspace ID found, show all devices
+        router.push('/');
         setLoading(false);
       }
     }
-  }, [fetchDevices]);
+  }, [fetchDevices,router]);
 
   // Fullscreen handling
   useEffect(() => {
@@ -130,24 +131,27 @@ export default function DeviceSelectionPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
+ const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+      .catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
+  } else {
+    document.exitFullscreen().catch((err) => {
+      console.error(`Error attempting to exit fullscreen: ${err.message}`);
+    });
+  }
+};
+
+
 
   // All possible device options - memoized to prevent re-creation on every render
   const allDeviceOptions: DeviceOption[] = useMemo(() => [
     {
       id: "hackbook-w95",
       name: "HackBook W95",
-      icon: "/hackbook-w95/app-icon/windows-logo.png",
+      icon: "/hackbook-W95/app-icon/windows-logo.png",
       description: "Classic Windows 95 experience, perfect for learning fundamental hacking techniques.",
       path: "/hackbook-w95/login",
       platform: "desktop",
@@ -431,11 +435,31 @@ export default function DeviceSelectionPage() {
                     <p>© 2025 HackaByte Security Systems</p>
                   </div>
                   <button
-                    onClick={() => handleDeviceSelect(device.id, currentPlayspaceId || undefined)}
-                    className="w-full bg-green-900/30 border border-green-500 text-green-400 px-4 py-2 rounded font-mono hover:bg-green-800/30 transition-colors flex items-center justify-center"
-                  >
-                    <span className="inline-block w-1.5 h-1.5 bg-green-500 mr-2"></span>
-                    CONNECT TO {deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE
+                    onClick={() => {
+                      if (selectedInstance?.status === "online") {
+                        handleDeviceSelect(device.id, currentPlayspaceId || undefined);
+                      }
+                    }}
+                    disabled={selectedInstance?.status !== "online"}
+                    className={`w-full px-4 py-2 rounded font-mono flex items-center justify-center border transition-colors ${
+                      selectedInstance?.status !== "online"
+                        ? "bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed"
+                        : "bg-green-900/30 border-green-500 text-green-400 hover:bg-green-800/30"
+                    }`}
+>
+                              <span
+                           className={`inline-block w-1.5 h-1.5 mr-2 rounded-full ${
+                           selectedInstance?.status === "online" ? "bg-green-500" : "bg-gray-500"
+                          }`}
+                          ></span>
+                        {selectedInstance?.status === "online" 
+                          ? `CONNECT TO ${deviceInstances.length > 1 ? 'SELECTED ' : ''}DEVICE`
+                          : selectedInstance?.status === "maintenance"
+                          ? "DEVICE UNDER MAINTENANCE"
+                          : selectedInstance?.status === "offline"
+                          ? "DEVICE OFFLINE"
+                          : "DEVICE UNAVAILABLE"
+                        }
                   </button>
                 </div>
               </motion.div>
