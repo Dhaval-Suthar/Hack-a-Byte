@@ -97,7 +97,7 @@ Good hunting.
       >
         <div className="w-6 flex-shrink-0 flex items-center justify-center">
           <Image 
-            src={mail.isRead ? "/hackbook-W95/mail.png" : "/hackbook-W95/new-mail.png"} 
+            src={"/hackbook-W95/mail.png"} 
             alt="Mail icon" 
             width={16} 
             height={16} 
