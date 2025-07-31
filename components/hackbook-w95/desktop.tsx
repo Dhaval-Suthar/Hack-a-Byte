@@ -71,7 +71,7 @@ const APPS: App[] = [
 ];
 
 const DefaultValues = {
-  LINK: "https://www.google.com",
+  LINK: "https://en.wikipedia.org/wiki/Wikipedia:About",
 };
 
 const Desktop = () => {
