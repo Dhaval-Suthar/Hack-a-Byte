@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -76,6 +77,10 @@ const DefaultValues = {
 };
 
 const Desktop = () => {
+  // Win95Alert state
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertCallback, setAlertCallback] = useState<(() => void) | null>(null);
   // Unread count state for Inbox
   const [unreadCount, setUnreadCount] = useState(1); // Default to 1 for initial notification
 
@@ -724,22 +729,20 @@ const Desktop = () => {
               onClose={() => handleCloseApp(app)}
               onSuccess={() => {
                 console.log("Vault accessed successfully!");
-                
                 // Close the vault
                 handleCloseApp(app);
-                
-                // Trigger the emergency protocol after a brief delay
+                // Show Win95Alert after a brief delay
                 setTimeout(() => {
-                  // Show alert about remote wipe
-                  alert("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
-                  
-                  // Auto-launch the emergency protocol
-                  const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
-                  quickEventApp.metadata = {
-                    type: "quick-event"
-                  };
-                  
-                  handleOpenApp(quickEventApp);
+                  setAlertMessage("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
+                  setAlertOpen(true);
+                  setAlertCallback(() => () => {
+                    // Auto-launch the emergency protocol after alert is closed
+                    const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+                    quickEventApp.metadata = {
+                      type: "quick-event"
+                    };
+                    handleOpenApp(quickEventApp);
+                  });
                 }, 2000);
               }}
             />
@@ -751,16 +754,15 @@ const Desktop = () => {
               onSuccess={() => {
                 // Handle successful completion of emergency protocol
                 console.log("Emergency protocol completed successfully!");
-                
                 // Trigger final mission completion
                 window.dispatchEvent(new CustomEvent('finalMissionComplete'));
-                
                 // Close the app
                 handleCloseApp(app);
-                
-                // Show completion message after brief delay
+                // Show Win95Alert after brief delay
                 setTimeout(() => {
-                  alert("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nMission accomplished, Agent!");
+                  setAlertMessage("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nMission accomplished, Agent!");
+                  setAlertOpen(true);
+                  setAlertCallback(null);
                 }, 1000);
               }}
               onFailure={() => {
@@ -878,6 +880,20 @@ const Desktop = () => {
       <SystemSounds enabled={true} />
       <ScreenSaver timeoutMinutes={2} />
 
+      {/* Win95Alert for critical events */}
+      {alertOpen && (
+        <Win95Alert 
+          message={alertMessage}
+          onClose={() => {
+            setAlertOpen(false);
+            if (alertCallback) {
+              alertCallback();
+              setAlertCallback(null);
+            }
+          }}
+        />
+      )}
+
       {/* Desktop background with icons */}
       <div
         id="desktop"
@@ -888,27 +904,16 @@ const Desktop = () => {
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
             {APPS.filter(app => {
-              // Regular game progression filters
               // Network Neighborhood is hidden until network tool is installed
-              if (app.name === "Network Neighborhood" && !networkToolInstalled) {
-                return false;
-              }
+              if (app.name === "Network Neighborhood" && !networkToolInstalled) return false;
               // Neural Network Analyzer is hidden by default
-              if (app.name === "Neural Network Analyzer") {
-                return false;
-              }
+              if (app.name === "Neural Network Analyzer") return false;
               // Secure Vault is hidden until neural network is completed
-              if (app.name === "Secure Vault" && !vaultUnlocked) {
-                return false;
-              }
+              if (app.name === "Secure Vault" && !vaultUnlocked) return false;
               // Dev Tools is hidden until zebra code is activated
-              if (app.name === "Dev Tools" && !devToolsUnlocked) {
-                return false;
-              }
+              if (app.name === "Dev Tools" && !devToolsUnlocked) return false;
               // Solitaire is removed
-              if (app.name === "Solitaire") {
-                return false;
-              }
+              if (app.name === "Solitaire") return false;
               return true;
             }).map((app) => {
               const isInbox = app.name === "Inbox";
@@ -921,7 +926,6 @@ const Desktop = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     playSound("click");
-                    // Only handle selection on click, don't attempt to open
                     if (selectedApp !== app) {
                       setSelectedApp(app);
                     }
@@ -929,7 +933,6 @@ const Desktop = () => {
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     playSound("click");
-                    // Direct call to handleOpenApp on double click
                     handleOpenApp(app);
                   }}
                 >
@@ -960,13 +963,13 @@ const Desktop = () => {
           </div>
         </div>
       </div>
+
       {/* Running application windows */}
       {runningApps.map((app) => {
         // Use the app's unique ID for window state lookup
         const windowId = app.id || app.name;
         const windowState = windowManager.getWindowState(windowId);
         if (!windowState) return null;
-        
         // Render all windows but show/hide based on minimized state
         // Windows stay rendered and in their position even when not active
         return (

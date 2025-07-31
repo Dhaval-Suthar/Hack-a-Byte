@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,6 +22,8 @@ const LoginPage = () => {
   const [showBootScreen, setShowBootScreen] = useState(true);
   const [showLoginAnimation, setShowLoginAnimation] = useState(false);
   const [loggedInUsername, setLoggedInUsername] = useState<string>("");
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   
   // Show boot animation on initial load
   useEffect(() => {
@@ -209,10 +212,11 @@ const LoginPage = () => {
 
   const handleInfo = () => {
     if (isPlayspaceUser) {
-      alert("Create a device-specific account that will be remembered just for this playspace. This account doesn't require email and is separate from your main site account.");
+      setAlertMessage("Create a device-specific account that will be remembered just for this playspace. This account doesn't require email and is separate from your main site account.");
     } else {
-      alert("Welcome to HackBook W95! Log in with existing credentials or create a new account to start your hacking journey.");
+      setAlertMessage("Welcome to HackBook W95! Log in with existing credentials or create a new account to start your hacking journey.");
     }
+    setAlertOpen(true);
   };
 
   const handleLoginAnimationComplete = () => {
@@ -236,6 +240,9 @@ const LoginPage = () => {
 
   return (
     <main className="bg-[#008080] text-black h-screen w-screen flex items-center justify-center">
+      {alertOpen && (
+        <Win95Alert message={alertMessage} onClose={() => setAlertOpen(false)} />
+      )}
       {showBootScreen ? (
         <div className="fixed inset-0 z-50">
           <BootAnimation />
