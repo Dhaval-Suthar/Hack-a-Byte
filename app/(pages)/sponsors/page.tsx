@@ -249,168 +249,6 @@ export default function Page() {
     );
   };
 
-  const renderSponsorsTab = () => {
-    return (
-      <div>
-        {/* Tier filter */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {['all', 'platinum', 'gold', 'silver', 'bronze'].map((tier) => (
-            <button
-              key={tier}
-              onClick={() => setActiveTier(tier)}
-              className={`px-3 py-1 text-xs rounded-md transition-all uppercase ${
-                activeTier === tier
-                  ? "bg-cyber-primary text-black font-bold"
-                  : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70"
-              }`}
-            >
-              {tier}
-            </button>
-          ))}
-        </div>
-
-        {/* Sponsors grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredSponsors.map((sponsor) => {
-            const tierInfo = renderSponsorTierInfo(sponsor.tier);
-            
-            return (
-              <motion.div
-                key={sponsor.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="relative bg-black/60 border border-cyber-primary/30 rounded-lg overflow-hidden group"
-                onClick={() => setSelectedSponsor(sponsor)}
-              >
-                <div className="absolute top-0 right-0 z-10">
-                  <div className={`text-xs px-2 py-1 bg-gradient-to-r ${tierInfo.color} text-black font-bold`}>
-                    {tierInfo.label}
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <div className="h-20 w-full flex items-center justify-center mb-4 bg-black/50 rounded">
-                    <div className="text-2xl font-bold text-cyber-primary">{sponsor.name}</div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-300 mb-4 line-clamp-2">{sponsor.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-cyber-secondary">VIEW DETAILS</span>
-                    <div className="w-8 h-8 rounded-full bg-cyber-primary/20 flex items-center justify-center group-hover:bg-cyber-primary/40 transition-colors">
-                      <span className="text-cyber-primary">→</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Hover effect */}
-                <div className="absolute inset-0 bg-gradient-to-t from-cyber-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderPackagesTab = () => {
-    return (
-      <div className="space-y-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl text-cyber-primary font-bold mb-2">Sponsorship Tiers</h2>
-          <p className="text-gray-300">Support the hacker community and gain exposure for your brand</p>
-        </div>
-        
-        {[
-          { 
-            tier: 'Platinum Partner', 
-            price: '$15,000', 
-            color: 'from-cyber-primary to-cyber-secondary',
-            borderColor: 'cyber-primary',
-            features: [
-              'Premium booth in hacking arena',
-              'Main stage keynote opportunity (30 min)',
-              'Logo on all event materials (premium placement)',
-              'Social media promotion package',
-              'Access to participant resume database',
-              '8 VIP passes for team members',
-              'First choice for workshop sessions',
-              'Exclusive recruitment opportunities'
-            ]
-          },
-          { 
-            tier: 'Gold Sponsor', 
-            price: '$10,000', 
-            color: 'from-yellow-400 to-yellow-600',
-            borderColor: 'yellow-500',
-            features: [
-              'Large booth in main exhibition area',
-              'Workshop session opportunity (45 min)',
-              'Logo on event website and materials',
-              'Social media mentions',
-              '5 VIP passes for team members',
-              'Access to participant resume database',
-              'Participation in panel discussions'
-            ]
-          },
-          { 
-            tier: 'Silver Sponsor', 
-            price: '$5,000', 
-            color: 'from-gray-300 to-gray-500',
-            borderColor: 'gray-400',
-            features: [
-              'Standard booth in exhibition area',
-              'Logo on event website',
-              'Social media announcement',
-              '3 VIP passes for team members',
-              'Company description in event program'
-            ]
-          },
-          { 
-            tier: 'Bronze Supporter', 
-            price: '$2,500', 
-            color: 'from-amber-700 to-amber-900',
-            borderColor: 'amber-800',
-            features: [
-              'Small table in community area',
-              'Logo on event website',
-              'Company name in event program',
-              '2 VIP passes for team members'
-            ]
-          }
-        ].map((package_, index) => (
-          <motion.div 
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className={`bg-black/60 border border-${package_.borderColor}/40 rounded-lg overflow-hidden`}
-          >
-            <div className={`bg-gradient-to-r ${package_.color} px-4 py-2 text-black font-bold`}>
-              {package_.tier}
-            </div>
-            
-            <div className="p-5">
-              <div className="text-3xl font-bold text-cyber-primary mb-4">{package_.price}</div>
-              
-              <div className="space-y-2 mb-6">
-                {package_.features.map((feature, idx) => (
-                  <div key={idx} className="flex items-start">
-                    <div className="text-cyber-primary mr-2 mt-1">✓</div>
-                    <div className="text-gray-300 text-sm">{feature}</div>
-                  </div>
-                ))}
-              </div>
-              
-              <button className="cyber-button w-full py-2 rounded-md">BECOME SPONSOR</button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    );
-  };
-
   const renderContactTab = () => {
     return (
       <div className="max-w-3xl mx-auto bg-black/60 border border-cyber-primary/30 rounded-lg p-6">
@@ -656,10 +494,164 @@ export default function Page() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {/*
-            {activeTab === 'sponsors' && renderSponsorsTab()}
-            {activeTab === 'packages' && renderPackagesTab()}
-            */}
+            {activeTab === 'sponsors' && (
+              <div>
+                {/* Tier filter */}
+                <div className="flex flex-wrap justify-center gap-2 mb-8">
+                  {['all', 'platinum', 'gold', 'silver', 'bronze'].map((tier) => (
+                    <button
+                      key={tier}
+                      onClick={() => setActiveTier(tier)}
+                      className={`px-3 py-1 text-xs rounded-md transition-all uppercase ${
+                        activeTier === tier
+                          ? "bg-cyber-primary text-black font-bold"
+                          : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70"
+                      }`}
+                    >
+                      {tier}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sponsors grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredSponsors.map((sponsor) => {
+                    const tierInfo = renderSponsorTierInfo(sponsor.tier);
+                    
+                    return (
+                      <motion.div
+                        key={sponsor.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="relative bg-black/60 border border-cyber-primary/30 rounded-lg overflow-hidden group"
+                        onClick={() => setSelectedSponsor(sponsor)}
+                      >
+                        <div className="absolute top-0 right-0 z-10">
+                          <div className={`text-xs px-2 py-1 bg-gradient-to-r ${tierInfo.color} text-black font-bold`}>
+                            {tierInfo.label}
+                          </div>
+                        </div>
+                        
+                        <div className="p-4">
+                          <div className="h-20 w-full flex items-center justify-center mb-4 bg-black/50 rounded">
+                            <div className="text-2xl font-bold text-cyber-primary">{sponsor.name}</div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-300 mb-4 line-clamp-2">{sponsor.description}</p>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-cyber-secondary">VIEW DETAILS</span>
+                            <div className="w-8 h-8 rounded-full bg-cyber-primary/20 flex items-center justify-center group-hover:bg-cyber-primary/40 transition-colors">
+                              <span className="text-cyber-primary">→</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Hover effect */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-cyber-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {activeTab === 'packages' && (
+              <div className="space-y-8">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl text-cyber-primary font-bold mb-2">Sponsorship Tiers</h2>
+                  <p className="text-gray-300">Support the hacker community and gain exposure for your brand</p>
+                </div>
+                
+                {/*
+                [
+                  { 
+                    tier: 'Platinum Partner', 
+                    price: '$15,000', 
+                    color: 'from-cyber-primary to-cyber-secondary',
+                    borderColor: 'cyber-primary',
+                    features: [
+                      'Premium booth in hacking arena',
+                      'Main stage keynote opportunity (30 min)',
+                      'Logo on all event materials (premium placement)',
+                      'Social media promotion package',
+                      'Access to participant resume database',
+                      '8 VIP passes for team members',
+                      'First choice for workshop sessions',
+                      'Exclusive recruitment opportunities'
+                    ]
+                  },
+                  { 
+                    tier: 'Gold Sponsor', 
+                    price: '$10,000', 
+                    color: 'from-yellow-400 to-yellow-600',
+                    borderColor: 'yellow-500',
+                    features: [
+                      'Large booth in main exhibition area',
+                      'Workshop session opportunity (45 min)',
+                      'Logo on event website and materials',
+                      'Social media mentions',
+                      '5 VIP passes for team members',
+                      'Access to participant resume database',
+                      'Participation in panel discussions'
+                    ]
+                  },
+                  { 
+                    tier: 'Silver Sponsor', 
+                    price: '$5,000', 
+                    color: 'from-gray-300 to-gray-500',
+                    borderColor: 'gray-400',
+                    features: [
+                      'Standard booth in exhibition area',
+                      'Logo on event website',
+                      'Social media announcement',
+                      '3 VIP passes for team members',
+                      'Company description in event program'
+                    ]
+                  },
+                  { 
+                    tier: 'Bronze Supporter', 
+                    price: '$2,500', 
+                    color: 'from-amber-700 to-amber-900',
+                    borderColor: 'amber-800',
+                    features: [
+                      'Small table in community area',
+                      'Logo on event website',
+                      'Company name in event program',
+                      '2 VIP passes for team members'
+                    ]
+                  }
+                ].map((package_, index) => (
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className={`bg-black/60 border border-${package_.borderColor}/40 rounded-lg overflow-hidden`}
+                  >
+                    <div className={`bg-gradient-to-r ${package_.color} px-4 py-2 text-black font-bold`}>
+                      {package_.tier}
+                    </div>
+                    
+                    <div className="p-5">
+                      <div className="text-3xl font-bold text-cyber-primary mb-4">{package_.price}</div>
+                      
+                      <div className="space-y-2 mb-6">
+                        {package_.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-start">
+                            <div className="text-cyber-primary mr-2 mt-1">✓</div>
+                            <div className="text-gray-300 text-sm">{feature}</div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <button className="cyber-button w-full py-2 rounded-md">BECOME SPONSOR</button>
+                    </div>
+                  </motion.div>
+                ))}
+                */}
+              </div>
+            )}
             {activeTab === 'contact' && renderContactTab()}
           </motion.div>
         </AnimatePresence>

@@ -36,7 +36,6 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isComposeMenuOpen, setIsComposeMenuOpen] = useState(false);
-  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [isFindDialogOpen, setIsFindDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [emailDraft, setEmailDraft] = useState<EmailDraft>({
