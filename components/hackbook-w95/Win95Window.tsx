@@ -88,16 +88,7 @@ const Win95Window: React.FC<WindowProps> = ({
   // Store previous position before going fullscreen
   const [prevPosition, setPrevPosition] = useState<{x: number, y: number, width: number | string, height: number | string} | null>(null);
   
-  // Play sound when window is first mounted
-  useEffect(() => {
-    // Play window open sound on mount
-    playSound('open');
-    
-    // Play window close sound on unmount
-    return () => {
-      playSound('close');
-    };
-  }, [playSound]);
+  // Removed automatic sound playback on mount/unmount to comply with browser autoplay policies
 
   // Handle fullscreen toggling
   useEffect(() => {

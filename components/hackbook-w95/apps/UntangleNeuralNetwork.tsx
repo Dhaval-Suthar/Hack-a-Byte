@@ -41,111 +41,43 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   const [revealedData, setRevealedData] = useState<string>('');
 
   // Configuration based on difficulty
+  // SIMPLIFIED: Fewer nodes, lower density, smaller canvas
   const getDifficultyConfig = useCallback(() => {
-    switch (difficulty) {
-      case 'beginner':
-        return { nodeCount: 6, connectionDensity: 0.4, canvasWidth: 500, canvasHeight: 400 };
-      case 'intermediate':
-        return { nodeCount: 10, connectionDensity: 0.5, canvasWidth: 600, canvasHeight: 450 };
-      case 'advanced':
-        return { nodeCount: 15, connectionDensity: 0.6, canvasWidth: 700, canvasHeight: 500 };
-      default:
-        return { nodeCount: 6, connectionDensity: 0.4, canvasWidth: 500, canvasHeight: 400 };
-    }
-  }, [difficulty]);
+    return { nodeCount: 4, connectionDensity: 0.3, canvasWidth: 350, canvasHeight: 250 };
+  }, []);
 
   // Generate initial puzzle configuration
   const generatePuzzle = useCallback(() => {
     const config = getDifficultyConfig();
-    const { nodeCount, connectionDensity, canvasWidth, canvasHeight } = config;
+    const { canvasWidth, canvasHeight } = config;
     
-    // Create nodes in a deliberately tangled configuration
-    const newNodes: Node[] = [];
-    const margin = 50;
-    
-    // Generate nodes with some clustering to create tangles
-    for (let i = 0; i < nodeCount; i++) {
-      let x: number, y: number;
-      let attempts = 0;
-      
-      do {
-        // Create clusters for more interesting tangles
-        if (i < nodeCount / 2) {
-          // First cluster
-          x = margin + Math.random() * (canvasWidth / 2 - margin * 2);
-          y = margin + Math.random() * (canvasHeight / 2 - margin * 2);
-        } else {
-          // Second cluster
-          x = canvasWidth / 2 + Math.random() * (canvasWidth / 2 - margin * 2);
-          y = canvasHeight / 2 + Math.random() * (canvasHeight / 2 - margin * 2);
-        }
-        attempts++;
-      } while (attempts < 50 && newNodes.some(node => 
-        Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2) < 40
-      ));
-      
-      newNodes.push({
-        id: `node-${i}`,
-        x,
-        y,
-        isFixed: i === 0 || i === nodeCount - 1 // Fix first and last nodes as anchors
-      });
-    }
+    // SIMPLIFIED: Place nodes in a rough square, all movable
+    const newNodes: Node[] = [
+      { id: 'node-0', x: 60, y: 60 },
+      { id: 'node-1', x: canvasWidth - 60, y: 60 },
+      { id: 'node-2', x: 60, y: canvasHeight - 60 },
+      { id: 'node-3', x: canvasWidth - 60, y: canvasHeight - 60 },
+    ];
 
-    // Generate connections based on density
-    const newConnections: Connection[] = [];
-    const maxConnections = Math.floor(nodeCount * (nodeCount - 1) * connectionDensity / 2);
-    
-    // Ensure each node has at least one connection
-    for (let i = 0; i < nodeCount - 1; i++) {
-      newConnections.push({
-        from: newNodes[i].id,
-        to: newNodes[i + 1].id,
-        isIntersecting: false
-      });
-    }
-    
-    // Add additional random connections
-    while (newConnections.length < maxConnections) {
-      const from = Math.floor(Math.random() * nodeCount);
-      const to = Math.floor(Math.random() * nodeCount);
-      
-      if (from !== to && !newConnections.some(conn => 
-        (conn.from === newNodes[from].id && conn.to === newNodes[to].id) ||
-        (conn.from === newNodes[to].id && conn.to === newNodes[from].id)
-      )) {
-        newConnections.push({
-          from: newNodes[from].id,
-          to: newNodes[to].id,
-          isIntersecting: false
-        });
-      }
-    }
+    // SIMPLIFIED: Just connect all nodes in a loop and a cross
+    const newConnections: Connection[] = [
+      { from: 'node-0', to: 'node-1', isIntersecting: false },
+      { from: 'node-1', to: 'node-3', isIntersecting: false },
+      { from: 'node-3', to: 'node-2', isIntersecting: false },
+      { from: 'node-2', to: 'node-0', isIntersecting: false },
+      { from: 'node-0', to: 'node-3', isIntersecting: false }, // cross
+      { from: 'node-1', to: 'node-2', isIntersecting: false }, // cross
+    ];
 
     setNodes(newNodes);
     setConnections(newConnections);
   }, [getDifficultyConfig]);
 
   // Generate revealed data based on completion
+  // SIMPLIFIED: Shorter revealed data
   const generateRevealedData = useCallback((): string => {
-    const baseData = [
-      "TARGET IDENTITY: ShadowByte_User_7734",
-      "LOCATION: Remote Server Cluster Delta-7",
-      "ACCESS PATTERN: Encrypted VPN through proxy chain",
-      "SECURITY LEVEL: Maximum - Requires multi-factor breach",
-      "NEXT OBJECTIVE: Breach final security vault",
-      "INTELLIGENCE RATING: Critical Priority"
-    ];
-    
-    switch (difficulty) {
-      case 'advanced':
-        return baseData.join('\n') + '\n\nBONUS INTEL: Backup server location identified\nVault password hint: "The year everything changed"';
-      case 'intermediate':
-        return baseData.slice(0, 5).join('\n') + '\n\nBONUS: Alternative access route discovered';
-      default:
-        return baseData.slice(0, 4).join('\n');
-    }
-  }, [difficulty]);
+    return "TARGET: ShadowByte\nLOCATION: Delta-7\nSECURITY: MAX\nOBJECTIVE: Breach Vault";
+  }, []);
 
   // Check if two line segments intersect
   const doLinesIntersect = useCallback((
@@ -249,21 +181,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw grid background
-    ctx.strokeStyle = '#003300';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x < canvas.width; x += 20) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += 20) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
+    // SIMPLIFIED: No grid background
     
     // Draw connections
     connections.forEach(connection => {
@@ -293,28 +211,12 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     // Draw nodes
     nodes.forEach(node => {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, node.isFixed ? 12 : 10, 0, 2 * Math.PI);
-      
-      if (node.isFixed) {
-        ctx.fillStyle = '#FFD700'; // Gold for fixed nodes
-      } else if (node.isDragging) {
-        ctx.fillStyle = '#FFFFFF';
-      } else {
-        ctx.fillStyle = '#00CCFF';
-      }
-      
+      ctx.arc(node.x, node.y, 12, 0, 2 * Math.PI);
+      ctx.fillStyle = node.isDragging ? '#FFFFFF' : '#00CCFF';
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.stroke();
-      
-      // Add node ID for debugging (optional)
-      if (difficulty === 'advanced') {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '10px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(node.id.split('-')[1], node.x, node.y + 20);
-      }
     });
     
     // Draw completion percentage
@@ -323,19 +225,17 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     const percentage = totalConnections > 0 ? Math.round((untangledConnections / totalConnections) * 100) : 0;
     
     ctx.fillStyle = '#00FF00';
-    ctx.font = 'bold 16px monospace';
+    ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`NEURAL INTEGRITY: ${percentage}%`, 10, 25);
+    ctx.fillText(`INTEGRITY: ${percentage}%`, 10, 25);
     ctx.fillText(`MOVES: ${moveCount}`, 10, 45);
-    
     if (gameComplete) {
       ctx.fillStyle = '#00FF00';
-      ctx.font = 'bold 24px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('NEURAL NETWORK RESTORED', canvas.width / 2, canvas.height / 2 - 50);
-      ctx.fillText('DATA FLOW STABILIZED', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillText('RESTORED!', canvas.width / 2, canvas.height / 2 - 20);
     }
-  }, [nodes, connections, getDifficultyConfig, moveCount, gameComplete, difficulty]);
+  }, [nodes, connections, getDifficultyConfig, moveCount, gameComplete]);
 
   // Handle mouse events
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -444,14 +344,12 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
 
       {/* Game Instructions */}
       <div className="p-4 border-b border-green-500">
-        <h3 className="text-yellow-400 font-bold mb-2">MISSION: RESTORE FRAGMENTED INTELLIGENCE</h3>
+        <h3 className="text-yellow-400 font-bold mb-2">UNTANGLE THE NETWORK</h3>
         <p className="text-sm mb-2">
-          Drag nodes to untangle the neural network. All connections must be GREEN (untangled) to complete restoration.
+          Drag the blue nodes so all lines turn green. Fewer nodes, fewer moves!
         </p>
         <div className="text-xs text-gray-400">
-          <span className="text-yellow-400">GOLD NODES:</span> Fixed anchor points • 
-          <span className="text-red-400"> RED LINES:</span> Tangled connections • 
-          <span className="text-green-400"> GREEN LINES:</span> Clear data paths
+          <span className="text-red-400">RED LINES:</span> Tangled • <span className="text-green-400">GREEN LINES:</span> Untangled
         </div>
       </div>
 
