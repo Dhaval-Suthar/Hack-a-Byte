@@ -24,10 +24,10 @@ interface AccessCode {
 }
 
 interface Device {
-  _id: string;
   name: string;
   type: string;
   status: string;
+  macAddress: string;
   ipAddress: string;
   isAssigned: boolean;
   assignedPlayspace?: {
@@ -663,7 +663,7 @@ export default function PlayspacesTab({
                       return assignedDevices.length > 0 ? (
                         assignedDevices.map((device) => (
                           <div
-                            key={device._id}
+                            key={device.macAddress}
                             className="flex items-center justify-between bg-gray-800 p-3 rounded-md"
                           >
                             <div>
@@ -674,7 +674,7 @@ export default function PlayspacesTab({
                               </div>
                             </div>
                             <button
-                              onClick={() => onUnassignDevice && onUnassignDevice(device._id)}
+                              onClick={() => onUnassignDevice && onUnassignDevice(device.macAddress)}
                               className="bg-red-900/50 hover:bg-red-800/50 text-red-200 px-3 py-1 rounded text-sm"
                             >
                               Unassign
@@ -697,7 +697,7 @@ export default function PlayspacesTab({
                       return availableDevices.length > 0 ? (
                         availableDevices.map((device) => (
                           <div
-                            key={device._id}
+                            key={device.macAddress}
                             className="flex items-center justify-between bg-gray-800 p-3 rounded-md"
                           >
                             <div>
@@ -708,7 +708,11 @@ export default function PlayspacesTab({
                               </div>
                             </div>
                             <button
-                              onClick={() => onAssignDevice && deviceModal.playspace && onAssignDevice(device._id, deviceModal.playspace._id)}
+                              onClick={() =>
+                                onAssignDevice &&
+                                deviceModal.playspace &&
+                                onAssignDevice(device.macAddress, deviceModal.playspace._id)
+                              }
                               className="bg-green-900/50 hover:bg-green-800/50 text-green-200 px-3 py-1 rounded text-sm"
                             >
                               Assign

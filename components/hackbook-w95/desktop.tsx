@@ -191,7 +191,7 @@ const Desktop = () => {
           devId = localStorage.getItem("selectedDeviceId");
 
           // If not in localStorage, check URL as fallback (for backwards compatibility)
-          if (!id) {
+          if (!id && searchParams) {
             id = searchParams.get("playspaceId");
             // If found in URL, save to localStorage for future use
             if (id) {
@@ -200,10 +200,12 @@ const Desktop = () => {
           }
 
           // Check URL for deviceId
-          const urlDeviceId = searchParams.get("deviceId");
-          if (urlDeviceId) {
-            devId = urlDeviceId;
-            localStorage.setItem("selectedDeviceId", urlDeviceId);
+          if (searchParams) {
+            const urlDeviceId = searchParams.get("deviceId");
+            if (urlDeviceId) {
+              devId = urlDeviceId;
+              localStorage.setItem("selectedDeviceId", urlDeviceId);
+            }
           }
         }
 

@@ -6,6 +6,7 @@ interface Device {
   type: string;
   status: string;
   ipAddress: string;
+  macAddress: string;
   isAssigned: boolean;
   assignedPlayspace?: {
     _id: string;
@@ -88,7 +89,7 @@ export default function DevicesTab({
         <table className="min-w-full bg-gray-800 rounded-lg overflow-hidden">
           <thead className="bg-gray-900">
             <tr>
-              <th className="px-4 py-3 text-left text-gray-300">Device ID</th>
+              <th className="px-4 py-3 text-left text-gray-300">MAC Address</th>
               <th className="px-4 py-3 text-left text-gray-300">Type</th>
               <th className="px-4 py-3 text-left text-gray-300">Status</th>
               <th className="px-4 py-3 text-left text-gray-300">Assigned Playspace</th>
@@ -101,7 +102,7 @@ export default function DevicesTab({
               <tr key={device._id} className="hover:bg-gray-700">
                 <td className="px-4 py-3">
                   <span className="font-mono text-xs bg-gray-700 px-2 py-1 rounded">
-                    {device._id.slice(-8)}
+                    {device.macAddress || "N/A"}
                   </span>
                 </td>
                 <td className="px-4 py-3">

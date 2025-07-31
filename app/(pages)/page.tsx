@@ -220,15 +220,15 @@ export default function Page() {
         />
       </div>
 
-      <main className="relative z-10 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
+      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-2 sm:px-4 overflow-x-hidden pb-8 pt-24 sm:pt-32">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="max-w-5xl w-full mx-auto grid md:grid-cols-2 gap-8 items-center"
+          className="max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center"
         >
           {/* Terminal Block */}
-          <div className="cyber-border p-4 bg-black/60 rounded-lg backdrop-blur-sm relative overflow-hidden">
+          <div className="cyber-border p-3 sm:p-4 bg-black/60 rounded-lg backdrop-blur-sm relative overflow-hidden w-full max-w-md mx-auto md:max-w-none">
             <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-r from-cyber-primary/20 to-cyber-secondary/20 flex items-center px-2">
               <div className="w-3 h-3 rounded-full bg-cyber-danger mr-2"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
@@ -236,7 +236,7 @@ export default function Page() {
               <span className="text-xs font-terminal text-cyber-primary/70 ml-2">terminal@hackabyte:~</span>
             </div>
 
-            <div className="mt-6 font-terminal text-sm text-cyber-primary space-y-2 min-h-[200px]">
+            <div className="mt-4 sm:mt-6 font-terminal text-xs sm:text-sm text-cyber-primary space-y-2 min-h-[120px] sm:min-h-[200px]">
               {terminalLines.slice(0, displayedLines).map((line, index) => (
                 <motion.div
                   key={index}
@@ -267,22 +267,22 @@ export default function Page() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
             transition={{ delay: 4, duration: 0.5 }}
-            className="text-center md:text-left"
+            className="text-center md:text-left w-full max-w-md mx-auto md:max-w-none"
           >
-            <h1 className="text-4xl md:text-5xl font-terminal font-bold mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-terminal font-bold mb-3 sm:mb-4">
               <span className="cyber-text">HACK</span>
               <span className="text-white">ABYTE</span>
               <span className="cyber-text-danger">2025</span>
             </h1>
 
-            <p className="text-gray-300 mb-6 font-terminal">
+            <p className="text-gray-300 mb-4 sm:mb-6 font-terminal text-base sm:text-lg">
               The ultimate cybersecurity challenge awaits. Are you ready to hack the system?
             </p>
 
             {/* Access Code Input */}
             <form action={handleSubmit} className="mb-6">
               <label className="block text-cyber-primary text-sm font-terminal mb-2">ENTER ACCESS CODE:</label>
-              <div className="flex space-x-2 justify-center md:justify-start">
+              <div className="flex space-x-1 sm:space-x-2 justify-center md:justify-start">
                 {accessCode.map((digit, index) => (
                   <input
                     key={index}
@@ -296,7 +296,7 @@ export default function Page() {
                     onChange={(e) => handleCodeChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={(e) => handlePaste(e, index)}
-                    className="w-10 h-12 text-center bg-black/60 border cyber-border text-cyber-primary font-terminal text-lg rounded focus:ring-1 focus:ring-cyber-primary focus:cyber-border focus:outline-none"
+                    className="w-9 h-11 sm:w-10 sm:h-12 text-center bg-black/60 border cyber-border text-cyber-primary font-terminal text-lg rounded focus:ring-1 focus:ring-cyber-primary focus:cyber-border focus:outline-none"
                     disabled={isSubmitting}
                   />
                 ))}
@@ -312,10 +312,10 @@ export default function Page() {
                 </motion.div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start mt-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start mt-4">
                 <button
                   type="submit"
-                  className={`cyber-button rounded-md py-3 px-6 font-terminal relative ${
+                  className={`cyber-button rounded-md py-2.5 sm:py-3 px-4 sm:px-6 font-terminal relative ${
                     isSubmitting ? "opacity-70" : ""
                   }`}
                   disabled={isSubmitting}
@@ -334,7 +334,7 @@ export default function Page() {
                 <Link href="learn_more" className="w-full sm:w-auto">
                   <button
                     type="button"
-                    className="border border-gray-500 text-gray-300 hover:text-cyber-primary hover:cyber-border transition-all rounded-md py-3 px-6 font-terminal"
+                    className="border border-gray-500 text-gray-300 hover:text-cyber-primary hover:cyber-border transition-all rounded-md py-2.5 sm:py-3 px-4 sm:px-6 font-terminal w-full sm:w-auto"
                   >
                     LEARN_MORE
                   </button>
@@ -349,16 +349,16 @@ export default function Page() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 30 }}
           transition={{ delay: 4.5, duration: 0.5 }}
-          className="mt-20 w-full max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="mt-12 sm:mt-20 w-full max-w-5xl grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"
         >
           {[
-            { label: "PARTICIPANTS", value: "500+" },
-            { label: "CHALLENGES", value: "20+" },
-            { label: "PRIZE POOL", value: "$10K" },
-            { label: "DAYS", value: "48:00:00" },
+            { label: "PARTICIPANTS", value: "100+" },
+            { label: "CHALLENGES", value: "6+" },
+            { label: "CERTIFICATES", value: "BUG BOUNTY" },
+            { label: "DURATION", value: "48 HOURS" },
           ].map((stat, index) => (
-            <div key={index} className="cyber-border p-4 bg-black/30 rounded-lg backdrop-blur-sm text-center">
-              <div className="text-2xl font-bold cyber-text mb-1">{stat.value}</div>
+            <div key={index} className="cyber-border p-3 sm:p-4 bg-black/30 rounded-lg backdrop-blur-sm text-center">
+              <div className="text-xl sm:text-2xl font-bold cyber-text mb-1">{stat.value}</div>
               <div className="text-xs font-terminal text-gray-400">{stat.label}</div>
             </div>
           ))}
