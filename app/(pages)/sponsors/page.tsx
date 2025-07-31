@@ -419,7 +419,6 @@ export default function Page() {
           Interested in sponsoring HackaByte? Our team is ready to create a custom package that 
           aligns with your goals and maximizes your visibility in the cybersecurity community.
         </p>
-        
         <form className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -437,7 +436,6 @@ export default function Page() {
               />
             </div>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-cyber-primary mb-1">EMAIL</label>
@@ -454,18 +452,6 @@ export default function Page() {
               />
             </div>
           </div>
-          
-          <div>
-            <label className="block text-xs text-cyber-primary mb-1">SPONSORSHIP LEVEL OF INTEREST</label>
-            <select className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors">
-              <option>Platinum Partner ($15,000)</option>
-              <option>Gold Sponsor ($10,000)</option>
-              <option>Silver Sponsor ($5,000)</option>
-              <option>Bronze Supporter ($2,500)</option>
-              <option>Custom Package</option>
-            </select>
-          </div>
-          
           <div>
             <label className="block text-xs text-cyber-primary mb-1">MESSAGE</label>
             <textarea 
@@ -473,18 +459,15 @@ export default function Page() {
               className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
             ></textarea>
           </div>
-          
           <div>
             <button type="submit" className="cyber-button py-2 px-8 rounded-md">
               SUBMIT REQUEST
             </button>
           </div>
         </form>
-        
         <div className="mt-8 pt-6 border-t border-cyber-primary/20">
           <div className="text-xs text-cyber-primary mb-1">ALTERNATIVE CONTACT</div>
-          <div className="text-gray-300">sponsors@hackabyte.io</div>
-          <div className="text-gray-300">+1 (555) 123-4567</div>
+          <div className="text-gray-300">virexela@icloud.com</div>
         </div>
       </div>
     );
@@ -673,8 +656,10 @@ export default function Page() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
+            {/*
             {activeTab === 'sponsors' && renderSponsorsTab()}
             {activeTab === 'packages' && renderPackagesTab()}
+            */}
             {activeTab === 'contact' && renderContactTab()}
           </motion.div>
         </AnimatePresence>

@@ -327,6 +327,11 @@ export default function DeviceSelectionPage() {
         <div className="text-center my-8">
           <p className="text-yellow-400 font-mono">No devices are available for this playspace.</p>
           {currentPlayspaceId && <p className="text-green-400 font-mono mt-2">Playspace ID: {currentPlayspaceId}</p>}
+          <p className="text-blue-400 font-mono mt-4">
+            {isMobile
+              ? "Try accessing from a desktop device for more options."
+              : "Try accessing from a mobile device for more options."}
+          </p>
         </div>
       )}
 
