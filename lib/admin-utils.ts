@@ -52,7 +52,7 @@ export const transformEventForComponent = (event: AdminEvent): TransformedEvent 
 
 export const transformDeviceForComponent = (device: AdminDevice): TransformedDevice => ({
   ...device,
-  name: device.deviceId,
+  name: device.deviceMacAddress,
   type: device.deviceType,
   status: device.status,
   ipAddress: "",

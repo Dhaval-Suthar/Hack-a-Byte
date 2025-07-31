@@ -25,7 +25,7 @@ const LoginPage = () => {
   // Show boot animation on initial load
   useEffect(() => {
     // Check if this is a logout redirect to skip boot animation
-    const fromLogout = searchParams.get('fromLogout') === 'true';
+    const fromLogout = searchParams && searchParams.get('fromLogout') === 'true';
     
     if (fromLogout) {
       // Skip boot animation for logout redirects
@@ -47,7 +47,7 @@ const LoginPage = () => {
     
     // If not found in cookie or localStorage, check URL params as fallback
     if (!id && typeof window !== 'undefined') {
-      id = searchParams.get('playspaceId');
+      id = searchParams && searchParams.get('playspaceId');
       // If found in URL, save to localStorage for future use
       if (id) {
         localStorage.setItem('playspaceId', id);
@@ -56,7 +56,7 @@ const LoginPage = () => {
     
     // Get device ID from URL params
     if (typeof window !== 'undefined') {
-      devId = searchParams.get('deviceId');
+      devId = searchParams && searchParams.get('deviceId');
       if (devId) {
         setDeviceId(devId);
         // Save to localStorage for this session

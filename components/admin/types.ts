@@ -48,7 +48,7 @@ export interface AdminPlayspace {
 
 export interface AdminDevice {
   _id: string;
-  deviceId: string;
+  deviceMacAddress: string;
   deviceType: string;
   status: "online" | "offline" | "maintenance";
   playspace: {
