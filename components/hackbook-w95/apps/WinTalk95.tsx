@@ -1,8 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import clsx from "clsx";
 import Image from "next/image";
+import { getSessionCreds } from "@/lib/creds";
 
 interface Message {
   id: string;
@@ -25,8 +27,10 @@ interface WinTalk95Props {
 const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  // Use shared credentials for login
+  const creds = getSessionCreds();
+  const [username, setUsername] = useState(creds.username);
+  const [password, setPassword] = useState(creds.password);
   const [server, setServer] = useState("secure.ghostnet.corp");
   const [port, setPort] = useState("2847");
   const [connectionError, setConnectionError] = useState("");
@@ -121,7 +125,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Check credentials (from the ZIP file)
-    if (username === "ghost_agent_001" && password === "PHANTOM95" && server === "secure.ghostnet.corp") {
+    if (username === creds.username && password === creds.password && server === "secure.ghostnet.corp") {
       setIsConnected(true);
       setShowLogin(false);
       playSound('connect');
@@ -152,7 +156,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     }
 
     setIsConnecting(false);
-  }, [username, password, server, port, playSound]);
+  }, [username, password, server, port, playSound, creds.username, creds.password]);
 
   // Handle contact selection
   const handleContactSelect = useCallback((contactUsername: string) => {
@@ -238,32 +242,44 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         {
           id: 'tool_install',
           sender: 'Cipher_Master',
-          content: '💾 Installing Network Neighborhood on your desktop... Installation complete! Double-click the icon to launch.',
+          content: '💾 Installing Network Neighborhood on your desktop... Installation complete! Go to your DESKTOP and double-click the new icon to launch the network analysis tool.',
           timestamp: new Date('1995-11-29T09:16:45'),
+        },
+        {
+          id: 'desktop_navigation',
+          sender: 'Cipher_Master',
+          content: '📋 INSTRUCTIONS: 1) MINIMIZE or CLOSE this WinTalk window 2) Return to your DESKTOP 3) Look for the new "Network Neighborhood" icon 4) Double-click it to start the mission',
+          timestamp: new Date('1995-11-29T09:16:50'),
         },
         {
           id: 'game_instructions',
           sender: 'Cipher_Master',
           content: '🎯 HOW TO PLAY: 1) Find the target IP address hidden in the number grid 2) Click 4 numbers in the correct sequence 3) Use the intel hints to identify the correct IP 4) You have only 3 attempts - stealth is critical!',
-          timestamp: new Date('1995-11-29T09:16:50'),
+          timestamp: new Date('1995-11-29T09:16:55'),
         },
         {
           id: 'intelligence',
           sender: 'Cipher_Master',
           content: `INTEL: ${threat.name} specializes in ${threat.specialty}. Decode their location from the intercepted network data!`,
-          timestamp: new Date('1995-11-29T09:17:00'),
+          timestamp: new Date('1995-11-29T09:17:05'),
         },
         {
           id: 'warning',
           sender: 'Cipher_Master',
           content: `⚠️ WARNING: ${threat.name} has advanced security protocols. Failed connection attempts will trigger countermeasures. Study the intelligence reports carefully!`,
-          timestamp: new Date('1995-11-29T09:17:20'),
+          timestamp: new Date('1995-11-29T09:17:25'),
+        },
+        {
+          id: 'action_reminder',
+          sender: 'Cipher_Master',
+          content: '🖥️ REMINDER: Close this chat window and return to your DESKTOP. The Network Neighborhood tool is waiting for you there. Time is of the essence!',
+          timestamp: new Date('1995-11-29T09:17:35'),
         },
         {
           id: 'closing_mission2',
           sender: 'Cipher_Master',
           content: 'Breach their digital fortress and establish contact. Our network security depends on your success. Stay sharp, agent. Ghost out.',
-          timestamp: new Date('1995-11-29T09:17:40'),
+          timestamp: new Date('1995-11-29T09:17:45'),
         }
       ];
 
@@ -325,9 +341,17 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     }
   }, [currentMessage, selectedContact, username, playSound]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change, but only if user is at (or near) the bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const chatContainer = messagesEndRef.current?.parentElement;
+    if (!chatContainer) return;
+    // Calculate if user is at (or near) the bottom (allowing a small threshold)
+    const threshold = 40; // px
+    const isAtBottom =
+      chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < threshold;
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Focus message input when contact is selected

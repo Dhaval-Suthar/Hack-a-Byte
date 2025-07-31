@@ -115,10 +115,11 @@ export default function DeviceSelectionPage() {
         fetchDevices(urlPlayspaceId);
       } else {
         // No playspace ID found, show all devices
+        router.push('/');
         setLoading(false);
       }
     }
-  }, [fetchDevices]);
+  }, [fetchDevices,router]);
 
   // Fullscreen handling
   useEffect(() => {

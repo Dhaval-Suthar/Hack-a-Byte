@@ -9,6 +9,8 @@ import Image from "next/image";
 interface InboxProps {
   openLink: (link: string) => void;
   onClose: () => void;
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
 }
 
 interface EmailDraft {
@@ -25,9 +27,8 @@ interface Contact {
   email: string;
 }
 
-export default function Inbox({ openLink, onClose }: InboxProps) {
+export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }: InboxProps) {
   const [selected, setSelected] = useState("Inbox");
-  const [unreadCount, setUnreadCount] = useState(1);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);

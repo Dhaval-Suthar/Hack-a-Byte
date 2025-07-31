@@ -50,9 +50,9 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
   const getIcon = useCallback((item: FileSystemItem) => {
     if (item.type === 'directory') {
       if (item.path === 'C:' || item.path === 'D:') {
-        return '/hackbook-w95/hard-disk.png';
+        return '/hackbook-W95/hard-disk.png';
       }
-      return '/hackbook-w95/file-icons/folder.png';
+      return '/hackbook-W95/file.png';
     }
     
     // Check file extension
@@ -60,7 +60,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
     
     switch (extension) {
       case 'txt':
-        return '/hackbook-w95/file-icons/text.png';
+        return '/hackbook-W95/file-icons/txt-file-symbol.png';
       case 'exe':
         return '/hackbook-w95/file-icons/application.png';
       case 'jpg':
@@ -761,8 +761,8 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           <Image 
             src="/hackbook-W95/file-icons/new-folder.png" 
             alt="New Folder" 
-            width={16} 
-            height={16} 
+            width={20} 
+            height={20} 
             className="mr-1" 
             priority
           />
