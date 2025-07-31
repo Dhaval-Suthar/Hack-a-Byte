@@ -772,7 +772,20 @@ const Desktop = () => {
         case "Dev Tools":
           return <DevTools onClose={() => handleCloseApp(app)} />;
         case "Firewall Bypass":
-          return <NumberJumpingGame onClose={() => handleCloseApp(app)} />;
+          return (
+            <NumberJumpingGame
+              onClose={() => {
+                handleCloseApp(app);
+                // After Firewall Bypass closes, open Neural Network Analyzer
+                setTimeout(() => {
+                  const neuralApp = APPS.find(a => a.name === "Neural Network Analyzer");
+                  if (neuralApp) {
+                    handleOpenApp(neuralApp);
+                  }
+                }, 1000); // 1s delay for smooth transition
+              }}
+            />
+          );
         case "Password Cracker":
           return (
             <BruteForceGame 
