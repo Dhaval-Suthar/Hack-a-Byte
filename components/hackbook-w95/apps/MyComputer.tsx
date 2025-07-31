@@ -873,8 +873,8 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
           <div>
             {/* Header row */}
             <div className="flex border-b border-b-[#808080] bg-[#c0c0c0] text-sm py-1">
-              <div className="w-7"></div>
-              <div className="w-1/3 px-1 font-bold">Name</div>
+              <div className="w-10"></div>
+                                <div className="w-1/3 px-1 font-bold">Name</div>
               <div className="w-1/6 px-1 font-bold">Size</div>
               <div className="w-1/6 px-1 font-bold">Type</div>
               <div className="flex-1 px-1 font-bold">Modified</div>
@@ -893,12 +893,12 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                   onDoubleClick={() => handleDoubleClick(item)}
                   onContextMenu={(e) => handleRightClick(e, item)}
                 >
-                  <div className="w-7 flex justify-center">
+                  <div className="w-10 flex justify-center">
                     <Image 
                       src={getIcon(item)} 
                       alt={item.name} 
-                      width={16} 
-                      height={16} 
+                      width={32} 
+                      height={32} 
                       priority
                     />
                   </div>
@@ -927,8 +927,8 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                 <Image 
                   src={getIcon(item)} 
                   alt={item.name} 
-                  width={32} 
-                  height={32} 
+                  width={64} 
+                  height={64} 
                   priority
                 />
                 <div className="mt-1 text-center text-sm max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
@@ -954,8 +954,8 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                 <Image 
                   src={getIcon(item)} 
                   alt={item.name} 
-                  width={16} 
-                  height={16} 
+                  width={32} 
+                  height={32} 
                   priority
                 />
                 <div className="mt-0.5 text-center text-xs max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
@@ -979,12 +979,12 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
                 onDoubleClick={() => handleDoubleClick(item)}
                 onContextMenu={(e) => handleRightClick(e, item)}
               >
-                <div className="w-6 flex justify-center">
+                <div className="w-8 flex justify-center">
                   <Image 
                     src={getIcon(item)} 
                     alt={item.name} 
-                    width={16} 
-                    height={16} 
+                    width={32} 
+                    height={32} 
                     priority
                   />
                 </div>
