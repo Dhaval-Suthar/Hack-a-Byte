@@ -312,7 +312,8 @@ export default function Page() {
   const [bootSequenceComplete, setBootSequenceComplete] = useState(false);
   const [scanlines, setScanlines] = useState(true);
   const [windowWidth, setWindowWidth] = useState(1200); // Default width for SSR
-  const sections = ["Welcome", "Mission", "Team", "Stats"];
+  // const sections = ["Welcome", "Mission", "Team", "Stats"];
+  const sections = ["Welcome", "Mission"];
 
   // Boot sequence effect
   useEffect(() => {
@@ -340,7 +341,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full pt-20 relative">
+    <div className="min-h-screen w-full pt-40 relative">
       {/* Background elements */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-black opacity-95" />
@@ -460,8 +461,8 @@ export default function Page() {
                   </div>
                   <div>
                     <div className="relative rounded-lg overflow-hidden cyber-border h-[300px] md:h-[400px]">
-                      <div className="absolute top-0 left-0 w-full h-full">
-                        <div className="absolute top-0 left-0 w-full p-2 bg-black/50 flex justify-between items-center font-mono text-xs">
+                      <div className="absolute top-0 left-0 w-full h-full flex flex-col">
+                        <div className="absolute top-0 left-0 w-full p-2 bg-black/50 flex justify-between items-center font-mono text-xs z-10">
                           <div className="text-cyber-primary">TERMINAL_VIEW</div>
                           <div className="flex space-x-2">
                             <span className="w-2 h-2 rounded-full bg-[#ff003c]"></span>
@@ -469,8 +470,10 @@ export default function Page() {
                             <span className="w-2 h-2 rounded-full bg-cyber-primary"></span>
                           </div>
                         </div>
-                        
-                        <div className="p-4 mt-6 space-y-9">
+                        <div 
+                          className="p-4 mt-6 space-y-9 overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-primary/40 scrollbar-track-black/30"
+                          style={{ maxHeight: '320px', minHeight: '0' }}
+                        >
                           <TerminalSection 
                             command="whoami"
                             content="[HackaByte Agent] - A participant in the most challenging cybersecurity competition ever created."

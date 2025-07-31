@@ -30,19 +30,30 @@ export default function OutboxMails({ openLink }: { openLink: (link: string) => 
               {
                 id: "mission1-response",
                 receiver: "Security Officer",
-                subject: "RE: First Mission Complete",
+                subject: "Thank You for the Opportunity",
                 date: new Date().toISOString().split('T')[0],
-                content: `MISSION REPORT: DATA RETRIEVAL 001
-                
-STATUS: COMPLETE
+                content: `Dear Security Officer,
 
-I have successfully located and decrypted the protected data.
+Thank you so much for considering my application for the Digital Security Specialist position at HackByte Corporation.
 
-The password is: HACKBOOK
+I am writing to express my sincere gratitude for the opportunity to demonstrate my technical skills through the practical assessment you provided. The password recovery task was both challenging and engaging, and I thoroughly enjoyed working through the problem.
 
-Awaiting further instructions.
-                
--- New Recruit`,
+I successfully completed the assessment and recovered the requested data. The experience has reinforced my passion for cybersecurity and my desire to contribute to your team's mission of protecting digital assets.
+
+Key accomplishments during the assessment:
+• Successfully analyzed the encrypted ZIP archive
+• Applied systematic password recovery techniques
+• Retrieved all protected files and data
+• Demonstrated attention to detail and persistence
+
+I am excited about the possibility of joining your cybersecurity division and contributing to HackByte Corporation's success. Thank you again for this opportunity, and I look forward to hearing about the next steps in the hiring process.
+
+Best regards,
+
+New Recruit
+Aspiring Digital Security Specialist
+
+P.S. - The recovered password was: zebra`,
               }
             ]);
           }
