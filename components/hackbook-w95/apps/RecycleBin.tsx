@@ -18,9 +18,10 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [viewMode, setViewMode] = useState<"icons" | "details" | "list">("details");
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
-  const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isConfirmingEmpty, setIsConfirmingEmpty] = useState<boolean>(false);
+  const [isConfirmingRestore, setIsConfirmingRestore] = useState<boolean>(false);
+  const [hasEmptiedRecycleBin, setHasEmptiedRecycleBin] = useState<boolean>(false);
 
   // Load deleted items from file system on mount
   useEffect(() => {
@@ -44,6 +45,15 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
   // Restore selected item to its original location
   const handleRestore = () => {
     if (!selectedItem) return;
+    setIsConfirmingRestore(true);
+  };
+
+  // Confirm restore operation
+  const confirmRestore = () => {
+    if (!selectedItem) {
+      setIsConfirmingRestore(false);
+      return;
+    }
 
     try {
       // Get the original path from metadata
@@ -52,57 +62,107 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
       // Check if originalPath exists before trying to use it
       if (!originalPath) {
         setStatusMessage("Error: Cannot restore item - original path is missing");
+        setIsConfirmingRestore(false);
         return;
       }
 
       const originalDir = originalPath.substring(0, originalPath.lastIndexOf("\\"));
 
-      // Create a clone of the item with its original path
-      const restoredItem = {
-        ...selectedItem,
-        path: originalPath,
-        id: originalPath.replace(/[\\:]/g, "-").toLowerCase(),
-      };
+      // Save current directory
+      const currentDir = fs.currentDirectory;
 
-      // First navigate to the original directory
+      // First, check if we can navigate to the original directory
       const canNavigate = fs.navigateTo(originalDir);
 
-      if (canNavigate) {
-        try {
-          // Set the selected items to the item we want to restore
-          fs.setSelectedItems([restoredItem]);
-          
-          // Copy to clipboard
-          fs.copyToClipboard("copy");
+      if (!canNavigate) {
+        setStatusMessage("Error: Cannot restore item - original directory no longer exists");
+        fs.navigateTo(currentDir); // Navigate back
+        setIsConfirmingRestore(false);
+        return;
+      }
 
-          // Paste the item to restore it
-          const pasteSuccess = fs.pasteFromClipboard();
+      try {
+        // Create a restored version of the item with original properties
+        const restoredItem = {
+          ...selectedItem,
+          path: originalPath,
+          id: originalPath.replace(/[\\:]/g, "-").toLowerCase(),
+          // Clean up recycle bin metadata
+          metadata: selectedItem.metadata ? {
+            ...selectedItem.metadata,
+            originalPath: undefined,
+            deletedFrom: undefined,
+            deletedDate: undefined
+          } : undefined
+        };
 
-          if (pasteSuccess) {
-            // Now navigate back to recycle bin and delete the item
-            fs.navigateTo("C:\\Recycle Bin");
-            fs.deleteItems([selectedItem], true); // true for permanent delete
+        // Use the copy/paste mechanism but set up the item properly first
+        // Navigate back to recycle bin to set up the clipboard
+        fs.navigateTo("C:\\Recycle Bin");
+        fs.setSelectedItems([selectedItem]);
+        fs.copyToClipboard("copy");
 
-            // Update our local state
-            const updatedItems = deletedItems.filter((item) => item.id !== selectedItem.id);
-            setDeletedItems(updatedItems);
-            setSelectedItem(null);
+        // Now navigate to target directory and paste
+        fs.navigateTo(originalDir);
+        const pasteSuccess = fs.pasteFromClipboard();
 
-            // Update status message
+        if (pasteSuccess) {
+          // Navigate back to recycle bin and delete the original item
+          fs.navigateTo("C:\\Recycle Bin");
+          fs.deleteItems([selectedItem], true); // true for permanent delete
+
+          // Reload items from file system to ensure UI is in sync
+          const updatedItems = fs.getCurrentItems();
+          setDeletedItems(updatedItems);
+          setSelectedItem(null);
+
+          // Update status message
+          if (updatedItems.length === 0) {
+            setStatusMessage("The Recycle Bin is empty");
+          } else {
+            setStatusMessage(`${updatedItems.length} item${updatedItems.length !== 1 ? "s" : ""}`);
+          }
+
+          // Temporarily show success message
+          setStatusMessage("Item restored successfully");
+          setTimeout(() => {
             if (updatedItems.length === 0) {
               setStatusMessage("The Recycle Bin is empty");
             } else {
               setStatusMessage(`${updatedItems.length} item${updatedItems.length !== 1 ? "s" : ""}`);
             }
-          }
-        } catch (error) {
-          console.error("Error restoring item:", error);
-          setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
+          }, 2000);
+        } else {
+          setStatusMessage("Error: Failed to restore item - item may already exist at destination");
+          fs.navigateTo("C:\\Recycle Bin"); // Make sure we're back in recycle bin
         }
+      } catch (error) {
+        console.error("Error restoring item:", error);
+        setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
+        fs.navigateTo("C:\\Recycle Bin"); // Make sure we're back in recycle bin
+        
+        // Reload items and clear selection even on error
+        const updatedItems = fs.getCurrentItems();
+        setDeletedItems(updatedItems);
+        setSelectedItem(null);
       }
     } catch (error) {
       console.error("Error restoring item:", error);
+      setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
+      
+      // Reload items and clear selection even on error
+      try {
+        fs.navigateTo("C:\\Recycle Bin");
+        const updatedItems = fs.getCurrentItems();
+        setDeletedItems(updatedItems);
+        setSelectedItem(null);
+      } catch (reloadError) {
+        console.error("Error reloading items:", reloadError);
+        setSelectedItem(null);
+      }
     }
+
+    setIsConfirmingRestore(false);
   };
 
   // Empty the recycle bin (permanently delete all items)
@@ -112,11 +172,30 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
 
   // Confirm empty recycle bin
   const confirmEmptyRecycleBin = () => {
-    fs.deleteItems(deletedItems);
-    setDeletedItems([]);
+    fs.deleteItems(deletedItems, true); // true for permanent deletion
+    
+    // Reload items from file system to ensure UI is in sync
+    try {
+      fs.navigateTo("C:\\Recycle Bin");
+      const updatedItems = fs.getCurrentItems();
+      setDeletedItems(updatedItems);
+      
+      // Update status message
+      if (updatedItems.length === 0) {
+        setStatusMessage("The Recycle Bin is empty");
+      } else {
+        setStatusMessage(`${updatedItems.length} item${updatedItems.length !== 1 ? "s" : ""}`);
+      }
+    } catch (error) {
+      console.error("Error reloading Recycle Bin contents:", error);
+      // Fallback to manual state update
+      setDeletedItems([]);
+      setStatusMessage("The Recycle Bin is empty");
+    }
+    
     setSelectedItem(null);
-    setStatusMessage("The Recycle Bin is empty");
     setIsConfirmingEmpty(false);
+    setHasEmptiedRecycleBin(true); // Enable restore functionality
   };
 
   // Format size for display
@@ -150,16 +229,10 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
   const handleMenuClick = (menu: string) => {
     if (menu === "File") {
       setIsFileMenuOpen(!isFileMenuOpen);
-      setIsEditMenuOpen(false);
-      setIsViewMenuOpen(false);
-    } else if (menu === "Edit") {
-      setIsEditMenuOpen(!isEditMenuOpen);
-      setIsFileMenuOpen(false);
       setIsViewMenuOpen(false);
     } else if (menu === "View") {
       setIsViewMenuOpen(!isViewMenuOpen);
       setIsFileMenuOpen(false);
-      setIsEditMenuOpen(false);
     }
   };
 
@@ -173,13 +246,12 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
     <div className="h-full w-full flex flex-col">
       {/* Menu bar */}
       <div className="w-full flex text-sm items-center bg-[#c0c0c0] border-b border-b-[#808080] p-0.5">
-        {["File", "Edit", "View", "Help"].map((menu) => (
+        {["File", "View"].map((menu) => (
           <div
             key={menu}
             className={clsx("px-2 py-0.5 cursor-default", {
               "bg-[#000080] text-white":
                 (menu === "File" && isFileMenuOpen) ||
-                (menu === "Edit" && isEditMenuOpen) ||
                 (menu === "View" && isViewMenuOpen),
             })}
             onClick={() => handleMenuClick(menu)}
@@ -404,6 +476,39 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
               <button
                 className="px-4 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] text-black"
                 onClick={() => setIsConfirmingEmpty(false)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation dialog for restoring item */}
+      {isConfirmingRestore && selectedItem && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+          <div className="bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] p-4 w-[350px]">
+            <div className="flex items-start mb-4">
+              <div className="mr-3">
+                <Image src="/hackbook-W95/warning.png" alt="Warning" width={32} height={32} />
+              </div>
+              <div>
+                <h3 className="font-bold mb-2">Confirm Restore</h3>
+                <p className="text-sm">
+                  Are you sure you want to restore "{selectedItem.name}" to its original location?
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] text-black"
+                onClick={confirmRestore}
+              >
+                Yes
+              </button>
+              <button
+                className="px-4 py-1 border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] text-black"
+                onClick={() => setIsConfirmingRestore(false)}
               >
                 No
               </button>
