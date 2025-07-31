@@ -220,7 +220,7 @@ export default function Page() {
         />
       </div>
 
-      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 pt-24 pb-10">
+      <main className="relative z-10 h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
