@@ -9,7 +9,7 @@ interface NotepadProps {
 }
 
 // Extend the component with a windowTitle property for the parent to access
-const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, filePath, initialContent }) => {
+const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, initialContent }) => {
   const defaultText =
     "Welcome to Notepad!\n\nThis is a simple text editor just like Windows 95 Notepad.\nYou can type your text here.\n\n\n\n\n--------------------------------------------------\n[Text below is very faint, almost invisible]\n\nMISSION HINT: \n1. Use 'show hidden files' command in Terminal\n2. Check Windows\\System32 directory for hidden files (files starting with '.')\n3. Use 'decrypt-file' command once you find encryption information\n4. Files in C:\\Documents\\Encrypted need decryption";
 
@@ -400,7 +400,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ onClose, f
   // Load available files from user preferences
   const loadAvailableFiles = async () => {
     try {
-      const { UserPreferences } = await import("../hooks/useUserPreferences");
+      // Get stored files from localStorage directly since UserPreferences isn't needed here
       const allKeys = Object.keys(localStorage).filter(key => key.startsWith('notepad_'));
       const files = allKeys.map(key => key.replace('notepad_', ''));
       

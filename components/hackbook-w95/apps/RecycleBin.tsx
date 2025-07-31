@@ -21,7 +21,6 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isConfirmingEmpty, setIsConfirmingEmpty] = useState<boolean>(false);
   const [isConfirmingRestore, setIsConfirmingRestore] = useState<boolean>(false);
-  const [hasEmptiedRecycleBin, setHasEmptiedRecycleBin] = useState<boolean>(false);
 
   // Load deleted items from file system on mount
   useEffect(() => {
@@ -82,21 +81,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
       }
 
       try {
-        // Create a restored version of the item with original properties
-        const restoredItem = {
-          ...selectedItem,
-          path: originalPath,
-          id: originalPath.replace(/[\\:]/g, "-").toLowerCase(),
-          // Clean up recycle bin metadata
-          metadata: selectedItem.metadata ? {
-            ...selectedItem.metadata,
-            originalPath: undefined,
-            deletedFrom: undefined,
-            deletedDate: undefined
-          } : undefined
-        };
-
-        // Use the copy/paste mechanism but set up the item properly first
+        // Use the copy/paste mechanism to restore the item
         // Navigate back to recycle bin to set up the clipboard
         fs.navigateTo("C:\\Recycle Bin");
         fs.setSelectedItems([selectedItem]);
@@ -195,7 +180,6 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
     
     setSelectedItem(null);
     setIsConfirmingEmpty(false);
-    setHasEmptiedRecycleBin(true); // Enable restore functionality
   };
 
   // Format size for display
@@ -455,10 +439,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
       {isConfirmingEmpty && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
           <div className="bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] p-4 w-[350px]">
-            <div className="flex items-start mb-4">
-              <div className="mr-3">
-                <Image src="/hackbook-W95/warning.png" alt="Warning" width={32} height={32} />
-              </div>
+            <div className="mb-4">
               <div>
                 <h3 className="font-bold mb-2">Confirm Delete</h3>
                 <p className="text-sm">
@@ -488,14 +469,11 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
       {isConfirmingRestore && selectedItem && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
           <div className="bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] p-4 w-[350px]">
-            <div className="flex items-start mb-4">
-              <div className="mr-3">
-                <Image src="/hackbook-W95/warning.png" alt="Warning" width={32} height={32} />
-              </div>
+            <div className="mb-4">
               <div>
                 <h3 className="font-bold mb-2">Confirm Restore</h3>
                 <p className="text-sm">
-                  Are you sure you want to restore "{selectedItem.name}" to its original location?
+                  Are you sure you want to restore &quot;{selectedItem.name}&quot; to its original location?
                 </p>
               </div>
             </div>
