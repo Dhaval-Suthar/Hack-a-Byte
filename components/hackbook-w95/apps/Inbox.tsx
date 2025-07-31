@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import React, { useState } from "react";
+import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import InboxMails from "../Mails/InboxMails";
 import OutboxMails from "../Mails/OutboxMails";
 import Image from "next/image";
@@ -28,6 +29,8 @@ interface Contact {
 }
 
 export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }: InboxProps) {
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   const [selected, setSelected] = useState("Inbox");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
@@ -79,7 +82,6 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
     // In a real implementation, we would save this to outbox
     // For now, we'll just close the compose window
     setIsComposeOpen(false);
-    
     // Reset email draft
     setEmailDraft({
       to: "",
@@ -89,9 +91,9 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
       body: "",
       attachments: []
     });
-    
-    // Show a success message
-    alert("Message sent successfully!");
+    // Show a success message with Win95Alert
+    setAlertMessage("Message sent successfully!");
+    setAlertOpen(true);
   };
   
   // Add selected contacts to the To field
@@ -151,7 +153,8 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
     if (searchTerm.trim()) {
       setIsFindDialogOpen(false);
       // In a real implementation we would search through emails
-      alert(`Searching for: "${searchTerm}"`);
+      setAlertMessage(`Searching for: "${searchTerm}"`);
+      setAlertOpen(true);
     }
   };
   
@@ -219,6 +222,9 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden bg-[#c0c0c0]">
+      {alertOpen && (
+        <Win95Alert message={alertMessage} onClose={() => setAlertOpen(false)} />
+      )}
       {/* Title Bar */}
       <div className="w-full flex items-center bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 text-white">
         <div className="flex-1 text-sm font-bold">Inbox - Microsoft Exchange</div>
