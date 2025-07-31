@@ -398,7 +398,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <div className="flex items-center">
           <Image
-            src="/hackbook-w95/app-icon/wintalk.png"
+            src="/hackbook-W95/app-icon/wintalk.png"
             alt="WinTalk icon"
             width={16}
             height={16}
@@ -419,10 +419,6 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
       {/* Menu Bar */}
       <div className="bg-[#c0c0c0] border-b border-[#808080] px-2 py-1">
         <div className="flex space-x-4 text-sm">
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">File</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Edit</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">View</span>
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Tools</span>
           {isConnected && (
             <span 
               className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer text-red-600"
@@ -431,14 +427,13 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
               Disconnect
             </span>
           )}
-          <span className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer">Help</span>
         </div>
       </div>
 
       {showLogin ? (
         /* Login Screen */
-        <div className="flex-1 bg-white flex items-center justify-center">
-          <div className="bg-[#c0c0c0] border-2 border-[#808080] p-6 max-w-md w-full mx-4">
+        <div className="flex-1 bg-white flex items-center justify-center p-4">
+          <div className="bg-[#c0c0c0] border-2 border-[#808080] p-6 max-w-md w-full shadow-lg">
             <div className="text-center mb-6">
               <Image
                 src="/hackbook-w95/app-icon/wintalk.png"
@@ -525,9 +520,9 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         </div>
       ) : (
         /* Main Chat Interface */
-        <div className="flex-1 flex">
+        <div className="flex-1 flex h-full">
           {/* Contact List */}
-          <div className="w-1/3 bg-[#c0c0c0] border-r border-[#808080] flex flex-col">
+          <div className="w-1/3 bg-[#c0c0c0] border-r border-[#808080] flex flex-col min-h-0">
             <div className="bg-[#000080] text-white px-2 py-1 text-sm font-bold">
               Contacts
             </div>
@@ -536,7 +531,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                 <div
                   key={contact.username}
                   className={clsx(
-                    "px-2 py-2 border-b border-[#e0e0e0] cursor-pointer flex items-center",
+                    "px-3 py-3 border-b border-[#e0e0e0] cursor-pointer flex items-center transition-colors",
                     {
                       "bg-[#000080] text-white": selectedContact === contact.username,
                       "hover:bg-[#e0e0e0]": selectedContact !== contact.username
@@ -544,12 +539,12 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                   )}
                   onClick={() => handleContactSelect(contact.username)}
                 >
-                  <span className={clsx("mr-2", getStatusColor(contact.status))}>
+                  <span className={clsx("mr-3 text-lg", getStatusColor(contact.status))}>
                     {getStatusIcon(contact.status)}
                   </span>
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{contact.username}</div>
-                    <div className="text-xs opacity-75">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{contact.username}</div>
+                    <div className="text-xs opacity-75 truncate">
                       {contact.status === 'offline' && contact.lastSeen 
                         ? `Last seen ${contact.lastSeen.toLocaleDateString()}`
                         : contact.status
@@ -562,7 +557,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
             {selectedContact ? (
               <>
                 {/* Chat Header */}
@@ -571,7 +566,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto bg-white p-2 space-y-2 max-h-80">
+                <div className="flex-1 overflow-y-auto bg-white p-2 space-y-2">
                   {messages
                     .filter(msg => msg.isSystem || msg.sender === selectedContact || msg.sender === username)
                     .map((message) => (
@@ -584,10 +579,10 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
                       })}
                     >
                       <div
-                        className={clsx("max-w-xs px-3 py-2 rounded text-sm", {
+                        className={clsx("max-w-md px-3 py-2 rounded shadow-sm text-sm", {
                           "bg-[#000080] text-white": message.sender === username,
-                          "bg-[#e0e0e0] text-black": message.sender !== username && !message.isSystem,
-                          "bg-gray-100 text-gray-600 italic text-xs": message.isSystem
+                          "bg-[#e0e0e0] text-black border border-[#808080]": message.sender !== username && !message.isSystem,
+                          "bg-gray-100 text-gray-600 italic text-xs border border-gray-300": message.isSystem
                         })}
                       >
                         <div className="break-words whitespace-pre-wrap">{message.content}</div>
