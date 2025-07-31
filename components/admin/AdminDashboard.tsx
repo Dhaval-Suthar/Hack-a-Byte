@@ -121,7 +121,16 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
             if (result.error) {
               throw new Error(result.error);
             }
-            setAllDevices(result.devices || []);
+            setAllDevices(
+              (result.devices || []).map((device: AdminDevice) => ({
+                _id: device._id,
+                deviceMacAddress: device.deviceMacAddress ?? "",
+                deviceType: device.deviceType,
+                status: device.status,
+                playspace: device.playspace,
+                createdAt: device.createdAt,
+              }))
+            );
             break;
           }
           case "events": {
@@ -206,18 +215,21 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     currentUsers: 0
   }));
 
-  const transformedDevices = allDevices.map(device => ({
+  const transformedDevices = allDevices.map((device) => ({
     _id: device._id,
-    name: device.deviceId,
+    name: device.deviceMacAddress,
     type: device.deviceType,
     status: device.status,
+    macAddress: device.deviceMacAddress,
     ipAddress: "192.168.1.1",
     isAssigned: !!device.playspace,
-    assignedPlayspace: device.playspace ? {
-      _id: device.playspace._id,
-      name: device.playspace.name,
-      description: device.playspace.description
-    } : undefined
+    assignedPlayspace: device.playspace
+      ? {
+          _id: device.playspace._id,
+          name: device.playspace.name,
+          description: device.playspace.description,
+        }
+      : undefined,
   }));
 
   const transformedAccessCodesForPlayspaces = accessCodes.map(code => ({

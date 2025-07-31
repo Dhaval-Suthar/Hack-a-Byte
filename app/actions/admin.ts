@@ -1032,14 +1032,14 @@ export async function getAllDevices(adminKey?: string) {
     await connectDb();
 
     const devices = await Device.find({})
-      .populate('playspace', 'name description')
-      .select('_id deviceMacAddress deviceType status playspace createdAt')
+      .populate("playspace", "name description")
+      .select("_id deviceMacAddress deviceType status playspace createdAt")
       .lean();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedDevices = devices.map((device: any) => ({
       _id: device._id?.toString() || '',
-      deviceId: device.deviceMacAddress || '',
+      deviceMacAddress: device.deviceMacAddress || '',
       deviceType: device.deviceType || '',
       status: device.status || 'offline',
       playspace: device.playspace ? {

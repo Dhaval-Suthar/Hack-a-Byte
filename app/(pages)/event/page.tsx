@@ -157,6 +157,38 @@ export default function Page() {
   // Note: Using future dates since the context mentioned the current date is May 10, 2025
   const events: Event[] = [
     {
+      id: 100,
+      title: "Mosaic 2025",
+      date: "2025-09-19",
+      time: "09:00 - 17:00 (19th & 20th September)",
+      location: "Offline (ST. FRANCIS INSTITUTE OF TECHNOLOGY (ENGG. COLLEGE), Mount Poinsur, S.V.P. Road, Borivali (West), Mumbai 400 103)",
+      description:
+        "Mosaic is a two-day cybersecurity competition open to all online, with an exclusive offline experience for SFIT college students. Prize pool for top performers! Offline participants (SFIT only) need just their mobile; online participants need a computer.",
+      type: "Competition",
+      capacity: 500,
+      registered: 0,
+      difficulty: "Intermediate",
+      tags: ["Cybersecurity", "Competition", "Hybrid", "SFIT", "Prize Pool"],
+      prizes: [
+        { position: "Prize Pool", reward: "Exciting rewards for top performers (details announced at event)" }
+      ],
+      schedule: [
+        { time: "09:00", activity: "Opening Ceremony & Welcome (Day 1)" },
+        { time: "09:30", activity: "Competition Kickoff (Online & Offline)" },
+        { time: "13:00", activity: "Lunch Break (Offline)" },
+        { time: "14:00", activity: "Competition Continues" },
+        { time: "17:00", activity: "Day End & Announcements" },
+        { time: "09:00 (20th)", activity: "Day 2 Kickoff & Competition" },
+        { time: "13:00 (20th)", activity: "Lunch Break (Offline)" },
+        { time: "14:00 (20th)", activity: "Final Rounds & Judging" },
+        { time: "17:00 (20th)", activity: "Prize Distribution & Closing" }
+      ],
+      speakers: [
+        { name: "Prof. A. Fernandes", role: "Event Chair", company: "SFIT", avatar: 1 },
+        { name: "Industry Expert", role: "Guest Speaker", company: "TBA", avatar: 2 }
+      ]
+    },
+    {
       id: 1,
       title: "Crypto Challenge 2025",
       date: "2025-05-25",
@@ -419,13 +451,14 @@ export default function Page() {
             </div>
             
             <div className="flex space-x-2">
+              {/*
               <button 
                 className="cyber-button text-xs py-1 px-3 rounded-md"
                 onClick={() => setSelectedEvent(event)}
               >
                 DETAILS
               </button>
-              
+              */}
               {!isPast && (
                 <button 
                   className={`text-xs py-1 px-3 rounded-md transition-colors ${
@@ -863,6 +896,7 @@ export default function Page() {
               >
                 UPCOMING
               </button>
+              {/*
               <button
                 onClick={() => setActiveView("past")}
                 className={`px-4 py-2 rounded-md transition-all ${
@@ -873,6 +907,7 @@ export default function Page() {
               >
                 PAST EVENTS
               </button>
+              */}
             </div>
             
             <div className="relative">
@@ -947,12 +982,14 @@ export default function Page() {
                       </div>
                       
                       <div className="flex space-x-2">
+                        {/*
                         <button 
                           className="cyber-button py-1 px-5 rounded-md text-sm flex-1"
                           onClick={() => setSelectedEvent(filteredEvents[0])}
                         >
                           VIEW DETAILS
                         </button>
+                        */}
                         
                         <button 
                           className={`py-1 px-5 rounded-md text-sm flex-1 transition-colors ${
@@ -1006,52 +1043,41 @@ export default function Page() {
           <div className="flex items-center mb-4">
             <div className="h-px flex-grow bg-cyber-primary/30"></div>
             <h2 className="px-3 text-cyber-primary font-bold">
-              {activeView === "upcoming" ? "ALL UPCOMING EVENTS" : "PAST EVENTS"}
+              {activeView === "upcoming" ? "ALL UPCOMING EVENTS" : /* "PAST EVENTS" */ ""}
             </h2>
             <div className="h-px flex-grow bg-cyber-primary/30"></div>
           </div>
           
-          {filteredEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEvents.map(event => {
-                // Skip the first one in upcoming view as it's already the featured event
-                if (activeView === "upcoming" && event.id === filteredEvents[0].id) {
-                  return null;
-                }
-                return renderEventCard(event);
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8 border border-cyber-primary/30 rounded-lg bg-black/40">
-              <div className="text-cyber-primary text-xl mb-2">No events found</div>
-              <p className="text-gray-400">
-                {eventQuery 
-                  ? "Try adjusting your search query"
-                  : activeView === "upcoming" 
-                    ? "No upcoming events scheduled at this time"
-                    : "No past events to display"
-                }
-              </p>
-            </div>
-          )}
+          {activeView === "upcoming" ? (
+            filteredEvents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredEvents.map(event => {
+                  // Skip the first one in upcoming view as it's already the featured event
+                  if (event.id === filteredEvents[0].id) {
+                    return null;
+                  }
+                  return renderEventCard(event);
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 border border-cyber-primary/30 rounded-lg bg-black/40">
+                <div className="text-cyber-primary text-xl mb-2">No events found</div>
+                <p className="text-gray-400">
+                  {eventQuery 
+                    ? "Try adjusting your search query"
+                    : "No upcoming events scheduled at this time"
+                  }
+                </p>
+              </div>
+            )
+          ) : null /* Past events section commented out */}
         </div>
       </div>
       
       {/* Event details modal */}
       {renderEventDetailsModal()}
       
-      {/* Floating CTA */}
-      {activeView === "upcoming" && (
-        <div className="fixed bottom-8 right-8 z-30">
-          <div className="relative">
-            <div className="absolute -inset-2 bg-cyber-primary rounded-full opacity-20 animate-pulse blur-md"></div>
-            <button className="cyber-button rounded-full py-3 px-6 text-sm font-bold relative">
-              CREATE EVENT
-              <span className="absolute top-0 right-0 w-2 h-2 bg-cyber-primary rounded-full m-1"></span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Floating CTA removed as requested */}
     </div>
   );
 }

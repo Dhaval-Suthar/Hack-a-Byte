@@ -15,6 +15,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
   const [gameFailed, setGameFailed] = useState(false);
   const [targetIP, setTargetIP] = useState("");
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [currentIP, setCurrentIP] = useState("");
   const [showConnectionRefused, setShowConnectionRefused] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
@@ -90,10 +91,12 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
 
   // Handle number click
   const handleNumberClick = (index: number, value: string) => {
-    if (gameComplete || gameFailed || selectedNumbers.length >= 4) return;
+    if (gameComplete || gameFailed || selectedNumbers.length >= 4 || selectedIndices.includes(index)) return;
     
     const newSelected = [...selectedNumbers, value];
+    const newIndices = [...selectedIndices, index];
     setSelectedNumbers(newSelected);
+    setSelectedIndices(newIndices);
     setCurrentIP(newSelected.join('.'));
     
     // Check if complete IP
@@ -115,6 +118,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
           } else {
             setShowConnectionRefused(true);
             setSelectedNumbers([]);
+            setSelectedIndices([]);
             setCurrentIP("");
             setTimeout(() => setShowConnectionRefused(false), 2500);
           }
@@ -188,7 +192,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
           <div className="mb-6">
             <div className="grid grid-cols-10 gap-2 p-6 bg-black/70 border-2 border-cyan-600 rounded-lg backdrop-blur-sm">
               {numberGrid.map((number, index) => {
-                const isSelected = selectedNumbers.includes(number);
+                const isSelected = selectedIndices.includes(index);
                 const isTarget = isTargetNumber(number) && (wrongAttempts > 0 || gameComplete);
                 
                 return (

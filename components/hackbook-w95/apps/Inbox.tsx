@@ -9,6 +9,8 @@ import Image from "next/image";
 interface InboxProps {
   openLink: (link: string) => void;
   onClose: () => void;
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
 }
 
 interface EmailDraft {
@@ -25,9 +27,8 @@ interface Contact {
   email: string;
 }
 
-export default function Inbox({ openLink, onClose }: InboxProps) {
+export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }: InboxProps) {
   const [selected, setSelected] = useState("Inbox");
-  const [unreadCount, setUnreadCount] = useState(1);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
@@ -35,7 +36,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isComposeMenuOpen, setIsComposeMenuOpen] = useState(false);
-  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [isFindDialogOpen, setIsFindDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [emailDraft, setEmailDraft] = useState<EmailDraft>({
@@ -61,7 +61,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
     setIsViewMenuOpen(false);
     setIsToolsMenuOpen(false);
     setIsComposeMenuOpen(false);
-    setIsHelpMenuOpen(false);
   };
   
   // Handle new message creation
@@ -243,7 +242,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             setIsViewMenuOpen(false);
             setIsToolsMenuOpen(false);
             setIsComposeMenuOpen(false);
-            setIsHelpMenuOpen(false);
           }}
         >
           File
@@ -258,7 +256,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             setIsViewMenuOpen(false);
             setIsToolsMenuOpen(false);
             setIsComposeMenuOpen(false);
-            setIsHelpMenuOpen(false);
           }}
         >
           Edit
@@ -273,7 +270,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             setIsEditMenuOpen(false);
             setIsToolsMenuOpen(false);
             setIsComposeMenuOpen(false);
-            setIsHelpMenuOpen(false);
           }}
         >
           View
@@ -288,7 +284,6 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             setIsEditMenuOpen(false);
             setIsViewMenuOpen(false);
             setIsComposeMenuOpen(false);
-            setIsHelpMenuOpen(false);
           }}
         >
           Tools
@@ -303,33 +298,17 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             setIsEditMenuOpen(false);
             setIsViewMenuOpen(false);
             setIsToolsMenuOpen(false);
-            setIsHelpMenuOpen(false);
           }}
         >
           Compose
-        </div>
-        <div 
-          className={clsx("px-2 py-0.5 cursor-pointer", {
-            "bg-[#000080] text-white": isHelpMenuOpen
-          })}
-          onClick={() => {
-            setIsHelpMenuOpen(!isHelpMenuOpen);
-            setIsFileMenuOpen(false);
-            setIsEditMenuOpen(false);
-            setIsViewMenuOpen(false);
-            setIsToolsMenuOpen(false);
-            setIsComposeMenuOpen(false);
-          }}
-        >
-          Help
         </div>
       </div>
       
       {/* File Menu Dropdown */}
       {isFileMenuOpen && (
-        <div className="absolute mt-6 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md">
+        <div className="absolute mt-6 ml-0 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md w-32">
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
             onClick={() => {
               handleNewMessage();
               setIsFileMenuOpen(false);
@@ -339,7 +318,7 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
           </div>
           <div className="h-[1px] bg-[#808080] my-1"></div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
             onClick={() => {
               onClose();
               setIsFileMenuOpen(false);
@@ -347,30 +326,37 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
           >
             Exit
           </div>
+          <div className="h-[1px] bg-[#808080] my-1"></div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-center text-sm"
+            onClick={() => setIsFileMenuOpen(false)}
+          >
+            Close
+          </div>
         </div>
       )}
       
       {/* Edit Menu Dropdown */}
       {isEditMenuOpen && (
-        <div className="absolute mt-6 ml-8 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md">
+        <div className="absolute mt-6 ml-8 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md w-24">
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Cut
           </div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Copy
           </div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Paste
           </div>
           <div className="h-[1px] bg-[#808080] my-1"></div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
             onClick={() => {
               setIsFindDialogOpen(true);
               setIsEditMenuOpen(false);
@@ -378,14 +364,21 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
           >
             Find...
           </div>
+          <div className="h-[1px] bg-[#808080] my-1"></div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-center text-sm"
+            onClick={() => setIsEditMenuOpen(false)}
+          >
+            Close
+          </div>
         </div>
       )}
       
       {/* View Menu Dropdown */}
       {isViewMenuOpen && (
-        <div className="absolute mt-6 ml-16 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md">
+        <div className="absolute mt-6 ml-16 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md w-24">
           <div 
-            className={clsx("px-4 py-1 hover:bg-[#000080] hover:text-white", {
+            className={clsx("px-3 py-1 hover:bg-[#000080] hover:text-white text-sm", {
               "bg-[#000080] text-white": selected === "Inbox"
             })}
             onClick={() => {
@@ -396,7 +389,7 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             Inbox
           </div>
           <div 
-            className={clsx("px-4 py-1 hover:bg-[#000080] hover:text-white", {
+            className={clsx("px-3 py-1 hover:bg-[#000080] hover:text-white text-sm", {
               "bg-[#000080] text-white": selected === "Outbox"
             })}
             onClick={() => {
@@ -408,7 +401,7 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
           </div>
           <div className="h-[1px] bg-[#808080] my-1"></div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
             onClick={() => {
               // Refresh logic would go here
               setIsViewMenuOpen(false);
@@ -416,14 +409,47 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
           >
             Refresh
           </div>
+          <div className="h-[1px] bg-[#808080] my-1"></div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-center text-sm"
+            onClick={() => setIsViewMenuOpen(false)}
+          >
+            Close
+          </div>
+        </div>
+      )}
+      {/* Tools Menu Dropdown */}
+      {isToolsMenuOpen && (
+        <div className="absolute mt-6 ml-24 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md w-32">
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
+            onClick={() => {
+              setIsAddressBookOpen(true);
+              setIsToolsMenuOpen(false);
+            }}
+          >
+            Address Book
+          </div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
+          >
+            Options...
+          </div>
+          <div className="h-[1px] bg-[#808080] my-1"></div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-center text-sm"
+            onClick={() => setIsToolsMenuOpen(false)}
+          >
+            Close
+          </div>
         </div>
       )}
       
       {/* Compose Menu Dropdown */}
       {isComposeMenuOpen && (
-        <div className="absolute mt-6 ml-32 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md">
+        <div className="absolute mt-6 ml-32 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] z-10 shadow-md w-32">
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-sm"
             onClick={() => {
               handleNewMessage();
               setIsComposeMenuOpen(false);
@@ -432,144 +458,37 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             New Message
           </div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Reply
           </div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Reply All
           </div>
           <div 
-            className="px-4 py-1 hover:bg-[#000080] hover:text-white opacity-50"
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white opacity-50 text-sm"
           >
             Forward
+          </div>
+          <div className="h-[1px] bg-[#808080] my-1"></div>
+          <div 
+            className="px-3 py-1 hover:bg-[#000080] hover:text-white text-center text-sm"
+            onClick={() => setIsComposeMenuOpen(false)}
+          >
+            Close
           </div>
         </div>
       )}
       
-      {/* Toolbar */}
-      <div className="w-full flex items-center bg-[#c0c0c0] border-b border-b-[#808080] p-1">
-        {/* Toolbar Icons */}
-        <div className="flex space-x-1">
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="New Message"
-            onClick={handleNewMessage}
-          >
-            <Image
-              src="/hackbook-W95/custom/new-message.png" 
-              alt="New Message"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Open"
-          >
-            <Image
-              src="/hackbook-W95/custom/open-msg.png" 
-              alt="Open"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Reply"
-          >
-            <Image
-              src="/hackbook-W95/custom/reply.png" 
-              alt="Reply"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Forward"
-          >
-            <Image
-              src="/hackbook-W95/custom/forward.png" 
-              alt="Forward"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Print"
-          >
-            <Image
-              src="/hackbook-W95/custom/print.png" 
-              alt="Print"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Delete"
-          >
-            <Image
-              src="/hackbook-W95/custom/delete.png" 
-              alt="Delete"
-              width={16}
-              height={16}
-              className="w-4 h-4" 
-            />
-          </button>
-          
-          <div className="border-r border-[#808080] h-6 mx-1"></div>
-          
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Address Book"
-            onClick={() => setIsAddressBookOpen(true)}
-          >
-            <Image
-              src="/hackbook-W95/custom/address.png" 
-              alt="Address Book"
-              width={16}
-              height={16}
-              className="w-4 h-4"
-            />
-          </button>
-          <button 
-            className="w-6 h-6 flex items-center justify-center border border-t-[#ffffff] border-l-[#ffffff] border-r-[#404040] border-b-[#404040] bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            title="Find"
-            onClick={() => setIsFindDialogOpen(true)}
-          >
-            <Image
-              src="/hackbook-W95/custom/find.png" 
-              alt="Find"
-              width={16}
-              height={16}
-              className="w-4 h-4"
-            />
-          </button>
-        </div>
-      </div>
+     
       
       <div className="flex flex-1 overflow-hidden">
         {/* Folder Tree */}
         <div className="w-[200px] bg-white border border-[#808080] overflow-auto">
           {/* Microsoft Exchange root */}
-          <div className="flex items-center p-1 border-b border-[#e0e0e0]">
-            <Image
-              src="/hackbook-W95/custom/outlook-folder.png"
-              alt="Microsoft Exchange"
-              width={16}
-              height={16}
-              className="h-4 w-4 mr-1"
-            />
+          <div className="flex items-center justify-center p-1 border-b border-[#e0e0e0]">
             <span className="text-sm font-bold">Microsoft Exchange</span>
           </div>
           
@@ -586,11 +505,11 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
                 />
               </div>
               <Image
-                src="/hackbook-W95/custom/closed-folder.png"
+                src="/hackbook-W95/file.png"
                 alt="Personal Folders"
-                width={16}
-                height={16}
-                className="h-4 w-4 mr-1"
+                width={24}
+                height={24}
+                className="h-6 w-6 mr-1"
               />
               <span className="text-sm font-bold">Personal Folders</span>
             </div>
@@ -598,11 +517,11 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
             {/* Folder items */}
             <div>
               {[
-                { name: "Deleted Items", icon: "deleted-folder", clickable: false },
+                { name: "Deleted Items", icon: "deleted-folder", selected: selected === "Deleted Items", clickable: true },
                 { name: "Inbox", icon: "inbox-folder", selected: selected === "Inbox", clickable: true },
                 { name: "Outbox", icon: "outbox-folder", selected: selected === "Outbox", clickable: true },
-                { name: "Sent Items", icon: "sent-folder", clickable: false },
-                { name: "Drafts", icon: "drafts-folder", clickable: false }
+                { name: "Sent Items", icon: "sent-folder", selected: selected === "Sent Items", clickable: true },
+                { name: "Drafts", icon: "drafts-folder", selected: selected === "Drafts", clickable: true }
               ].map((folder) => (
                 <div 
                   key={folder.name}
@@ -614,11 +533,11 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
                 >
                   <div className="w-4"></div>
                   <Image
-                    src={`/hackbook-W95/custom/${folder.icon}.png`}
+                    src={`/hackbook-W95/file.png`}
                     alt={folder.name}
-                    width={16}
-                    height={16}
-                    className="h-4 w-4 mr-1"
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 mr-1"
                   />
                   <span className="text-sm">{folder.name}</span>
                 </div>
@@ -638,11 +557,11 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
                 />
               </div>
               <Image
-                src="/hackbook-W95/custom/closed-folder.png"
+                src="/hackbook-W95/file.png"
                 alt="Other Folders"
-                width={16}
-                height={16}
-                className="h-4 w-4 mr-1"
+                width={24}
+                height={24}
+                className="h-6 w-6 mr-1"
               />
               <span className="text-sm font-bold">Other Folders</span>
             </div>
@@ -657,11 +576,11 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
                 >
                   <div className="w-4"></div>
                   <Image
-                    src="/hackbook-W95/custom/closed-folder.png"
+                    src="/hackbook-W95/file.png"
                     alt={folder}
-                    width={16}
-                    height={16}
-                    className="h-4 w-4 mr-1"
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 mr-1"
                   />
                   <span className="text-sm">{folder}</span>
                 </div>
@@ -690,6 +609,40 @@ export default function Inbox({ openLink, onClose }: InboxProps) {
               <OutboxMails 
                 openLink={openLink} 
               />
+            )}
+            {(selected === "Drafts" || selected === "Sent Items" || selected === "Deleted Items") && (
+              <div className="p-4 text-sm text-center text-gray-600">
+                <div className="mb-4">
+                  <div className="text-lg font-bold mb-2">{selected}</div>
+                  <div>This folder is currently empty.</div>
+                  {selected === "Drafts" && (
+                    <div className="mt-2 text-xs">
+                      Draft messages will appear here when you save emails without sending them.
+                    </div>
+                  )}
+                  {selected === "Sent Items" && (
+                    <div className="mt-2 text-xs">
+                      Copies of sent messages will appear here after successful delivery.
+                    </div>
+                  )}
+                  {selected === "Deleted Items" && (
+                    <div className="mt-2 text-xs">
+                      Deleted messages will be moved here before permanent removal.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {(selected === "Spam" || selected === "Archive" || selected === "Work" || selected === "Personal") && (
+              <div className="p-4 text-sm text-center text-gray-600">
+                <div className="mb-4">
+                  <div className="text-lg font-bold mb-2">{selected} Folder</div>
+                  <div>This folder is currently empty.</div>
+                  <div className="mt-2 text-xs">
+                    Messages organized in this category will appear here.
+                  </div>
+                </div>
+              </div>
             )}
           </div>
           {/* Compose Window */}
