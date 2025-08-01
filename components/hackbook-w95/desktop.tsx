@@ -3,9 +3,11 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import clsx from "clsx";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
+import { useSecureSession } from "./hooks/useSecureStorage";
+import { useSecureUserStorage } from "./hooks/useSecureUserStorage";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -90,7 +92,6 @@ const Desktop = () => {
   const [unreadCount, setUnreadCount] = useState(1); // Default to 1 for initial notification
 
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -98,7 +99,6 @@ const Desktop = () => {
   const [isClient, setIsClient] = useState(false);
   const [link, setLink] = useState(DefaultValues.LINK as string);
   const [showProgramsMenu, setShowProgramsMenu] = useState(false);
-  const [hasSeenMission, setHasSeenMission] = useState(false);
   const [showShutdownDialog, setShowShutdownDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showRestartAnimation, setShowRestartAnimation] = useState(false);
@@ -200,7 +200,7 @@ const Desktop = () => {
     checkMission2Status();
   }, [mission2JustCompleted]);
 
-  // Device user state
+  // Device user state with secure session management
   const [deviceUser, setDeviceUser] = useState<{
     _id: string;
     username: string;
@@ -209,89 +209,69 @@ const Desktop = () => {
       skills?: Record<string, number>;
     };
   } | null>(null);
-  const [playspaceId, setPlayspaceId] = useState<string | null>(null);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
 
-  // Check if there's a device-specific user logged in
+  // Use secure session management instead of localStorage
+  const { sessionData, loading: sessionLoading, error: sessionError } = useSecureSession();
+  
+  // Secure storage for mission state
+  const [hasSeenMission, setHasSeenMission] = useSecureUserStorage("missionBriefingSeen", false);
+
+  // Check if there's a device-specific user logged in using secure session
   useEffect(() => {
     const checkDeviceUser = async () => {
-      try {
-        // Get playspace ID and device ID from localStorage and URL params
-        let id = null;
-        let devId = null;
+      if (sessionLoading) return;
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        router.push("/device-selection");
+        return;
+      }
 
-        if (typeof window !== "undefined") {
-          id = localStorage.getItem("playspaceId");
-          devId = localStorage.getItem("selectedDeviceId");
-
-          // If not in localStorage, check URL as fallback (for backwards compatibility)
-          if (!id && searchParams) {
-            id = searchParams.get("playspaceId");
-            // If found in URL, save to localStorage for future use
-            if (id) {
-              localStorage.setItem("playspaceId", id);
-            }
-          }
-
-          // Check URL for deviceId
-          if (searchParams) {
-            const urlDeviceId = searchParams.get("deviceId");
-            if (urlDeviceId) {
-              devId = urlDeviceId;
-              localStorage.setItem("selectedDeviceId", urlDeviceId);
-            }
-          }
-        }
-
-        if (id && devId) {
-          setPlayspaceId(id);
-          setDeviceId(devId);
-
-          // Check if user exists by calling getDeviceUser server action
-          const result = await getDeviceUser(devId || "", "hackbook-w95");   
-
-          if (result.isLoggedIn && result.user) {
-            // Set user data compatible with updated schema
-            setDeviceUser({
-              _id: result.user._id,
-              username: result.user.username
-            });
-
-            // Check if user has seen mission briefing in user-specific storage
-            import('./hooks/useUserStorage').then(({ userStorage }) => {
-              const missionSeen = userStorage.getItem("missionBriefingSeen", false) as boolean;
-              setHasSeenMission(missionSeen === true);
-            });
-
-            // Log device connection
-            import('./hooks/useUserLogs').then(({ UserLogManager }) => {
-              UserLogManager.addSystemLog(
-                'system',
-                `Connected to device instance: ${devId}`,
-                'Device instance selection'
-              );
-            });
-            
-            return; // User is logged in, no need to redirect
-          }
-
-          // If we get here, either no session or invalid session
-          // Redirect to login with deviceId
-          const loginUrl = `/hackbook-w95/login?playspaceId=${id}&deviceId=${devId}`;
-          router.push(loginUrl);
+      if (!sessionData.isAuthenticated) {
+        // No valid session, redirect to login
+        const urlParams = new URLSearchParams(window.location.search);
+        const deviceId = urlParams.get('deviceId');
+        const playspaceId = sessionData.playspaceId || urlParams.get('playspaceId');
+        
+        if (deviceId && playspaceId) {
+          router.push(`/hackbook-w95/login?playspaceId=${playspaceId}&deviceId=${deviceId}`);
         } else {
-          // No playspace ID or device ID found, redirect to device selection
-          router.push('/device-selection');
+          router.push("/device-selection");
+        }
+        return;
+      }
+
+      // Session is authenticated, set user data
+      try {
+        const result = await getDeviceUser(sessionData.deviceId || "", "hackbook-w95");
+        
+        if (result.isLoggedIn && result.user) {
+          setDeviceUser({
+            _id: result.user._id,
+            username: result.user.username
+          });
+
+          // Log device connection with secure session data
+          import('./hooks/useUserLogs').then(({ UserLogManager }) => {
+            UserLogManager.addSystemLog(
+              'system',
+              `Connected to device instance: ${sessionData.deviceId}`,
+              'Secure session authenticated'
+            );
+          });
+        } else {
+          // Session cookie exists but user validation failed
+          console.warn("Session validation failed, redirecting to login");
+          router.push(`/hackbook-w95/login?playspaceId=${sessionData.playspaceId}&deviceId=${sessionData.deviceId}`);
         }
       } catch (error) {
-        console.error("Error checking device user:", error);
-        // On error, redirect to login
-        router.push('/hackbook-w95/login');
+        console.error("Error validating device user:", error);
+        router.push("/device-selection");
       }
     };
 
     checkDeviceUser();
-  }, [router, searchParams, deviceId]);
+  }, [sessionData, sessionLoading, sessionError, router]);
 
   // Function to play system sounds - moved up to be available for useEffect hooks
   const playSound = useCallback((sound: string) => {
@@ -333,10 +313,10 @@ const Desktop = () => {
 
   // Debug log for development
   useEffect(() => {
-    if (deviceId) {
-      console.log(`HackBook W95 connected to device instance: ${deviceId}`);
+    if (sessionData.deviceId) {
+      console.log(`HackBook W95 connected to device instance: ${sessionData.deviceId}`);
     }
-  }, [deviceId]);
+  }, [sessionData.deviceId]);
 
   // Handle logout from device
   const handleLogout = async () => {
@@ -347,46 +327,41 @@ const Desktop = () => {
   // Handle logout animation completion
   const handleLogoutComplete = async () => {
     try {
-      if (playspaceId && deviceUser) {
+      if (sessionData.playspaceId && deviceUser) {
         // Logout from device session - this will clear the httpOnly cookie on server side
         await logoutDeviceUser(
-          localStorage.getItem("selectedDeviceId") || "",
+          sessionData.deviceId || "",
           "hackbook-w95"
         );
 
-        // Clear only device-specific localStorage items, preserve playspaceId
+        // Clear only device-specific localStorage items - secure storage will be inaccessible after logout
         if (typeof window !== "undefined") {
-          // Keep playspaceId and selectedDeviceId for proper redirection
-          // Only remove device type to reset device-specific state
-          localStorage.removeItem("selectedDeviceType");
+          // Clear all secure storage items
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('secure_')) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
         }
       }
 
-      // Navigate back to hackbook-w95 login with preserved playspaceId and deviceId
-      const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
-      const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
-      
-      if (storedPlayspaceId && storedDeviceId) {
-        router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
+      // Navigate back to hackbook-w95 login with session data
+      if (sessionData.playspaceId && sessionData.deviceId) {
+        router.push(`/hackbook-w95/login?playspaceId=${sessionData.playspaceId}&deviceId=${sessionData.deviceId}&fromLogout=true`);
       } else {
-        // Fallback to device selection only if we don't have the required IDs
+        // Fallback to device selection
         router.push("/device-selection");
       }
     } catch (error) {
       console.error("Error logging out:", error);
-      // Even if logout fails, try to redirect to hackbook-w95 login with preserved IDs
-      if (typeof window !== "undefined") {
-        const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
-        const storedDeviceId = localStorage.getItem("selectedDeviceId") || deviceId;
-        
-        if (storedPlayspaceId && storedDeviceId) {
-          router.push(`/hackbook-w95/login?playspaceId=${storedPlayspaceId}&deviceId=${storedDeviceId}&fromLogout=true`);
-        } else {
-          // Only clear localStorage and go to device selection as last resort
-          localStorage.removeItem("playspaceId");
-          localStorage.removeItem("selectedDeviceId");
-          router.push("/device-selection");
-        }
+      // Even if logout fails, try to redirect to login
+      if (sessionData.playspaceId && sessionData.deviceId) {
+        router.push(`/hackbook-w95/login?playspaceId=${sessionData.playspaceId}&deviceId=${sessionData.deviceId}&fromLogout=true`);
+      } else {
+        router.push("/device-selection");
       }
     }
   };
@@ -912,7 +887,7 @@ const Desktop = () => {
       window.removeEventListener("win95openfile", handleOpenFile as EventListener);
       clearInterval(interval);
     };
-  }, [handleOpenApp, selectedApp, hasSeenMission, deviceUser]); // Removed runningApps dependency
+  }, [handleOpenApp, selectedApp, hasSeenMission, deviceUser, setHasSeenMission]); // Added setHasSeenMission dependency
 
   return (
     <main id="screen" className="h-screen w-screen overscroll-none fixed text-black">

@@ -144,7 +144,7 @@ const LoginPage = () => {
         setIsLoading(false);
         return;
       }
-      const result = await loginDeviceUser(username, password, deviceId, "hackbook-w95");
+      const result = await loginDeviceUser(username, password, deviceId, "hackbook-w95", playspaceId);
 
       if (!result || !result.success || !result.user) {
         setError(result?.error || "Login failed");
@@ -189,7 +189,7 @@ const LoginPage = () => {
       }
 
       // Create device-specific user
-      const result = await createDeviceUser(username, password, deviceId, "hackbook-w95");
+      const result = await createDeviceUser(username, password, deviceId, "hackbook-w95", playspaceId);
 
 
       if (result.error) {

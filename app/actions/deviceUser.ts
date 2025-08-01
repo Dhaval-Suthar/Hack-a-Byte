@@ -3,15 +3,16 @@
 import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
 import Device from "@/models/Device";
-import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { createDeviceSession, clearDeviceSession, validateDeviceSession } from "@/lib/device-session";
 
 // Create a new device user
 export async function createDeviceUser(
   username: string,
   password: string,
   deviceId: string,
-  deviceType: string
+  deviceType: string,
+  playspaceId: string
 ) {
   try {
     await connectDb();
@@ -32,7 +33,6 @@ export async function createDeviceUser(
       return { error: "Username already exists on this device" };
     }
 
-
     // Create the new device user
     const newUser = new DeviceUser({
       username,
@@ -42,24 +42,13 @@ export async function createDeviceUser(
 
     await newUser.save();
 
-    // Set a cookie to remember this user for this device
-    const cookieValue = JSON.stringify({
+    // Create secure session instead of simple cookie
+    await createDeviceSession(
+      newUser._id.toString(),
+      newUser.username,
       deviceId,
       deviceType,
-      userId: newUser._id.toString(),
-      username
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set(
-      `device_${deviceId}_${deviceType}`,
-      cookieValue,
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: "/",
-      }
+      playspaceId
     );
 
     return { 
@@ -80,11 +69,11 @@ export async function loginDeviceUser(
   username: string,
   password: string,
   deviceId: string,
-  deviceType: string
+  deviceType: string,
+  playspaceId: string
 ) {
   try {
     await connectDb();
-
 
     // Find the user on this device
     const user = await DeviceUser.findOne({
@@ -107,24 +96,13 @@ export async function loginDeviceUser(
     user.isActive = true;
     await user.save();
 
-    // Set a cookie to remember this user for this device
-    const cookieValue = JSON.stringify({
+    // Create secure session instead of simple cookie
+    await createDeviceSession(
+      user._id.toString(),
+      user.username,
       deviceId,
       deviceType,
-      userId: user._id.toString(),
-      username
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set(
-      `device_${deviceId}_${deviceType}`,
-      cookieValue,
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: "/",
-      }
+      playspaceId
     );
 
     return { 
@@ -146,26 +124,23 @@ export async function getDeviceUser(
   deviceType: string
 ) {
   try {
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get(`device_${deviceId}_${deviceType}`);
+    // Use secure session validation instead of cookie parsing
+    const sessionData = await validateDeviceSession(deviceId, deviceType);
     
-    if (!userCookie || !userCookie.value) {
+    if (!sessionData) {
       return { isLoggedIn: false };
     }
 
-    const userData = JSON.parse(userCookie.value);
-    
     await connectDb();
-    
 
     // Verify user still exists
     const user = await DeviceUser.findOne({
-      _id: new mongoose.Types.ObjectId(userData.userId),
+      _id: new mongoose.Types.ObjectId(sessionData.userId),
     });
 
     if (!user) {
-      // Cookie exists but user doesn't - clear the cookie
-      cookieStore.delete(`device_${deviceId}_${deviceType}`);
+      // Session exists but user doesn't - clear the session
+      await clearDeviceSession(deviceId, deviceType);
       return { isLoggedIn: false };
     }
 
@@ -187,8 +162,7 @@ export async function logoutDeviceUser(
   deviceId: string,
   deviceType: string
 ) {
-  const cookieStore = await cookies();
-  cookieStore.delete(`device_${deviceId}_${deviceType}`);
+  await clearDeviceSession(deviceId, deviceType);
   return { success: true };
 }
 
