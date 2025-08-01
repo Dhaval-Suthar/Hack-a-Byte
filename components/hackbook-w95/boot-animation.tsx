@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 
 const BootAnimation = () => {
   const [bootStage, setBootStage] = useState(0);
@@ -101,8 +102,18 @@ const BootAnimation = () => {
           <div className="relative z-10 flex flex-col items-center">
             <div className="mb-8 flex items-center justify-center">
               <div className="w-64 h-64 flex items-center justify-center">
-                <div className="text-white text-6xl font-bold">
-                  Windows<span className="text-4xl align-top">®</span> 95
+                {/* Windows 95 Logo/Image */}
+                <div className="flex flex-col items-center">
+                  <Image 
+                    src="/hackbook-W95/app-icon/start.png" 
+                    alt="Windows 95 Logo" 
+                    width={250}
+                    height={250}
+                    className="mb-4 animate-pulse"
+                  />
+                  <div className="text-white text-6xl font-bold">
+                    Windows<span className="text-4xl align-top">®</span> 95
+                  </div>
                 </div>
               </div>
             </div>

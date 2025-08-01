@@ -99,4 +99,5 @@ export const TAB_LABELS: Record<string, string> = {
   playspaces: "Playspaces",
   devices: "Devices",
   events: "Events",
+  sponsors: "Sponsor Contacts",
 };
