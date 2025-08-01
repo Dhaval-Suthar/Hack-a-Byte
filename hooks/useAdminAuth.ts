@@ -76,7 +76,8 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [validateSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Removed validateSession dependency to prevent infinite loop
 
   // Session refresh interval
   useEffect(() => {
@@ -94,7 +95,8 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     }, 5 * 60 * 1000); // Check every 5 minutes
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, validateSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]); // Removed validateSession dependency to prevent infinite loop
 
   // Authentication handlers
   const handleAuthSuccess = useCallback((authKey: string) => {

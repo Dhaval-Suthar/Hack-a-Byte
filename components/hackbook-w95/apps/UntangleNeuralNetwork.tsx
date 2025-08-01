@@ -170,10 +170,10 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
 
   // Update connection intersection states
   const updateIntersections = useCallback(() => {
-    // Early return if no connections exist yet
-    if (connections.length === 0) return;
-    
     setConnections(prevConnections => {
+      // Early return if no connections exist yet
+      if (prevConnections.length === 0) return prevConnections;
+      
       const updatedConnections = prevConnections.map(connection => {
         const fromNode = nodes.find(n => n.id === connection.from);
         const toNode = nodes.find(n => n.id === connection.to);
@@ -245,7 +245,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       
       return updatedConnections;
     });
-  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, connections.length, moveCount]);
+  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, moveCount]);
 
   // Draw the neural network
   const drawNetwork = useCallback(() => {
@@ -255,7 +255,25 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    const config = getDifficultyConfig();
+    const globalDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    let config;
+    switch (globalDifficulty) {
+      case "easy":
+        config = { canvasWidth: 300, canvasHeight: 200 };
+        break;
+      case "normal":
+        config = { canvasWidth: 350, canvasHeight: 250 };
+        break;
+      case "hard":
+        config = { canvasWidth: 400, canvasHeight: 300 };
+        break;
+      case "nightmare":
+        config = { canvasWidth: 450, canvasHeight: 350 };
+        break;
+      default:
+        config = { canvasWidth: 350, canvasHeight: 250 };
+    }
+    
     canvas.width = config.canvasWidth;
     canvas.height = config.canvasHeight;
     
@@ -317,7 +335,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       ctx.textAlign = 'center';
       ctx.fillText('RESTORED!', canvas.width / 2, canvas.height / 2 - 20);
     }
-  }, [nodes, connections, getDifficultyConfig, moveCount, gameComplete]);
+  }, [nodes, connections, moveCount, gameComplete]);
 
   // Handle mouse events
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -357,16 +375,34 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     const x = event.clientX - rect.left - dragOffset.x;
     const y = event.clientY - rect.top - dragOffset.y;
     
-    const config = getDifficultyConfig();
-    const clampedX = Math.max(15, Math.min(config.canvasWidth - 15, x));
-    const clampedY = Math.max(15, Math.min(config.canvasHeight - 15, y));
+    const globalDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    let canvasWidth, canvasHeight;
+    switch (globalDifficulty) {
+      case "easy":
+        canvasWidth = 300; canvasHeight = 200;
+        break;
+      case "normal":
+        canvasWidth = 350; canvasHeight = 250;
+        break;
+      case "hard":
+        canvasWidth = 400; canvasHeight = 300;
+        break;
+      case "nightmare":
+        canvasWidth = 450; canvasHeight = 350;
+        break;
+      default:
+        canvasWidth = 350; canvasHeight = 250;
+    }
+    
+    const clampedX = Math.max(15, Math.min(canvasWidth - 15, x));
+    const clampedY = Math.max(15, Math.min(canvasHeight - 15, y));
     
     setNodes(prev => prev.map(node => 
       node.id === draggedNode 
         ? { ...node, x: clampedX, y: clampedY }
         : node
     ));
-  }, [draggedNode, dragOffset, getDifficultyConfig]);
+  }, [draggedNode, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     if (draggedNode) {
@@ -388,12 +424,14 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   // Update intersections when nodes change
   useEffect(() => {
     updateIntersections();
-  }, [nodes, updateIntersections]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]); // Removed updateIntersections from dependencies to prevent circular updates
 
   // Draw network
   useEffect(() => {
     drawNetwork();
-  }, [drawNetwork]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, connections, moveCount, gameComplete]); // Only depend on state that affects drawing
 
   // Handle celebration timeout
   useEffect(() => {

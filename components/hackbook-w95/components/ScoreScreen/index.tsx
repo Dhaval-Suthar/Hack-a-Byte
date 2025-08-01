@@ -5,7 +5,6 @@ import Button from "@/components/ui/Button";
 import Leaderboard from "../Leaderboard";
 import { addLeaderboardEntry } from "@/app/actions/leaderboard";
 import GameDifficultyManager from "../../hooks/useGameDifficulty";
-import gameScoring from "../../hooks/useGameScoring";
 import audioManager from "../../hooks/useAudioManager";
 import './styles.css';
 
@@ -36,15 +35,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
   
   // Toggle between results and leaderboard
   const [activeTab, setActiveTab] = useState<'results' | 'leaderboard'>('results');
-  
-  // Get comprehensive scoring data
-  const comprehensiveScore = gameScoring.calculateOverallScore();
-  const [showComprehensiveScoring, setShowComprehensiveScoring] = useState(false);
-
-  // Initialize comprehensive scoring visibility
-  useEffect(() => {
-    setShowComprehensiveScoring(comprehensiveScore.gamesCompleted > 1);
-  }, [comprehensiveScore.gamesCompleted]);
 
   // Memoize confetti particles to prevent re-renders
   const confettiParticles = useMemo(() => {
@@ -266,63 +256,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Enhanced comprehensive scoring display */}
-              {showComprehensiveScoring && (
-                <div className="bg-[#ffffff] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 p-6 mb-6 shadow-lg">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-xl flex items-center">
-                      🎮 Mission Sequence Analysis
-                    </h3>
-                    <button 
-                      className="text-sm bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] px-3 py-1 hover:bg-[#d0d0d0] transition-colors"
-                      onClick={() => setShowComprehensiveScoring(!showComprehensiveScoring)}
-                    >
-                      {showComprehensiveScoring ? '📤 Collapse' : '📥 Expand'}
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
-                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.totalScore}</div>
-                      <div className="text-sm text-gray-600">Total Score</div>
-                    </div>
-                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
-                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.gamesCompleted}/5</div>
-                      <div className="text-sm text-gray-600">Games Completed</div>
-                    </div>
-                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
-                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.averageTime}s</div>
-                      <div className="text-sm text-gray-600">Average Time</div>
-                    </div>
-                  </div>
-                  
-                  {comprehensiveScore.perfectionBonus > 0 && (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded mb-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-green-800 font-bold">🌟 Perfection Bonus!</span>
-                        <span className="text-green-600 font-bold text-xl">+{comprehensiveScore.perfectionBonus}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Individual Game Breakdown with enhanced styling */}
-                  <div className="mt-6">
-                    <h4 className="font-bold mb-3 text-lg">📋 Detailed Breakdown:</h4>
-                    <div className="space-y-2">
-                      {comprehensiveScore.breakdown.map((gameData, index) => (
-                        <div key={index} className="flex justify-between items-center bg-[#f0f0f0] p-3 rounded border hover:bg-[#e8e8e8] transition-colors">
-                          <span className="font-medium">{gameData.game}</span>
-                          <div className="text-right">
-                            <div className="font-bold text-[#000080]">{gameData.score}pts</div>
-                            <div className="text-sm text-gray-600">{gameData.time}s • {gameData.attempts} attempts</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Enhanced difficulty selection */}
               <div className="bg-gradient-to-br from-[#d4d0c8] to-[#c0c0c0] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 p-6 mb-6 shadow-lg">

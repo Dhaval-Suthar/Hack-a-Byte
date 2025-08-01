@@ -23,7 +23,7 @@ const MissionSchema = new Schema<Mission>(
     difficulty: {
       type: String,
       enum: ["easy", "medium", "hard"],
-      default: "medium",
+      default: "easy",
     }
   },
   { timestamps: true }

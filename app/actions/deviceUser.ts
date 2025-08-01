@@ -101,6 +101,22 @@ export async function createDeviceUser(
         progress: {
           unlockedApplications: newUser.gameState.unlockedApplications,
           skills: Object.fromEntries(newUser.gameState.skills || new Map())
+        },
+        gameState: {
+          unlockedApplications: newUser.gameState.unlockedApplications,
+          skills: Object.fromEntries(newUser.gameState.skills || new Map()),
+          missions: Object.fromEntries(newUser.gameState.missions || new Map()),
+          gameStats: {
+            totalPlayTime: newUser.gameState.gameStats?.totalPlayTime || 0,
+            loginCount: newUser.gameState.gameStats?.loginCount || 0,
+            lastLoginDate: newUser.gameState.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
+            achievementsUnlocked: newUser.gameState.gameStats?.achievementsUnlocked || []
+          },
+          settings: {
+            soundEnabled: newUser.gameState.settings?.soundEnabled ?? true,
+            showHiddenFiles: newUser.gameState.settings?.showHiddenFiles ?? false,
+            difficulty: newUser.gameState.settings?.difficulty || 'medium'
+          }
         }
       }
     };
@@ -191,6 +207,22 @@ export async function loginDeviceUser(
         progress: {
           unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
           skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+        },
+        gameState: {
+          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
+          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          gameStats: {
+            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: user.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
+            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+          },
+          settings: user.gameState?.settings || {
+            soundEnabled: true,
+            showHiddenFiles: false,
+            difficulty: 'medium'
+          }
         }
       }
     };
@@ -244,9 +276,20 @@ export async function getDeviceUser(
           skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
         },
         gameState: {
-          ...user.gameState,
+          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
           skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
-          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {}
+          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          gameStats: {
+            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: user.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
+            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+          },
+          settings: user.gameState?.settings || {
+            soundEnabled: true,
+            showHiddenFiles: false,
+            difficulty: 'medium'
+          }
         }
       }
     };

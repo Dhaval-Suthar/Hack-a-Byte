@@ -119,7 +119,8 @@ export default function DeviceSelectionPage() {
         setLoading(false);
       }
     }
-  }, [fetchDevices,router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Removed fetchDevices and router dependencies to prevent infinite loop
 
   // Fullscreen handling
   useEffect(() => {

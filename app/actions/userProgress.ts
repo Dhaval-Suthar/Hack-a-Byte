@@ -31,10 +31,42 @@ export async function getUserProgress(deviceId: string, deviceType: string) {
     }
 
     // Convert Map objects to plain objects for serialization
+    const missions = user.gameState.missions ? Object.fromEntries(user.gameState.missions) : {};
+    const serializedMissions: Record<string, object> = {};
+    
+    // Serialize Date objects and ensure all properties are plain values in missions
+    for (const [key, mission] of Object.entries(missions)) {
+      serializedMissions[key] = {
+        id: mission.id || key,
+        title: mission.title || '',
+        description: mission.description || '',
+        completed: Boolean(mission.completed),
+        progress: Number(mission.progress) || 0,
+        completedAt: mission.completedAt?.toISOString() || null,
+        startedAt: mission.startedAt?.toISOString() || null,
+        objectives: mission.objectives ? mission.objectives.map((obj: { id: string; description: string; completed: boolean }) => ({
+          id: obj.id || '',
+          description: obj.description || '',
+          completed: Boolean(obj.completed)
+        })) : []
+      };
+    }
+
     const gameState = {
-      ...user.gameState,
+      unlockedApplications: user.gameState.unlockedApplications || [],
       skills: user.gameState.skills ? Object.fromEntries(user.gameState.skills) : {},
-      missions: user.gameState.missions ? Object.fromEntries(user.gameState.missions) : {}
+      missions: serializedMissions,
+      gameStats: {
+        totalPlayTime: user.gameState.gameStats?.totalPlayTime || 0,
+        loginCount: user.gameState.gameStats?.loginCount || 0,
+        lastLoginDate: user.gameState.gameStats?.lastLoginDate?.toISOString() || null,
+        achievementsUnlocked: user.gameState.gameStats?.achievementsUnlocked || []
+      },
+      settings: {
+        soundEnabled: user.gameState.settings?.soundEnabled ?? true,
+        showHiddenFiles: user.gameState.settings?.showHiddenFiles ?? false,
+        difficulty: user.gameState.settings?.difficulty || 'medium'
+      }
     };
 
     return {
@@ -43,7 +75,7 @@ export async function getUserProgress(deviceId: string, deviceType: string) {
       user: {
         _id: user._id.toString(),
         username: user.username,
-        lastActiveTime: user.lastActiveTime
+        lastActiveTime: user.lastActiveTime?.toISOString() || null
       }
     };
   } catch (error) {
@@ -62,6 +94,15 @@ export async function updateMissionProgress(
   missionData: Partial<MissionProgress>
 ) {
   try {
+    // Validate inputs
+    if (!deviceId || !deviceType || !missionId) {
+      return { error: "Missing required parameters" };
+    }
+
+    if (!missionData || typeof missionData !== 'object') {
+      return { error: "Invalid mission data" };
+    }
+
     const cookieStore = await cookies();
     const userCookie = cookieStore.get(`device_${deviceId}_${deviceType}`);
     
@@ -100,11 +141,14 @@ export async function updateMissionProgress(
     // Merge the new data with existing mission data
     // Make sure required fields are preserved from existing mission if not provided in update
     const updatedMission: MissionProgress = {
-      ...existingMission,
-      ...missionData,
       id: missionId, // Ensure ID is always set
       title: missionData.title || existingMission.title || `Mission ${missionId}`,
-      description: missionData.description || existingMission.description || `Mission ${missionId} details`
+      description: missionData.description || existingMission.description || `Mission ${missionId} details`,
+      completed: missionData.completed !== undefined ? missionData.completed : existingMission.completed,
+      progress: missionData.progress !== undefined ? missionData.progress : existingMission.progress,
+      objectives: missionData.objectives || existingMission.objectives || [],
+      startedAt: existingMission.startedAt,
+      completedAt: existingMission.completedAt
     };
 
     // If mission is being completed, set completion timestamp
@@ -127,13 +171,30 @@ export async function updateMissionProgress(
     // Save the user
     await user.save();
 
+    // Serialize the mission data properly to avoid circular references
+    const serializedMission = {
+      id: updatedMission.id,
+      title: updatedMission.title,
+      description: updatedMission.description,
+      completed: updatedMission.completed,
+      progress: updatedMission.progress || 0,
+      objectives: updatedMission.objectives || [],
+      completedAt: updatedMission.completedAt?.toISOString() || null,
+      startedAt: updatedMission.startedAt?.toISOString() || null
+    };
+
     return {
       success: true,
-      mission: updatedMission
+      mission: serializedMission
     };
   } catch (error) {
     console.error("Error updating mission progress:", error);
-    return { error: "Failed to update mission progress" };
+    
+    // Return a safe, serializable error response
+    return { 
+      error: "Failed to update mission progress",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 }
 
@@ -295,7 +356,12 @@ export async function updateGameStats(
 
     return {
       success: true,
-      gameStats: user.gameState.gameStats
+      gameStats: {
+        totalPlayTime: user.gameState.gameStats?.totalPlayTime || 0,
+        loginCount: user.gameState.gameStats?.loginCount || 0,
+        lastLoginDate: user.gameState.gameStats?.lastLoginDate?.toISOString() || null,
+        achievementsUnlocked: user.gameState.gameStats?.achievementsUnlocked || []
+      }
     };
   } catch (error) {
     console.error("Error updating game stats:", error);
@@ -336,7 +402,20 @@ export async function getMissionStatus(
 
     return {
       success: true,
-      mission: mission || null,
+      mission: mission ? {
+        id: mission.id || missionId,
+        title: mission.title || '',
+        description: mission.description || '',
+        completed: Boolean(mission.completed),
+        progress: Number(mission.progress) || 0,
+        completedAt: mission.completedAt?.toISOString() || null,
+        startedAt: mission.startedAt?.toISOString() || null,
+        objectives: mission.objectives ? mission.objectives.map((obj: { id: string; description: string; completed: boolean }) => ({
+          id: obj.id || '',
+          description: obj.description || '',
+          completed: Boolean(obj.completed)
+        })) : []
+      } : null,
       completed: mission?.completed || false
     };
   } catch (error) {

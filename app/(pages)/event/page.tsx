@@ -55,7 +55,8 @@ const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }:
       setCompleted(true);
       onComplete();
     }
-  }, [index, text, speed, completed, onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, text, speed, completed]); // Removed onComplete to prevent potential infinite loop
 
   return <span className={className}>{displayedText}</span>;
 };

@@ -228,6 +228,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                         src={segment.mainImage} 
                         alt={`Fingerprint segment ${index + 1}`}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-contain opacity-30"
                       />
                     ) : (
@@ -270,6 +271,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-80"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -282,6 +284,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-60"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -294,6 +297,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-30"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -336,6 +340,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                             src={patternImage} 
                             alt={`Pattern option ${idx + 1}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
                           />
                         </div>
@@ -389,6 +394,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                           src={segment.mainImage} 
                           alt={`Fingerprint segment ${segment.id + 1}`}
                           fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-contain opacity-80"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">

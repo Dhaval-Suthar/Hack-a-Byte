@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
 import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -24,6 +24,7 @@ const LoginPage = () => {
   const [loggedInUsername, setLoggedInUsername] = useState<string>("");
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const isCheckingLogin = useRef(false);
   
   // Show boot animation on initial load
   useEffect(() => {
@@ -79,10 +80,23 @@ const LoginPage = () => {
     }
   }, [searchParams]);
   
+  // Memoized navigation function to avoid router dependency issues
+  const navigateToDesktop = useCallback((deviceId: string) => {
+    const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
+    router.push(targetUrl);
+  }, [router]);
+
   useEffect(() => {
     // Check if user is already logged in to this specific device type
     const checkDeviceLogin = async () => {
-      if (playspaceId && deviceId) {
+      // Prevent multiple simultaneous calls
+      if (isCheckingLogin.current || !playspaceId || !deviceId) {
+        return;
+      }
+
+      isCheckingLogin.current = true;
+
+      try {
         const result = await getDeviceUser(deviceId, "hackbook-w95");
         if (result.isLoggedIn && result.user) {
           // Import dynamically to avoid SSR issues
@@ -101,27 +115,35 @@ const LoginPage = () => {
               `User ${result.user.username} logged in automatically${deviceId ? ` to device ${deviceId}` : ''}`,
               'Auto-login from saved session'
             );
+          }).catch(error => {
+            console.error('Error importing UserLogManager:', error);
           });
           
-          // Auto-login with saved playspace user, pass deviceId as query param if available
-          const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
-          router.push(targetUrl);
+          // Auto-login with saved playspace user
+          navigateToDesktop(deviceId);
         }
+      } catch (error) {
+        console.error('Error checking device login:', error);
+      } finally {
+        isCheckingLogin.current = false;
       }
     };
     
+    // Only run once when both playspaceId and deviceId are available
     checkDeviceLogin();
-  }, [playspaceId, deviceId, router]);
+  }, [playspaceId, deviceId, navigateToDesktop]);
 
   const handleToggleMode = () => {
     setIsSigningUp(!isSigningUp);
     setError(null);
   };
 
-  const handleLogin = async (formData: FormData) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
     setError(null);
 
+    const formData = new FormData(e.currentTarget);
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
@@ -144,6 +166,7 @@ const LoginPage = () => {
         setIsLoading(false);
         return;
       }
+      
       const result = await loginDeviceUser(username, password, deviceId, "hackbook-w95");
 
       if (!result || !result.success || !result.user) {
@@ -163,10 +186,12 @@ const LoginPage = () => {
     }
   };
 
-  const handleSignup = async (formData: FormData) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
     setError(null);
     
+    const formData = new FormData(e.currentTarget);
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
@@ -221,8 +246,9 @@ const LoginPage = () => {
 
   const handleLoginAnimationComplete = () => {
     // After login animation completes, redirect to the desktop
-    const targetUrl = deviceId ? `/hackbook-w95?deviceId=${deviceId}` : "/hackbook-w95";
-    router.push(targetUrl);
+    if (deviceId) {
+      navigateToDesktop(deviceId);
+    }
   };
 
   if (showBootScreen) {
@@ -284,7 +310,7 @@ const LoginPage = () => {
           </div>
         )}
         
-        <form action={isSigningUp ? handleSignup : handleLogin}>
+        <form onSubmit={isSigningUp ? handleSignup : handleLogin}>
           <div className="w-auto h-auto flex m-1 p-4">
             <div className="w-1/5 h-full flex justify-center items-start pt-4">
               <Image 

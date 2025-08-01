@@ -66,16 +66,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
     });
   };
 
-  const getDifficultyClass = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy": return "text-green-600";
-      case "normal": return "text-blue-600";
-      case "hard": return "text-orange-600";
-      case "nightmare": return "text-red-600";
-      default: return "";
-    }
-  };
-
   return (
     <div className={`bg-[#d4d0c8] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 p-4 ${className}`}>
       <h3 className="font-bold text-lg mb-4">Leaderboard</h3>
@@ -84,16 +74,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         <div className="flex mb-2">
           <span className="mr-2">Filter by:</span>
           <div className="flex space-x-1">
-            <button
-              className={`px-2 py-0.5 text-sm border-2 ${
-                selectedDifficulty === "all" 
-                  ? "border-[#808080] border-t-[#404040] border-l-[#404040] bg-[#c0c0c0] shadow-inner" 
-                  : "border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080]"
-              }`}
-              onClick={() => setSelectedDifficulty("all")}
-            >
-              All
-            </button>
             <button
               className={`px-2 py-0.5 text-sm border-2 ${
                 selectedDifficulty === "easy" 
@@ -150,9 +130,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                 <th className="py-1 px-2 text-left">Rank</th>
                 <th className="py-1 px-2 text-left">Player</th>
                 <th className="py-1 px-2 text-left">Score</th>
-                {selectedDifficulty === "all" && (
-                  <th className="py-1 px-2 text-left">Difficulty</th>
-                )}
                 <th className="py-1 px-2 text-left">Date</th>
               </tr>
             </thead>
@@ -165,11 +142,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   <td className="py-1 px-2 font-bold">{index + 1}</td>
                   <td className="py-1 px-2">{entry.username}</td>
                   <td className="py-1 px-2 font-bold">{entry.score}</td>
-                  {selectedDifficulty === "all" && (
-                    <td className={`py-1 px-2 ${getDifficultyClass(entry.difficulty)}`}>
-                      {entry.difficulty.charAt(0).toUpperCase() + entry.difficulty.slice(1)}
-                    </td>
-                  )}
                   <td className="py-1 px-2 text-xs">{formatDate(entry.date)}</td>
                 </tr>
               ))}
@@ -180,11 +152,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   <td className="py-1 px-2 font-bold">{currentPlayerRank}</td>
                   <td className="py-1 px-2">You (current score)</td>
                   <td className="py-1 px-2 font-bold">{currentScore}</td>
-                  {selectedDifficulty === "all" && (
-                    <td className={`py-1 px-2 ${getDifficultyClass(initialDifficulty)}`}>
-                      {initialDifficulty.charAt(0).toUpperCase() + initialDifficulty.slice(1)}
-                    </td>
-                  )}
                   <td className="py-1 px-2 text-xs">Just now</td>
                 </tr>
               )}

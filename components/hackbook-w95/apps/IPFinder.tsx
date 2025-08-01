@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import clsx from "clsx";
 
 interface IPFinderProps {
@@ -26,7 +26,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
   const MAX_ATTEMPTS = 3;
 
   // Generate number grid with target IP hidden
-  const generateNumberGrid = useCallback((): { grid: string[], target: string } => {
+  const generateNumberGrid = (): { grid: string[], target: string } => {
     // Dynamic target scenarios
     const scenarios = [
       { targetIP: "192.168.1.142", description: "ShadowByte's Lair" },
@@ -64,7 +64,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
     }
     
     return { grid, target: scenario.targetIP };
-  }, []);
+  };
 
   // Initialize game
   useEffect(() => {
@@ -87,7 +87,7 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [generateNumberGrid]);
+  }, []); // Empty dependency array to run only once
 
   // Handle number click
   const handleNumberClick = (index: number, value: string) => {

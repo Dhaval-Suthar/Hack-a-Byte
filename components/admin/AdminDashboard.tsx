@@ -170,10 +170,106 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     [authKey]
   );
 
+  // Batch load multiple data types to prevent concurrent calls
+  const loadMultipleData = useCallback(
+    async (tabs: TabType[]) => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const promises = tabs.map(async (tab) => {
+          switch (tab) {
+            case "users": {
+              const result = await getUsers(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: result.users || [] };
+            }
+            case "teams": {
+              const result = await getTeams(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: (result.teams || []) as AdminTeam[] };
+            }
+            case "accessCodes": {
+              const result = await getAccessCodes(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: result.accessCodes || [] };
+            }
+            case "playspaces": {
+              const result = await getPlayspaces(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: result.playspaces || [] };
+            }
+            case "devices": {
+              const result = await getAllDevices(authKey);
+              if (result.error) throw new Error(result.error);
+              return { 
+                tab, 
+                data: (result.devices || []).map((device: AdminDevice) => ({
+                  _id: device._id,
+                  deviceMacAddress: device.deviceMacAddress ?? "",
+                  deviceType: device.deviceType,
+                  status: device.status,
+                  playspace: device.playspace,
+                  createdAt: device.createdAt,
+                }))
+              };
+            }
+            case "events": {
+              const result = await getEvents(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: result.events || [] };
+            }
+            case "sponsors": {
+              const result = await getSponsorContacts(authKey);
+              if (result.error) throw new Error(result.error);
+              return { tab, data: (result.data as AdminSponsorContact[]) || [] };
+            }
+            default:
+              return { tab, data: [] };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        
+        results.forEach(({ tab, data }) => {
+          switch (tab) {
+            case "users":
+              setUsers(data as AdminUser[]);
+              break;
+            case "teams":
+              setTeams(data as AdminTeam[]);
+              break;
+            case "accessCodes":
+              setAccessCodes(data as AdminAccessCode[]);
+              break;
+            case "playspaces":
+              setPlayspaces(data as AdminPlayspace[]);
+              break;
+            case "devices":
+              setAllDevices(data as AdminDevice[]);
+              break;
+            case "events":
+              setEvents(data as AdminEvent[]);
+              break;
+            case "sponsors":
+              setSponsors(data as AdminSponsorContact[]);
+              break;
+          }
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [authKey]
+  );
+
   // Load data when component mounts and when tab changes
   useEffect(() => {
     loadData(activeTab);
-  }, [activeTab, loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // Removed loadData from dependencies to prevent infinite loop
 
   // Handle user actions (promote/demote/delete) using server action
   const handleUserAction = async (userId: string, action: string) => {
@@ -279,8 +375,9 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     setSearchQuery("");
     
     // Load devices when switching to playspaces tab (needed for device management modal)
+    // Use setTimeout to prevent potential race condition with main useEffect
     if (tab === "playspaces" && allDevices.length === 0) {
-      loadData("devices");
+      setTimeout(() => loadData("devices"), 0);
     }
   };
 
@@ -491,8 +588,7 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
       }
 
       // Refresh both access codes and playspaces lists
-      loadData("accessCodes");
-      loadData("playspaces");
+      await loadMultipleData(["accessCodes", "playspaces"]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to assign access code to playspace");
     }
@@ -510,8 +606,7 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
         }
 
         // Refresh both access codes and playspaces lists
-        loadData("accessCodes");
-        loadData("playspaces");
+        await loadMultipleData(["accessCodes", "playspaces"]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove access code from playspace");
@@ -535,8 +630,7 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
       }
 
       // Refresh both access codes and playspaces lists
-      loadData("accessCodes");
-      loadData("playspaces");
+      await loadMultipleData(["accessCodes", "playspaces"]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate access code for playspace");
     }

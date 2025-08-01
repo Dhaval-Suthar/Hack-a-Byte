@@ -177,17 +177,32 @@ const Desktop = () => {
 
   // Check if Mission 1 is completed to show Network Neighborhood
   useEffect(() => {
+    let isMounted = true;
+    
     const checkMission1Status = async () => {
+      if (!isMounted) return;
+      
       try {
         const { MissionTracker } = await import('./hooks/useMissionTracker');
+        
+        if (!isMounted) return;
+        
         const mission1Complete = MissionTracker.isMissionCompleted('mission1');
-        setNetworkToolInstalled(mission1Complete);
+        if (isMounted) {
+          setNetworkToolInstalled(mission1Complete);
+        }
       } catch (error) {
-        console.error('Error checking mission status:', error);
+        if (isMounted) {
+          console.error('Error checking mission status:', error);
+        }
       }
     };
     
     checkMission1Status();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
   
   // Load game state from localStorage on component mount
@@ -218,42 +233,72 @@ const Desktop = () => {
 
   // Check if Neural Network data is discovered to show Neural Network Analyzer
   useEffect(() => {
+    let isMounted = true;
+    
     const checkNeuralNetworkUnlock = async () => {
+      if (!isMounted) return;
+      
       try {
         const { MissionTracker } = await import('./hooks/useMissionTracker');
+        
+        if (!isMounted) return;
+        
         // Unlock Neural Network Analyzer when network tool is installed and user has progressed
         const mission1Complete = MissionTracker.isMissionCompleted('mission1');
         const neuralDataDiscovered = MissionTracker.isMissionCompleted('neural_data_discovered');
         
-        if ((mission1Complete && networkToolInstalled) || neuralDataDiscovered) {
+        if (isMounted && ((mission1Complete && networkToolInstalled) || neuralDataDiscovered)) {
           setNeuralNetworkUnlocked(true);
         }
       } catch (error) {
-        console.error('Error checking neural network unlock status:', error);
+        if (isMounted) {
+          console.error('Error checking neural network unlock status:', error);
+        }
       }
     };
     
-    checkNeuralNetworkUnlock();
-  }, [networkToolInstalled, neuralNetworkUnlocked]);
+    // Only run if networkToolInstalled changes to true
+    if (networkToolInstalled) {
+      checkNeuralNetworkUnlock();
+    }
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [networkToolInstalled]); // Removed neuralNetworkUnlocked dependency to prevent infinite loop
 
   // Check if Mission 2 is already completed on load
   useEffect(() => {
+    let isMounted = true;
+    
     const checkMission2Status = async () => {
+      if (!isMounted) return;
+      
       try {
         const { MissionTracker } = await import('./hooks/useMissionTracker');
+        
+        if (!isMounted) return;
+        
         const mission2Complete = MissionTracker.isMissionCompleted('mission2');
-        if (mission2Complete && !mission2JustCompleted) {
+        if (isMounted && mission2Complete && !mission2JustCompleted) {
           // Mission 2 was completed previously, don't show the notification again
           // but make the firewall bypass available if needed
           console.log('Mission 2 already completed');
         }
       } catch (error) {
-        console.error('Error checking mission 2 status:', error);
+        if (isMounted) {
+          console.error('Error checking mission 2 status:', error);
+        }
       }
     };
     
     checkMission2Status();
-  }, [mission2JustCompleted]);
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount, remove mission2JustCompleted dependency
 
   // Device user state
   const [deviceUser, setDeviceUser] = useState<{
@@ -267,38 +312,60 @@ const Desktop = () => {
   const [playspaceId, setPlayspaceId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
+  // Add refs to track pending database operations to prevent duplicate calls
+  const pendingDbOperations = useRef<Set<string>>(new Set());
+
   // Enhanced mission checking with database support
   useEffect(() => {
+    let isMounted = true;
+    
     const checkMissionsFromDatabase = async () => {
-      if (!deviceId) return;
+      if (!deviceId || !isMounted) return;
       
       try {
         // Check Mission 1 status from database
         const { getMissionStatus } = await import('@/app/actions/userProgress');
+        
+        if (!isMounted) return;
+        
         const mission1Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission1');
-        if (mission1Result.success && mission1Result.mission) {
+        if (isMounted && mission1Result.success && mission1Result.mission) {
           setNetworkToolInstalled(mission1Result.mission.completed);
         }
 
+        if (!isMounted) return;
+
         // Check neural data discovered status
         const neuralResult = await getMissionStatus(deviceId, 'hackbook-w95', 'neural_data_discovered');
-        if (neuralResult.success && neuralResult.mission?.completed) {
+        if (isMounted && neuralResult.success && neuralResult.mission?.completed) {
           setNeuralNetworkUnlocked(true);
         }
 
+        if (!isMounted) return;
+
         // Check Mission 2 status
         const mission2Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission2');
-        if (mission2Result.success && mission2Result.mission?.completed && !mission2JustCompleted) {
+        if (isMounted && mission2Result.success && mission2Result.mission?.completed) {
           console.log('Mission 2 already completed (from database)');
         }
       } catch (error) {
-        console.error('Error checking mission statuses from database:', error);
-        // Fall back to local storage checks if database fails
+        if (isMounted) {
+          console.error('Error checking mission statuses from database:', error);
+          // Fall back to local storage checks if database fails
+        }
       }
     };
     
-    checkMissionsFromDatabase();
-  }, [deviceId, mission2JustCompleted]);
+    // Add a debounce delay to prevent rapid successive calls
+    const timeoutId = setTimeout(() => {
+      checkMissionsFromDatabase();
+    }, 200);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [deviceId]);
 
   // Check if there's a device-specific user logged in
   useEffect(() => {
@@ -369,7 +436,7 @@ const Desktop = () => {
     };
 
     checkDeviceUser();
-  }, [router, searchParams, deviceId]);
+  }, [router, searchParams]); // Removed deviceId dependency to prevent infinite loop
 
   // Function to play system sounds - moved up to be available for useEffect hooks
   const playSound = useCallback((sound: string) => {
@@ -477,6 +544,13 @@ const Desktop = () => {
   // Listen for network tool installation from WinTalk95
   useEffect(() => {
     const handleNetworkToolInstall = async () => {
+      const operationKey = `mission1_install_${deviceId}`;
+      
+      // Prevent duplicate operations
+      if (pendingDbOperations.current.has(operationKey)) {
+        return;
+      }
+      
       setNetworkToolInstalled(true);
       setShowInstallNotification(true);
       // Play installation sound
@@ -490,15 +564,22 @@ const Desktop = () => {
       // Save network tool installation to database
       if (deviceId) {
         try {
+          pendingDbOperations.current.add(operationKey);
           const { updateMissionProgress } = await import('@/app/actions/userProgress');
-          await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
+          const result = await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
             title: "Network Tool Installed",
             description: "Successfully installed the Network Neighborhood tool",
             completed: true,
             progress: 100
           });
+          
+          if (result.error) {
+            console.error("Database error:", result.error);
+          }
         } catch (error) {
           console.error("Error saving network tool installation to database:", error);
+        } finally {
+          pendingDbOperations.current.delete(operationKey);
         }
       }
       
@@ -509,6 +590,13 @@ const Desktop = () => {
     };
 
     const handleNetworkToolRemove = async () => {
+      const operationKey = `mission1_remove_${deviceId}`;
+      
+      // Prevent duplicate operations
+      if (pendingDbOperations.current.has(operationKey)) {
+        return;
+      }
+      
       setNetworkToolInstalled(false);
       // Close any open Network Neighborhood windows
       setRunningApps(prev => prev.filter(app => app.name !== "Network Neighborhood"));
@@ -521,15 +609,22 @@ const Desktop = () => {
       // Update network tool removal in database
       if (deviceId) {
         try {
+          pendingDbOperations.current.add(operationKey);
           const { updateMissionProgress } = await import('@/app/actions/userProgress');
-          await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
+          const result = await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
             title: "Network Tool Uninstalled",
             description: "Network Neighborhood tool was removed",
             completed: false,
             progress: 0
           });
+          
+          if (result.error) {
+            console.error("Database error:", result.error);
+          }
         } catch (error) {
           console.error("Error updating network tool removal in database:", error);
+        } finally {
+          pendingDbOperations.current.delete(operationKey);
         }
       }
     };
@@ -545,6 +640,13 @@ const Desktop = () => {
   // Listen for neural network data discovery
   useEffect(() => {
     const handleNeuralNetworkDiscovery = async () => {
+      const operationKey = `neural_discovery_${deviceId}`;
+      
+      // Prevent duplicate operations
+      if (pendingDbOperations.current.has(operationKey)) {
+        return;
+      }
+      
       setNeuralNetworkUnlocked(true);
       setShowNeuralNetworkNotification(true);
       // Play discovery sound
@@ -558,15 +660,22 @@ const Desktop = () => {
       // Save neural network discovery to database
       if (deviceId) {
         try {
+          pendingDbOperations.current.add(operationKey);
           const { updateMissionProgress } = await import('@/app/actions/userProgress');
-          await updateMissionProgress(deviceId, "hackbook-w95", "neural_data_discovered", {
+          const result = await updateMissionProgress(deviceId, "hackbook-w95", "neural_data_discovered", {
             title: "Neural Data Discovered",
             description: "Found fragmented neural network data",
             completed: true,
             progress: 100
           });
+          
+          if (result.error) {
+            console.error("Database error:", result.error);
+          }
         } catch (error) {
           console.error("Error saving neural network discovery to database:", error);
+        } finally {
+          pendingDbOperations.current.delete(operationKey);
         }
       }
       
@@ -577,6 +686,13 @@ const Desktop = () => {
     };
 
     const handleNeuralNetworkComplete = async () => {
+      const operationKey = `neural_complete_${deviceId}`;
+      
+      // Prevent duplicate operations
+      if (pendingDbOperations.current.has(operationKey)) {
+        return;
+      }
+      
       // When neural network is completed, unlock the secure vault
       setVaultUnlocked(true);
       setShowVaultNotification(true);
@@ -591,15 +707,22 @@ const Desktop = () => {
       // Save neural network completion to database
       if (deviceId) {
         try {
+          pendingDbOperations.current.add(operationKey);
           const { updateMissionProgress } = await import('@/app/actions/userProgress');
-          await updateMissionProgress(deviceId, "hackbook-w95", "neural_network_completed", {
+          const result = await updateMissionProgress(deviceId, "hackbook-w95", "neural_network_completed", {
             title: "Neural Network Completed",
             description: "Successfully reconstructed the neural network",
             completed: true,
             progress: 100
           });
+          
+          if (result.error) {
+            console.error("Database error:", result.error);
+          }
         } catch (error) {
           console.error("Error saving neural network completion to database:", error);
+        } finally {
+          pendingDbOperations.current.delete(operationKey);
         }
       }
       
@@ -624,20 +747,34 @@ const Desktop = () => {
       const { missionId } = customEvent.detail;
       
       if (missionId === 'mission2' && !mission2JustCompleted) {
+        const operationKey = `mission2_complete_${deviceId}`;
+        
+        // Prevent duplicate operations
+        if (pendingDbOperations.current.has(operationKey)) {
+          return;
+        }
+        
         setMission2JustCompleted(true);
         
         // Save mission completion to database
         if (deviceId) {
           try {
+            pendingDbOperations.current.add(operationKey);
             const { updateMissionProgress } = await import('@/app/actions/userProgress');
-            await updateMissionProgress(deviceId, "hackbook-w95", "mission2", {
+            const result = await updateMissionProgress(deviceId, "hackbook-w95", "mission2", {
               title: "Mission 2 Completed",
               description: "Successfully completed the second mission",
               completed: true,
               progress: 100
             });
+            
+            if (result.error) {
+              console.error("Database error:", result.error);
+            }
           } catch (error) {
             console.error("Error saving mission completion to database:", error);
+          } finally {
+            pendingDbOperations.current.delete(operationKey);
           }
         }
         
@@ -676,6 +813,13 @@ const Desktop = () => {
   // Listen for zebra code activation to unlock Dev Tools
   useEffect(() => {
     const handleZebraCodeActivation = async () => {
+      const operationKey = `zebra_code_${deviceId}`;
+      
+      // Prevent duplicate operations
+      if (pendingDbOperations.current.has(operationKey)) {
+        return;
+      }
+      
       setDevToolsUnlocked(true);
       playSound("ding");
       
@@ -687,15 +831,22 @@ const Desktop = () => {
       // Save dev tools unlock to database
       if (deviceId) {
         try {
+          pendingDbOperations.current.add(operationKey);
           const { updateMissionProgress } = await import('@/app/actions/userProgress');
-          await updateMissionProgress(deviceId, "hackbook-w95", "zebra_code_activated", {
+          const result = await updateMissionProgress(deviceId, "hackbook-w95", "zebra_code_activated", {
             title: "Dev Tools Unlocked",
             description: "Zebra Code activated the developer tools",
             completed: true,
             progress: 100
           });
+          
+          if (result.error) {
+            console.error("Database error:", result.error);
+          }
         } catch (error) {
           console.error("Error saving dev tools unlock to database:", error);
+        } finally {
+          pendingDbOperations.current.delete(operationKey);
         }
       }
     };
@@ -1030,12 +1181,19 @@ const Desktop = () => {
             <UntangleNeuralNetwork 
               onClose={() => handleCloseApp(app)} 
               onSuccess={(data) => {
-                console.log("Neural Network Data Restored:", data);
-                // Trigger vault unlock
-                window.dispatchEvent(new CustomEvent('neuralNetworkCompleted'));
-                // Handle the success - maybe open a new file or trigger next mission
-                // For now, just close the app
-                handleCloseApp(app);
+                try {
+                  console.log("Neural Network Data Restored:", data);
+                  // Trigger vault unlock
+                  window.dispatchEvent(new CustomEvent('neuralNetworkCompleted', {
+                    detail: { dataLength: data?.length || 0 } // Only pass safe, serializable data
+                  }));
+                  // Handle the success - maybe open a new file or trigger next mission
+                  // For now, just close the app
+                  handleCloseApp(app);
+                } catch (error) {
+                  console.error("Error in neural network success handler:", error);
+                  handleCloseApp(app);
+                }
               }}
             />
           );
