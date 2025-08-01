@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { submitSponsorContact, type SponsorContactFormData } from "@/app/actions/sponsor";
 
 interface Sponsor {
   id: number;
@@ -57,6 +58,18 @@ export default function Page() {
   const [scanlines, setScanlines] = useState(true);
   const [sponsorHexagons, setSponsorHexagons] = useState<Hexagon[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Contact form state
+  const [contactForm, setContactForm] = useState<SponsorContactFormData>({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   
   // Sponsor data
   const sponsors: Sponsor[] = [
@@ -189,6 +202,46 @@ export default function Page() {
   const filteredSponsors = activeTier === 'all' 
     ? sponsors 
     : sponsors.filter(sponsor => sponsor.tier === activeTier);
+
+  // Form submission handler
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage('');
+    
+    try {
+      const result = await submitSponsorContact(contactForm);
+      
+      if (result.success) {
+        setSubmitSuccess(true);
+        setSubmitMessage(result.message);
+        // Reset form
+        setContactForm({
+          companyName: '',
+          contactName: '',
+          email: '',
+          phone: '',
+          message: ''
+        });
+      } else {
+        setSubmitSuccess(false);
+        setSubmitMessage(result.message || 'An error occurred while submitting your request.');
+      }
+    } catch (error) {
+      setSubmitSuccess(false);
+      setSubmitMessage('An error occurred while submitting your request. Please try again.');
+      console.error('Contact form submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFormChange = (field: keyof SponsorContactFormData, value: string) => {
+    setContactForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const renderSponsorTierInfo = (tier: string) => {
     switch (tier) {
@@ -419,12 +472,25 @@ export default function Page() {
           Interested in sponsoring HackaByte? Our team is ready to create a custom package that 
           aligns with your goals and maximizes your visibility in the cybersecurity community.
         </p>
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleContactSubmit}>
+          {submitMessage && (
+            <div className={`p-4 rounded-lg border ${
+              submitSuccess 
+                ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}>
+              {submitMessage}
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-cyber-primary mb-1">COMPANY NAME</label>
               <input 
                 type="text" 
+                value={contactForm.companyName}
+                onChange={(e) => handleFormChange('companyName', e.target.value)}
+                required
                 className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
               />
             </div>
@@ -432,6 +498,9 @@ export default function Page() {
               <label className="block text-xs text-cyber-primary mb-1">CONTACT NAME</label>
               <input 
                 type="text" 
+                value={contactForm.contactName}
+                onChange={(e) => handleFormChange('contactName', e.target.value)}
+                required
                 className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
               />
             </div>
@@ -441,6 +510,9 @@ export default function Page() {
               <label className="block text-xs text-cyber-primary mb-1">EMAIL</label>
               <input 
                 type="email" 
+                value={contactForm.email}
+                onChange={(e) => handleFormChange('email', e.target.value)}
+                required
                 className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
               />
             </div>
@@ -448,6 +520,8 @@ export default function Page() {
               <label className="block text-xs text-cyber-primary mb-1">PHONE</label>
               <input 
                 type="tel" 
+                value={contactForm.phone}
+                onChange={(e) => handleFormChange('phone', e.target.value)}
                 className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
               />
             </div>
@@ -456,12 +530,21 @@ export default function Page() {
             <label className="block text-xs text-cyber-primary mb-1">MESSAGE</label>
             <textarea 
               rows={5}
+              value={contactForm.message}
+              onChange={(e) => handleFormChange('message', e.target.value)}
+              required
               className="w-full bg-black/70 border border-cyber-primary/40 rounded px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
             ></textarea>
           </div>
           <div>
-            <button type="submit" className="cyber-button py-2 px-8 rounded-md">
-              SUBMIT REQUEST
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className={`cyber-button py-2 px-8 rounded-md ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSubmitting ? 'SUBMITTING...' : 'SUBMIT REQUEST'}
             </button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AdminUser, AdminTeam, AdminAccessCode, AdminPlayspace, AdminEvent, AdminDevice, TabType } from "./types";
+import { AdminUser, AdminTeam, AdminAccessCode, AdminPlayspace, AdminEvent, AdminDevice, AdminSponsorContact, TabType } from "./types";
 import { AdminHeader, TabNavigation, ErrorDisplay, TabContentWrapper } from "./AdminComponents";
 import {
   AccessCodeModal,
@@ -15,6 +15,7 @@ import AccessCodesTab from "./AccessCodesTab";
 import PlayspacesTab from "./PlayspacesTab";
 import DevicesTab from "./DevicesTab";
 import EventsTab from "./EventsTab";
+import SponsorsTab from "./SponsorsTab";
 
 // Import server actions
 import {
@@ -43,6 +44,13 @@ import {
   deleteEvent,
 } from "@/app/actions/admin";
 
+// Import sponsor actions separately
+import {
+  getSponsorContacts,
+  updateSponsorContactStatus,
+  deleteSponsorContact,
+} from "@/app/actions/sponsor";
+
 interface AdminDashboardProps {
   authKey: string;
   onLogout: () => void;
@@ -57,6 +65,7 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
   const [playspaces, setPlayspaces] = useState<AdminPlayspace[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [allDevices, setAllDevices] = useState<AdminDevice[]>([]);
+  const [sponsors, setSponsors] = useState<AdminSponsorContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -139,6 +148,14 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
               throw new Error(result.error);
             }
             setEvents(result.events || []);
+            break;
+          }
+          case "sponsors": {
+            const result = await getSponsorContacts(authKey);
+            if (result.error) {
+              throw new Error(result.error);
+            }
+            setSponsors((result.data as AdminSponsorContact[]) || []);
             break;
           }
           default:
@@ -710,6 +727,41 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     }
   };
 
+  // Sponsor handlers
+  const handleUpdateSponsorStatus = async (
+    contactId: string, 
+    status: 'new' | 'contacted' | 'in-progress' | 'closed', 
+    notes?: string
+  ) => {
+    try {
+      const result = await updateSponsorContactStatus(contactId, status, notes, authKey);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Refresh sponsors list
+      loadData("sponsors");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update sponsor status");
+    }
+  };
+
+  const handleDeleteSponsor = async (contactId: string) => {
+    try {
+      const result = await deleteSponsorContact(contactId, authKey);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Refresh sponsors list
+      loadData("sponsors");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete sponsor contact");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
       <AdminHeader onLogout={onLogout} />
@@ -819,6 +871,15 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
               onDeleteEvent={handleDeleteEvent}
               onViewParticipants={handleViewParticipants}
               onToggleRegistration={handleToggleRegistration}
+            />
+          )}
+
+          {activeTab === "sponsors" && (
+            <SponsorsTab
+              sponsors={sponsors}
+              loading={isLoading}
+              onUpdateStatus={handleUpdateSponsorStatus}
+              onDelete={handleDeleteSponsor}
             />
           )}
         </TabContentWrapper>

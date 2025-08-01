@@ -54,7 +54,7 @@ interface TabNavigationProps {
 }
 
 export const TabNavigation = ({ activeTab, onTabChange }: TabNavigationProps) => {
-  const tabs: TabType[] = ["users", "teams", "accessCodes", "playspaces", "devices", "events"];
+  const tabs: TabType[] = ["users", "teams", "accessCodes", "playspaces", "devices", "events", "sponsors"];
 
   return (
     <div className="mb-6 border-b border-gray-700">
