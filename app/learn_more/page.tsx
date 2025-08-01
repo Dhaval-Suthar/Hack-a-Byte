@@ -26,6 +26,52 @@ const Page = () => {
           </p>
         </div>
 
+        {/* Access Code Section - Moved to top for visibility */}
+        <section className="mb-12">
+          <h2 className="text-cyber-primary text-2xl font-semibold mb-4">Ready to Join?</h2>
+          <div className="bg-black/50 border border-cyber-primary/30 rounded-lg p-6">
+            <h3 className="text-cyber-secondary font-semibold text-lg mb-3">Your Access Code</h3>
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-r from-cyber-primary/20 to-cyber-secondary/20 border border-cyber-primary/50 rounded-lg px-8 py-4">
+                <div className="text-3xl font-mono font-bold text-cyber-primary tracking-widest">
+                  111111
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-300 text-center mb-4">
+              Use this access code to join the HackaByte platform and start your cybersecurity journey.
+            </p>
+            <div className="flex justify-center gap-4 mb-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.location.href = '/device-selection'}
+                className="bg-gradient-to-r from-cyber-primary to-cyber-secondary text-black font-semibold px-6 py-3 rounded-lg hover:shadow-lg hover:shadow-cyber-primary/20 transition-all duration-300"
+              >
+                Access System
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.location.href = '/'}
+                className="bg-transparent border border-cyber-primary text-cyber-primary font-semibold px-6 py-3 rounded-lg hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 transition-all duration-300"
+              >
+                Go to Main Page
+              </motion.button>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div className="text-center">
+                <div className="text-cyber-secondary font-semibold">Type</div>
+                <div className="text-gray-300">Permanent</div>
+              </div>
+              <div className="text-center">
+                <div className="text-cyber-secondary font-semibold">Usage</div>
+                <div className="text-gray-300">Unlimited</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Types of Codes */}
         <section className="mb-12">
           <h2 className="text-cyber-primary text-2xl font-semibold mb-4">Types of Access Codes</h2>

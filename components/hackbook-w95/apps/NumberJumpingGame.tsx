@@ -389,40 +389,90 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   if (gameState === "intro") {
     return (
       <div className="w-full h-full bg-[#c0c0c0] p-4 overflow-auto">
-        <div className="bg-[#000080] text-white p-2 mb-4 text-center">
-          <h2 className="text-lg font-bold">FIREWALL BYPASS PROTOCOL</h2>
-        </div>
-        
-        <div className="mb-4 p-4 border-2 border-inset bg-white">
-          <h3 className="font-bold text-red-600 mb-2">⚠️ CLASSIFIED OPERATION</h3>
-          <p className="mb-2">
-            <strong>Objective:</strong> Navigate through ShadowByte&apos;s security firewalls using stealth protocols.
-          </p>
-          <p className="mb-2">
-            <strong>Method:</strong> Identify correct data packet sequences to create secure tunnels through firewall gaps.
-          </p>
-          <p className="mb-4">
-            <strong>Warning:</strong> Incorrect selections will trigger security alarms. You have 3 attempts before detection.
-          </p>
-          
-          <div className="bg-yellow-100 p-2 border border-yellow-600 mb-4">
-            <h4 className="font-bold">How to Play:</h4>
-            <ul className="list-disc ml-4 text-sm">
-              <li>Each level presents a grid of numbers representing network ports</li>
-              <li>Follow the pattern instructions to select the correct sequence</li>
-              <li>Avoid red numbers - they are security traps!</li>
-              <li>Complete the data pipeline to breach each firewall layer</li>
-            </ul>
+        {/* Terminal-style header */}
+        <div className="bg-black text-green-400 p-4 mb-4 border-2 border-inset font-mono">
+          <div className="flex items-center mb-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-xs">ShadowByte Security Terminal v2.1.4</span>
+          </div>
+          <h2 className="text-xl font-bold text-center tracking-wide">
+            === FIREWALL BYPASS PROTOCOL ===
+          </h2>
+          <div className="text-center text-sm mt-2 opacity-80">
+            CLEARANCE LEVEL: CLASSIFIED
           </div>
         </div>
         
-        <div className="text-center">
+        {/* Main briefing window */}
+        <div className="mb-4 p-4 border-2 border-inset bg-[#f0f0f0] shadow-[inset_-1px_-1px_#000,inset_1px_1px_#fff]">
+          <div className="bg-red-600 text-white p-2 mb-3 border border-red-800">
+            <h3 className="font-bold text-center">⚠️ CLASSIFIED OPERATION ⚠️</h3>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white p-3 border-2 border-inset">
+              <h4 className="font-bold text-blue-800 mb-2 border-b border-gray-300 pb-1">
+                📋 MISSION BRIEFING
+              </h4>
+              <div className="space-y-2 text-sm">
+                <p><strong className="text-red-600">Target:</strong> ShadowByte&apos;s Security Grid</p>
+                <p><strong className="text-blue-600">Objective:</strong> Bypass multilayer firewall defense</p>
+                <p><strong className="text-green-600">Method:</strong> Sequential port penetration</p>
+                <p><strong className="text-orange-600">Risk Level:</strong> EXTREME</p>
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 border-2 border-inset">
+              <h4 className="font-bold text-purple-800 mb-2 border-b border-gray-300 pb-1">
+                🎯 OPERATION GUIDE
+              </h4>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">▶</span>
+                  Follow pattern sequences to unlock ports
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-600 mr-2">▶</span>
+                  Avoid trap nodes (highlighted in red)
+                </li>
+                <li className="flex items-start">
+                  <span className="text-blue-600 mr-2">▶</span>
+                  Complete data pipeline for each layer
+                </li>
+                <li className="flex items-start">
+                  <span className="text-orange-600 mr-2">▶</span>
+                  3 detection attempts = mission failure
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="mt-4 bg-yellow-50 border-2 border-yellow-400 p-3">
+            <div className="flex items-center mb-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+              <span className="font-bold text-yellow-800">SECURITY WARNING</span>
+            </div>
+            <p className="text-sm text-yellow-800">
+              This is a high-risk penetration operation. Detection algorithms are active.
+              Maintain operational security at all times.
+            </p>
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="text-center space-y-3">
+          <div className="bg-black text-green-400 p-2 font-mono text-sm border border-gray-600">
+            &gt; Awaiting authorization to proceed...
+          </div>
           <button
             onClick={startGame}
-            className="bg-[#c0c0c0] border-2 border-outset px-6 py-2 font-bold hover:bg-[#e0e0e0]"
+            className="bg-[#c0c0c0] border-2 border-outset px-8 py-3 font-bold hover:bg-[#e0e0e0] active:border-inset transition-all duration-100 shadow-md"
           >
-            INITIATE BREACH PROTOCOL
+            🔓 INITIATE BREACH PROTOCOL
           </button>
+          <div className="text-xs text-gray-600 mt-2">
+            By proceeding, you acknowledge the risks of this operation
+          </div>
         </div>
       </div>
     );
@@ -431,89 +481,160 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   if (gameState === "playing") {
     return (
       <div className="w-full h-full bg-[#c0c0c0] p-2 overflow-auto">
-        {/* Header */}
-        <div className="bg-[#000080] text-white p-2 mb-2 flex justify-between items-center">
-          <h2 className="text-sm font-bold">FIREWALL BREACH - LEVEL {currentLevel}</h2>
-          <div className="flex gap-4 text-sm">
-            <span>Lives: {lives}</span>
-            <span>Score: {score}</span>
+        {/* Terminal-style header */}
+        <div className="bg-black text-green-400 p-3 mb-3 border-2 border-inset font-mono">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
+              <h2 className="text-lg font-bold">FIREWALL BREACH - LAYER {currentLevel}</h2>
+            </div>
+            <div className="flex gap-6 text-sm">
+              <div className="flex items-center">
+                <span className="text-red-400">❤️</span>
+                <span className="ml-1">{lives}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-yellow-400">⭐</span>
+                <span className="ml-1">{score}</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-xs mt-1 opacity-75">
+            &gt; Penetrating security layer {currentLevel} of 3...
           </div>
         </div>
 
-        {/* Pattern instruction */}
-        <div className="bg-yellow-100 p-2 border border-yellow-600 mb-2 text-sm">
-          <strong>Current Pattern:</strong> {getPatternDescription(currentPattern)}
+        {/* Pattern instruction with enhanced styling */}
+        <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-3 border-2 border-yellow-400 mb-3 shadow-md">
+          <div className="flex items-center mb-1">
+            <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+            <strong className="text-orange-800">CURRENT PATTERN ANALYSIS:</strong>
+          </div>
+          <div className="text-sm font-mono bg-white p-2 border border-orange-300 rounded">
+            {getPatternDescription(currentPattern)}
+          </div>
         </div>
 
-        {/* Target sequence display */}
-        <div className="bg-white p-2 border-2 border-inset mb-2">
-          <div className="text-sm font-bold mb-1">Target Sequence:</div>
-          <div className="flex gap-1">
+        {/* Enhanced target sequence display */}
+        <div className="bg-white p-3 border-2 border-inset mb-3 shadow-[inset_-2px_-2px_#000,inset_2px_2px_#fff]">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-bold text-blue-800">🎯 TARGET SEQUENCE</div>
+            <div className="text-xs text-gray-600">
+              Progress: {selectedCells.length}/{targetSequence.length}
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
             {targetSequence.map((num, index) => (
               <div
                 key={index}
-                className={`w-8 h-8 border flex items-center justify-center text-xs ${
+                className={`w-12 h-12 border-2 flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                   index < selectedCells.length 
-                    ? "bg-green-200 border-green-600" 
-                    : "bg-gray-100 border-gray-400"
+                    ? "bg-green-400 border-green-600 text-white shadow-md transform scale-105" 
+                    : "bg-gray-200 border-gray-400 text-gray-600"
                 }`}
               >
-                {index < selectedCells.length ? num : "?"}
+                {index < selectedCells.length ? (
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs">✓</span>
+                    <span>{num}</span>
+                  </div>
+                ) : (
+                  <span className="text-2xl">?</span>
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Pipeline progress */}
+        {/* Enhanced pipeline progress */}
         {showPipeline && (
-          <div className="bg-white p-2 border-2 border-inset mb-2">
-            <div className="text-sm font-bold mb-1">Data Pipeline Progress:</div>
-            <div className="w-full bg-gray-300 h-4 border border-gray-600">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-500"
-                style={{ width: `${pipelineProgress}%` }}
-              />
+          <div className="bg-white p-3 border-2 border-inset mb-3 shadow-[inset_-2px_-2px_#000,inset_2px_2px_#fff]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-bold text-purple-800">📊 DATA PIPELINE STATUS</div>
+              <div className="text-xs font-mono text-purple-600">
+                {Math.round(pipelineProgress)}% COMPLETE
+              </div>
             </div>
-            <div className="text-xs text-center mt-1">{Math.round(pipelineProgress)}%</div>
+            <div className="relative">
+              <div className="w-full bg-gray-400 h-6 border-2 border-inset">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-500 flex items-center justify-center"
+                  style={{ width: `${pipelineProgress}%` }}
+                >
+                  {pipelineProgress > 20 && (
+                    <span className="text-white text-xs font-bold">UPLOADING...</span>
+                  )}
+                </div>
+              </div>
+              {pipelineProgress > 0 && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Error message */}
+        {/* Enhanced error message */}
         {errorMessage && (
-          <div className="bg-red-500 text-white p-2 mb-2 text-center font-bold animate-pulse">
-            {errorMessage}
+          <div className="bg-red-600 text-white p-3 mb-3 border-2 border-red-800 animate-pulse shadow-lg">
+            <div className="flex items-center justify-center">
+              <span className="text-xl mr-2">🚨</span>
+              <span className="font-bold">{errorMessage}</span>
+              <span className="text-xl ml-2">🚨</span>
+            </div>
+            <div className="text-center text-xs mt-1">
+              SECURITY BREACH DETECTED - PROCEED WITH CAUTION
+            </div>
           </div>
         )}
 
-        {/* Game grid */}
+        {/* Enhanced game grid */}
         <div className="flex justify-center mb-4">
-          <div 
-            className="grid gap-1 p-2 bg-black border-2 border-gray-600"
-            style={{ 
-              gridTemplateColumns: `repeat(${grid.length}, 1fr)`,
-              maxWidth: "400px"
-            }}
-          >
-            {grid.flat().map((cell, index) => (
-              <button
-                key={index}
-                onClick={() => handleCellClick(cell)}
-                className={`
-                  w-12 h-12 border-2 text-sm font-bold transition-all duration-200
-                  ${cell.isTrap 
-                    ? "bg-red-400 border-red-600 text-white" 
-                    : cell.isCorrect
-                    ? "bg-green-400 border-green-600 text-white"
-                    : cell.isSelected
-                    ? "bg-blue-400 border-blue-600 text-white"
-                    : "bg-gray-200 border-gray-400 hover:bg-gray-300"
-                  }
-                `}
-                disabled={cell.isSelected}
-              >
-                {cell.value}
-              </button>
-            ))}
+          <div className="bg-black p-4 border-4 border-gray-600 shadow-xl">
+            <div className="bg-gray-800 p-2 mb-2 text-green-400 text-xs font-mono text-center">
+              NETWORK PORT MATRIX - {grid.length}x{grid.length}
+            </div>
+            <div 
+              className="grid gap-1"
+              style={{ 
+                gridTemplateColumns: `repeat(${grid.length}, 1fr)`,
+                maxWidth: "480px"
+              }}
+            >
+              {grid.flat().map((cell, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleCellClick(cell)}
+                  className={`
+                    w-14 h-14 border-2 text-sm font-bold transition-all duration-200 relative
+                    ${cell.isTrap 
+                      ? "bg-red-500 border-red-700 text-white shadow-red-500/50 shadow-lg animate-pulse" 
+                      : cell.isCorrect
+                      ? "bg-green-500 border-green-700 text-white shadow-green-500/50 shadow-lg"
+                      : cell.isSelected
+                      ? "bg-blue-500 border-blue-700 text-white shadow-blue-500/50 shadow-lg"
+                      : "bg-gray-300 border-gray-500 hover:bg-gray-200 hover:shadow-md transform hover:scale-105"
+                    }
+                    ${!cell.isSelected && !cell.isTrap ? 'hover:border-blue-400' : ''}
+                  `}
+                  disabled={cell.isSelected}
+                >
+                  {cell.value}
+                  {cell.isTrap && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full">
+                      <span className="text-white text-xs">!</span>
+                    </div>
+                  )}
+                  {cell.isCorrect && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-600 rounded-full">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="text-green-400 text-xs font-mono text-center mt-2">
+              &gt; Click ports to establish connection sequence
+            </div>
           </div>
         </div>
       </div>
@@ -522,49 +643,121 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
 
   if (gameState === "success") {
     return (
-      <div className="w-full h-full bg-[#c0c0c0] p-4">
-        <div className="bg-[#008000] text-white p-3 mb-4 text-center">
-          <h2 className="text-lg font-bold">FIREWALL BREACHED!</h2>
-          <p>Establishing Connection...</p>
+      <div className="w-full h-full bg-[#c0c0c0] p-4 overflow-auto">
+        {/* Terminal success header */}
+        <div className="bg-black text-green-400 p-4 mb-4 border-2 border-inset font-mono">
+          <div className="text-center">
+            <div className="text-2xl font-bold mb-2 animate-pulse">
+              === BREACH SUCCESSFUL ===
+            </div>
+            <div className="flex justify-center items-center mb-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full mr-2 animate-ping"></div>
+              <span>ESTABLISHING SECURE CONNECTION...</span>
+              <div className="w-3 h-3 bg-green-400 rounded-full ml-2 animate-ping"></div>
+            </div>
+            <div className="text-sm opacity-75">
+              All firewall layers penetrated successfully
+            </div>
+          </div>
         </div>
         
-        <div className="bg-white p-4 border-2 border-inset mb-4">
-          <p className="text-green-600 font-bold mb-2">✓ All firewall layers bypassed successfully!</p>
-          <p className="mb-2">Final Score: {score}</p>
-          <p className="mb-4">Remote access established to target system...</p>
-          
-          <div className="bg-gray-100 p-3 border border-gray-400">
-            <h4 className="font-bold mb-2">📁 Remote File Directory Access</h4>
-            <div className="text-sm font-mono">
-              <div>C:\SHADOWBYTE\</div>
-              <div>├── Documents\</div>
-              <div>├── Projects\</div>
-              <div>├── System\</div>
-              <div>└── Logs\</div>
+        {/* Main success content */}
+        <div className="bg-white p-4 border-2 border-inset mb-4 shadow-[inset_-2px_-2px_#000,inset_2px_2px_#fff]">
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Mission success details */}
+            <div className="bg-green-50 p-4 border-2 border-green-400">
+              <h3 className="font-bold text-green-800 mb-3 text-center border-b border-green-300 pb-2">
+                🎉 MISSION ACCOMPLISHED
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Final Score:</span>
+                  <span className="bg-yellow-200 px-2 py-1 rounded font-bold">{score}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Layers Breached:</span>
+                  <span className="text-green-600 font-bold">3/3 ✓</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Detection Level:</span>
+                  <span className="text-orange-600 font-bold">MINIMAL</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Status:</span>
+                  <span className="text-green-600 font-bold">CONNECTED</span>
+                </div>
+              </div>
+            </div>
+
+            {/* System access display */}
+            <div className="bg-gray-900 text-green-400 p-4 border-2 border-gray-600 font-mono text-sm">
+              <div className="border-b border-green-400 pb-2 mb-3">
+                <h4 className="font-bold">📁 REMOTE SYSTEM ACCESS</h4>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center">
+                  <span className="text-yellow-400">$</span>
+                  <span className="ml-2">cd C:\SHADOWBYTE\</span>
+                </div>
+                <div className="ml-4 space-y-1">
+                  <div>📂 Documents\ [ACCESSIBLE]</div>
+                  <div>📂 Projects\ [ACCESSIBLE]</div>
+                  <div>📂 System\ [RESTRICTED]</div>
+                  <div>📂 Logs\ [MONITORING]</div>
+                  <div>📂 Database\ [ENCRYPTED]</div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-green-400">
+                  <div className="text-yellow-400">
+                    &gt; Remote shell established
+                  </div>
+                  <div className="text-blue-400">
+                    &gt; Downloading intelligence...
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Security breach warning */}
-        <div className="bg-red-100 border-2 border-red-600 p-3 mb-4 animate-pulse">
-          <div className="bg-red-600 text-white p-2 text-center font-bold mb-2">
-            ⚠️ SECURITY BREACH DETECTED ⚠️
+        {/* Security breach warning with enhanced styling */}
+        <div className="bg-gradient-to-r from-red-100 to-orange-100 border-2 border-red-600 p-4 mb-4 shadow-lg">
+          <div className="bg-red-600 text-white p-3 text-center font-bold mb-3 border border-red-800 shadow-md">
+            <div className="flex items-center justify-center">
+              <span className="text-xl mr-2">⚠️</span>
+              <span>SECURITY BREACH DETECTED</span>
+              <span className="text-xl ml-2">⚠️</span>
+            </div>
           </div>
-          <p className="text-red-800 font-bold text-center">
-            Brute Force Attempts Registered. System Logged.
-          </p>
-          <p className="text-sm text-center mt-2">
-            Warning: Your intrusion methods have been partially detected.
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-red-800 font-bold">
+              🔍 Intrusion Analysis: PARTIAL DETECTION
+            </p>
+            <p className="text-sm text-red-700">
+              Your penetration methods have triggered automated logging systems.
+            </p>
+            <div className="bg-white p-2 border border-red-300 text-xs font-mono">
+              LOG: Unusual port access patterns detected at {new Date().toLocaleTimeString()}
+            </div>
+          </div>
         </div>
 
-        <div className="text-center">
+        {/* Action button */}
+        <div className="text-center space-y-3">
+          <div className="bg-black text-green-400 p-3 font-mono text-sm border border-gray-600">
+            <div className="flex justify-center items-center">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+              &gt; Mission parameters updated. Proceed to next objective...
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="bg-[#c0c0c0] border-2 border-outset px-6 py-2 font-bold hover:bg-[#e0e0e0]"
+            className="bg-[#c0c0c0] border-2 border-outset px-8 py-3 font-bold hover:bg-[#e0e0e0] active:border-inset transition-all duration-100 shadow-md"
           >
-            CONTINUE MISSION
+            🚀 CONTINUE MISSION
           </button>
+          <div className="text-xs text-gray-600">
+            Intelligence downloaded successfully
+          </div>
         </div>
       </div>
     );
@@ -572,25 +765,122 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
 
   if (gameState === "failed") {
     return (
-      <div className="w-full h-full bg-[#c0c0c0] p-4">
-        <div className="bg-[#800000] text-white p-3 mb-4 text-center">
-          <h2 className="text-lg font-bold">MISSION FAILED</h2>
-          <p>Security systems activated!</p>
+      <div className="w-full h-full bg-[#c0c0c0] p-4 overflow-auto">
+        {/* Terminal failure header */}
+        <div className="bg-black text-red-400 p-4 mb-4 border-2 border-inset font-mono">
+          <div className="text-center">
+            <div className="text-2xl font-bold mb-2 animate-pulse">
+              === MISSION COMPROMISED ===
+            </div>
+            <div className="flex justify-center items-center mb-2">
+              <div className="w-3 h-3 bg-red-400 rounded-full mr-2 animate-ping"></div>
+              <span>SECURITY SYSTEMS ACTIVATED</span>
+              <div className="w-3 h-3 bg-red-400 rounded-full ml-2 animate-ping"></div>
+            </div>
+            <div className="text-sm opacity-75 text-orange-400">
+              Connection terminated - Too many detection events
+            </div>
+          </div>
         </div>
         
-        <div className="bg-white p-4 border-2 border-inset mb-4 text-center">
-          <p className="text-red-600 font-bold mb-2">⚠️ Too many security alarms triggered!</p>
-          <p className="mb-2">Your attempts have been logged and traced.</p>
-          <p className="mb-4">Final Score: {score}</p>
+        {/* Failure analysis */}
+        <div className="bg-white p-4 border-2 border-inset mb-4 shadow-[inset_-2px_-2px_#000,inset_2px_2px_#fff]">
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Mission failure details */}
+            <div className="bg-red-50 p-4 border-2 border-red-400">
+              <h3 className="font-bold text-red-800 mb-3 text-center border-b border-red-300 pb-2">
+                ❌ MISSION FAILED
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Final Score:</span>
+                  <span className="bg-gray-200 px-2 py-1 rounded font-bold">{score}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Detection Events:</span>
+                  <span className="text-red-600 font-bold">MAXIMUM REACHED</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Breach Level:</span>
+                  <span className="text-orange-600 font-bold">INCOMPLETE</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Status:</span>
+                  <span className="text-red-600 font-bold">DISCONNECTED</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Security response display */}
+            <div className="bg-gray-900 text-red-400 p-4 border-2 border-gray-600 font-mono text-sm">
+              <div className="border-b border-red-400 pb-2 mb-3">
+                <h4 className="font-bold">🚨 SECURITY RESPONSE LOG</h4>
+              </div>
+              <div className="space-y-1">
+                <div className="text-yellow-400">
+                  [ALERT] Multiple failed access attempts
+                </div>
+                <div className="text-orange-400">
+                  [WARN] Suspicious pattern recognition
+                </div>
+                <div className="text-red-400">
+                  [CRIT] Intrusion attempt blocked
+                </div>
+                <div className="text-red-600">
+                  [FAIL] Connection terminated
+                </div>
+                <div className="mt-3 pt-2 border-t border-red-400">
+                  <div className="text-white">
+                    &gt; Firewall integrity: MAINTAINED
+                  </div>
+                  <div className="text-red-400">
+                    &gt; Trace initiated: IP LOGGED
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="text-center">
+        {/* Security lockdown warning */}
+        <div className="bg-gradient-to-r from-orange-100 to-red-100 border-2 border-orange-600 p-4 mb-4 shadow-lg">
+          <div className="bg-orange-600 text-white p-3 text-center font-bold mb-3 border border-orange-800 shadow-md">
+            <div className="flex items-center justify-center">
+              <span className="text-xl mr-2">🔒</span>
+              <span>SECURITY LOCKDOWN INITIATED</span>
+              <span className="text-xl ml-2">🔒</span>
+            </div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-orange-800 font-bold">
+              🛡️ Defense Systems: FULLY ACTIVATED
+            </p>
+            <p className="text-sm text-orange-700">
+              Your access attempts have been logged and traced by automated security protocols.
+            </p>
+            <div className="bg-white p-2 border border-orange-300 text-xs font-mono">
+              TRACE: Source IP flagged for enhanced monitoring
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="text-center space-y-3">
+          <div className="bg-black text-orange-400 p-3 font-mono text-sm border border-gray-600">
+            <div className="flex justify-center items-center">
+              <div className="w-2 h-2 bg-orange-400 rounded-full mr-2 animate-pulse"></div>
+              &gt; Awaiting new approach strategy. Retry recommended...
+            </div>
+          </div>
           <button
             onClick={startGame}
-            className="bg-[#c0c0c0] border-2 border-outset px-4 py-2 hover:bg-[#e0e0e0]"
+            className="bg-[#c0c0c0] border-2 border-outset px-8 py-3 font-bold hover:bg-[#e0e0e0] active:border-inset transition-all duration-100 shadow-md"
           >
-            RETRY MISSION
+            🔄 RETRY MISSION
           </button>
+          <div className="text-xs text-gray-600">
+            Security protocols require strategy adjustment
+          </div>
         </div>
       </div>
     );

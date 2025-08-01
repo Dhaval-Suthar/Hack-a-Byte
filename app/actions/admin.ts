@@ -258,6 +258,88 @@ export async function generateAccessCode(
   }
 }
 
+export async function createCustomAccessCode(
+  code: string,
+  type: string = "permanent",
+  priority: number = 1,
+  maxUsages?: number,
+  expiresInHours?: number,
+  description?: string,
+  playspaceId?: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate code format (must be exactly 6 digits)
+    if (!/^\d{6}$/.test(code)) {
+      return { error: "Access code must be exactly 6 digits" };
+    }
+
+    // Check if the code already exists
+    const existingCode = await AccessCode.findOne({ code });
+    if (existingCode) {
+      return { error: "Access code already exists" };
+    }
+
+    // Check if playspace already has an access code (one-to-one relationship)
+    if (playspaceId) {
+      const existingPlayspaceCode = await AccessCode.findOne({ assignedPlayspace: playspaceId });
+      if (existingPlayspaceCode) {
+        return { error: "This playspace already has an access code assigned. Each playspace can only have one access code." };
+      }
+    }
+
+    // Validate priority
+    const validatedPriority = Math.max(1, Math.min(9, priority));
+
+    // Calculate expiration date if provided
+    const expiresAt = expiresInHours ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000) : undefined;
+
+    // Create new access code
+    const newAccessCode = new AccessCode({
+      code,
+      priority: validatedPriority,
+      type: type || "permanent",
+      isActive: true,
+      usageCount: 0,
+      maxUsages: maxUsages,
+      expiresAt: expiresAt,
+      description: description,
+      assignedPlayspace: playspaceId ? new mongoose.Types.ObjectId(playspaceId) : undefined,
+    });
+
+    await newAccessCode.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      accessCode: {
+        _id: newAccessCode._id.toString(),
+        code: newAccessCode.code,
+        priority: newAccessCode.priority,
+        type: newAccessCode.type,
+        isActive: newAccessCode.isActive,
+        usageCount: newAccessCode.usageCount,
+        maxUsages: newAccessCode.maxUsages,
+        expiresAt: newAccessCode.expiresAt,
+        description: newAccessCode.description,
+        assignedPlayspace: newAccessCode.assignedPlayspace ? newAccessCode.assignedPlayspace.toString() : null,
+        createdAt: newAccessCode.createdAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("Error creating custom access code:", error);
+    return { error: "Failed to create custom access code" };
+  }
+}
+
 export async function toggleAccessCodeStatus(codeId: string, isActive: boolean, adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
 
