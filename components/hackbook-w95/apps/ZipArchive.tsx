@@ -34,7 +34,6 @@ const ZipArchive: React.FC<ZipArchiveProps> = ({
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<ZipFile | null>(null);
-  const [showFileContent, setShowFileContent] = useState(false);
   const [showWinAlert, setShowWinAlert] = useState(false);
 
   // Use shared credentials for the session
@@ -189,7 +188,15 @@ Good luck with your assignment.
   const handleFileOpen = useCallback((file: ZipFile) => {
     if (file.type === 'file') {
       setSelectedFile(file);
-      setShowFileContent(true);
+      // Instead of showing internal content viewer, dispatch event to open in separate Notepad window
+      const event = new CustomEvent('win95openfile', {
+        detail: {
+          path: file.name,
+          content: file.content || '',
+          extension: 'txt'
+        }
+      });
+      window.dispatchEvent(event);
       playSound('open');
     }
   }, [playSound]);
@@ -417,28 +424,7 @@ Good luck with your assignment.
         </div>
       )}
 
-      {/* File Content Viewer */}
-      {showFileContent && selectedFile && (
-        <div className="absolute inset-0 bg-[#c0c0c0] flex flex-col">
-          {/* Title Bar */}
-          <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
-            <span className="text-sm font-bold">{selectedFile.name} - Notepad</span>
-            <button
-              onClick={() => setShowFileContent(false)}
-              className="text-white hover:bg-red-600 px-2 py-1 text-xs font-bold"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 bg-white p-4 overflow-auto">
-            <pre className="whitespace-pre-wrap font-mono text-sm">
-              {selectedFile.content}
-            </pre>
-          </div>
-        </div>
-      )}
+      {/* Note: File content viewer removed - files now open in separate Notepad windows */}
     </div>
   );
 };

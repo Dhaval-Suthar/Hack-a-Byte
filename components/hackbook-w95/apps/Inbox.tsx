@@ -607,7 +607,6 @@ export default function Inbox({ openLink, onClose, unreadCount, setUnreadCount }
           <div className="flex-1 overflow-auto">
             {selected === "Inbox" && (
               <InboxMails 
-                openLink={openLink} 
                 setUnreadCount={setUnreadCount} 
               />
             )}
