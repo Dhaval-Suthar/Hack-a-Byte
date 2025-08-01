@@ -347,8 +347,8 @@ Good luck with your assignment.
                   <div className="w-1/2 flex items-center">
                     <Image
                       src={file.type === 'directory' 
-                        ? "/hackbook-W95/file-icons/folder.png"
-                        : "/hackbook-W95/file-icons/text.png"
+                        ? "/hackbook-W95/file-icons/archive.png"
+                        : "/hackbook-W95/file-icons/txt-file-symbol.png"
                       }
                       alt={file.type}
                       width={16}
