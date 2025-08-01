@@ -60,7 +60,7 @@ export async function registerForEvent(data: EventRegistrationData) {
     return { 
       success: true, 
       message: "Successfully registered for the event!",
-      registrationId: registration._id
+      registrationId: registration._id.toString()
     };
     
   } catch (error: unknown) {
@@ -139,7 +139,7 @@ export async function checkRegistrationStatus(eventId: number, email: string) {
       isRegistered: !!registration,
       registrationData: registration ? {
         isFromSFIT: registration.isFromSFIT,
-        registrationDate: registration.registrationDate
+        registrationDate: registration.registrationDate.toISOString()
       } : null
     };
     

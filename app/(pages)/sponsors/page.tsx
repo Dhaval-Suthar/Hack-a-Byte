@@ -71,80 +71,80 @@ export default function Page() {
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  // Sponsor data
+  // Sponsor data - COMMENTED OUT FOR DEVELOPMENT
   const sponsors: Sponsor[] = [
-    {
-      id: 1,
-      name: "NexusTech",
-      tier: 'platinum',
-      logo: "/logo.png",
-      description: "Leading innovator in cybersecurity solutions with advanced threat detection systems.",
-      benefits: ["Premium booth at event", "Main stage presentation", "VIP networking access", "First choice for mentoring opportunities"],
-      websiteUrl: "#"
-    },
-    {
-      id: 2,
-      name: "CyberShield",
-      tier: 'gold',
-      logo: "/logo.png", 
-      description: "Enterprise-level security infrastructure provider specializing in zero-day vulnerability protection.",
-      benefits: ["Featured booth", "Workshop session", "Talent recruitment access"],
-      websiteUrl: "#"
-    },
-    {
-      id: 3,
-      name: "QuantumBit",
-      tier: 'gold',
-      logo: "/logo.png",
-      description: "Quantum computing research organization focused on encryption technologies.",
-      benefits: ["Featured booth", "Panel discussion", "Networking event"],
-      websiteUrl: "#"
-    },
-    {
-      id: 4,
-      name: "SecureNode",
-      tier: 'silver',
-      logo: "/logo.png",
-      description: "Network security solutions for mid-size businesses and educational institutions.",
-      benefits: ["Standard booth", "Logo on materials", "Participant data access"],
-      websiteUrl: "#"
-    },
-    {
-      id: 5,
-      name: "CryptoGuard",
-      tier: 'silver',
-      logo: "/logo.png",
-      description: "Blockchain security auditing and cryptocurrency protection services.",
-      benefits: ["Standard booth", "Logo on materials", "Participant data access"],
-      websiteUrl: "#"
-    },
-    {
-      id: 6,
-      name: "DataFortress",
-      tier: 'silver',
-      logo: "/logo.png",
-      description: "Cloud storage security and data encryption solutions.",
-      benefits: ["Standard booth", "Logo on materials"],
-      websiteUrl: "#"
-    },
-    {
-      id: 7,
-      name: "ByteDefender",
-      tier: 'bronze',
-      logo: "/logo.png",
-      description: "Malware detection tools and anti-phishing solutions.",
-      benefits: ["Logo on materials", "Digital presence"],
-      websiteUrl: "#"
-    },
-    {
-      id: 8,
-      name: "CodeLock",
-      tier: 'bronze',
-      logo: "/logo.png",
-      description: "Source code security analysis and protection services.",
-      benefits: ["Logo on materials", "Digital presence"],
-      websiteUrl: "#"
-    }
+    // {
+    //   id: 1,
+    //   name: "NexusTech",
+    //   tier: 'platinum',
+    //   logo: "/logo.png",
+    //   description: "Leading innovator in cybersecurity solutions with advanced threat detection systems.",
+    //   benefits: ["Premium booth at event", "Main stage presentation", "VIP networking access", "First choice for mentoring opportunities"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 2,
+    //   name: "CyberShield",
+    //   tier: 'gold',
+    //   logo: "/logo.png", 
+    //   description: "Enterprise-level security infrastructure provider specializing in zero-day vulnerability protection.",
+    //   benefits: ["Featured booth", "Workshop session", "Talent recruitment access"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 3,
+    //   name: "QuantumBit",
+    //   tier: 'gold',
+    //   logo: "/logo.png",
+    //   description: "Quantum computing research organization focused on encryption technologies.",
+    //   benefits: ["Featured booth", "Panel discussion", "Networking event"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 4,
+    //   name: "SecureNode",
+    //   tier: 'silver',
+    //   logo: "/logo.png",
+    //   description: "Network security solutions for mid-size businesses and educational institutions.",
+    //   benefits: ["Standard booth", "Logo on materials", "Participant data access"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 5,
+    //   name: "CryptoGuard",
+    //   tier: 'silver',
+    //   logo: "/logo.png",
+    //   description: "Blockchain security auditing and cryptocurrency protection services.",
+    //   benefits: ["Standard booth", "Logo on materials", "Participant data access"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 6,
+    //   name: "DataFortress",
+    //   tier: 'silver',
+    //   logo: "/logo.png",
+    //   description: "Cloud storage security and data encryption solutions.",
+    //   benefits: ["Standard booth", "Logo on materials"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 7,
+    //   name: "ByteDefender",
+    //   tier: 'bronze',
+    //   logo: "/logo.png",
+    //   description: "Malware detection tools and anti-phishing solutions.",
+    //   benefits: ["Logo on materials", "Digital presence"],
+    //   websiteUrl: "#"
+    // },
+    // {
+    //   id: 8,
+    //   name: "CodeLock",
+    //   tier: 'bronze',
+    //   logo: "/logo.png",
+    //   description: "Source code security analysis and protection services.",
+    //   benefits: ["Logo on materials", "Digital presence"],
+    //   websiteUrl: "#"
+    // }
   ];
 
   useEffect(() => {
@@ -322,47 +322,56 @@ export default function Page() {
           ))}
         </div>
 
-        {/* Sponsors grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredSponsors.map((sponsor) => {
-            const tierInfo = renderSponsorTierInfo(sponsor.tier);
-            
-            return (
-              <motion.div
-                key={sponsor.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="relative bg-black/60 border border-cyber-primary/30 rounded-lg overflow-hidden group"
-                onClick={() => setSelectedSponsor(sponsor)}
-              >
-                <div className="absolute top-0 right-0 z-10">
-                  <div className={`text-xs px-2 py-1 bg-gradient-to-r ${tierInfo.color} text-black font-bold`}>
-                    {tierInfo.label}
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <div className="h-20 w-full flex items-center justify-center mb-4 bg-black/50 rounded">
-                    <div className="text-2xl font-bold text-cyber-primary">{sponsor.name}</div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-300 mb-4 line-clamp-2">{sponsor.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-cyber-secondary">VIEW DETAILS</span>
-                    <div className="w-8 h-8 rounded-full bg-cyber-primary/20 flex items-center justify-center group-hover:bg-cyber-primary/40 transition-colors">
-                      <span className="text-cyber-primary">→</span>
+        {/* Sponsors grid - COMMENTED OUT SINCE NO SPONSORS DATA */}
+        {filteredSponsors.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredSponsors.map((sponsor) => {
+              const tierInfo = renderSponsorTierInfo(sponsor.tier);
+              
+              return (
+                <motion.div
+                  key={sponsor.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative bg-black/60 border border-cyber-primary/30 rounded-lg overflow-hidden group"
+                  onClick={() => setSelectedSponsor(sponsor)}
+                >
+                  <div className="absolute top-0 right-0 z-10">
+                    <div className={`text-xs px-2 py-1 bg-gradient-to-r ${tierInfo.color} text-black font-bold`}>
+                      {tierInfo.label}
                     </div>
                   </div>
-                </div>
-                
-                {/* Hover effect */}
-                <div className="absolute inset-0 bg-gradient-to-t from-cyber-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-              </motion.div>
-            );
-          })}
-        </div>
+                  
+                  <div className="p-4">
+                    <div className="h-20 w-full flex items-center justify-center mb-4 bg-black/50 rounded">
+                      <div className="text-2xl font-bold text-cyber-primary">{sponsor.name}</div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-300 mb-4 line-clamp-2">{sponsor.description}</p>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-cyber-secondary">VIEW DETAILS</span>
+                      <div className="w-8 h-8 rounded-full bg-cyber-primary/20 flex items-center justify-center group-hover:bg-cyber-primary/40 transition-colors">
+                        <span className="text-cyber-primary">→</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Hover effect */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-cyber-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          /* NO SPONSORS PLACEHOLDER */
+          <div className="text-center py-12">
+            <div className="text-2xl text-cyber-primary font-bold mb-4">SPONSOR RECRUITMENT</div>
+            <div className="text-gray-400 mb-4">Currently seeking strategic partners...</div>
+            <div className="text-sm text-gray-500">Sponsor slots are being allocated. Check the contact tab for partnership inquiries.</div>
+          </div>
+        )}
       </div>
     );
   };
@@ -375,6 +384,8 @@ export default function Page() {
           <p className="text-gray-300">Support the hacker community and gain exposure for your brand</p>
         </div>
         
+        {/* PACKAGES - COMMENTED OUT FOR DEVELOPMENT */}
+        {/*
         {[
           { 
             tier: 'Platinum Partner', 
@@ -460,6 +471,14 @@ export default function Page() {
             </div>
           </motion.div>
         ))}
+        */}
+        
+        {/* PLACEHOLDER MESSAGE FOR DEVELOPMENT */}
+        <div className="text-center py-12">
+          <div className="text-2xl text-cyber-primary font-bold mb-4">SPONSORSHIP PACKAGES</div>
+          <div className="text-gray-400 mb-4">Sponsorship tiers are currently being configured...</div>
+          <div className="text-sm text-gray-500">Check back soon for partnership opportunities.</div>
+        </div>
       </div>
     );
   };

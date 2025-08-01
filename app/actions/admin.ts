@@ -120,7 +120,7 @@ export async function updateUser(userId: string, action: string, adminKey?: stri
       success: true,
       message: "User updated successfully",
       user: {
-        _id: user._id,
+        _id: user._id.toString(),
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin,
@@ -249,7 +249,7 @@ export async function generateAccessCode(
         expiresAt: newAccessCode.expiresAt,
         description: newAccessCode.description,
         assignedPlayspace: newAccessCode.assignedPlayspace ? newAccessCode.assignedPlayspace.toString() : null,
-        createdAt: newAccessCode.createdAt,
+        createdAt: newAccessCode.createdAt.toISOString(),
       },
     };
   } catch (error) {
@@ -387,13 +387,13 @@ export async function getPlayspaceDetails(playspaceId: string) {
     return {
       success: true,
       playspace: {
-        _id: playspace._id,
+        _id: playspace._id.toString(),
         name: playspace.name,
         description: playspace.description,
         isPublic: playspace.isPublic,
         devices: playspace.devices || [],
         accessCode: accessCode ? {
-          _id: accessCode._id,
+          _id: accessCode._id.toString(),
           code: accessCode.code,
           priority: accessCode.priority,
           type: accessCode.type,
@@ -403,8 +403,8 @@ export async function getPlayspaceDetails(playspaceId: string) {
           expiresAt: accessCode.expiresAt,
           description: accessCode.description,
         } : null,
-        createdAt: playspace.createdAt,
-        updatedAt: playspace.updatedAt,
+        createdAt: playspace.createdAt.toISOString(),
+        updatedAt: playspace.updatedAt.toISOString(),
       },
     };
   } catch (error) {
@@ -898,7 +898,7 @@ export async function createEvent(
     return {
       success: true,
       event: {
-        _id: newEvent._id,
+        _id: newEvent._id.toString(),
         title: newEvent.title,
         description: newEvent.description,
         startDate: newEvent.startDate,
@@ -907,7 +907,7 @@ export async function createEvent(
         category: newEvent.category,
         isPublic: newEvent.isPublic,
         capacity: newEvent.capacity,
-        createdAt: newEvent.createdAt,
+        createdAt: newEvent.createdAt.toISOString(),
       },
     };
   } catch (error) {
@@ -977,7 +977,7 @@ export async function updateEvent(
       success: true,
       message: "Event updated successfully",
       event: {
-        _id: event._id,
+        _id: event._id.toString(),
         title: event.title,
         description: event.description,
         startDate: event.startDate,
@@ -1164,7 +1164,7 @@ export async function createDevice(
         deviceType: newDevice.deviceType,
         status: newDevice.status,
         playspace: null,
-        createdAt: newDevice.createdAt,
+        createdAt: newDevice.createdAt.toISOString(),
       },
     };
   } catch (error) {

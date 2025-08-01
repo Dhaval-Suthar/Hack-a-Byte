@@ -81,8 +81,8 @@ export async function submitSponsorContact(
       success: true,
       message: "Thank you for your interest! We'll get back to you within 24 hours.",
       data: {
-        id: savedContact._id,
-        submittedAt: savedContact.submittedAt,
+        id: savedContact._id.toString(),
+        submittedAt: savedContact.submittedAt.toISOString(),
       },
     };
   } catch (error) {
@@ -116,10 +116,19 @@ export async function getSponsorContacts(
       .sort({ submittedAt: -1 })
       .lean();
 
+    // Serialize the contact data
+    const serializedContacts = contacts.map(contact => ({
+      ...contact,
+      _id: String(contact._id),
+      submittedAt: (contact.submittedAt as Date).toISOString(),
+      createdAt: contact.createdAt ? (contact.createdAt as Date).toISOString() : undefined,
+      updatedAt: contact.updatedAt ? (contact.updatedAt as Date).toISOString() : undefined,
+    }));
+
     return {
       success: true,
       message: "Sponsor contacts retrieved successfully",
-      data: contacts,
+      data: serializedContacts,
     };
   } catch (error) {
     console.error("Error fetching sponsor contacts:", error);
@@ -175,7 +184,13 @@ export async function updateSponsorContactStatus(
     return {
       success: true,
       message: "Sponsor contact updated successfully",
-      data: updatedContact,
+      data: {
+        ...updatedContact.toObject(),
+        _id: updatedContact._id.toString(),
+        submittedAt: updatedContact.submittedAt.toISOString(),
+        createdAt: updatedContact.createdAt?.toISOString(),
+        updatedAt: updatedContact.updatedAt?.toISOString(),
+      },
     };
   } catch (error) {
     console.error("Error updating sponsor contact:", error);
@@ -220,7 +235,13 @@ export async function deleteSponsorContact(
     return {
       success: true,
       message: "Sponsor contact deleted successfully",
-      data: deletedContact,
+      data: {
+        ...deletedContact.toObject(),
+        _id: deletedContact._id.toString(),
+        submittedAt: deletedContact.submittedAt.toISOString(),
+        createdAt: deletedContact.createdAt?.toISOString(),
+        updatedAt: deletedContact.updatedAt?.toISOString(),
+      },
     };
   } catch (error) {
     console.error("Error deleting sponsor contact:", error);
