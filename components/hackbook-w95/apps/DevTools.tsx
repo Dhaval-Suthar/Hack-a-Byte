@@ -28,6 +28,7 @@ const DevTools: React.FC<DevToolsProps> = ({ onClose }) => {
         const emergencyApp = {
           name: "Emergency Protocol",
           icon: "/hackbook-W95/app-icon/settings.png",
+          fullscreen: true,
           metadata: {
             type: "quick-event"
           }
@@ -44,6 +45,7 @@ const DevTools: React.FC<DevToolsProps> = ({ onClose }) => {
         const firewallApp = {
           name: "Firewall Bypass",
           icon: "/hackbook-W95/app-icon/key.png",
+          fullscreen: true,
           metadata: {}
         };
         
@@ -57,6 +59,7 @@ const DevTools: React.FC<DevToolsProps> = ({ onClose }) => {
         const passwordApp = {
           name: "Password Cracker",
           icon: "/hackbook-W95/app-icon/lock.svg",
+          fullscreen: true,
           metadata: {}
         };
         
@@ -66,9 +69,12 @@ const DevTools: React.FC<DevToolsProps> = ({ onClose }) => {
         return;
       }
       
-      // For apps that exist in the main APPS array
+      // For apps that exist in the main APPS array, add fullscreen metadata
       window.dispatchEvent(new CustomEvent('devLaunchApp', { 
-        detail: { appName: fileName }
+        detail: { 
+          appName: fileName,
+          forceFullscreen: true
+        }
       }));
       
     } catch (error) {

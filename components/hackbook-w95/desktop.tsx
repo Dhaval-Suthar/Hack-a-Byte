@@ -72,6 +72,11 @@ const APPS: App[] = [
   new App("Dev Tools", "/hackbook-W95/app-icon/settings.png"), // Development app for testing missions
 ];
 
+// Set fullscreen for game apps
+APPS.find(app => app.name === "Network Neighborhood")!.fullscreen = true;
+APPS.find(app => app.name === "Neural Network Analyzer")!.fullscreen = true;
+APPS.find(app => app.name === "Secure Vault")!.fullscreen = true;
+
 const DefaultValues = {
   LINK: "https://en.wikipedia.org/wiki/Wikipedia:About",
 };
@@ -472,9 +477,17 @@ const Desktop = () => {
           // Create the Firewall Bypass app instance
           const firewallApp = new App("Firewall Bypass", "/hackbook-W95/app-icon/key.png");
           firewallApp.id = `firewallBypass_${Date.now()}`;
+          firewallApp.fullscreen = true; // Set fullscreen for game
           
-          // Register and open the app
-          windowManager.registerWindow(firewallApp.id);
+          // Register and open the app with fullscreen
+          const initialPosition = {
+            isFullscreen: true,
+            x: 0,
+            y: 0,
+            width: '100%',
+            height: '100%'
+          };
+          windowManager.registerWindow(firewallApp.id, initialPosition);
           setRunningApps((prev) => [...prev, firewallApp]);
           setSelectedApp(firewallApp);
           windowManager.activateWindow(firewallApp.id);
@@ -559,11 +572,25 @@ const Desktop = () => {
           appInstance.metadata = { ...app.metadata };
         }
         
+        // Copy fullscreen setting from the original app
+        if (app.fullscreen) {
+          appInstance.fullscreen = app.fullscreen;
+        }
+        
         // Set a unique ID for this instance
         appInstance.id = appInstanceId;
         
+        // Prepare initial window position - set to fullscreen if app requires it
+        const initialPosition = appInstance.fullscreen ? {
+          isFullscreen: true,
+          x: 0,
+          y: 0,
+          width: '100%',
+          height: '100%'
+        } : undefined;
+        
         // Register the window in the window manager with the unique ID
-        windowManager.registerWindow(appInstanceId);
+        windowManager.registerWindow(appInstanceId, initialPosition);
         
         // Add to running apps
         setRunningApps((prev) => [...prev, appInstance]);
@@ -587,16 +614,27 @@ const Desktop = () => {
   // Listen for development app launch events
   useEffect(() => {
     const handleDevLaunchApp = (event: CustomEvent) => {
-      const { appName, app: customApp } = event.detail;
+      const { appName, app: customApp, forceFullscreen } = event.detail;
       
       if (customApp) {
-        // Handle custom app object
+        // Handle custom app object - set fullscreen if specified
+        if (forceFullscreen || customApp.metadata?.forceFullscreen === 'true') {
+          customApp.fullscreen = true;
+        }
         handleOpenApp(customApp);
       } else if (appName) {
         // Handle app by name
         const app = APPS.find(a => a.name === appName);
         if (app) {
-          handleOpenApp(app);
+          // Create a copy of the app to avoid modifying the original
+          const appInstance = new App(app.name, app.icon);
+          appInstance.metadata = { ...app.metadata };
+          
+          // Set fullscreen if specified
+          if (forceFullscreen) {
+            appInstance.fullscreen = true;
+          }
+          handleOpenApp(appInstance);
         }
       }
     };
@@ -738,6 +776,7 @@ const Desktop = () => {
                   setAlertCallback(() => () => {
                     // Auto-launch the emergency protocol after alert is closed
                     const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+                    quickEventApp.fullscreen = true; // Set fullscreen for game
                     quickEventApp.metadata = {
                       type: "quick-event"
                     };
@@ -1519,6 +1558,7 @@ const TerminalComponent: React.FC = () => {
         setTimeout(() => {
           // Use the App class from the outer scope
           const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+          quickEventApp.fullscreen = true; // Set fullscreen for game
           quickEventApp.metadata = { type: "quick-event" };
           window.dispatchEvent(new CustomEvent('devLaunchApp', { detail: { app: quickEventApp } }));
         }, 2000);
