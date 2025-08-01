@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
       allowedOrigins: ['*'],
     },
   },
-  // Configure image domains
+  // Configure image domains and optimization
   images: {
     remotePatterns: [
       {
@@ -16,7 +16,16 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+    // Ensure static images work properly on Vercel
+    unoptimized: false, // Keep optimization enabled for better performance
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
   },
+  // Static file configuration
+  assetPrefix: '',
+  trailingSlash: false,
   // Reduce API routes in favor of server actions
   redirects: async () => [
     {

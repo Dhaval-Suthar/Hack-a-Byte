@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
 import clsx from "clsx";
 import audioManager from "../hooks/useAudioManager";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
 import Win95Alert from "../Win95Alert";
+import { getMainImagePath, getRightPatternPath, getWrongPatternPath, testImageLoad } from "../../../lib/fingerprint-images";
+import FingerprintImage from "../components/FingerprintImage";
 
 interface FingerprintHackProps {
   onClose: () => void;
@@ -86,10 +87,24 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       // Each segment has 4 possible correct patterns
       const correctPatternIndex = Math.floor(Math.random() * 4) + 1;
       
+      const mainImagePath = getMainImagePath(segmentNumber);
+      const correctPatternPath = getRightPatternPath(segmentNumber, correctPatternIndex);
+      
+      // Debug logging for image paths
+      console.log(`Creating segment ${i}: mainImage=${mainImagePath}, correctPattern=${correctPatternPath}`);
+      
+      // Test image loading
+      testImageLoad(mainImagePath).then(loaded => {
+        console.log(`Main image ${mainImagePath} loaded: ${loaded}`);
+      });
+      testImageLoad(correctPatternPath).then(loaded => {
+        console.log(`Correct pattern ${correctPatternPath} loaded: ${loaded}`);
+      });
+      
       newSegments.push({
         id: i,
-        mainImage: `/hackbook-w95/Fingerprints/main${segmentNumber}.png`,
-        correctPattern: `/hackbook-w95/Fingerprints/right${segmentNumber}_${correctPatternIndex}.png`,
+        mainImage: mainImagePath,
+        correctPattern: correctPatternPath,
         isCorrect: false,
         completed: false
       });
@@ -98,21 +113,21 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       const segmentPatterns: string[] = [];
       
       // Add the correct pattern
-      segmentPatterns.push(`/hackbook-w95/Fingerprints/right${segmentNumber}_${correctPatternIndex}.png`);
+      segmentPatterns.push(correctPatternPath);
       
       // Add wrong patterns based on difficulty
       const wrongPatterns: string[] = [];
       
       // Add wrong patterns for this segment
       for (let w = 1; w <= 4; w++) {
-        wrongPatterns.push(`/hackbook-w95/Fingerprints/wrong${segmentNumber}_${w}.png`);
+        wrongPatterns.push(getWrongPatternPath(segmentNumber, w));
       }
       
       // Add right patterns from OTHER segments to make it more challenging
       for (let otherSegment = 1; otherSegment <= 4; otherSegment++) {
         if (otherSegment !== segmentNumber) {
           for (let r = 1; r <= 4; r++) {
-            wrongPatterns.push(`/hackbook-w95/Fingerprints/right${otherSegment}_${r}.png`);
+            wrongPatterns.push(getRightPatternPath(otherSegment, r));
           }
         }
       }
@@ -239,11 +254,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                 <div key={index} className="bg-[#1a1a1a] border-2 border-green-900 p-2 flex items-center justify-center">
                   <div className="bg-black w-full h-full flex items-center justify-center relative">
                     {segment.mainImage ? (
-                      <Image 
+                      <FingerprintImage 
                         src={segment.mainImage} 
                         alt={`Fingerprint segment ${index + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-contain opacity-30"
                       />
                     ) : (
@@ -282,11 +295,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                     <div className="w-full h-full bg-black flex items-center justify-center">
                       {segment.completed ? (
                         <div className="relative w-full h-full">
-                          <Image 
+                          <FingerprintImage 
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-80"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -295,11 +306,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                         </div>
                       ) : currentSegment === idx ? (
                         <div className="relative w-full h-full">
-                          <Image 
+                          <FingerprintImage 
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-60"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -308,11 +317,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                         </div>
                       ) : (
                         <div className="relative w-full h-full">
-                          <Image 
+                          <FingerprintImage 
                             src={segment.mainImage} 
                             alt={`Fingerprint segment ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain opacity-30"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -351,11 +358,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                         )}
                       >
                         <div className="w-full h-full flex items-center justify-center relative">
-                          <Image 
+                          <FingerprintImage 
                             src={patternImage} 
                             alt={`Pattern option ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
                           />
                         </div>
@@ -405,11 +410,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                   {segments.map((segment) => (
                     <div key={segment.id} className="bg-black border border-green-900 p-1 flex items-center justify-center">
                       <div className="relative w-full h-full">
-                        <Image 
+                        <FingerprintImage 
                           src={segment.mainImage} 
                           alt={`Fingerprint segment ${segment.id + 1}`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-contain opacity-80"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
