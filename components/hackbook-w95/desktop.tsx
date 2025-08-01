@@ -143,6 +143,9 @@ const Desktop = () => {
   // Dev Tools availability state
   const [devToolsUnlocked, setDevToolsUnlocked] = useState(false);
 
+  // Database-driven unlocked applications state
+  const [unlockedApplications, setUnlockedApplications] = useState<string[]>([]);
+
   // Set client state after hydration to prevent SSR mismatch
   useEffect(() => {
     setIsClient(true);
@@ -371,6 +374,57 @@ const Desktop = () => {
     };
   }, [deviceId]);
 
+  // Load unlocked applications from database
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadUnlockedApplications = async () => {
+      if (!deviceId || !isMounted) return;
+      
+      try {
+        const { getUnlockedApplications } = await import('@/app/actions/userProgress');
+        const result = await getUnlockedApplications(deviceId, 'hackbook-w95');
+        
+        if (!isMounted) return;
+        
+        if (result.success && result.unlockedApplications) {
+          setUnlockedApplications(result.unlockedApplications);
+          
+          // Update individual app states based on database data
+          setNetworkToolInstalled(result.unlockedApplications.includes('Network Neighborhood'));
+          setNeuralNetworkUnlocked(result.unlockedApplications.includes('Neural Network Analyzer'));
+          setVaultUnlocked(result.unlockedApplications.includes('Secure Vault'));
+          setDevToolsUnlocked(result.unlockedApplications.includes('Dev Tools'));
+        } else {
+          // Default unlocked applications for new users
+          const defaultApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
+          setUnlockedApplications(defaultApps);
+          
+          // Save default apps to database for new users
+          try {
+            const { updateUnlockedApplications } = await import('@/app/actions/userProgress');
+            await updateUnlockedApplications(deviceId, 'hackbook-w95', defaultApps);
+          } catch (error) {
+            console.error('Error saving default apps to database:', error);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Error loading unlocked applications:', error);
+          // Fallback to default apps
+          const defaultApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
+          setUnlockedApplications(defaultApps);
+        }
+      }
+    };
+    
+    loadUnlockedApplications();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [deviceId]);
+
   // Check if there's a device-specific user logged in
   useEffect(() => {
     const checkDeviceUser = async () => {
@@ -457,6 +511,28 @@ const Desktop = () => {
       }
     }
   }, []);
+
+  // Helper function to unlock applications in database
+  const unlockApplications = useCallback(async (applications: string[]) => {
+    if (!deviceId) return;
+    
+    try {
+      const { updateUnlockedApplications } = await import('@/app/actions/userProgress');
+      const result = await updateUnlockedApplications(deviceId, 'hackbook-w95', applications);
+      
+      if (result.success && result.unlockedApplications) {
+        setUnlockedApplications(result.unlockedApplications);
+        
+        // Update individual app states
+        setNetworkToolInstalled(result.unlockedApplications.includes('Network Neighborhood'));
+        setNeuralNetworkUnlocked(result.unlockedApplications.includes('Neural Network Analyzer'));
+        setVaultUnlocked(result.unlockedApplications.includes('Secure Vault'));
+        setDevToolsUnlocked(result.unlockedApplications.includes('Dev Tools'));
+      }
+    } catch (error) {
+      console.error('Error unlocking applications:', error);
+    }
+  }, [deviceId]);
 
   // Show welcome dialog when user logs in
   useEffect(() => {
@@ -560,7 +636,10 @@ const Desktop = () => {
       // Play installation sound
       playSound("ding");
       
-      // Store installation state in localStorage
+      // Unlock Network Neighborhood in database
+      await unlockApplications(['Network Neighborhood']);
+      
+      // Store installation state in localStorage for backwards compatibility
       if (typeof window !== "undefined") {
         localStorage.setItem("networkToolInstalled", "true");
       }
@@ -639,7 +718,7 @@ const Desktop = () => {
       window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
       window.removeEventListener('networkToolRemoved', handleNetworkToolRemove);
     };
-  }, [playSound, deviceId]);
+  }, [playSound, deviceId, unlockApplications]);
 
   // Listen for neural network data discovery
   useEffect(() => {
@@ -656,7 +735,10 @@ const Desktop = () => {
       // Play discovery sound
       playSound("ding");
       
-      // Store in localStorage
+      // Unlock Neural Network Analyzer in database
+      await unlockApplications(['Neural Network Analyzer']);
+      
+      // Store in localStorage for backwards compatibility
       if (typeof window !== "undefined") {
         localStorage.setItem("neuralNetworkUnlocked", "true");
       }
@@ -702,7 +784,10 @@ const Desktop = () => {
       setShowVaultNotification(true);
       playSound("ding");
       
-      // Track neural network completion and vault unlocking in localStorage
+      // Unlock Secure Vault in database
+      await unlockApplications(['Secure Vault']);
+      
+      // Track neural network completion and vault unlocking in localStorage for backwards compatibility
       if (typeof window !== "undefined") {
         localStorage.setItem("neuralNetworkCompleted", "true");
         localStorage.setItem("vaultUnlocked", "true");
@@ -742,7 +827,7 @@ const Desktop = () => {
       window.removeEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
       window.removeEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
     };
-  }, [playSound, deviceId]);
+  }, [playSound, deviceId, unlockApplications]);
 
   // Listen for mission 2 completion to trigger Number Jumping Game
   useEffect(() => {
@@ -827,7 +912,10 @@ const Desktop = () => {
       setDevToolsUnlocked(true);
       playSound("ding");
       
-      // Store in localStorage
+      // Unlock Dev Tools in database
+      await unlockApplications(['Dev Tools']);
+      
+      // Store in localStorage for backwards compatibility
       if (typeof window !== "undefined") {
         localStorage.setItem("devToolsUnlocked", "true");
       }
@@ -859,7 +947,7 @@ const Desktop = () => {
     return () => {
       window.removeEventListener('zebraCodeActivated', handleZebraCodeActivation);
     };
-  }, [playSound, deviceId]);
+  }, [playSound, deviceId, unlockApplications]);
   
   // Listen for final mission completion
   useEffect(() => {
@@ -896,7 +984,7 @@ const Desktop = () => {
   
   // Listen for game state reset event
   useEffect(() => {
-    const handleResetGameState = () => {
+    const handleResetGameState = async () => {
       // Reset all app installation states
       setNetworkToolInstalled(false);
       setNeuralNetworkUnlocked(false);
@@ -904,6 +992,20 @@ const Desktop = () => {
       setDevToolsUnlocked(false);
       setMission2JustCompleted(false);
       setShowNumberJumpingGame(false);
+      
+      // Reset unlocked applications to default
+      const defaultApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
+      setUnlockedApplications(defaultApps);
+      
+      // Update database with default unlocked applications
+      if (deviceId) {
+        try {
+          const { updateUnlockedApplications } = await import('@/app/actions/userProgress');
+          await updateUnlockedApplications(deviceId, 'hackbook-w95', defaultApps);
+        } catch (error) {
+          console.error('Error resetting unlocked applications in database:', error);
+        }
+      }
       
       // Clear all mission-related localStorage items
       if (typeof window !== 'undefined') {
@@ -933,7 +1035,7 @@ const Desktop = () => {
     return () => {
       window.removeEventListener('resetGameState', handleResetGameState);
     };
-  }, []);
+  }, [deviceId, setUnlockedApplications]);
 
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
@@ -1427,18 +1529,22 @@ const Desktop = () => {
         <div className="absolute top-4 left-4">
           <div className="grid grid-cols-3 gap-6">
             {APPS.filter(app => {
-              // Network Neighborhood is hidden until network tool is installed
-              if (app.name === "Network Neighborhood" && !networkToolInstalled) return false;
-              // Neural Network Analyzer is hidden until unlocked
-              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) return false;
-              // Secure Vault is hidden until neural network is completed
-              if (app.name === "Secure Vault" && !vaultUnlocked) return false;
-              // Dev Tools is hidden until zebra code is activated
-              if (app.name === "Dev Tools" && !devToolsUnlocked) return false;
-              // Solitaire is removed
+              // Check if app is unlocked in database
+              const isUnlocked = unlockedApplications.includes(app.name);
+              
+              // Always show basic apps (these are unlocked by default)
+              const basicApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
+              if (basicApps.includes(app.name)) return true;
+              
+              // Special cases - these apps are never shown as desktop icons
               if (app.name === "Solitaire") return false;
-              // Emergency Protocol is never shown as a desktop icon
               if (app.name === "Emergency Protocol") return false;
+              
+              // For mission-specific apps, check database unlock status
+              if (['Network Neighborhood', 'Neural Network Analyzer', 'Secure Vault', 'Dev Tools'].includes(app.name)) {
+                return isUnlocked;
+              }
+              
               return true;
             }).map((app) => {
               const isInbox = app.name === "Inbox";

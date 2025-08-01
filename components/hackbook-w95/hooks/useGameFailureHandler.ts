@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
-import { handleGameFailure, getHackbookLoginUrl } from "@/app/actions/gameFailure";
+import { handleGameFailure, getDeviceSelectionUrl } from "@/app/actions/gameFailure";
 
 /**
  * Custom hook to handle game failures
@@ -38,13 +38,13 @@ export const useGameFailureHandler = () => {
       const result = await handleGameFailure(deviceId, 'hackbook-w95');
 
       if (result.success) {
-        // Clear client-side storage but preserve device and playspace info for re-login
+        // Clear client-side storage including device selection for fresh start
         if (typeof window !== 'undefined') {
-          // Preserve device and playspace IDs for re-login
-          const preservedDeviceId = localStorage.getItem('selectedDeviceId');
+          // Preserve only playspace ID, clear device selection for re-selection
           const preservedPlayspaceId = localStorage.getItem('selectedPlayspaceId');
           
-          // Clear game-related storage but not device/playspace info
+          // Clear all game and device related storage
+          localStorage.removeItem('selectedDeviceId');
           localStorage.removeItem('gameProgress');
           localStorage.removeItem('missionBriefingSeen');
           // Clear any other game-related storage
@@ -54,9 +54,9 @@ export const useGameFailureHandler = () => {
             }
           });
           
-          // Restore device and playspace IDs so user can log back into same device
-          if (preservedDeviceId) {
-            localStorage.setItem('selectedDeviceId', preservedDeviceId);
+          // Restore only playspace ID so user returns to same playspace but selects device again
+          if (preservedPlayspaceId) {
+            localStorage.setItem('selectedPlayspaceId', preservedPlayspaceId);
           }
           if (preservedPlayspaceId) {
             localStorage.setItem('selectedPlayspaceId', preservedPlayspaceId);
@@ -67,22 +67,22 @@ export const useGameFailureHandler = () => {
         setAlertMessage(`Mission Failed!\n\n${result.message}`);
         setShowAlert(true);
 
-        // Redirect to login page
-        const loginUrl = await getHackbookLoginUrl(deviceId, playspaceId || undefined);
-        router.push(loginUrl);
+        // Redirect to device selection page
+        const redirectUrl = await getDeviceSelectionUrl(deviceId, playspaceId || undefined);
+        router.push(redirectUrl);
       } else {
         console.error('Failed to handle game failure:', result.error);
-        // Still redirect to login as fallback
-        const loginUrl = await getHackbookLoginUrl(deviceId, playspaceId || undefined);
-        router.push(loginUrl);
+        // Still redirect to device selection as fallback
+        const redirectUrl = await getDeviceSelectionUrl(deviceId, playspaceId || undefined);
+        router.push(redirectUrl);
       }
     } catch (error) {
       console.error('Error processing game failure:', error);
-      // Fallback - still redirect to login
+      // Fallback - still redirect to device selection
       const deviceId = searchParams?.get('device') || 'unknown';
       const playspaceId = searchParams?.get('playspace');
-      const loginUrl = await getHackbookLoginUrl(deviceId, playspaceId || undefined);
-      router.push(loginUrl);
+      const redirectUrl = await getDeviceSelectionUrl(deviceId, playspaceId || undefined);
+      router.push(redirectUrl);
     } finally {
       setIsProcessingFailure(false);
     }

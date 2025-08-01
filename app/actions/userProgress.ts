@@ -260,6 +260,41 @@ export async function updateUserSettings(
 /**
  * Update user's unlocked applications
  */
+/**
+ * Get user's unlocked applications from database
+ */
+export async function getUnlockedApplications(deviceId: string, deviceType: string) {
+  try {
+    const cookieStore = await cookies();
+    const userCookie = cookieStore.get(`device_${deviceId}_${deviceType}`);
+    
+    if (!userCookie || !userCookie.value) {
+      return { error: "User not logged in" };
+    }
+
+    const userData = JSON.parse(userCookie.value);
+    
+    await connectDb();
+
+    const user = await DeviceUser.findOne({
+      _id: new mongoose.Types.ObjectId(userData.userId),
+      deviceMacAddress: deviceId
+    });
+
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    return {
+      success: true,
+      unlockedApplications: user.gameState.unlockedApplications || []
+    };
+  } catch (error) {
+    console.error("Error getting unlocked applications:", error);
+    return { error: "Failed to get unlocked applications" };
+  }
+}
+
 export async function updateUnlockedApplications(
   deviceId: string,
   deviceType: string,

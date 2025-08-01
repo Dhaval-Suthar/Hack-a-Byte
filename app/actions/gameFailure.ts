@@ -54,15 +54,12 @@ export async function handleGameFailure(deviceId: string, deviceType: string) {
 }
 
 /**
- * Get redirect URL for hackbook-w95 login page
+ * Get redirect URL for device selection page
  */
-export async function getHackbookLoginUrl(deviceId?: string, playspaceId?: string) {
-  const baseUrl = `/hackbook-w95/login`;
+export async function getDeviceSelectionUrl(deviceId?: string, playspaceId?: string) {
+  const baseUrl = `/device-selection`;
   const params = new URLSearchParams();
   
-  if (deviceId) {
-    params.append('device', deviceId);
-  }
   if (playspaceId) {
     params.append('playspace', playspaceId);
   }
