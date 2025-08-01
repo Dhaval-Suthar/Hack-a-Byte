@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import clsx from "clsx";
 import audioManager from "../hooks/useAudioManager";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 
 interface BruteForceGameProps {
   onSuccess: (password: string) => void;
@@ -15,23 +17,42 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
   onClose,
   targetFileName = "Archive.zip"
 }) => {
+  // Get difficulty configuration
+  const getDifficultyConfig = useCallback(() => {
+    const difficulty = GameDifficultyManager.getGlobalDifficulty();
+    
+    switch (difficulty) {
+      case "easy":
+        return { passwordLength: { min: 3, max: 4 }, initialSpeed: 1000, speedIncrement: 50 };
+      case "normal":
+        return { passwordLength: { min: 4, max: 6 }, initialSpeed: 800, speedIncrement: 75 };
+      case "hard":
+        return { passwordLength: { min: 5, max: 7 }, initialSpeed: 600, speedIncrement: 100 };
+      case "nightmare":
+        return { passwordLength: { min: 6, max: 9 }, initialSpeed: 400, speedIncrement: 150 };
+      default:
+        return { passwordLength: { min: 4, max: 6 }, initialSpeed: 800, speedIncrement: 75 };
+    }
+  }, []);
+
   // Generate a random password for the game
   const generateRandomPassword = useCallback(() => {
+    const config = getDifficultyConfig();
     const passwordChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const length = Math.floor(Math.random() * 3) + 4; // Random length between 4-6 characters
+    const length = Math.floor(Math.random() * (config.passwordLength.max - config.passwordLength.min + 1)) + config.passwordLength.min;
     let password = "";
     for (let i = 0; i < length; i++) {
       password += passwordChars[Math.floor(Math.random() * passwordChars.length)];
     }
     return password;
-  }, []);
+  }, [getDifficultyConfig]);
 
   const [gamePassword] = useState(() => generateRandomPassword());
   const [currentSlot, setCurrentSlot] = useState(0);
   const [crackedChars, setCrackedChars] = useState<string[]>(new Array(gamePassword.length).fill(""));
   const [currentChar, setCurrentChar] = useState("");
   const [isAnimating, setIsAnimating] = useState(true);
-  const [speed, setSpeed] = useState(800); // Start slower for better gameplay, then increase
+  const [speed, setSpeed] = useState(() => getDifficultyConfig().initialSpeed);
   const [attempts, setAttempts] = useState(0);
   const [misses, setMisses] = useState(0);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
@@ -41,6 +62,12 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
+
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.BRUTE_FORCE_GAME, currentDifficulty);
+  }, []);
 
   // Character set for the brute force simulation
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
@@ -130,8 +157,9 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         }, 1500);
       } else {
         setCurrentSlot(nextSlot);
-        // Increase speed progressively - start slow, get faster
-        setSpeed(prev => Math.max(150, prev - 50)); // Minimum 150ms, decrease by 50ms each time for faster progression
+        // Increase speed progressively based on difficulty
+        const config = getDifficultyConfig();
+        setSpeed(prev => Math.max(150, prev - config.speedIncrement)); // Minimum 150ms, decrease based on difficulty
       }
     } else {
       // Incorrect character - reset progress
@@ -143,7 +171,8 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
       // Reset progress after failure
       setCrackedChars(new Array(gamePassword.length).fill(""));
       setCurrentSlot(0);
-      setSpeed(800); // Reset speed to initial value
+      const config = getDifficultyConfig();
+      setSpeed(config.initialSpeed); // Reset speed to initial value based on difficulty
       
       // Auto-hide mismatch dialog and continue
       setTimeout(() => {
@@ -151,7 +180,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         setScrambleEffect(false);
       }, 1500);
     }
-  }, [currentChar, gamePassword, currentSlot, crackedChars, playSound, onSuccess]);
+  }, [currentChar, gamePassword, currentSlot, crackedChars, playSound, onSuccess, getDifficultyConfig]);
 
   // Handle keyboard input
   useEffect(() => {

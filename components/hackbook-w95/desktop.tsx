@@ -182,26 +182,26 @@ const Desktop = () => {
     if (typeof window !== 'undefined') {
       // Only load from localStorage if the state isn't already set from database
       // Check if network tool is installed
-      if (localStorage.getItem("networkToolInstalled") === "true" && !networkToolInstalled) {
+      if (localStorage.getItem("networkToolInstalled") === "true") {
         setNetworkToolInstalled(true);
       }
       
       // Check if neural network has been unlocked
-      if (localStorage.getItem("neuralNetworkUnlocked") === "true" && !neuralNetworkUnlocked) {
+      if (localStorage.getItem("neuralNetworkUnlocked") === "true") {
         setNeuralNetworkUnlocked(true);
       }
       
       // Check if secure vault has been completed
-      if (localStorage.getItem("secureVaultCompleted") === "true" && !vaultUnlocked) {
+      if (localStorage.getItem("secureVaultCompleted") === "true") {
         setVaultUnlocked(true);
       }
       
       // Check if dev tools have been unlocked
-      if (localStorage.getItem("devToolsUnlocked") === "true" && !devToolsUnlocked) {
+      if (localStorage.getItem("devToolsUnlocked") === "true") {
         setDevToolsUnlocked(true);
       }
     }
-  }, [networkToolInstalled, neuralNetworkUnlocked, vaultUnlocked, devToolsUnlocked]);
+  }, []); // Remove state dependencies to prevent infinite loops
 
   // Check if Neural Network data is discovered to show Neural Network Analyzer
   useEffect(() => {
@@ -1014,7 +1014,6 @@ const Desktop = () => {
                 // For now, just close the app
                 handleCloseApp(app);
               }}
-              difficulty="intermediate"
             />
           );
         case "Secure Vault":

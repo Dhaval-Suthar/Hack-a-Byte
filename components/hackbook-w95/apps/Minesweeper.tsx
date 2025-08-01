@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
 
 interface Cell {
   revealed: boolean;
@@ -8,12 +9,6 @@ interface Cell {
   flagged: boolean;
   adjacentMines: number;
 }
-
-const DIFFICULTY = {
-  BEGINNER: { rows: 9, cols: 9, mines: 10 },
-  INTERMEDIATE: { rows: 16, cols: 16, mines: 40 },
-  EXPERT: { rows: 16, cols: 30, mines: 99 },
-};
 
 interface MinesweeperProps {
   onClose: () => void;
@@ -24,14 +19,32 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [mineCount, setMineCount] = useState(10);
   const [timer, setTimer] = useState(0);
-  const [difficulty] = useState(DIFFICULTY.BEGINNER);
   const [gameStarted, setGameStarted] = useState(false);
   const [faceState, setFaceState] = useState<"smile" | "wow" | "dead" | "cool">("smile");
+
+  // Get difficulty configuration
+  const getDifficultyConfig = useCallback(() => {
+    const difficulty = GameDifficultyManager.getGlobalDifficulty();
+    
+    switch (difficulty) {
+      case "easy":
+        return { rows: 8, cols: 8, mines: 8 };
+      case "normal":
+        return { rows: 9, cols: 9, mines: 10 };
+      case "hard":
+        return { rows: 16, cols: 16, mines: 40 };
+      case "nightmare":
+        return { rows: 16, cols: 30, mines: 99 };
+      default:
+        return { rows: 9, cols: 9, mines: 10 };
+    }
+  }, []);
 
   // Initialize the grid
   useEffect(() => {
     const initializeGrid = () => {
-      const { rows, cols, mines } = difficulty;
+      const config = getDifficultyConfig();
+      const { rows, cols, mines } = config;
       
       // Create empty grid
       const newGrid: Cell[][] = Array(rows).fill(null).map(() => 
@@ -87,11 +100,12 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
     };
 
     initializeGrid();
-  }, [difficulty]);
+  }, [getDifficultyConfig]);
 
   // Separate initializeGrid function for reset button
   const initializeGrid = () => {
-    const { rows, cols, mines } = difficulty;
+    const config = getDifficultyConfig();
+    const { rows, cols, mines } = config;
     
     // Create empty grid
     const newGrid: Cell[][] = Array(rows).fill(null).map(() => 
@@ -174,12 +188,13 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
     }
     
     const newGrid = [...grid];
+    const config = getDifficultyConfig();
     
     // If it's a mine, game over
     if (newGrid[row][col].mine) {
       // Reveal all mines
-      for (let r = 0; r < difficulty.rows; r++) {
-        for (let c = 0; c < difficulty.cols; c++) {
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
           if (newGrid[r][c].mine) {
             newGrid[r][c].revealed = true;
           }
@@ -203,8 +218,8 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
       setFaceState("cool");
       
       // Flag all mines
-      for (let r = 0; r < difficulty.rows; r++) {
-        for (let c = 0; c < difficulty.cols; c++) {
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
           if (newGrid[r][c].mine) {
             newGrid[r][c].flagged = true;
           }
@@ -219,9 +234,10 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
   
   // Recursive function to reveal cells (for empty cells)
   const revealCellRecursive = (grid: Cell[][], row: number, col: number) => {
+    const config = getDifficultyConfig();
     if (
-      row < 0 || row >= difficulty.rows || 
-      col < 0 || col >= difficulty.cols || 
+      row < 0 || row >= config.rows || 
+      col < 0 || col >= config.cols || 
       grid[row][col].revealed || 
       grid[row][col].flagged
     ) {
@@ -254,8 +270,9 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
     setGrid(newGrid);
     
     // Update mine count
+    const config = getDifficultyConfig();
     const flaggedCount = newGrid.flat().filter(cell => cell.flagged).length;
-    setMineCount(difficulty.mines - flaggedCount);
+    setMineCount(config.mines - flaggedCount);
   };
   
   const handleMouseDown = () => {
@@ -356,7 +373,7 @@ const Minesweeper: React.FC<MinesweeperProps> = ({ onClose }) => {
         <div 
           className="grid gap-0 border-4 border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff]"
           style={{
-            gridTemplateColumns: `repeat(${difficulty.cols}, minmax(16px, 1fr))`,
+            gridTemplateColumns: `repeat(${getDifficultyConfig().cols}, minmax(16px, 1fr))`,
           }}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}

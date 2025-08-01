@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Button from "@/components/ui/Button";
 import Leaderboard from "../Leaderboard";
 import { addLeaderboardEntry } from "@/app/actions/leaderboard";
@@ -34,9 +34,32 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
   const [showConfetti, setShowConfetti] = useState(true);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   
+  // Toggle between results and leaderboard
+  const [activeTab, setActiveTab] = useState<'results' | 'leaderboard'>('results');
+  
   // Get comprehensive scoring data
   const comprehensiveScore = gameScoring.calculateOverallScore();
-  const [showComprehensiveScoring, setShowComprehensiveScoring] = useState(comprehensiveScore.gamesCompleted > 1);
+  const [showComprehensiveScoring, setShowComprehensiveScoring] = useState(false);
+
+  // Initialize comprehensive scoring visibility
+  useEffect(() => {
+    setShowComprehensiveScoring(comprehensiveScore.gamesCompleted > 1);
+  }, [comprehensiveScore.gamesCompleted]);
+
+  // Memoize confetti particles to prevent re-renders
+  const confettiParticles = useMemo(() => {
+    const colors = [`#ff0000`, `#00ff00`, `#0000ff`, `#ffff00`, `#ff00ff`, `#00ffff`];
+    return Array.from({ length: 100 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      width: Math.random() * 10 + 5,
+      height: Math.random() * 10 + 5,
+      animationDuration: Math.random() * 5 + 3,
+      animationDelay: Math.random() * 5,
+      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+    }));
+  }, []); // Empty dependency array means this runs only once
 
   // Calculate grade based on score
   const getGrade = (score: number): string => {
@@ -72,7 +95,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
         
         if (result.success) {
           setScoreSubmitted(true);
-          setActiveTab('leaderboard'); // Switch to leaderboard tab after submission
           console.log("Score submitted to leaderboard:", result.entry);
         } else {
           console.error("Failed to submit score:", result.error);
@@ -103,288 +125,324 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
     }
   }, [deviceId, scoreSubmitted, submitScore]);
 
+  // Auto-switch to leaderboard tab after score submission
+  useEffect(() => {
+    if (scoreSubmitted) {
+      const timer = setTimeout(() => {
+        setActiveTab('leaderboard');
+      }, 1000); // Small delay to show submission feedback
+      
+      return () => clearTimeout(timer);
+    }
+  }, [scoreSubmitted]); // Remove setActiveTab dependency as it's stable
+
   const grade = getGrade(score);
   const message = getMessage(score);
 
-  // Toggle between results and leaderboard
-  const [activeTab, setActiveTab] = useState<'results' | 'leaderboard'>('results');
-
   return (
-    <div className="w-full h-full bg-[#008080] text-white p-8 flex flex-col items-center justify-center font-mono relative overflow-hidden">
-      {/* Windows 95 style window */}
-      <div className="bg-[#c0c0c0] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 text-black p-0 w-[90%] max-w-xl shadow-lg">
-        {/* Title bar */}
-        <div className="bg-[#000080] text-white p-1 flex items-center justify-between">
+    <div className="w-full h-full bg-gradient-to-br from-[#008080] to-[#006666] text-white p-8 flex flex-col items-center justify-center font-mono relative overflow-hidden">
+      {/* Animated background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-repeat" style={{
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="1"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+          animation: 'float 20s linear infinite'
+        }} />
+      </div>
+
+      {/* Windows 95 style window with enhanced styling */}
+      <div className="bg-[#c0c0c0] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 text-black p-0 w-[95%] max-w-4xl shadow-2xl relative z-10 animate-slideIn">
+        {/* Enhanced title bar */}
+        <div className="bg-gradient-to-r from-[#000080] to-[#0040ff] text-white p-2 flex items-center justify-between shadow-md">
           <div className="flex items-center">
-            <span className="text-lg font-bold ml-1">Game Results</span>
+            <div className="w-4 h-4 bg-white border border-[#808080] mr-2 flex items-center justify-center">
+              <div className="w-2 h-2 bg-[#000080]"></div>
+            </div>
+            <span className="text-lg font-bold ml-1">🎯 Mission Results Dashboard</span>
+          </div>
+          <div className="flex space-x-1">
+            <div className="w-4 h-4 bg-[#c0c0c0] border border-[#808080] flex items-center justify-center text-xs">_</div>
+            <div className="w-4 h-4 bg-[#c0c0c0] border border-[#808080] flex items-center justify-center text-xs">□</div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-[#808080]">
+        {/* Enhanced tabs with animation */}
+        <div className="flex border-b border-[#808080] bg-[#d4d0c8]">
           <button
-            className={`px-4 py-2 font-bold ${
+            className={`px-6 py-3 font-bold transition-all duration-200 relative ${
               activeTab === 'results'
-                ? 'bg-[#c0c0c0] border-t-2 border-l-2 border-r-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-0'
-                : 'bg-[#a0a0a0]'
+                ? 'bg-[#c0c0c0] border-t-2 border-l-2 border-r-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-0 transform -translate-y-0.5'
+                : 'bg-[#a0a0a0] hover:bg-[#b0b0b0]'
             }`}
             onClick={() => setActiveTab('results')}
           >
-            Your Score
+            📊 Your Score
+            {activeTab === 'results' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#c0c0c0]"></div>
+            )}
           </button>
           <button
-            className={`px-4 py-2 font-bold ${
+            className={`px-6 py-3 font-bold transition-all duration-200 relative ${
               activeTab === 'leaderboard'
-                ? 'bg-[#c0c0c0] border-t-2 border-l-2 border-r-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-0'
-                : 'bg-[#a0a0a0]'
+                ? 'bg-[#c0c0c0] border-t-2 border-l-2 border-r-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-0 transform -translate-y-0.5'
+                : 'bg-[#a0a0a0] hover:bg-[#b0b0b0]'
             }`}
             onClick={() => setActiveTab('leaderboard')}
           >
-            Leaderboard
+            🏆 Leaderboard
+            {activeTab === 'leaderboard' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#c0c0c0]"></div>
+            )}
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-8 bg-[#c0c0c0] max-h-[70vh] overflow-y-auto score-content">
           {activeTab === 'results' ? (
-            <>
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold mb-2">Mission Complete!</h1>
-                <h2 className="text-2xl text-[#000080] font-bold">{message}</h2>
+            <div className="space-y-6">
+              {/* Hero section with enhanced styling */}
+              <div className="text-center mb-8 relative">
+                <div className="bg-gradient-to-r from-[#000080] to-[#0040ff] text-white p-6 rounded-lg shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 opacity-20">
+                    <div className="text-6xl">🎯</div>
+                  </div>
+                  <h1 className="text-4xl font-bold mb-3 relative z-10 animate-bounce">Mission Complete!</h1>
+                  <h2 className="text-2xl font-bold relative z-10">{message}</h2>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-30"></div>
+                </div>
               </div>
 
-          {/* Score display */}
-          <div className="bg-[#ffffff] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 p-4 mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <span className="font-bold">Final Grade:</span>
-              <span className="text-4xl font-bold text-[#000080]">{grade}</span>
-            </div>
-            
-            <div className="flex justify-between mb-2">
-              <span>Score:</span>
-              <span className="font-bold">{score} points</span>
-            </div>
-            
-            <div className="flex justify-between mb-2">
-              <span>Events Completed:</span>
-              <span>{completedEvents}/{totalEvents}</span>
-            </div>
-            
-            <div className="flex justify-between mb-2">
-              <span>Time Remaining:</span>
-              <span>{timeRemaining} seconds</span>
-            </div>
-            
-            <div className="w-full h-4 bg-[#d4d0c8] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 mt-4">
-              <div 
-                className="h-full bg-[#000080]"
-                style={{ width: `${score}%` }}
-              />
-            </div>
-          </div>
+              {/* Enhanced score display with visual improvements */}
+              <div className="bg-[#ffffff] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 p-6 mb-6 shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="font-bold text-lg">Final Assessment:</span>
+                  <div className="flex items-center space-x-4">
+                    <div className={`text-6xl font-bold px-4 py-2 rounded-lg border-2 animate-pulse ${
+                      grade === 'S' ? 'text-yellow-500 bg-yellow-50 border-yellow-200' :
+                      grade === 'A' ? 'text-green-500 bg-green-50 border-green-200' :
+                      grade === 'B' ? 'text-blue-500 bg-blue-50 border-blue-200' :
+                      grade === 'C' ? 'text-orange-500 bg-orange-50 border-orange-200' :
+                      'text-red-500 bg-red-50 border-red-200'
+                    }`}>
+                      {grade}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-[#f0f0f0] p-4 rounded border border-[#808080]">
+                    <div className="text-sm text-gray-600 mb-1">Score</div>
+                    <div className="text-2xl font-bold text-[#000080]">{score} points</div>
+                  </div>
+                  
+                  <div className="bg-[#f0f0f0] p-4 rounded border border-[#808080]">
+                    <div className="text-sm text-gray-600 mb-1">Completion Rate</div>
+                    <div className="text-2xl font-bold text-[#000080]">{completedEvents}/{totalEvents}</div>
+                  </div>
+                  
+                  <div className="bg-[#f0f0f0] p-4 rounded border border-[#808080]">
+                    <div className="text-sm text-gray-600 mb-1">Time Remaining</div>
+                    <div className="text-2xl font-bold text-[#000080]">{timeRemaining}s</div>
+                  </div>
+                  
+                  <div className="bg-[#f0f0f0] p-4 rounded border border-[#808080]">
+                    <div className="text-sm text-gray-600 mb-1">Difficulty</div>
+                    <div className="text-xl font-bold text-[#000080] capitalize">{difficulty}</div>
+                  </div>
+                </div>
+                
+                {/* Enhanced progress bar */}
+                <div className="mt-6">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Performance</span>
+                    <span>{score}%</span>
+                  </div>
+                  <div className="w-full h-6 bg-[#d4d0c8] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 rounded overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#000080] to-[#0040ff] transition-all duration-1000 ease-out relative overflow-hidden"
+                      style={{ width: `${Math.min(score, 100)}%` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-shimmer"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* Comprehensive Scoring Display */}
-          {showComprehensiveScoring && (
-            <div className="bg-[#ffffff] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 p-4 mb-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg">Mission Sequence Score</h3>
-                <button 
-                  className="text-sm bg-[#c0c0c0] border border-[#808080] px-2 py-1 hover:bg-[#d0d0d0]"
-                  onClick={() => setShowComprehensiveScoring(!showComprehensiveScoring)}
-                >
-                  {showComprehensiveScoring ? '−' : '+'}
-                </button>
-              </div>
-              
-              <div className="flex justify-between mb-2">
-                <span className="font-bold">Total Score:</span>
-                <span className="font-bold text-[#000080]">{comprehensiveScore.totalScore} points</span>
-              </div>
-              
-              <div className="flex justify-between mb-2">
-                <span>Games Completed:</span>
-                <span>{comprehensiveScore.gamesCompleted}/5</span>
-              </div>
-              
-              <div className="flex justify-between mb-2">
-                <span>Average Time:</span>
-                <span>{comprehensiveScore.averageTime}s</span>
-              </div>
-              
-              <div className="flex justify-between mb-2">
-                <span>Total Attempts:</span>
-                <span>{comprehensiveScore.totalAttempts}</span>
-              </div>
-              
-              {comprehensiveScore.perfectionBonus > 0 && (
-                <div className="flex justify-between mb-2">
-                  <span>Perfection Bonus:</span>
-                  <span className="text-green-600 font-bold">+{comprehensiveScore.perfectionBonus}</span>
+              {/* Enhanced comprehensive scoring display */}
+              {showComprehensiveScoring && (
+                <div className="bg-[#ffffff] border-t-[#808080] border-l-[#808080] border-r-[#ffffff] border-b-[#ffffff] border-2 p-6 mb-6 shadow-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-xl flex items-center">
+                      🎮 Mission Sequence Analysis
+                    </h3>
+                    <button 
+                      className="text-sm bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] px-3 py-1 hover:bg-[#d0d0d0] transition-colors"
+                      onClick={() => setShowComprehensiveScoring(!showComprehensiveScoring)}
+                    >
+                      {showComprehensiveScoring ? '📤 Collapse' : '📥 Expand'}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
+                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.totalScore}</div>
+                      <div className="text-sm text-gray-600">Total Score</div>
+                    </div>
+                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
+                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.gamesCompleted}/5</div>
+                      <div className="text-sm text-gray-600">Games Completed</div>
+                    </div>
+                    <div className="text-center bg-[#f8f8f8] p-4 rounded border">
+                      <div className="text-2xl font-bold text-[#000080]">{comprehensiveScore.averageTime}s</div>
+                      <div className="text-sm text-gray-600">Average Time</div>
+                    </div>
+                  </div>
+                  
+                  {comprehensiveScore.perfectionBonus > 0 && (
+                    <div className="bg-green-50 border border-green-200 p-3 rounded mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-green-800 font-bold">🌟 Perfection Bonus!</span>
+                        <span className="text-green-600 font-bold text-xl">+{comprehensiveScore.perfectionBonus}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Individual Game Breakdown with enhanced styling */}
+                  <div className="mt-6">
+                    <h4 className="font-bold mb-3 text-lg">📋 Detailed Breakdown:</h4>
+                    <div className="space-y-2">
+                      {comprehensiveScore.breakdown.map((gameData, index) => (
+                        <div key={index} className="flex justify-between items-center bg-[#f0f0f0] p-3 rounded border hover:bg-[#e8e8e8] transition-colors">
+                          <span className="font-medium">{gameData.game}</span>
+                          <div className="text-right">
+                            <div className="font-bold text-[#000080]">{gameData.score}pts</div>
+                            <div className="text-sm text-gray-600">{gameData.time}s • {gameData.attempts} attempts</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
-              
-              <div className="flex justify-between mb-2">
-                <span>Difficulty Multiplier:</span>
-                <span>×{comprehensiveScore.difficultyMultiplier}</span>
-              </div>
-              
-              {/* Individual Game Breakdown */}
-              <div className="mt-4 pt-3 border-t border-[#808080]">
-                <h4 className="font-bold mb-2">Game Breakdown:</h4>
-                <div className="text-sm space-y-1">
-                  {comprehensiveScore.breakdown.map((gameData, index) => (
-                    <div key={index} className="flex justify-between">
-                      <span className="truncate">{gameData.game}:</span>
-                      <span>{gameData.score}pts ({gameData.time}s, {gameData.attempts} tries)</span>
-                    </div>
+
+              {/* Enhanced difficulty selection */}
+              <div className="bg-gradient-to-br from-[#d4d0c8] to-[#c0c0c0] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 p-6 mb-6 shadow-lg">
+                <h3 className="font-bold mb-4 text-lg flex items-center">
+                  ⚙️ Configure Next Mission:
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: "easy", label: "Easy", desc: "More time, slower events", color: "green", icon: "🟢" },
+                    { value: "normal", label: "Normal", desc: "Standard challenge", color: "blue", icon: "🔵" },
+                    { value: "hard", label: "Hard", desc: "Less time, faster events", color: "orange", icon: "🟠" },
+                    { value: "nightmare", label: "Nightmare", desc: "Extreme challenge", color: "red", icon: "🔴" }
+                  ].map((diff) => (
+                    <label key={diff.value} className={`flex items-center space-x-3 p-3 rounded cursor-pointer transition-all duration-200 border-2 ${
+                      selectedDifficulty === diff.value 
+                        ? 'bg-white border-[#000080] shadow-md transform scale-105' 
+                        : 'bg-[#f0f0f0] border-[#c0c0c0] hover:bg-white hover:border-[#808080]'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        value={diff.value}
+                        checked={selectedDifficulty === diff.value}
+                        onChange={() => {
+                          setSelectedDifficulty(diff.value);
+                          GameDifficultyManager.setGlobalDifficulty(diff.value);
+                        }}
+                        className="hidden"
+                      />
+                      <div className="text-2xl">{diff.icon}</div>
+                      <div className="flex-1">
+                        <div className={`font-bold ${diff.value === 'nightmare' ? 'text-red-600' : 'text-black'}`}>
+                          {diff.label}
+                        </div>
+                        <div className="text-sm text-gray-600">{diff.desc}</div>
+                      </div>
+                      {selectedDifficulty === diff.value && (
+                        <div className="text-[#000080] text-xl">✓</div>
+                      )}
+                    </label>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Difficulty selection */}
-          <div className="bg-[#d4d0c8] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 p-4 mb-6">
-            <h3 className="font-bold mb-3">Select Difficulty:</h3>
-            
-            <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="easy"
-                  checked={selectedDifficulty === "easy"}
-                  onChange={() => {
-                    setSelectedDifficulty("easy");
-                    GameDifficultyManager.setGlobalDifficulty("easy");
-                  }}
-                  className="form-radio"
-                />
-                <span>Easy (More time, slower events)</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="normal"
-                  checked={selectedDifficulty === "normal"}
-                  onChange={() => {
-                    setSelectedDifficulty("normal");
-                    GameDifficultyManager.setGlobalDifficulty("normal");
-                  }}
-                  className="form-radio"
-                />
-                <span>Normal (Standard challenge)</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="hard"
-                  checked={selectedDifficulty === "hard"}
-                  onChange={() => {
-                    setSelectedDifficulty("hard");
-                    GameDifficultyManager.setGlobalDifficulty("hard");
-                  }}
-                  className="form-radio"
-                />
-                <span>Hard (Less time, faster events)</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="nightmare"
-                  checked={selectedDifficulty === "nightmare"}
-                  onChange={() => {
-                    setSelectedDifficulty("nightmare");
-                    GameDifficultyManager.setGlobalDifficulty("nightmare");
-                  }}
-                  className="form-radio"
-                />
-                <span className="text-red-600 font-bold">Nightmare (Extreme challenge)</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-center space-x-4">
-            <Button
-              onClick={() => {
-                // Save the selected difficulty globally for all games
-                GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
-                
-                // Reset game progress flags
-                if (typeof window !== 'undefined') {
-                  // Get device ID for database reset
-                  const deviceId = localStorage.getItem("selectedDeviceId");
-                  
-                  // Reset database progress if device ID is available
-                  if (deviceId) {
-                    // Import and call reset function
-                    import('@/app/actions/userProgress').then(async ({ resetAllProgress }) => {
-                      try {
-                        if (resetAllProgress) {
-                          await resetAllProgress(deviceId, "hackbook-w95");
-                          console.log("Database progress reset successfully");
-                        }
-                      } catch (error) {
-                        console.error("Error resetting database progress:", error);
+              {/* Enhanced buttons */}
+              <div className="flex justify-center space-x-6">
+                <Button
+                  onClick={() => {
+                    // Save the selected difficulty globally for all games
+                    GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
+                    
+                    // Reset game progress flags
+                    if (typeof window !== 'undefined') {
+                      // Get device ID for database reset
+                      const deviceId = localStorage.getItem("selectedDeviceId");
+                      
+                      // Reset database progress if device ID is available
+                      if (deviceId) {
+                        // Import and call reset function
+                        import('@/app/actions/userProgress').then(async ({ resetAllProgress }) => {
+                          try {
+                            if (resetAllProgress) {
+                              await resetAllProgress(deviceId, "hackbook-w95");
+                              console.log("Database progress reset successfully");
+                            }
+                          } catch (error) {
+                            console.error("Error resetting database progress:", error);
+                          }
+                        });
                       }
-                    });
-                  }
-                  
-                  // Remove game-specific flags to reset progress
-                  localStorage.removeItem("emergencyProtocolLaunched");
-                  localStorage.removeItem("secureVaultCompleted");
-                  localStorage.removeItem("neuralNetworkCompleted");
-                  
-                  // Remove app installation flags
-                  localStorage.removeItem("networkToolInstalled");
-                  localStorage.removeItem("neuralNetworkUnlocked");
-                  localStorage.removeItem("vaultUnlocked");
-                  localStorage.removeItem("devToolsUnlocked");
-                  
-                  // Remove mission progress flags
-                  localStorage.removeItem("mission1Completed");
-                  localStorage.removeItem("mission2Completed");
-                  localStorage.removeItem("neural_data_discovered");
-                  localStorage.removeItem("mission2JustCompleted");
-                  localStorage.removeItem("zebra_code_activated");
-                  localStorage.removeItem("final_mission");
-                  
-                  // Clear any other game state
-                  localStorage.removeItem("hasSeenMission");
-                  
-                  // Dispatch reset event before reloading
-                  window.dispatchEvent(new CustomEvent('resetGameState'));
-                  
-                  // Reload the page to restart everything fresh
-                  window.location.reload();
-                } else {
-                  // Fallback to just calling the replay function if window is not available
-                  onReplay(selectedDifficulty);
-                }
-              }}
-              className="bg-[#d4d0c8] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 text-black hover:bg-[#d4d0c8] px-6 py-2"
-            >
-              Play Again
-            </Button>
-            <Button
-              onClick={() => {
-                // Save the selected difficulty globally before closing
-                GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
-                onClose();
-              }}
-              className="bg-[#d4d0c8] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 text-black hover:bg-[#d4d0c8] px-6 py-2"
-            >
-              Continue
-            </Button>
-          </div>
-            </>
+                      
+                      // Remove game-specific flags to reset progress
+                      localStorage.removeItem("emergencyProtocolLaunched");
+                      localStorage.removeItem("secureVaultCompleted");
+                      localStorage.removeItem("neuralNetworkCompleted");
+                      
+                      // Remove app installation flags
+                      localStorage.removeItem("networkToolInstalled");
+                      localStorage.removeItem("neuralNetworkUnlocked");
+                      localStorage.removeItem("vaultUnlocked");
+                      localStorage.removeItem("devToolsUnlocked");
+                      
+                      // Remove mission progress flags
+                      localStorage.removeItem("mission1Completed");
+                      localStorage.removeItem("mission2Completed");
+                      localStorage.removeItem("neural_data_discovered");
+                      localStorage.removeItem("mission2JustCompleted");
+                      localStorage.removeItem("zebra_code_activated");
+                      localStorage.removeItem("final_mission");
+                      
+                      // Clear any other game state
+                      localStorage.removeItem("hasSeenMission");
+                      
+                      // Dispatch reset event before reloading
+                      window.dispatchEvent(new CustomEvent('resetGameState'));
+                      
+                      // Reload the page to restart everything fresh
+                      window.location.reload();
+                    } else {
+                      // Fallback to just calling the replay function if window is not available
+                      onReplay(selectedDifficulty);
+                    }
+                  }}
+                  className="bg-gradient-to-r from-[#d4d0c8] to-[#e8e4e0] border-t-[#ffffff] border-l-[#ffffff] border-r-[#808080] border-b-[#808080] border-2 text-black hover:from-[#e8e4e0] hover:to-[#f0f0f0] px-8 py-3 font-bold shadow-lg transform hover:scale-105 transition-all duration-200"
+                >
+                  🔄 Play Again
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Save the selected difficulty globally before closing
+                    GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
+                    onClose();
+                  }}
+                  className="bg-gradient-to-r from-[#000080] to-[#0040ff] text-white hover:from-[#0040ff] hover:to-[#0060ff] px-8 py-3 font-bold shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-[#000040]"
+                >
+                  ➡️ Continue Mission
+                </Button>
+              </div>
+            </div>
           ) : (
             <Leaderboard
               game="quick-event-presser"
@@ -399,20 +457,18 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
       {/* Confetti effect */}
       {showConfetti && (
         <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: 100 }).map((_, i) => (
+          {confettiParticles.map((particle) => (
             <div
-              key={i}
-              className="absolute bg-yellow-300 rounded-full"
+              key={particle.id}
+              className="absolute rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${Math.random() * 10 + 5}px`,
-                height: `${Math.random() * 10 + 5}px`,
-                animation: `fall ${Math.random() * 5 + 3}s linear infinite`,
-                animationDelay: `${Math.random() * 5}s`,
-                backgroundColor: [`#ff0000`, `#00ff00`, `#0000ff`, `#ffff00`, `#ff00ff`, `#00ffff`][
-                  Math.floor(Math.random() * 6)
-                ],
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                width: `${particle.width}px`,
+                height: `${particle.height}px`,
+                animation: `fall ${particle.animationDuration}s linear infinite`,
+                animationDelay: `${particle.animationDelay}s`,
+                backgroundColor: particle.backgroundColor,
               }}
             />
           ))}
