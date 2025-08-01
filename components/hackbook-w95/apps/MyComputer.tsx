@@ -63,6 +63,12 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
         return '/hackbook-W95/file-icons/txt-file-symbol.png';
       case 'exe':
         return '/hackbook-w95/file-icons/application.png';
+      case 'zip':
+      case 'rar':
+      case '7z':
+      case 'tar':
+      case 'gz':
+        return '/hackbook-W95/file-icons/archive.png';
       case 'jpg':
       case 'png':
       case 'gif':

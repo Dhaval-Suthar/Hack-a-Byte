@@ -4,7 +4,6 @@ import React, { useState, useCallback } from "react";
 import Win95Alert from "../Win95Alert";
 import clsx from "clsx";
 import Image from "next/image";
-import BruteForceGame from "./BruteForceGame";
 import { getSessionCreds } from "@/lib/creds";
 
 interface ZipFile {
@@ -30,7 +29,6 @@ const ZipArchive: React.FC<ZipArchiveProps> = ({
   password = "GHOST"
 }) => {
   const [isUnlocked, setIsUnlocked] = useState(!isLocked);
-  const [showBruteForce, setShowBruteForce] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<ZipFile | null>(null);
@@ -172,7 +170,6 @@ Good luck with your assignment.
   const handleBruteForceSuccess = useCallback((crackedPassword: string) => {
     console.log('Password cracked:', crackedPassword);
     setIsUnlocked(true);
-    setShowBruteForce(false);
     playSound('success');
     // Save mission progress - Mark Mission 1 as complete using database-enhanced tracker
     const deviceId = localStorage.getItem('selectedDeviceId');
@@ -226,17 +223,6 @@ Good luck with your assignment.
       day: 'numeric' 
     });
   };
-
-  // If showing brute force game
-  if (showBruteForce) {
-    return (
-      <BruteForceGame
-        targetFileName="Archive.zip"
-        onSuccess={handleBruteForceSuccess}
-        onClose={() => setShowBruteForce(false)}
-      />
-    );
-  }
 
   return (
     <div className="w-full h-full bg-[#c0c0c0] flex flex-col">
@@ -320,7 +306,21 @@ Good luck with your assignment.
                 
                 <button
                   onClick={() => {
-                    setShowBruteForce(true);
+                    // Launch BruteForceGame as a separate fullscreen app
+                    const bruteForceApp = {
+                      name: "Password Cracker",
+                      icon: "/hackbook-W95/app-icon/lock.svg",
+                      fullscreen: true,
+                      metadata: {
+                        type: "brute-force",
+                        targetFileName: "Archive.zip",
+                        parentCallback: handleBruteForceSuccess
+                      }
+                    };
+                    
+                    window.dispatchEvent(new CustomEvent('devLaunchApp', { 
+                      detail: { app: bruteForceApp } 
+                    }));
                     playSound('click');
                   }}
                   className="w-full bg-[#800000] text-white px-4 py-2 border-2 border-[#800000] hover:bg-[#a00000]"
@@ -359,8 +359,8 @@ Good luck with your assignment.
                   <div className="w-1/2 flex items-center">
                     <Image
                       src={file.type === 'directory' 
-                        ? "/hackbook-W95/file-icons/folder.png"
-                        : "/hackbook-W95/file-icons/text.png"
+                        ? "/hackbook-W95/file-icons/archive.png"
+                        : "/hackbook-W95/file-icons/txt-file-symbol.png"
                       }
                       alt={file.type}
                       width={16}
