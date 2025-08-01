@@ -348,6 +348,19 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     };
   }, [isConnected, handleLogout, playSound]);
 
+  // Handle page reload/unload - disconnect the app
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear the saved state to force disconnection on reload
+      sessionStorage.removeItem('wintalk95State');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Handle sending message
   const handleSendMessage = useCallback(() => {
     if (currentMessage.trim() && selectedContact) {
