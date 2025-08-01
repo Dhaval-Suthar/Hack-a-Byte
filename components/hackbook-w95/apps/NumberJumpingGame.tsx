@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import audioManager from "../hooks/useAudioManager";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
+import Win95Alert from "../Win95Alert";
 
 interface NumberJumpingGameProps {
   onClose: () => void;
@@ -36,11 +38,26 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   // Store the multiplier for the multiples pattern
   const [currentMultiplier, setCurrentMultiplier] = useState<number | null>(null);
 
+  // Game failure handler
+  const { handleFailure, isProcessingFailure, alertMessage, showAlert, closeAlert } = useGameFailureHandler();
+
   // Start game tracking on component mount
   useEffect(() => {
     const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
     gameScoring.startGame(GameScoringManager.NUMBER_JUMPING_GAME, currentDifficulty);
   }, []);
+
+  // Handle game failure - delete account and redirect
+  useEffect(() => {
+    if (gameState === "failed" && !isProcessingFailure) {
+      // Give a brief moment to show the failure message, then delete account
+      const timer = setTimeout(() => {
+        handleFailure();
+      }, 3000); // Show failure screen for 3 seconds before account deletion
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, handleFailure, isProcessingFailure]);
 
   // Get difficulty configuration
   const getDifficultyConfig = useCallback(() => {
@@ -866,22 +883,40 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
 
         {/* Action buttons */}
         <div className="text-center space-y-3">
-          <div className="bg-black text-orange-400 p-3 font-mono text-sm border border-gray-600">
+          <div className="bg-black text-red-400 p-3 font-mono text-sm border border-gray-600">
             <div className="flex justify-center items-center">
-              <div className="w-2 h-2 bg-orange-400 rounded-full mr-2 animate-pulse"></div>
-              &gt; Awaiting new approach strategy. Retry recommended...
+              <div className="w-2 h-2 bg-red-400 rounded-full mr-2 animate-pulse"></div>
+              &gt; MISSION FAILURE DETECTED - ACCOUNT TERMINATION INITIATED...
             </div>
           </div>
-          <button
-            onClick={startGame}
-            className="bg-[#c0c0c0] border-2 border-outset px-8 py-3 font-bold hover:bg-[#e0e0e0] active:border-inset transition-all duration-100 shadow-md"
-          >
-            🔄 RETRY MISSION
-          </button>
+          <div className="bg-red-800 text-white p-4 border-2 border-red-600 font-bold">
+            <div className="text-center">
+              <div className="text-xl mb-2">⚠️ CRITICAL FAILURE ⚠️</div>
+              <div className="text-sm">
+                Your hacker credentials are being revoked due to mission failure.
+              </div>
+              <div className="text-xs mt-2 opacity-75">
+                Redirecting to authentication terminal...
+              </div>
+            </div>
+          </div>
+          {isProcessingFailure && (
+            <div className="bg-gray-800 text-yellow-400 p-3 font-mono text-sm">
+              <div className="flex justify-center items-center">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-ping"></div>
+                Processing account termination...
+              </div>
+            </div>
+          )}
           <div className="text-xs text-gray-600">
-            Security protocols require strategy adjustment
+            No retry available - Mission failure results in permanent account deletion
           </div>
         </div>
+
+        {/* Win95Alert for game failure */}
+        {showAlert && alertMessage && (
+          <Win95Alert message={alertMessage} onClose={closeAlert} />
+        )}
       </div>
     );
   }

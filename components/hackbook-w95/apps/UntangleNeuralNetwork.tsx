@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import audioManager from "../hooks/useAudioManager";
+import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
+import Win95Alert from "../Win95Alert";
 
 interface Node {
   id: string;
@@ -41,6 +43,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { handleFailure, alertMessage, showAlert, closeAlert } = useGameFailureHandler();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -49,11 +52,13 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [gameComplete, setGameComplete] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
   const [moveCount, setMoveCount] = useState(0);
   const [startTime] = useState(Date.now());
   const [completionTime, setCompletionTime] = useState<number | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [revealedData, setRevealedData] = useState<string>('');
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes timeout
   
   // Enhanced game state
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -69,6 +74,33 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
     gameScoring.startGame(GameScoringManager.UNTANGLE_NEURAL_NETWORK, currentDifficulty);
   }, []);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (gameComplete || gameFailed) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setGameFailed(true);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [gameComplete, gameFailed]);
+
+  // Handle game failure - delete account
+  useEffect(() => {
+    if (gameFailed) {
+      setTimeout(() => {
+        handleFailure();
+      }, 3000); // 3 second delay to show failure message
+    }
+  }, [gameFailed, handleFailure]);
 
   // Configuration based on difficulty - Enhanced for better challenge
   const getDifficultyConfig = useCallback(() => {
@@ -697,7 +729,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   // Enhanced mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas || gameComplete) return;
+    if (!canvas || gameComplete || gameFailed) return;
     
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -726,7 +758,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       // Add grab particles
       addParticles(clickedNode.x, clickedNode.y, 'rgba(255, 255, 255, 1)', 3);
     }
-  }, [nodes, gameComplete, addParticles]);
+  }, [nodes, gameComplete, gameFailed, addParticles]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -939,11 +971,14 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
           <div>Connections: <span className="text-cyan-400">{connections.length}</span></div>
           <div>Moves: <span className="text-orange-400">{moveCount}</span></div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
           <div>Tangled: <span className="text-red-400">{connections.filter(c => c.isIntersecting).length}</span></div>
           <div>Flowing: <span className="text-green-400">{connections.filter(c => !c.isIntersecting).length}</span></div>
+          <div>Time: <span className={`${timeLeft < 30 ? 'text-red-400 animate-pulse' : 'text-cyan-400'}`}>
+            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          </span></div>
           {completionTime && (
-            <div>Time: <span className="text-green-400">{(completionTime / 1000).toFixed(1)}s</span></div>
+            <div>Final: <span className="text-green-400">{(completionTime / 1000).toFixed(1)}s</span></div>
           )}
         </div>
         {showHint && hintNode && (
@@ -952,6 +987,35 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
           </div>
         )}
       </div>
+
+      {/* Game Failure Overlay */}
+      {gameFailed && (
+        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-b from-red-900 to-red-800 border-2 border-red-400 p-8 text-center max-w-md shadow-2xl">
+            <div className="mb-4">
+              <div className="text-4xl mb-2">⚠️</div>
+              <h2 className="text-2xl font-bold text-red-400 mb-2">NEURAL BREACH FAILED!</h2>
+              <div className="text-red-300 text-sm mb-4">
+                Timeout: Security Protocols Activated
+              </div>
+            </div>
+            
+            <div className="bg-black border border-red-500 p-4 mb-4">
+              <div className="text-left text-sm text-red-300 font-mono">
+                SYSTEM ALERT: Unauthorized access detected<br/>
+                Time limit exceeded: {Math.floor(180 / 60)}:{(180 % 60).toString().padStart(2, '0')}<br/>
+                Moves attempted: {moveCount}<br/>
+                Status: ACCOUNT TERMINATED
+              </div>
+            </div>
+            
+            <div className="border-t border-red-500 pt-4 mt-4">
+              <p className="font-mono text-yellow-400 mb-2">ACCOUNT TERMINATION IN PROGRESS...</p>
+              <p className="text-sm text-gray-300">Redirecting to login...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Celebration Overlay */}
       {showCelebration && (
@@ -1007,6 +1071,11 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
             [INTELLIGENCE_UNLOCKED]
           </div>
         </div>
+      )}
+
+      {/* Win95Alert for game failure */}
+      {showAlert && alertMessage && (
+        <Win95Alert message={alertMessage} onClose={closeAlert} />
       )}
     </div>
   );

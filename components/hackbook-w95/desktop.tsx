@@ -39,6 +39,7 @@ import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
 import useWindowManager from "@/components/hackbook-w95/hooks/useWindowManager";
 import Win95Window from "@/components/hackbook-w95/Win95Window";
 import NotificationBadge from "../ui/notification_badge";
+import { useGameFailureHandler } from "@/components/hackbook-w95/hooks/useGameFailureHandler";
 class App {
   name: string;
   icon: string;
@@ -105,6 +106,9 @@ const Desktop = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Game failure handler
+  const { handleFailure } = useGameFailureHandler();
 
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
@@ -1280,7 +1284,8 @@ const Desktop = () => {
               }}
               onFailure={() => {
                 console.log("Emergency protocol failed!");
-                // Could trigger a game over state or restart
+                // Trigger account deletion and redirect to login
+                handleFailure();
               }}
             />
           );
@@ -1330,7 +1335,7 @@ const Desktop = () => {
           return null;
       }
     },
-    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount, deviceId]
+    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount, deviceId, handleFailure]
   );
 
   // Handle keyboard events and file opening

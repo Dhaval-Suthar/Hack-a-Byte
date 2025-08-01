@@ -5,6 +5,8 @@ import clsx from "clsx";
 import audioManager from "../hooks/useAudioManager";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
+import Win95Alert from "../Win95Alert";
 
 interface BruteForceGameProps {
   onSuccess: (password: string) => void;
@@ -59,9 +61,25 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
   const [gameComplete, setGameComplete] = useState(false);
   const [scrambleEffect, setScrambleEffect] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
+
+  // Game failure handler
+  const { handleFailure, isProcessingFailure, alertMessage, showAlert, closeAlert } = useGameFailureHandler();
+
+  // Maximum allowed misses before account termination (based on difficulty)
+  const getMaxMisses = useCallback(() => {
+    const difficulty = GameDifficultyManager.getGlobalDifficulty();
+    switch (difficulty) {
+      case "easy": return 10;
+      case "normal": return 7;
+      case "hard": return 5;
+      case "nightmare": return 3;
+      default: return 7;
+    }
+  }, []);
 
   // Start game tracking on component mount
   useEffect(() => {
@@ -80,6 +98,18 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
 
     return () => clearTimeout(startTimer);
   }, []);
+
+  // Handle game failure - delete account and redirect
+  useEffect(() => {
+    if (gameFailed && !isProcessingFailure) {
+      // Give a brief moment to show the failure message, then delete account
+      const timer = setTimeout(() => {
+        handleFailure();
+      }, 3000); // Show failure screen for 3 seconds before account deletion
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameFailed, handleFailure, isProcessingFailure]);
 
   // Play sound effect
   const playSound = useCallback((soundType: 'click' | 'error' | 'success' | 'type') => {
@@ -164,7 +194,16 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
     } else {
       // Incorrect character - reset progress
       playSound('error');
-      setMisses(prev => prev + 1);
+      const newMisses = misses + 1;
+      setMisses(newMisses);
+      
+      // Check if max misses reached
+      if (newMisses >= getMaxMisses()) {
+        setGameFailed(true);
+        setIsAnimating(false);
+        return;
+      }
+      
       setShowMismatchDialog(true);
       setScrambleEffect(true);
       
@@ -180,7 +219,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         setScrambleEffect(false);
       }, 1500);
     }
-  }, [currentChar, gamePassword, currentSlot, crackedChars, playSound, onSuccess, getDifficultyConfig]);
+  }, [currentChar, gamePassword, currentSlot, crackedChars, playSound, onSuccess, getDifficultyConfig, misses, getMaxMisses]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -224,10 +263,15 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
       <div className="mb-6 text-sm">
         <div className="grid grid-cols-2 gap-4">
           <div>Attempts: <span className="text-yellow-400">{attempts}</span></div>
-          <div>Misses: <span className="text-red-400">{misses}</span></div>
+          <div>Misses: <span className={clsx("font-bold", misses >= getMaxMisses() - 2 ? "text-red-400 animate-pulse" : "text-red-400")}>{misses}/{getMaxMisses()}</span></div>
           <div>Speed: <span className="text-cyan-400">{(1000/speed).toFixed(1)} Hz</span></div>
           <div>Progress: <span className="text-green-400">{currentSlot}/{gamePassword.length}</span></div>
         </div>
+        {misses >= getMaxMisses() - 2 && misses < getMaxMisses() && (
+          <div className="text-red-400 text-center mt-2 animate-pulse">
+            ⚠️ WARNING: Account termination imminent! ⚠️
+          </div>
+        )}
       </div>
 
       {/* Password Display */}
@@ -307,6 +351,33 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
         </div>
       )}
 
+      {/* Game Failed */}
+      {gameFailed && (
+        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center">
+          <div className="bg-red-900 border-2 border-red-500 p-8 text-center max-w-md">
+            <div className="text-red-300 font-bold text-2xl mb-4">⚠️ CRITICAL FAILURE ⚠️</div>
+            <div className="text-red-400 mb-4">
+              Maximum attempts exceeded!<br/>
+              Security breach detected.
+            </div>
+            <div className="text-white bg-red-800 p-3 mb-4 text-sm">
+              Your hacker credentials are being revoked due to excessive failed attempts.
+            </div>
+            <div className="text-yellow-300 text-sm">
+              Misses: {misses}/{getMaxMisses()} (MAXIMUM REACHED)
+            </div>
+            {isProcessingFailure && (
+              <div className="mt-4 text-yellow-400 text-sm">
+                <div className="animate-pulse">Processing account termination...</div>
+              </div>
+            )}
+            <div className="text-xs text-gray-400 mt-4">
+              Redirecting to authentication terminal...
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Click Area (invisible) */}
       {isAnimating && gameStarted && !showMismatchDialog && (
         <div
@@ -351,6 +422,11 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Win95Alert for game failure */}
+      {showAlert && alertMessage && (
+        <Win95Alert message={alertMessage} onClose={closeAlert} />
+      )}
     </div>
   );
 };

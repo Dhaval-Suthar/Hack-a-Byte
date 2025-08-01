@@ -6,6 +6,8 @@ import clsx from "clsx";
 import audioManager from "../hooks/useAudioManager";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
+import Win95Alert from "../Win95Alert";
 
 interface FingerprintHackProps {
   onClose: () => void;
@@ -30,6 +32,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   const [timeLeft, setTimeLeft] = useState(60);
   const [attempts, setAttempts] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Game failure handler
+  const { handleFailure, isProcessingFailure, alertMessage, showAlert, closeAlert } = useGameFailureHandler();
   
   // Get difficulty configuration
   const getDifficultyConfig = useCallback(() => {
@@ -54,6 +59,18 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
     const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
     gameScoring.startGame(GameScoringManager.FINGERPRINT_HACK, currentDifficulty);
   }, []);
+
+  // Handle game failure - delete account and redirect
+  useEffect(() => {
+    if (gameState === "failed" && !isProcessingFailure) {
+      // Give a brief moment to show the failure message, then delete account
+      const timer = setTimeout(() => {
+        handleFailure();
+      }, 3000); // Show failure screen for 3 seconds before account deletion
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, handleFailure, isProcessingFailure]);
   
   // Initialize fingerprint segments
   useEffect(() => {
@@ -127,7 +144,6 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
           clearInterval(timerRef.current!);
           setGameState("failed");
           playSound("error");
-          setTimeout(() => onClose(), 2500);
           return 0;
         }
         return t - 1;
@@ -191,7 +207,6 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
         if (newAttempts >= 5) {
           setGameState("failed");
           clearInterval(timerRef.current!);
-          setTimeout(() => onClose(), 2500);
         }
         return newAttempts;
       });
@@ -425,13 +440,32 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                 <div className="text-red-400 text-sm animate-pulse">Security protocols activated</div>
               </div>
             </div>
-            <div className="bg-[#1a0a0a] p-4 border-2 border-red-700 text-red-500">
-              <p className="font-bold">SECURITY ALERT TRIGGERED</p>
-              <p className="text-sm">System lockdown initiated</p>
+            <div className="bg-[#1a0a0a] p-4 border-2 border-red-700 text-red-500 mb-4">
+              <p className="font-bold">⚠️ CRITICAL SECURITY BREACH ⚠️</p>
+              <p className="text-sm">Account termination initiated</p>
+              <p className="text-xs text-red-400 mt-2">
+                Your hacker credentials are being revoked due to biometric authentication failure.
+              </p>
+            </div>
+            {isProcessingFailure && (
+              <div className="bg-gray-800 text-yellow-400 p-3 font-mono text-sm border border-yellow-600">
+                <div className="flex justify-center items-center">
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-ping"></div>
+                  Processing account termination...
+                </div>
+              </div>
+            )}
+            <div className="text-xs text-gray-400 mt-2">
+              Redirecting to authentication terminal...
             </div>
           </div>
         )}
       </div>
+
+      {/* Win95Alert for game failure */}
+      {showAlert && alertMessage && (
+        <Win95Alert message={alertMessage} onClose={closeAlert} />
+      )}
     </div>
   );
 };

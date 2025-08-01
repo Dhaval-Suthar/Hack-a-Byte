@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import clsx from "clsx";
+import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
+import Win95Alert from "../Win95Alert";
 
 interface IPFinderProps {
   onSuccess: (targetIP: string) => void;
@@ -9,6 +11,7 @@ interface IPFinderProps {
 }
 
 const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
+  const { handleFailure, alertMessage, showAlert, closeAlert } = useGameFailureHandler();
   const [gameStarted, setGameStarted] = useState(false);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
@@ -88,6 +91,15 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
     
     return () => clearInterval(timer);
   }, []); // Empty dependency array to run only once
+
+  // Handle game failure - delete account
+  useEffect(() => {
+    if (gameFailed) {
+      setTimeout(() => {
+        handleFailure();
+      }, 3000); // 3 second delay to show failure message
+    }
+  }, [gameFailed, handleFailure]);
 
   // Handle number click
   const handleNumberClick = (index: number, value: string) => {
@@ -252,20 +264,10 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
           <div className="bg-red-900 border-2 border-red-500 p-6 rounded text-white text-center max-w-md">
             <h3 className="font-mono text-2xl mb-4">BREACH FAILED</h3>
             <p className="font-mono mb-2">Security protocols activated</p>
-            <p className="text-red-400">Target IP was: {targetIP}</p>
-            <div className="mt-6 space-x-4">
-              <button
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 font-mono"
-                onClick={onClose}
-              >
-                DISCONNECT
-              </button>
-              <button
-                className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 font-mono"
-                onClick={() => window.location.reload()}
-              >
-                RETRY
-              </button>
+            <p className="text-red-400 mb-4">Target IP was: {targetIP}</p>
+            <div className="border-t border-red-500 pt-4 mt-4">
+              <p className="font-mono text-yellow-400 mb-2">ACCOUNT TERMINATION IN PROGRESS...</p>
+              <p className="text-sm text-gray-300">Redirecting to login...</p>
             </div>
           </div>
         </div>
@@ -292,6 +294,11 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
       >
         ✕
       </button>
+
+      {/* Win95Alert for game failure */}
+      {showAlert && alertMessage && (
+        <Win95Alert message={alertMessage} onClose={closeAlert} />
+      )}
     </div>
   );
 };
