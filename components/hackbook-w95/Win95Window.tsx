@@ -50,7 +50,7 @@ const Win95Window: React.FC<WindowProps> = ({
       try {
         const audioManager = (globalThis as typeof globalThis & { audioManagerInstance?: { playSound: (src: string, volume: number) => void } }).audioManagerInstance;
         if (audioManager) {
-          audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
+          audioManager.playSound(`/hackbook-W95/sounds/${sound}.mp3`, 0.5);
         }
       } catch (error) {
         console.error("Sound playback error:", error);

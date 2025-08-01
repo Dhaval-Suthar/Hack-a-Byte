@@ -146,7 +146,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   
   // Sound effect helper
   const playSound = (name: string) => {
-    audioManager.playSound(`/hackbook-w95/sounds/${name}.mp3`, 0.7);
+    audioManager.playSound(`/hackbook-W95/sounds/${name}.mp3`, 0.7);
   };
 
   // Timer logic

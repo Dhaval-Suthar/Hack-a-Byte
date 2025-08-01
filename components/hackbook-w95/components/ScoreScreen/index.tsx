@@ -98,7 +98,7 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
   // Play victory sound and submit score
   useEffect(() => {
     // Play sound using audio manager
-    audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.7);
+    audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.7);
 
     // Hide confetti after 5 seconds
     const timer = setTimeout(() => {

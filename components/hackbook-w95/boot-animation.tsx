@@ -24,7 +24,7 @@ const BootAnimation = () => {
         setBootStage(stage);
         if (stage === 5) {
           try {
-            audioManager.playSound("/hackbook-w95/sounds/win95-startup.mp3", 0.7);
+            audioManager.playSound("/hackbook-W95/sounds/win95-startup.mp3", 0.7);
           } catch (error) {
             console.error("Audio error:", error);
           }

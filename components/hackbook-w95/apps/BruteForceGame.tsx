@@ -116,16 +116,16 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
     try {
       switch (soundType) {
         case 'click':
-          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.3);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.3);
           break;
         case 'error':
-          audioManager.playSound("/hackbook-w95/sounds/error.mp3", 0.3);
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.3);
           break;
         case 'success':
-          audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.3);
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.3);
           break;
         case 'type':
-          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.3);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.3);
           break;
         default:
           return;

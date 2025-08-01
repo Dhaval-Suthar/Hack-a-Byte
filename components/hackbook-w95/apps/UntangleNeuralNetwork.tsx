@@ -389,7 +389,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     if (bestNode) {
       setHintNode(bestNode);
       setShowHint(true);
-      audioManager.playSound("/hackbook-w95/sounds/chord.mp3", 0.5);
+      audioManager.playSound("/hackbook-W95/sounds/chord.mp3", 0.5);
       
       setTimeout(() => {
         setShowHint(false);
@@ -405,7 +405,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       setNodes(previousState.nodes);
       setMoveHistory(prev => prev.slice(0, -1));
       setMoveCount(prev => Math.max(0, prev - 1));
-      audioManager.playSound("/hackbook-w95/sounds/recycle.mp3", 0.6);
+      audioManager.playSound("/hackbook-W95/sounds/recycle.mp3", 0.6);
     }
   }, [moveHistory]);
 
@@ -507,7 +507,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
         );
         
         // Play success sound
-        audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.7);
+        audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.7);
         
         setTimeout(() => {
           onSuccess(dataRevealed);
@@ -753,7 +753,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       ));
       
       // Play grab sound
-      audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.4);
+      audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.4);
       
       // Add grab particles
       addParticles(clickedNode.x, clickedNode.y, 'rgba(255, 255, 255, 1)', 3);
@@ -831,7 +831,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       setDraggedNode(null);
       
       // Play release sound
-      audioManager.playSound("/hackbook-w95/sounds/drop.mp3", 0.4);
+      audioManager.playSound("/hackbook-W95/sounds/drop.mp3", 0.4);
       
       // Add release particles
       const draggedNodeData = newNodes.find(n => n.id === draggedNode);

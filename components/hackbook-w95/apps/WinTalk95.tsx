@@ -95,16 +95,16 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     try {
       switch (soundType) {
         case 'connect':
-          audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.5);
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.5);
           break;
         case 'message':
-          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.5);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
           break;
         case 'error':
-          audioManager.playSound("/hackbook-w95/sounds/error.mp3", 0.5);
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.5);
           break;
         case 'click':
-          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.5);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
           break;
         default:
           return;

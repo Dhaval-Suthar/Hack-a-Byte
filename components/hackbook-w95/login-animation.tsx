@@ -25,7 +25,7 @@ const LoginAnimation: React.FC<LoginAnimationProps> = ({ username, onComplete })
     
     // Play login sound using AudioManager
     try {
-      audioManager.playSound("/hackbook-w95/sounds/win95-startup.mp3", 0.7);
+      audioManager.playSound("/hackbook-W95/sounds/win95-startup.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }

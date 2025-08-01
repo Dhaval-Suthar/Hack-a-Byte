@@ -90,7 +90,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   // Sound effects
   const playSound = useCallback((sound: string) => {
     try {
-      audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
+      audioManager.playSound(`/hackbook-W95/sounds/${sound}.mp3`, 0.5);
     } catch (error) {
       console.error("Sound error:", error);
     }

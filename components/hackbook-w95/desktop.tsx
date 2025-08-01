@@ -152,12 +152,12 @@ const Desktop = () => {
     
     // Preload common sounds after component mounts
     const commonSounds = [
-      "/hackbook-w95/sounds/ding.mp3",
-      "/hackbook-w95/sounds/click.mp3",
-      "/hackbook-w95/sounds/open.mp3",
-      "/hackbook-w95/sounds/close.mp3",
-      "/hackbook-w95/sounds/minimize.mp3",
-      "/hackbook-w95/sounds/error.mp3"
+      "/hackbook-W95/sounds/ding.mp3",
+      "/hackbook-W95/sounds/click.mp3",
+      "/hackbook-W95/sounds/open.mp3",
+      "/hackbook-W95/sounds/close.mp3",
+      "/hackbook-W95/sounds/minimize.mp3",
+      "/hackbook-W95/sounds/error.mp3"
     ];
     
     // Preload after a brief delay to not block initial render
@@ -507,7 +507,7 @@ const Desktop = () => {
         win.playWin95Sound(sound);
       } else {
         // Use audio manager for proper sound handling
-        audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
+        audioManager.playSound(`/hackbook-W95/sounds/${sound}.mp3`, 0.5);
       }
     }
   }, []);
