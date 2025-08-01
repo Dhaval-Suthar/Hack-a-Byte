@@ -4,61 +4,61 @@
 
 export const FINGERPRINT_IMAGES = {
   main: [
-    '/hackbook-w95/Fingerprints/main1.png',
-    '/hackbook-w95/Fingerprints/main2.png', 
-    '/hackbook-w95/Fingerprints/main3.png',
-    '/hackbook-w95/Fingerprints/main4.png'
+    '/hackbook-w95/fingerprints/main1.png',
+    '/hackbook-w95/fingerprints/main2.png', 
+    '/hackbook-w95/fingerprints/main3.png',
+    '/hackbook-w95/fingerprints/main4.png'
   ],
   right: {
     1: [
-      '/hackbook-w95/Fingerprints/right1_1.png',
-      '/hackbook-w95/Fingerprints/right1_2.png',
-      '/hackbook-w95/Fingerprints/right1_3.png',
-      '/hackbook-w95/Fingerprints/right1_4.png'
+      '/hackbook-w95/fingerprints/right1_1.png',
+      '/hackbook-w95/fingerprints/right1_2.png',
+      '/hackbook-w95/fingerprints/right1_3.png',
+      '/hackbook-w95/fingerprints/right1_4.png'
     ],
     2: [
-      '/hackbook-w95/Fingerprints/right2_1.png',
-      '/hackbook-w95/Fingerprints/right2_2.png',
-      '/hackbook-w95/Fingerprints/right2_3.png',
-      '/hackbook-w95/Fingerprints/right2_4.png'
+      '/hackbook-w95/fingerprints/right2_1.png',
+      '/hackbook-w95/fingerprints/right2_2.png',
+      '/hackbook-w95/fingerprints/right2_3.png',
+      '/hackbook-w95/fingerprints/right2_4.png'
     ],
     3: [
-      '/hackbook-w95/Fingerprints/right3_1.png',
-      '/hackbook-w95/Fingerprints/right3_2.png',
-      '/hackbook-w95/Fingerprints/right3_3.png',
-      '/hackbook-w95/Fingerprints/right3_4.png'
+      '/hackbook-w95/fingerprints/right3_1.png',
+      '/hackbook-w95/fingerprints/right3_2.png',
+      '/hackbook-w95/fingerprints/right3_3.png',
+      '/hackbook-w95/fingerprints/right3_4.png'
     ],
     4: [
-      '/hackbook-w95/Fingerprints/right4_1.png',
-      '/hackbook-w95/Fingerprints/right4_2.png',
-      '/hackbook-w95/Fingerprints/right4_3.png',
-      '/hackbook-w95/Fingerprints/right4_4.png'
+      '/hackbook-w95/fingerprints/right4_1.png',
+      '/hackbook-w95/fingerprints/right4_2.png',
+      '/hackbook-w95/fingerprints/right4_3.png',
+      '/hackbook-w95/fingerprints/right4_4.png'
     ]
   },
   wrong: {
     1: [
-      '/hackbook-w95/Fingerprints/wrong1_1.png',
-      '/hackbook-w95/Fingerprints/wrong1_2.png',
-      '/hackbook-w95/Fingerprints/wrong1_3.png',
-      '/hackbook-w95/Fingerprints/wrong1_4.png'
+      '/hackbook-w95/fingerprints/wrong1_1.png',
+      '/hackbook-w95/fingerprints/wrong1_2.png',
+      '/hackbook-w95/fingerprints/wrong1_3.png',
+      '/hackbook-w95/fingerprints/wrong1_4.png'
     ],
     2: [
-      '/hackbook-w95/Fingerprints/wrong2_1.png',
-      '/hackbook-w95/Fingerprints/wrong2_2.png',
-      '/hackbook-w95/Fingerprints/wrong2_3.png',
-      '/hackbook-w95/Fingerprints/wrong2_4.png'
+      '/hackbook-w95/fingerprints/wrong2_1.png',
+      '/hackbook-w95/fingerprints/wrong2_2.png',
+      '/hackbook-w95/fingerprints/wrong2_3.png',
+      '/hackbook-w95/fingerprints/wrong2_4.png'
     ],
     3: [
-      '/hackbook-w95/Fingerprints/wrong3_1.png',
-      '/hackbook-w95/Fingerprints/wrong3_2.png',
-      '/hackbook-w95/Fingerprints/wrong3_3.png',
-      '/hackbook-w95/Fingerprints/wrong3_4.png'
+      '/hackbook-w95/fingerprints/wrong3_1.png',
+      '/hackbook-w95/fingerprints/wrong3_2.png',
+      '/hackbook-w95/fingerprints/wrong3_3.png',
+      '/hackbook-w95/fingerprints/wrong3_4.png'
     ],
     4: [
-      '/hackbook-w95/Fingerprints/wrong4_1.png',
-      '/hackbook-w95/Fingerprints/wrong4_2.png',
-      '/hackbook-w95/Fingerprints/wrong4_3.png',
-      '/hackbook-w95/Fingerprints/wrong4_4.png'
+      '/hackbook-w95/fingerprints/wrong4_1.png',
+      '/hackbook-w95/fingerprints/wrong4_2.png',
+      '/hackbook-w95/fingerprints/wrong4_3.png',
+      '/hackbook-w95/fingerprints/wrong4_4.png'
     ]
   }
 };

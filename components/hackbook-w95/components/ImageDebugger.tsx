@@ -7,11 +7,11 @@ const ImageDebugger: React.FC = () => {
   const [testResults, setTestResults] = useState<{ [key: string]: boolean }>({});
   
   const testImages = [
-    '/hackbook-w95/Fingerprints/main1.png',
-    '/hackbook-w95/Fingerprints/main2.png',
-    '/hackbook-w95/Fingerprints/right1_1.png',
-    '/hackbook-w95/Fingerprints/right2_1.png',
-    '/hackbook-w95/Fingerprints/wrong1_1.png',
+    '/hackbook-w95/fingerprints/main1.png',
+    '/hackbook-w95/fingerprints/main2.png',
+    '/hackbook-w95/fingerprints/right1_1.png',
+    '/hackbook-w95/fingerprints/right2_1.png',
+    '/hackbook-w95/fingerprints/wrong1_1.png',
   ];
 
   const testImage = (src: string) => {
