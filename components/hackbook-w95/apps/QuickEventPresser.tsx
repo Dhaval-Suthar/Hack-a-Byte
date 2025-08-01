@@ -141,13 +141,27 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     if (currentEvent && !currentEvent.completed && !currentEvent.failed) {
       setCurrentEvent(prev => prev ? { ...prev, failed: true } : null);
       
-      // Add error message
+      // Add DRAMATIC error message
       setErrorMessages(prev => [...prev, `FATAL ERROR! Failed: ${currentEvent.instruction}`]);
       
-      // Remove time
-      setTimeRemaining(prev => Math.max(0, prev - 3));
+      // Remove more time for fatal error
+      setTimeRemaining(prev => Math.max(0, prev - 5));
       
+      // Trigger dramatic visual effects
+      setSystemUnstable(true);
+      setFlickerEffect(true);
+      setWindowGlitch(true);
+      
+      // Play multiple error sounds for emphasis
       playPanicSound("error");
+      setTimeout(() => playPanicSound("error"), 200);
+      setTimeout(() => playPanicSound("error"), 400);
+      
+      // Reset visual effects after dramatic display
+      setTimeout(() => {
+        setFlickerEffect(false);
+        setWindowGlitch(false);
+      }, 2000);
     }
   }, [currentEvent, playPanicSound]);
 
@@ -356,7 +370,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         </div>
         
         <div className="bg-black p-6 border-2 border-red-500 mb-6">
-          <h3 className="text-xl font-bold text-red-300 mb-4">INSTRUCTIONS:</h3>
+          <h3 className="text-xl font-bold text-red-300 mb-4">EMERGENCY PROTOCOL:</h3>
           <ul className="text-sm space-y-2">
             <li>• Follow each instruction EXACTLY as shown</li>
             <li>• Complete actions quickly before time runs out</li>
@@ -364,6 +378,18 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             <li>• Complete 10 events to disable the wipe</li>
             <li>• If timer reaches zero, ALL DATA WILL BE LOST!</li>
           </ul>
+          
+          <div className="mt-4 p-3 bg-red-900 border-2 border-yellow-400 border-dashed">
+            <div className="text-center">
+              <p className="text-lg font-bold text-yellow-300 mb-2">⚠️ CRITICAL WARNING ⚠️</p>
+              <p className="text-sm font-bold text-white">
+                EVEN A SINGLE MISTAKE CANNOT BE AFFORDED!
+              </p>
+              <p className="text-xs text-red-300 mt-1">
+                Every failure accelerates system corruption
+              </p>
+            </div>
+          </div>
         </div>
 
         <Button
@@ -399,12 +425,12 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             <p className="text-lg mb-4">ShadowByte&apos;s security protocol succeeded.</p>
             <p className="text-lg mb-4">Time remaining: {timeRemaining} seconds</p>
             <p className="text-lg font-bold text-yellow-300">Mission Failed!</p>
-            <div className="mt-8 space-x-4">
-              <Button onClick={startGame} className="bg-red-600 hover:bg-red-700">
-                Try Again
-              </Button>
-              <Button onClick={onClose} className="bg-gray-600 hover:bg-gray-700">
+            <div className="mt-8 flex justify-center gap-4">
+              <Button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 px-6 py-3">
                 Exit
+              </Button>
+              <Button onClick={startGame} className="bg-red-600 hover:bg-red-700 px-6 py-3">
+                Try Again
               </Button>
             </div>
           </div>
@@ -423,7 +449,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
       onMouseUp={handleMouseUp}
     >
       {/* Timer - Large and prominent */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[120]">
         <div className={`text-6xl font-bold px-8 py-4 border-4 ${
           timeRemaining <= 10 
             ? "text-red-300 border-red-500 bg-red-900 animate-bounce" 
@@ -583,12 +609,44 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         </div>
       )}
 
-      {/* Error messages */}
+      {/* Error messages - DRAMATIC FATAL ERROR DISPLAY */}
+      {errorMessages.length > 0 && (
+        <div className="fixed inset-0 pointer-events-none z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-red-900"></div>
+          <div className="relative z-[110] text-center">
+            {errorMessages.slice(-1).map((error, index) => (
+              <div
+                key={index}
+                className="bg-black border-8 border-red-500 p-8 text-center shadow-2xl"
+                style={{
+                  boxShadow: '0 0 50px red, inset 0 0 50px rgba(255,0,0,0.3)',
+                  animation: 'bounce 0.6s ease-out 1'
+                }}
+              >
+                <div className="text-6xl font-bold text-red-300 mb-4">
+                  💀 FATAL ERROR 💀
+                </div>
+                <div className="text-3xl font-bold text-white mb-4 bg-red-800 p-4 border-4 border-red-500">
+                  SYSTEM COMPROMISED!
+                </div>
+                <div className="text-xl text-red-300 font-mono bg-black p-4 border-2 border-red-400">
+                  {error}
+                </div>
+                <div className="text-2xl font-bold text-yellow-300 mt-4">
+                  ⚠️ DATA CORRUPTION IN PROGRESS ⚠️
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Additional error messages history (smaller, bottom corner) */}
       <div className="absolute bottom-4 right-4 max-w-md">
-        {errorMessages.slice(-3).map((error, index) => (
+        {errorMessages.slice(-3, -1).map((error, index) => (
           <div
             key={index}
-            className="bg-red-800 border-2 border-red-500 p-2 mb-2 text-red-300 animate-bounce"
+            className="bg-red-800 border-2 border-red-500 p-2 mb-2 text-red-300 animate-bounce text-sm opacity-75"
           >
             {error}
           </div>
