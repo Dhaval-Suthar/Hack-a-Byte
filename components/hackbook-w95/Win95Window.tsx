@@ -43,14 +43,15 @@ const Win95Window: React.FC<WindowProps> = ({
   
   // Function to play system sounds
   const playSound = useCallback((sound: SoundEvent) => {
-    if (typeof window !== 'undefined' && (window as any).playWin95Sound) {
-      (window as any).playWin95Sound(sound);
+    if (typeof window !== 'undefined' && (window as typeof window & { playWin95Sound?: (sound: SoundEvent) => void }).playWin95Sound) {
+      (window as typeof window & { playWin95Sound: (sound: SoundEvent) => void }).playWin95Sound(sound);
     } else {
-      // Fallback if the global function isn't available
+      // Fallback using AudioManager if the global function isn't available
       try {
-        const audio = new Audio(`/hackbook-w95/sounds/${sound}.mp3`);
-        audio.volume = 0.5;
-        audio.play().catch(e => console.log("Audio play failed:", e));
+        const audioManager = (globalThis as typeof globalThis & { audioManagerInstance?: { playSound: (src: string, volume: number) => void } }).audioManagerInstance;
+        if (audioManager) {
+          audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
+        }
       } catch (error) {
         console.error("Sound playback error:", error);
       }

@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import audioManager from "../hooks/useAudioManager";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 
 interface NumberJumpingGameProps {
   onClose: () => void;
@@ -33,12 +36,44 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   // Store the multiplier for the multiples pattern
   const [currentMultiplier, setCurrentMultiplier] = useState<number | null>(null);
 
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.NUMBER_JUMPING_GAME, currentDifficulty);
+  }, []);
+
+  // Get difficulty configuration
+  const getDifficultyConfig = useCallback(() => {
+    const difficulty = GameDifficultyManager.getGlobalDifficulty();
+    
+    switch (difficulty) {
+      case "easy":
+        return { gridSize: 6, maxLevels: 3, livesCount: 5, sequenceLength: 4 };
+      case "normal":
+        return { gridSize: 8, maxLevels: 5, livesCount: 3, sequenceLength: 5 };
+      case "hard":
+        return { gridSize: 10, maxLevels: 7, livesCount: 2, sequenceLength: 6 };
+      case "nightmare":
+        return { gridSize: 12, maxLevels: 10, livesCount: 1, sequenceLength: 8 };
+      default:
+        return { gridSize: 8, maxLevels: 5, livesCount: 3, sequenceLength: 5 };
+    }
+  }, []);
+
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.NUMBER_JUMPING_GAME, currentDifficulty);
+    
+    // Set initial lives based on difficulty
+    const config = getDifficultyConfig();
+    setLives(config.livesCount);
+  }, [getDifficultyConfig]);
+
   // Sound effects
   const playSound = useCallback((sound: string) => {
     try {
-      const audio = new Audio(`/hackbook-w95/sounds/${sound}.mp3`);
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log("Audio play failed:", e));
+      audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
     } catch (error) {
       console.error("Sound error:", error);
     }
@@ -179,7 +214,8 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
 
   // Initialize game level
   const initializeLevel = useCallback(() => {
-    const gridSize = Math.min(6, 4 + Math.floor(currentLevel / 2));
+    const config = getDifficultyConfig();
+    const gridSize = Math.min(config.gridSize, config.gridSize);
     const patterns: Pattern[] = ["prime", "ascending", "descending", "multiples", "diagonal", "l-shape"];
     let selectedPattern = patterns[Math.floor(Math.random() * Math.min(patterns.length, 2 + currentLevel))];
     let newGrid: GridCell[][] = [];
@@ -238,7 +274,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
     setShowPipeline(false);
     setPipelineProgress(0);
     setCurrentMultiplier(multiplierForMultiples);
-  }, [currentLevel, generateGrid, generateTargetSequence, validateSequence]);
+  }, [currentLevel, generateGrid, generateTargetSequence, validateSequence, getDifficultyConfig]);
 
   // Handle cell click
   const handleCellClick = useCallback((cell: GridCell) => {
@@ -551,15 +587,9 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
         <div className="text-center">
           <button
             onClick={startGame}
-            className="bg-[#c0c0c0] border-2 border-outset px-4 py-2 mr-2 hover:bg-[#e0e0e0]"
-          >
-            RETRY MISSION
-          </button>
-          <button
-            onClick={onClose}
             className="bg-[#c0c0c0] border-2 border-outset px-4 py-2 hover:bg-[#e0e0e0]"
           >
-            ABORT
+            RETRY MISSION
           </button>
         </div>
       </div>

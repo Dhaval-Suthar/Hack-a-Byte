@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import clsx from "clsx";
+import audioManager from "../hooks/useAudioManager";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 
 interface FingerprintHackProps {
   onClose: () => void;
@@ -28,14 +31,41 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   const [attempts, setAttempts] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Get difficulty configuration
+  const getDifficultyConfig = useCallback(() => {
+    const difficulty = GameDifficultyManager.getGlobalDifficulty();
+    
+    switch (difficulty) {
+      case "easy":
+        return { segments: 3, timeLimit: 90, wrongPatterns: 3 };
+      case "normal":
+        return { segments: 4, timeLimit: 60, wrongPatterns: 5 };
+      case "hard":
+        return { segments: 5, timeLimit: 45, wrongPatterns: 7 };
+      case "nightmare":
+        return { segments: 6, timeLimit: 30, wrongPatterns: 9 };
+      default:
+        return { segments: 4, timeLimit: 60, wrongPatterns: 5 };
+    }
+  }, []);
+
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.FINGERPRINT_HACK, currentDifficulty);
+  }, []);
+  
   // Initialize fingerprint segments
   useEffect(() => {
-    // Create 4 fingerprint segments, each with their corresponding images
+    const config = getDifficultyConfig();
     const newSegments: FingerprintSegment[] = [];
     const newAvailablePatterns: string[][] = [];
     
-    for (let i = 0; i < 4; i++) {
-      const segmentNumber = i + 1;
+    // Set time limit based on difficulty
+    setTimeLeft(config.timeLimit);
+    
+    for (let i = 0; i < config.segments; i++) {
+      const segmentNumber = (i % 4) + 1; // Cycle through available segments
       // Each segment has 4 possible correct patterns
       const correctPatternIndex = Math.floor(Math.random() * 4) + 1;
       
@@ -47,13 +77,13 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
         completed: false
       });
 
-      // Create a mix of correct and wrong patterns for selection (6 total patterns)
+      // Create a mix of correct and wrong patterns for selection
       const segmentPatterns: string[] = [];
       
       // Add the correct pattern
       segmentPatterns.push(`/hackbook-w95/Fingerprints/right${segmentNumber}_${correctPatternIndex}.png`);
       
-      // Add 5 wrong patterns (only use wrong patterns, no other right patterns for this segment)
+      // Add wrong patterns based on difficulty
       const wrongPatterns: string[] = [];
       
       // Add wrong patterns for this segment
@@ -70,8 +100,8 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
         }
       }
       
-      // Shuffle and pick 5 wrong patterns
-      const shuffledWrong = wrongPatterns.sort(() => Math.random() - 0.5).slice(0, 5);
+      // Shuffle and pick wrong patterns based on difficulty
+      const shuffledWrong = wrongPatterns.sort(() => Math.random() - 0.5).slice(0, config.wrongPatterns);
       segmentPatterns.push(...shuffledWrong);
       
       // Shuffle all patterns so correct one isn't always first
@@ -80,13 +110,11 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
     
     setSegments(newSegments);
     setAvailablePatterns(newAvailablePatterns);
-  }, []);
+  }, [getDifficultyConfig]);
   
   // Sound effect helper
   const playSound = (name: string) => {
-    const audio = new Audio(`/hackbook-w95/sounds/${name}.mp3`);
-    audio.volume = 0.7;
-    audio.play().catch(() => {});
+    audioManager.playSound(`/hackbook-w95/sounds/${name}.mp3`, 0.7);
   };
 
   // Timer logic

@@ -32,12 +32,41 @@ export async function createDeviceUser(
       return { error: "Username already exists on this device" };
     }
 
+    // Generate a unique session ID
+    const sessionId = `${deviceId}_${deviceType}_${username}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create the new device user
+    // Create the new device user with proper game state initialization
     const newUser = new DeviceUser({
       username,
       deviceMacAddress: deviceId, // Store MAC address
-      password
+      deviceId: deviceId, // Also store as deviceId for easier querying
+      password,
+      sessionId,
+      isActive: true,
+      gameState: {
+        unlockedApplications: ['Notepad', 'MyComputer'],
+        skills: {},
+        missions: new Map(),
+        gameStats: {
+          totalPlayTime: 0,
+          loginCount: 1,
+          lastLoginDate: new Date(),
+          achievementsUnlocked: []
+        },
+        settings: {
+          soundEnabled: true,
+          showHiddenFiles: false,
+          difficulty: 'medium'
+        }
+      },
+      // Keep userData for backward compatibility
+      userData: {
+        passwordHash: password,
+        progress: {
+          unlockedApplications: ['Notepad', 'MyComputer'],
+          skills: {}
+        }
+      }
     });
 
     await newUser.save();
@@ -47,7 +76,8 @@ export async function createDeviceUser(
       deviceId,
       deviceType,
       userId: newUser._id.toString(),
-      username
+      username,
+      sessionId: newUser.sessionId
     });
 
     const cookieStore = await cookies();
@@ -66,7 +96,12 @@ export async function createDeviceUser(
       success: true, 
       user: {
         _id: newUser._id.toString(),
-        username: newUser.username
+        username: newUser.username,
+        sessionId: newUser.sessionId,
+        progress: {
+          unlockedApplications: newUser.gameState.unlockedApplications,
+          skills: Object.fromEntries(newUser.gameState.skills || new Map())
+        }
       }
     };
   } catch (error) {
@@ -85,7 +120,6 @@ export async function loginDeviceUser(
   try {
     await connectDb();
 
-
     // Find the user on this device
     const user = await DeviceUser.findOne({
       username,
@@ -102,9 +136,29 @@ export async function loginDeviceUser(
       return { error: "Invalid password" };
     }
 
-    // Update user's last active time and isActive status
+    // Update user's last active time and login stats
     user.lastActiveTime = new Date();
     user.isActive = true;
+    
+    // Update login count and last login date
+    if (user.gameState && user.gameState.gameStats) {
+      user.gameState.gameStats.loginCount = (user.gameState.gameStats.loginCount || 0) + 1;
+      user.gameState.gameStats.lastLoginDate = new Date();
+    } else {
+      // Initialize game stats if they don't exist (for older users)
+      user.gameState = user.gameState || {};
+      user.gameState.gameStats = {
+        totalPlayTime: 0,
+        loginCount: 1,
+        lastLoginDate: new Date(),
+        achievementsUnlocked: []
+      };
+    }
+
+    // Generate new session ID
+    const sessionId = `${deviceId}_${deviceType}_${username}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    user.sessionId = sessionId;
+
     await user.save();
 
     // Set a cookie to remember this user for this device
@@ -112,7 +166,8 @@ export async function loginDeviceUser(
       deviceId,
       deviceType,
       userId: user._id.toString(),
-      username
+      username,
+      sessionId: user.sessionId
     });
 
     const cookieStore = await cookies();
@@ -131,7 +186,12 @@ export async function loginDeviceUser(
       success: true, 
       user: {
         _id: user._id.toString(),
-        username: user.username
+        username: user.username,
+        sessionId: user.sessionId,
+        progress: {
+          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+        }
       }
     };
   } catch (error) {
@@ -157,23 +217,37 @@ export async function getDeviceUser(
     
     await connectDb();
     
-
-    // Verify user still exists
+    // Verify user still exists and session is valid
     const user = await DeviceUser.findOne({
       _id: new mongoose.Types.ObjectId(userData.userId),
+      sessionId: userData.sessionId // Also verify session ID for security
     });
 
     if (!user) {
-      // Cookie exists but user doesn't - clear the cookie
+      // Cookie exists but user doesn't or session is invalid - clear the cookie
       cookieStore.delete(`device_${deviceId}_${deviceType}`);
       return { isLoggedIn: false };
     }
+
+    // Update last active time
+    user.lastActiveTime = new Date();
+    await user.save();
 
     return {
       isLoggedIn: true,
       user: {
         _id: user._id.toString(),
-        username: user.username
+        username: user.username,
+        sessionId: user.sessionId,
+        progress: {
+          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+        },
+        gameState: {
+          ...user.gameState,
+          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
+          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {}
+        }
       }
     };
   } catch (error) {

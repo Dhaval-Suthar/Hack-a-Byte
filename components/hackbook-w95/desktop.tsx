@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
+import audioManager from "@/components/hackbook-w95/hooks/useAudioManager";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
@@ -141,6 +142,21 @@ const Desktop = () => {
   // Set client state after hydration to prevent SSR mismatch
   useEffect(() => {
     setIsClient(true);
+    
+    // Preload common sounds after component mounts
+    const commonSounds = [
+      "/hackbook-w95/sounds/ding.mp3",
+      "/hackbook-w95/sounds/click.mp3",
+      "/hackbook-w95/sounds/open.mp3",
+      "/hackbook-w95/sounds/close.mp3",
+      "/hackbook-w95/sounds/minimize.mp3",
+      "/hackbook-w95/sounds/error.mp3"
+    ];
+    
+    // Preload after a brief delay to not block initial render
+    setTimeout(() => {
+      audioManager.preloadSounds(commonSounds);
+    }, 1000);
   }, []);
 
   // Consistent time formatting function to prevent hydration mismatch
@@ -173,6 +189,32 @@ const Desktop = () => {
     
     checkMission1Status();
   }, []);
+  
+  // Load game state from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Only load from localStorage if the state isn't already set from database
+      // Check if network tool is installed
+      if (localStorage.getItem("networkToolInstalled") === "true") {
+        setNetworkToolInstalled(true);
+      }
+      
+      // Check if neural network has been unlocked
+      if (localStorage.getItem("neuralNetworkUnlocked") === "true") {
+        setNeuralNetworkUnlocked(true);
+      }
+      
+      // Check if secure vault has been completed
+      if (localStorage.getItem("secureVaultCompleted") === "true") {
+        setVaultUnlocked(true);
+      }
+      
+      // Check if dev tools have been unlocked
+      if (localStorage.getItem("devToolsUnlocked") === "true") {
+        setDevToolsUnlocked(true);
+      }
+    }
+  }, []); // Remove state dependencies to prevent infinite loops
 
   // Check if Neural Network data is discovered to show Neural Network Analyzer
   useEffect(() => {
@@ -225,6 +267,39 @@ const Desktop = () => {
   const [playspaceId, setPlayspaceId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
+  // Enhanced mission checking with database support
+  useEffect(() => {
+    const checkMissionsFromDatabase = async () => {
+      if (!deviceId) return;
+      
+      try {
+        // Check Mission 1 status from database
+        const { getMissionStatus } = await import('@/app/actions/userProgress');
+        const mission1Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission1');
+        if (mission1Result.success && mission1Result.mission) {
+          setNetworkToolInstalled(mission1Result.mission.completed);
+        }
+
+        // Check neural data discovered status
+        const neuralResult = await getMissionStatus(deviceId, 'hackbook-w95', 'neural_data_discovered');
+        if (neuralResult.success && neuralResult.mission?.completed) {
+          setNeuralNetworkUnlocked(true);
+        }
+
+        // Check Mission 2 status
+        const mission2Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission2');
+        if (mission2Result.success && mission2Result.mission?.completed && !mission2JustCompleted) {
+          console.log('Mission 2 already completed (from database)');
+        }
+      } catch (error) {
+        console.error('Error checking mission statuses from database:', error);
+        // Fall back to local storage checks if database fails
+      }
+    };
+    
+    checkMissionsFromDatabase();
+  }, [deviceId, mission2JustCompleted]);
+
   // Check if there's a device-specific user logged in
   useEffect(() => {
     const checkDeviceUser = async () => {
@@ -260,46 +335,36 @@ const Desktop = () => {
           setPlayspaceId(id);
           setDeviceId(devId);
 
-          // Check if user exists by calling getDeviceUser server action
-          const result = await getDeviceUser(devId || "", "hackbook-w95");   
+          // Skip session check, just set user as present
+          setDeviceUser({
+            _id: devId,
+            username: "User"
+          });
 
-          if (result.isLoggedIn && result.user) {
-            // Set user data compatible with updated schema
-            setDeviceUser({
-              _id: result.user._id,
-              username: result.user.username
-            });
+          // Check if user has seen mission briefing in user-specific storage
+          import('./hooks/useUserStorage').then(({ userStorage }) => {
+            const missionSeen = userStorage.getItem("missionBriefingSeen", false) as boolean;
+            setHasSeenMission(missionSeen === true);
+          });
 
-            // Check if user has seen mission briefing in user-specific storage
-            import('./hooks/useUserStorage').then(({ userStorage }) => {
-              const missionSeen = userStorage.getItem("missionBriefingSeen", false) as boolean;
-              setHasSeenMission(missionSeen === true);
-            });
+          // Log device connection
+          import('./hooks/useUserLogs').then(({ UserLogManager }) => {
+            UserLogManager.addSystemLog(
+              'system',
+              `Connected to device instance: ${devId}`,
+              'Device instance selection'
+            );
+          });
 
-            // Log device connection
-            import('./hooks/useUserLogs').then(({ UserLogManager }) => {
-              UserLogManager.addSystemLog(
-                'system',
-                `Connected to device instance: ${devId}`,
-                'Device instance selection'
-              );
-            });
-            
-            return; // User is logged in, no need to redirect
-          }
-
-          // If we get here, either no session or invalid session
-          // Redirect to login with deviceId
-          const loginUrl = `/hackbook-w95/login?playspaceId=${id}&deviceId=${devId}`;
-          router.push(loginUrl);
+          return; // Always allow access if IDs are present
         } else {
           // No playspace ID or device ID found, redirect to device selection
           router.push('/device-selection');
         }
       } catch (error) {
         console.error("Error checking device user:", error);
-        // On error, redirect to login
-        router.push('/hackbook-w95/login');
+        // On error, redirect to device selection
+        router.push('/device-selection');
       }
     };
 
@@ -316,14 +381,8 @@ const Desktop = () => {
       if (win.playWin95Sound) {
         win.playWin95Sound(sound);
       } else {
-        // Fallback if the global function isn't available
-        try {
-          const audio = new Audio(`/hackbook-w95/sounds/${sound}.mp3`);
-          audio.volume = 0.5;
-          audio.play().catch((e) => console.log("Audio play failed:", e));
-        } catch (error) {
-          console.error("Sound playback error:", error);
-        }
+        // Use audio manager for proper sound handling
+        audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
       }
     }
   }, []);
@@ -417,11 +476,31 @@ const Desktop = () => {
 
   // Listen for network tool installation from WinTalk95
   useEffect(() => {
-    const handleNetworkToolInstall = () => {
+    const handleNetworkToolInstall = async () => {
       setNetworkToolInstalled(true);
       setShowInstallNotification(true);
       // Play installation sound
       playSound("ding");
+      
+      // Store installation state in localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("networkToolInstalled", "true");
+      }
+      
+      // Save network tool installation to database
+      if (deviceId) {
+        try {
+          const { updateMissionProgress } = await import('@/app/actions/userProgress');
+          await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
+            title: "Network Tool Installed",
+            description: "Successfully installed the Network Neighborhood tool",
+            completed: true,
+            progress: 100
+          });
+        } catch (error) {
+          console.error("Error saving network tool installation to database:", error);
+        }
+      }
       
       // Hide notification after 5 seconds
       setTimeout(() => {
@@ -429,10 +508,30 @@ const Desktop = () => {
       }, 5000);
     };
 
-    const handleNetworkToolRemove = () => {
+    const handleNetworkToolRemove = async () => {
       setNetworkToolInstalled(false);
       // Close any open Network Neighborhood windows
       setRunningApps(prev => prev.filter(app => app.name !== "Network Neighborhood"));
+      
+      // Update localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("networkToolInstalled");
+      }
+      
+      // Update network tool removal in database
+      if (deviceId) {
+        try {
+          const { updateMissionProgress } = await import('@/app/actions/userProgress');
+          await updateMissionProgress(deviceId, "hackbook-w95", "mission1", {
+            title: "Network Tool Uninstalled",
+            description: "Network Neighborhood tool was removed",
+            completed: false,
+            progress: 0
+          });
+        } catch (error) {
+          console.error("Error updating network tool removal in database:", error);
+        }
+      }
     };
 
     window.addEventListener('networkToolInstalled', handleNetworkToolInstall);
@@ -441,15 +540,35 @@ const Desktop = () => {
       window.removeEventListener('networkToolInstalled', handleNetworkToolInstall);
       window.removeEventListener('networkToolRemoved', handleNetworkToolRemove);
     };
-  }, [playSound]);
+  }, [playSound, deviceId]);
 
   // Listen for neural network data discovery
   useEffect(() => {
-    const handleNeuralNetworkDiscovery = () => {
+    const handleNeuralNetworkDiscovery = async () => {
       setNeuralNetworkUnlocked(true);
       setShowNeuralNetworkNotification(true);
       // Play discovery sound
       playSound("ding");
+      
+      // Store in localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("neuralNetworkUnlocked", "true");
+      }
+      
+      // Save neural network discovery to database
+      if (deviceId) {
+        try {
+          const { updateMissionProgress } = await import('@/app/actions/userProgress');
+          await updateMissionProgress(deviceId, "hackbook-w95", "neural_data_discovered", {
+            title: "Neural Data Discovered",
+            description: "Found fragmented neural network data",
+            completed: true,
+            progress: 100
+          });
+        } catch (error) {
+          console.error("Error saving neural network discovery to database:", error);
+        }
+      }
       
       // Hide notification after 6 seconds
       setTimeout(() => {
@@ -457,11 +576,32 @@ const Desktop = () => {
       }, 6000);
     };
 
-    const handleNeuralNetworkComplete = () => {
+    const handleNeuralNetworkComplete = async () => {
       // When neural network is completed, unlock the secure vault
       setVaultUnlocked(true);
       setShowVaultNotification(true);
       playSound("ding");
+      
+      // Track neural network completion and vault unlocking in localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("neuralNetworkCompleted", "true");
+        localStorage.setItem("vaultUnlocked", "true");
+      }
+      
+      // Save neural network completion to database
+      if (deviceId) {
+        try {
+          const { updateMissionProgress } = await import('@/app/actions/userProgress');
+          await updateMissionProgress(deviceId, "hackbook-w95", "neural_network_completed", {
+            title: "Neural Network Completed",
+            description: "Successfully reconstructed the neural network",
+            completed: true,
+            progress: 100
+          });
+        } catch (error) {
+          console.error("Error saving neural network completion to database:", error);
+        }
+      }
       
       // Hide notification after 6 seconds
       setTimeout(() => {
@@ -475,15 +615,31 @@ const Desktop = () => {
       window.removeEventListener('neuralNetworkDiscovered', handleNeuralNetworkDiscovery);
       window.removeEventListener('neuralNetworkCompleted', handleNeuralNetworkComplete);
     };
-  }, [playSound]);
+  }, [playSound, deviceId]);
 
   // Listen for mission 2 completion to trigger Number Jumping Game
   useEffect(() => {
-    const handleMissionComplete = (event: CustomEvent) => {
-      const { missionId } = event.detail;
+    const handleMissionComplete = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { missionId } = customEvent.detail;
       
       if (missionId === 'mission2' && !mission2JustCompleted) {
         setMission2JustCompleted(true);
+        
+        // Save mission completion to database
+        if (deviceId) {
+          try {
+            const { updateMissionProgress } = await import('@/app/actions/userProgress');
+            await updateMissionProgress(deviceId, "hackbook-w95", "mission2", {
+              title: "Mission 2 Completed",
+              description: "Successfully completed the second mission",
+              completed: true,
+              progress: 100
+            });
+          } catch (error) {
+            console.error("Error saving mission completion to database:", error);
+          }
+        }
         
         // Show a brief notification, then automatically open the Number Jumping Game
         setTimeout(() => {
@@ -511,24 +667,118 @@ const Desktop = () => {
       }
     };
 
-    window.addEventListener('missionComplete', handleMissionComplete as EventListener);
+    window.addEventListener('missionComplete', handleMissionComplete);
     return () => {
-      window.removeEventListener('missionComplete', handleMissionComplete as EventListener);
+      window.removeEventListener('missionComplete', handleMissionComplete);
     };
-  }, [playSound, windowManager, mission2JustCompleted]);
+  }, [playSound, windowManager, mission2JustCompleted, deviceId]);
 
   // Listen for zebra code activation to unlock Dev Tools
   useEffect(() => {
-    const handleZebraCodeActivation = () => {
+    const handleZebraCodeActivation = async () => {
       setDevToolsUnlocked(true);
       playSound("ding");
+      
+      // Store in localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("devToolsUnlocked", "true");
+      }
+      
+      // Save dev tools unlock to database
+      if (deviceId) {
+        try {
+          const { updateMissionProgress } = await import('@/app/actions/userProgress');
+          await updateMissionProgress(deviceId, "hackbook-w95", "zebra_code_activated", {
+            title: "Dev Tools Unlocked",
+            description: "Zebra Code activated the developer tools",
+            completed: true,
+            progress: 100
+          });
+        } catch (error) {
+          console.error("Error saving dev tools unlock to database:", error);
+        }
+      }
     };
 
     window.addEventListener('zebraCodeActivated', handleZebraCodeActivation);
     return () => {
       window.removeEventListener('zebraCodeActivated', handleZebraCodeActivation);
     };
-  }, [playSound]);
+  }, [playSound, deviceId]);
+  
+  // Listen for final mission completion
+  useEffect(() => {
+    const handleFinalMissionComplete = async () => {
+      // This is a backup to ensure mission completion is saved to the database
+      // even if the onSuccess callback in the QuickEventPresser component fails
+      if (deviceId) {
+        try {
+          const { getMissionStatus, updateMissionProgress } = await import('@/app/actions/userProgress');
+          
+          // Check if the mission is already completed in the database
+          const missionResult = await getMissionStatus(deviceId, "hackbook-w95", "final_mission");
+          
+          // Only update if not already completed
+          if (!missionResult.completed) {
+            await updateMissionProgress(deviceId, "hackbook-w95", "final_mission", {
+              title: "ShadowByte Defeated",
+              description: "Successfully prevented the data wipe and defeated ShadowByte",
+              completed: true,
+              progress: 100
+            });
+          }
+        } catch (error) {
+          console.error("Error saving final mission completion to database:", error);
+        }
+      }
+    };
+
+    window.addEventListener('finalMissionComplete', handleFinalMissionComplete);
+    return () => {
+      window.removeEventListener('finalMissionComplete', handleFinalMissionComplete);
+    };
+  }, [deviceId]);
+  
+  // Listen for game state reset event
+  useEffect(() => {
+    const handleResetGameState = () => {
+      // Reset all app installation states
+      setNetworkToolInstalled(false);
+      setNeuralNetworkUnlocked(false);
+      setVaultUnlocked(false);
+      setDevToolsUnlocked(false);
+      setMission2JustCompleted(false);
+      setShowNumberJumpingGame(false);
+      
+      // Clear all mission-related localStorage items
+      if (typeof window !== 'undefined') {
+        // Clear any mission flags from localStorage
+        localStorage.removeItem("mission1Completed");
+        localStorage.removeItem("mission2Completed");
+        localStorage.removeItem("neural_data_discovered");
+        localStorage.removeItem("mission2JustCompleted");
+        localStorage.removeItem("zebra_code_activated");
+        
+        // Clear app installation states from localStorage
+        localStorage.removeItem("networkToolInstalled");
+        localStorage.removeItem("neuralNetworkUnlocked");
+        localStorage.removeItem("secureVaultCompleted");
+        localStorage.removeItem("devToolsUnlocked");
+      }
+      
+      // Close any related open windows
+      setRunningApps(prev => prev.filter(app => 
+        !["Network Neighborhood", "Neural Network Analyzer", "Secure Vault", "Emergency Protocol", "Dev Tools",
+          "Firewall Bypass", "Password Cracker"]
+        .includes(app.name)
+      ));
+    };
+
+    window.addEventListener('resetGameState', handleResetGameState);
+    return () => {
+      window.removeEventListener('resetGameState', handleResetGameState);
+    };
+  }, []);
 
   // Clear selections (menu, desktop icons, etc)
   const deSelect = useCallback(() => {
@@ -540,6 +790,12 @@ const Desktop = () => {
   // Close an application window
   const handleCloseApp = useCallback(
     (app: App) => {
+      // Special handling for Emergency Protocol app when closed
+      if (app.name === 'Emergency Protocol') {
+        // Dispatch event to notify that Emergency Protocol was closed
+        window.dispatchEvent(new CustomEvent('emergencyProtocolClosed'));
+      }
+      
       // Use the app's unique ID instead of name for window operations
       if (app.id) {
         // Close the window
@@ -781,7 +1037,6 @@ const Desktop = () => {
                 // For now, just close the app
                 handleCloseApp(app);
               }}
-              difficulty="intermediate"
             />
           );
         case "Secure Vault":
@@ -792,20 +1047,29 @@ const Desktop = () => {
                 console.log("Vault accessed successfully!");
                 // Close the vault
                 handleCloseApp(app);
-                // Show Win95Alert after a brief delay
-                setTimeout(() => {
-                  setAlertMessage("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
-                  setAlertOpen(true);
-                  setAlertCallback(() => () => {
-                    // Auto-launch the emergency protocol after alert is closed
-                    const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
-                    quickEventApp.fullscreen = true; // Set fullscreen for game
-                    quickEventApp.metadata = {
-                      type: "quick-event"
-                    };
-                    handleOpenApp(quickEventApp);
-                  });
-                }, 2000);
+                
+                // Use a flag in localStorage to prevent duplicate launches
+                if (typeof window !== "undefined" && !localStorage.getItem("emergencyProtocolLaunched")) {
+                  // Mark that the emergency protocol has been launched
+                  localStorage.setItem("emergencyProtocolLaunched", "true");
+                  // Also mark that secure vault has been completed
+                  localStorage.setItem("secureVaultCompleted", "true");
+                  
+                  // Show Win95Alert after a brief delay
+                  setTimeout(() => {
+                    setAlertMessage("🚨 CRITICAL ALERT! 🚨\n\nShadowByte's security system has detected the breach!\nRemote wipe protocol activated!\n\nYou must act quickly to stop the data destruction!");
+                    setAlertOpen(true);
+                    setAlertCallback(() => () => {
+                      // Auto-launch the emergency protocol after alert is closed
+                      const quickEventApp = new App("Emergency Protocol", "/hackbook-w95/app-icon/settings.png");
+                      quickEventApp.fullscreen = true; // Set fullscreen for game
+                      quickEventApp.metadata = {
+                        type: "quick-event"
+                      };
+                      handleOpenApp(quickEventApp);
+                    });
+                  }, 2000);
+                }
               }}
             />
           );
@@ -813,19 +1077,48 @@ const Desktop = () => {
           return (
             <QuickEventPresser 
               onClose={() => handleCloseApp(app)}
-              onSuccess={() => {
+              onSuccess={async () => {
                 // Handle successful completion of emergency protocol
                 console.log("Emergency protocol completed successfully!");
+                
+                // Save final mission completion to database
+                if (deviceId) {
+                  try {
+                    const { updateMissionProgress } = await import('@/app/actions/userProgress');
+                    await updateMissionProgress(deviceId, "hackbook-w95", "final_mission", {
+                      title: "ShadowByte Defeated",
+                      description: "Successfully prevented the data wipe and defeated ShadowByte",
+                      completed: true,
+                      progress: 100
+                    });
+                  } catch (error) {
+                    console.error("Error saving final mission completion to database:", error);
+                  }
+                }
+                
                 // Trigger final mission completion
                 window.dispatchEvent(new CustomEvent('finalMissionComplete'));
-                // Close the app
-                handleCloseApp(app);
-                // Show Win95Alert after brief delay
-                setTimeout(() => {
-                  setAlertMessage("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nMission accomplished, Agent!");
-                  setAlertOpen(true);
-                  setAlertCallback(null);
-                }, 1000);
+                
+                // Don't auto-close the app anymore - let user see score screen and set difficulty
+                // Show Win95Alert only when user manually closes the score screen
+                const congratHandler = () => {
+                  // Listen for app close event
+                  const handleAppClose = () => {
+                    // Remove this listener after first execution
+                    window.removeEventListener('emergencyProtocolClosed', handleAppClose);
+                    
+                    // Show congratulation alert
+                    setAlertMessage("🎉 CONGRATULATIONS! 🎉\n\nYou have successfully completed all missions and stopped ShadowByte's attack!\n\nThe system is now secure and all evidence has been preserved.\n\nCheck your score in the Quick Event game and see if you made it to the leaderboard!\n\nMission accomplished, Agent!");
+                    setAlertOpen(true);
+                    setAlertCallback(null);
+                  };
+                  
+                  // Set up listener for when user closes the app
+                  window.addEventListener('emergencyProtocolClosed', handleAppClose);
+                };
+                
+                // Set up the congratulations handler
+                congratHandler();
               }}
               onFailure={() => {
                 console.log("Emergency protocol failed!");
@@ -879,7 +1172,7 @@ const Desktop = () => {
           return null;
       }
     },
-    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount]
+    [handleCloseApp, handleOpenApp, link, setLink, openLink, unreadCount, setUnreadCount, deviceId]
   );
 
   // Handle keyboard events and file opening
@@ -973,14 +1266,16 @@ const Desktop = () => {
             {APPS.filter(app => {
               // Network Neighborhood is hidden until network tool is installed
               if (app.name === "Network Neighborhood" && !networkToolInstalled) return false;
-              // Neural Network Analyzer is hidden by default
-              if (app.name === "Neural Network Analyzer") return false;
+              // Neural Network Analyzer is hidden until unlocked
+              if (app.name === "Neural Network Analyzer" && !neuralNetworkUnlocked) return false;
               // Secure Vault is hidden until neural network is completed
               if (app.name === "Secure Vault" && !vaultUnlocked) return false;
               // Dev Tools is hidden until zebra code is activated
               if (app.name === "Dev Tools" && !devToolsUnlocked) return false;
               // Solitaire is removed
               if (app.name === "Solitaire") return false;
+              // Emergency Protocol is never shown as a desktop icon
+              if (app.name === "Emergency Protocol") return false;
               return true;
             }).map((app) => {
               const isInbox = app.name === "Inbox";
@@ -1379,22 +1674,19 @@ const TerminalComponent: React.FC = () => {
   // Function to play terminal sounds
   const playTerminalSound = (soundType: string) => {
     try {
-      let audio: HTMLAudioElement;
       switch (soundType) {
         case "click":
-          audio = new Audio("/hackbook-W95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
           break;
         case "error":
-          audio = new Audio("/hackbook-W95/sounds/error.mp3");
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.5);
           break;
         case "success":
-          audio = new Audio("/hackbook-W95/sounds/ding.mp3");
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.5);
           break;
         default:
-          audio = new Audio("/hackbook-W95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
       }
-      audio.volume = 0.5;
-      audio.play().catch((e) => console.log("Terminal audio play failed:", e));
     } catch (error) {
       console.error("Terminal sound error:", error);
     }

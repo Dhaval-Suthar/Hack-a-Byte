@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Button from "../../ui/Button";
+import ScoreScreen from "../components/ScoreScreen";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import audioManager from "../hooks/useAudioManager";
 
 interface QuickEventPresserProps {
   onClose: () => void;
@@ -39,10 +43,26 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
   const [windowGlitch, setWindowGlitch] = useState(false);
+  const [showScoreScreen, setShowScoreScreen] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
+  const [difficulty, setDifficulty] = useState(GameDifficultyManager.getGlobalDifficulty());
 
   const gameRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Listen for global difficulty changes
+  useEffect(() => {
+    // Set up listener for difficulty changes
+    const cleanupListener = GameDifficultyManager.onDifficultyChange((newDifficulty) => {
+      setDifficulty(newDifficulty);
+    });
+    
+    return () => {
+      // Clean up the listener when component unmounts
+      cleanupListener();
+    };
+  }, []);
 
   // Define event types with increasing difficulty - ALL CLICK/MOUSE BASED (NO HOTKEYS)
   const eventTypes = React.useMemo(() => [
@@ -111,24 +131,17 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   // Play panic sounds
   const playPanicSound = useCallback((type: "alarm" | "error" | "success" | "tick") => {
     try {
-      let audio: HTMLAudioElement;
       switch (type) {
         case "alarm":
         case "error":
-          audio = new Audio("/hackbook-W95/sounds/error.mp3");
-          audio.volume = 0.7;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.7);
           break;
         case "success":
-          audio = new Audio("/hackbook-W95/sounds/ding.mp3");
-          audio.volume = 0.8;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.8);
           break;
         case "tick":
           // Simple tick sound using existing audio
-          audio = new Audio("/hackbook-W95/sounds/click.mp3");
-          audio.volume = 0.3;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.3);
           break;
       }
     } catch (error) {
@@ -141,8 +154,16 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     if (currentEvent && !currentEvent.completed && !currentEvent.failed) {
       setCurrentEvent(prev => prev ? { ...prev, failed: true } : null);
       
-      // Add DRAMATIC error message
-      setErrorMessages(prev => [...prev, `FATAL ERROR! Failed: ${currentEvent.instruction}`]);
+      // Add error message
+      setErrorMessages(prev => {
+        const newErrors = [...prev, `FATAL ERROR! Failed: ${currentEvent.instruction}`];
+        
+        // Update game progress with new attempt count
+        const totalAttempts = completedEvents + 1 + newErrors.length;
+        gameScoring.updateGameProgress(GameScoringManager.QUICK_EVENT_PRESSER, totalAttempts);
+        
+        return newErrors;
+      });
       
       // Remove more time for fatal error
       setTimeRemaining(prev => Math.max(0, prev - 5));
@@ -163,27 +184,60 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         setWindowGlitch(false);
       }, 2000);
     }
-  }, [currentEvent, playPanicSound]);
+  }, [currentEvent, playPanicSound, completedEvents]);
 
   // Generate random event
   const generateNewEvent = useCallback(() => {
     const eventTemplate = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    
+    // Apply difficulty modifiers to duration
+    let durationModifier = 0;
+    switch (difficulty) {
+      case "easy":
+        durationModifier = 500; // Extra time for easy mode
+        break;
+      case "hard":
+        durationModifier = -500; // Less time for hard mode
+        break;
+      case "nightmare":
+        durationModifier = -1000; // Even less time for nightmare mode
+        break;
+      default:
+        durationModifier = 0; // Normal difficulty
+    }
+    
     const event: QuickEvent = {
       ...eventTemplate,
       id: Math.random().toString(36).substr(2, 9),
       completed: false,
       failed: false,
-      // Reduce duration as game progresses
-      duration: Math.max(1500, eventTemplate.duration - (completedEvents * 200)),
+      // Adjust duration based on game progression and difficulty
+      duration: Math.max(
+        1000, // Minimum duration (1 second)
+        eventTemplate.duration - (completedEvents * 200) + durationModifier
+      ),
     };
 
     // Set drag target position if it's a drag event
     if (event.type === "drag") {
       // Container is 384px wide, 256px tall, with 64px draggable element
       // Zone is 64px diameter, so we need safe bounds
+      
+      // Make target position more challenging based on difficulty
+      let minX = 50, maxX = 300;
+      let minY = 50, maxY = 200;
+      
+      if (difficulty === "hard" || difficulty === "nightmare") {
+        // For hard modes, place targets closer to edges
+        minX = difficulty === "nightmare" ? 20 : 30;
+        maxX = difficulty === "nightmare" ? 330 : 320;
+        minY = difficulty === "nightmare" ? 20 : 30;
+        maxY = difficulty === "nightmare" ? 220 : 210;
+      }
+      
       setDragTarget({
-        x: Math.random() * 250 + 50,  // Safe range: 50px to 300px (leaves room for 64px zone)
-        y: Math.random() * 150 + 50,  // Safe range: 50px to 200px (leaves room for 64px zone)
+        x: Math.random() * (maxX - minX) + minX,
+        y: Math.random() * (maxY - minY) + minY,
       });
       
       // Reset drag position to opposite corner for challenge
@@ -202,16 +256,52 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     }, event.duration);
 
     playPanicSound("alarm");
-  }, [completedEvents, eventTypes, failCurrentEvent, playPanicSound]);
+  }, [completedEvents, eventTypes, failCurrentEvent, playPanicSound, difficulty]);
 
-  // Complete current event
+  // Calculate final score based on completed events, time remaining, and errors
+  const calculateScore = useCallback(() => {
+    // Base score from completed events (max 70 points)
+    const eventsScore = (completedEvents / 10) * 70;
+    
+    // Time bonus (max 20 points)
+    const timeScore = (timeRemaining / 30) * 20;
+    
+    // Error penalty (max 10 points deduction)
+    const errorPenalty = Math.min(10, errorMessages.length * 2);
+    
+    // Calculate final score (max 100)
+    return Math.max(0, Math.min(100, Math.round(eventsScore + timeScore - errorPenalty)));
+  }, [completedEvents, timeRemaining, errorMessages.length]);
+
+  // Complete current event with difficulty-based rewards
   const completeEvent = useCallback(() => {
     if (currentEvent && !currentEvent.completed && !currentEvent.failed) {
       setCurrentEvent(prev => prev ? { ...prev, completed: true } : null);
       setCompletedEvents(prev => prev + 1);
       
-      // Add time bonus
-      setTimeRemaining(prev => Math.min(30, prev + 2));
+      // Add time bonus based on difficulty
+      let timeBonus = 2; // Default bonus
+      let maxTime = 30; // Default max time
+      
+      switch (difficulty) {
+        case "easy":
+          timeBonus = 3;  // More time bonus for easy mode
+          maxTime = 45;   // Higher max time for easy mode
+          break;
+        case "hard":
+          timeBonus = 1.5; // Less time bonus for hard mode
+          maxTime = 25;    // Lower max time for hard mode
+          break;
+        case "nightmare":
+          timeBonus = 1;   // Minimal time bonus for nightmare mode
+          maxTime = 20;    // Even lower max time for nightmare mode
+          break;
+        default:
+          timeBonus = 2;   // Normal difficulty
+          maxTime = 30;    // Normal max time
+      }
+      
+      setTimeRemaining(prev => Math.min(maxTime, prev + timeBonus));
       
       if (eventTimeoutRef.current) {
         clearTimeout(eventTimeoutRef.current);
@@ -225,13 +315,50 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
           // Victory condition
           setGameWon(true);
           setGameOver(true);
+          
+          // Calculate and set final score with difficulty bonus
+          let score = calculateScore();
+          
+          // Add difficulty bonus to score
+          if (difficulty === "hard") {
+            score = Math.min(100, score * 1.1); // 10% bonus for hard
+          } else if (difficulty === "nightmare") {
+            score = Math.min(100, score * 1.2); // 20% bonus for nightmare
+          }
+          
+          const finalScore = Math.round(score);
+          setFinalScore(finalScore);
+          
+          // Track game completion with total attempts (errors count as failed attempts)
+          const totalAttempts = completedEvents + 1 + errorMessages.length;
+          gameScoring.completeGame(
+            GameScoringManager.QUICK_EVENT_PRESSER,
+            finalScore,
+            totalAttempts,
+            {
+              completedEvents,
+              totalEvents: 10,
+              timeRemaining,
+              errors: errorMessages.length,
+              difficulty
+            }
+          );
+          
+          // Auto-trigger score screen after 3 seconds (only if not already shown)
+          setTimeout(() => {
+            if (!showScoreScreen) {
+              setShowScoreScreen(true);
+            }
+          }, 3000);
+          
+          // Call onSuccess callback to update database
           onSuccess?.();
         } else {
           generateNewEvent();
         }
       }, 500);
     }
-  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound]);
+  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound, calculateScore, difficulty, errorMessages.length, timeRemaining, showScoreScreen]);
 
   // Handle keyboard events
   // NO KEYBOARD EVENT LISTENERS - Game is now purely click/mouse based
@@ -264,9 +391,16 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     }
   }, [dragPosition, dragTarget, currentEvent, completeEvent]);
 
-  // Game timer
+  // Game timer with difficulty adjustment
   useEffect(() => {
     if (gameStarted && !gameOver) {
+      // Determine timer speed based on difficulty (faster tick rate for harder difficulties)
+      let timerSpeed = 1000; // Default: 1 second per tick
+      
+      if (difficulty === "nightmare") {
+        timerSpeed = 800; // 20% faster timer for nightmare mode
+      }
+      
       timerRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -280,9 +414,19 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             playPanicSound("tick");
           }
           
-          return prev - 1;
+          // Time decrease based on difficulty
+          let decrease = 1;
+          if (difficulty === "hard") {
+            decrease = 1.2; // Time decreases 20% faster
+          } else if (difficulty === "nightmare") {
+            decrease = 1.5; // Time decreases 50% faster
+          } else if (difficulty === "easy") {
+            decrease = 0.8; // Time decreases 20% slower
+          }
+          
+          return Math.max(0, prev - decrease);
         });
-      }, 1000);
+      }, timerSpeed);
     }
 
     return () => {
@@ -290,7 +434,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         clearInterval(timerRef.current);
       }
     };
-  }, [gameStarted, gameOver, onFailure, playPanicSound]);
+  }, [gameStarted, gameOver, onFailure, playPanicSound, difficulty]);
 
   // System instability effects
   useEffect(() => {
@@ -311,14 +455,36 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     }
   }, [gameStarted, gameOver]);
 
-  // Start game
-  const startGame = () => {
+  // Start game with optional difficulty, using global difficulty when available
+  const startGame = (selectedDifficulty?: string) => {
+    // If no difficulty is provided, get global difficulty from GameDifficultyManager
+    const difficultyToUse = selectedDifficulty || GameDifficultyManager.getGlobalDifficulty();
+    
+    setDifficulty(difficultyToUse);
     setGameStarted(true);
-    setTimeRemaining(30);
     setCompletedEvents(0);
     setGameOver(false);
     setGameWon(false);
     setErrorMessages([]);
+    
+    // Start tracking this game in the scoring system
+    gameScoring.startGame(GameScoringManager.QUICK_EVENT_PRESSER, difficultyToUse);
+    
+    // Set initial time based on difficulty
+    switch (difficultyToUse) {
+      case "easy":
+        setTimeRemaining(45); // More time for easy mode
+        break;
+      case "hard":
+        setTimeRemaining(25); // Less time for hard mode
+        break;
+      case "nightmare":
+        setTimeRemaining(20); // Even less time for nightmare mode
+        break;
+      default:
+        setTimeRemaining(30); // Normal difficulty
+    }
+    
     generateNewEvent();
     playPanicSound("alarm");
   };
@@ -393,7 +559,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         </div>
 
         <Button
-          onClick={startGame}
+          onClick={() => startGame(GameDifficultyManager.getGlobalDifficulty())}
           className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 border-2 border-red-400"
         >
           🚨 EMERGENCY START 🚨
@@ -402,7 +568,61 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     );
   }
 
+  // Handle difficulty selection and replay
+  const handleReplay = (selectedDifficulty: string) => {
+    // Store the selected difficulty both locally and globally
+    setDifficulty(selectedDifficulty);
+    
+    // Store the difficulty globally for all games using the manager
+    GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
+    
+    // Clear the emergency protocol launched flag so it can be launched again
+    localStorage.removeItem("emergencyProtocolLaunched");
+    
+    // Reset the game state completely
+    setShowScoreScreen(false);
+    setGameOver(false);
+    setGameWon(false);
+    setErrorMessages([]);
+    setCompletedEvents(0);
+    
+    // If there are any timeouts or intervals, clear them
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    if (eventTimeoutRef.current) {
+      clearTimeout(eventTimeoutRef.current);
+      eventTimeoutRef.current = null;
+    }
+    
+    // Start a new game with the selected difficulty
+    startGame(selectedDifficulty);
+  };
+
   if (gameOver) {
+    if (gameWon && showScoreScreen) {
+      // Get deviceId from localStorage for leaderboard
+      let deviceId: string | undefined;
+      if (typeof window !== 'undefined') {
+        deviceId = localStorage.getItem("selectedDeviceId") || undefined;
+      }
+      
+      return (
+        <ScoreScreen
+          score={finalScore}
+          timeRemaining={timeRemaining}
+          completedEvents={completedEvents}
+          totalEvents={10}
+          difficulty={difficulty}
+          deviceId={deviceId}
+          onReplay={handleReplay}
+          onClose={onClose}
+        />
+      );
+    }
+    
     return (
       <div className="w-full h-full bg-black text-white p-8 flex flex-col items-center justify-center font-mono">
         {gameWon ? (
@@ -413,9 +633,20 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             <p className="text-lg mb-4">System integrity maintained.</p>
             <p className="text-lg font-bold text-yellow-300">Mission Complete!</p>
             <div className="mt-8">
-              <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
-                Continue
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => {
+                    // Use the already calculated final score instead of recalculating
+                    setShowScoreScreen(true);
+                  }} 
+                  className="bg-green-600 hover:bg-green-700 text-xl px-8 py-4 font-bold animate-pulse"
+                >
+                  🏆 View Results & Leaderboard 🏆
+                </Button>
+              </div>
+              <p className="text-sm text-gray-300 mt-4">
+                Click above to see your score and compare with other players!
+              </p>
             </div>
           </div>
         ) : (
@@ -425,8 +656,12 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             <p className="text-lg mb-4">ShadowByte&apos;s security protocol succeeded.</p>
             <p className="text-lg mb-4">Time remaining: {timeRemaining} seconds</p>
             <p className="text-lg font-bold text-yellow-300">Mission Failed!</p>
-            <div className="mt-8 flex justify-center gap-4">
-              <Button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 px-6 py-3">
+
+            <div className="mt-8 space-x-4">
+              <Button onClick={() => startGame(difficulty)} className="bg-red-600 hover:bg-red-700">
+                Try Again
+              </Button>
+              <Button onClick={onClose} className="bg-gray-600 hover:bg-gray-700">
                 Exit
               </Button>
               <Button onClick={startGame} className="bg-red-600 hover:bg-red-700 px-6 py-3">
@@ -472,6 +707,20 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             className="h-full bg-green-500 transition-all duration-300"
             style={{ width: `${(completedEvents / 10) * 100}%` }}
           />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-sm">Difficulty:</span>
+          <span className={`font-bold text-sm ${
+            difficulty === "easy" 
+              ? "text-green-400" 
+              : difficulty === "hard" 
+              ? "text-orange-400" 
+              : difficulty === "nightmare" 
+              ? "text-red-400" 
+              : "text-yellow-400"
+          }`}>
+            {difficulty.toUpperCase()}
+          </span>
         </div>
       </div>
 

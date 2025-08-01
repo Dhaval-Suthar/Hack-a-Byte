@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
 
 interface Mission4DevAppProps {
   onClose: () => void;
@@ -9,7 +10,6 @@ interface Mission4DevAppProps {
 
 const Mission4DevApp: React.FC<Mission4DevAppProps> = ({ onClose }) => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [selectedDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner'); // Fixed to beginner for easier gameplay
   const [completedGames, setCompletedGames] = useState<Array<{
     difficulty: string;
     moves: number;
@@ -24,7 +24,7 @@ const Mission4DevApp: React.FC<Mission4DevAppProps> = ({ onClose }) => {
   const handleGameSuccess = (data: string) => {
     // Record the completion
     const completion = {
-      difficulty: selectedDifficulty,
+      difficulty: GameDifficultyManager.getGlobalDifficulty(),
       moves: 0, // Could be passed from the game
       time: 0, // Could be passed from the game
       data: data
@@ -45,7 +45,6 @@ const Mission4DevApp: React.FC<Mission4DevAppProps> = ({ onClose }) => {
       <UntangleNeuralNetwork
         onSuccess={handleGameSuccess}
         onClose={handleGameClose}
-        difficulty={selectedDifficulty}
       />
     );
   }
@@ -85,6 +84,26 @@ const Mission4DevApp: React.FC<Mission4DevAppProps> = ({ onClose }) => {
               <div>• <span className="bg-green-500 text-white px-1">Green</span> = Clear</div>
               <div>• <span className="bg-yellow-500 text-black px-1">Yellow</span> = Fixed</div>
               <div>• <span className="bg-cyan-500 text-black px-1">Blue</span> = Moveable</div>
+            </div>
+          </div>
+
+          {/* Difficulty Selector */}
+          <div className="bg-gray-200 border border-gray-600 p-3 mb-3">
+            <div className="text-sm font-bold mb-2">Difficulty:</div>
+            <div className="flex gap-2">
+              {["easy", "normal", "hard", "nightmare"].map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => GameDifficultyManager.setGlobalDifficulty(diff)}
+                  className={`px-2 py-1 text-xs border border-gray-600 ${
+                    GameDifficultyManager.getGlobalDifficulty() === diff 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-300 text-black hover:bg-gray-400'
+                  }`}
+                >
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 

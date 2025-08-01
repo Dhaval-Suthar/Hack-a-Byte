@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import audioManager from "./hooks/useAudioManager";
 
 interface LogoutAnimationProps {
   username: string;
@@ -18,10 +19,9 @@ const LogoutAnimation: React.FC<LogoutAnimationProps> = ({ username, onComplete 
   }, [onComplete]);
 
   useEffect(() => {
-    // Play logout sound
+    // Play logout sound using AudioManager
     try {
-      const logoutSound = new Audio("/hackbook-w95/sounds/shutdown.mp3");
-      logoutSound.play().catch(e => console.log("Audio play failed:", e));
+      audioManager.playSound("/hackbook-w95/sounds/shutdown.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }

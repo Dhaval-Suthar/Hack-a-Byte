@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import audioManager from "../hooks/useAudioManager";
 
 interface Node {
   id: string;
@@ -17,15 +20,13 @@ interface Connection {
 }
 
 interface UntangleNeuralNetworkProps {
-  onSuccess: (data: string) => void;
   onClose: () => void;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  onSuccess: (data: string) => void;
 }
 
 const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
-  onSuccess,
   onClose,
-  difficulty = 'beginner'
+  onSuccess
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,38 +41,106 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   const [showCelebration, setShowCelebration] = useState(false);
   const [revealedData, setRevealedData] = useState<string>('');
 
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.UNTANGLE_NEURAL_NETWORK, currentDifficulty);
+  }, []);
+
   // Configuration based on difficulty
-  // SIMPLIFIED: Fewer nodes, lower density, smaller canvas
   const getDifficultyConfig = useCallback(() => {
-    return { nodeCount: 4, connectionDensity: 0.3, canvasWidth: 350, canvasHeight: 250 };
+    const globalDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    
+    switch (globalDifficulty) {
+      case "easy":
+        return { nodeCount: 3, connectionDensity: 0.2, canvasWidth: 300, canvasHeight: 200 };
+      case "normal":
+        return { nodeCount: 4, connectionDensity: 0.3, canvasWidth: 350, canvasHeight: 250 };
+      case "hard":
+        return { nodeCount: 5, connectionDensity: 0.4, canvasWidth: 400, canvasHeight: 300 };
+      case "nightmare":
+        return { nodeCount: 6, connectionDensity: 0.5, canvasWidth: 450, canvasHeight: 350 };
+      default:
+        return { nodeCount: 4, connectionDensity: 0.3, canvasWidth: 350, canvasHeight: 250 };
+    }
   }, []);
 
   // Generate initial puzzle configuration
   const generatePuzzle = useCallback(() => {
     const config = getDifficultyConfig();
-    const { canvasWidth, canvasHeight } = config;
+    const { nodeCount, connectionDensity, canvasWidth, canvasHeight } = config;
     
-    // SIMPLIFIED: Place nodes in a rough square, all movable
-    const newNodes: Node[] = [
-      { id: 'node-0', x: 60, y: 60 },
-      { id: 'node-1', x: canvasWidth - 60, y: 60 },
-      { id: 'node-2', x: 60, y: canvasHeight - 60 },
-      { id: 'node-3', x: canvasWidth - 60, y: canvasHeight - 60 },
-    ];
-
-    // SIMPLIFIED: Just connect all nodes in a loop and a cross
-    const newConnections: Connection[] = [
-      { from: 'node-0', to: 'node-1', isIntersecting: false },
-      { from: 'node-1', to: 'node-3', isIntersecting: false },
-      { from: 'node-3', to: 'node-2', isIntersecting: false },
-      { from: 'node-2', to: 'node-0', isIntersecting: false },
-      { from: 'node-0', to: 'node-3', isIntersecting: false }, // cross
-      { from: 'node-1', to: 'node-2', isIntersecting: false }, // cross
-    ];
+    // Generate nodes dynamically based on difficulty
+    const newNodes: Node[] = [];
+    const padding = 60;
+    const usableWidth = canvasWidth - 2 * padding;
+    const usableHeight = canvasHeight - 2 * padding;
+    
+    for (let i = 0; i < nodeCount; i++) {
+      // Position nodes in a rough circle to create interesting tangled configurations
+      const angle = (i / nodeCount) * 2 * Math.PI;
+      const radius = Math.min(usableWidth, usableHeight) * 0.3;
+      const centerX = canvasWidth / 2;
+      const centerY = canvasHeight / 2;
+      
+      newNodes.push({
+        id: `node-${i}`,
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+      });
+    }
+    
+    // Generate connections based on density
+    const newConnections: Connection[] = [];
+    const maxConnections = Math.floor((nodeCount * (nodeCount - 1) / 2) * connectionDensity);
+    let connectionsAdded = 0;
+    
+    // First, ensure each node has at least one connection (create a basic cycle)
+    for (let i = 0; i < nodeCount; i++) {
+      const nextIndex = (i + 1) % nodeCount;
+      newConnections.push({
+        from: `node-${i}`,
+        to: `node-${nextIndex}`,
+        isIntersecting: false
+      });
+      connectionsAdded++;
+    }
+    
+    // Add additional random connections based on density
+    while (connectionsAdded < maxConnections) {
+      const from = Math.floor(Math.random() * nodeCount);
+      const to = Math.floor(Math.random() * nodeCount);
+      
+      if (from !== to) {
+        const connectionExists = newConnections.some(conn => 
+          (conn.from === `node-${from}` && conn.to === `node-${to}`) ||
+          (conn.from === `node-${to}` && conn.to === `node-${from}`)
+        );
+        
+        if (!connectionExists) {
+          newConnections.push({
+            from: `node-${from}`,
+            to: `node-${to}`,
+            isIntersecting: false
+          });
+          connectionsAdded++;
+        }
+      }
+    }
 
     setNodes(newNodes);
     setConnections(newConnections);
   }, [getDifficultyConfig]);
+
+  // Listen for difficulty changes
+  useEffect(() => {
+    const cleanupListener = GameDifficultyManager.onDifficultyChange(() => {
+      // Regenerate puzzle when difficulty changes
+      generatePuzzle();
+    });
+    
+    return cleanupListener;
+  }, [generatePuzzle]);
 
   // Generate revealed data based on completion
   // SIMPLIFIED: Shorter revealed data
@@ -140,21 +209,34 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       const allUntangled = updatedConnections.every(conn => !conn.isIntersecting);
       if (allUntangled && !gameComplete && updatedConnections.length > 0) {
         setGameComplete(true);
-        setCompletionTime(Date.now() - startTime);
+        const finalCompletionTime = Date.now() - startTime;
+        setCompletionTime(finalCompletionTime);
         setShowCelebration(true);
         
         // Generate revealed data based on difficulty
         const dataRevealed = generateRevealedData();
         setRevealedData(dataRevealed);
         
+        // Calculate score based on time and moves
+        const timeScore = Math.max(0, 100 - Math.floor(finalCompletionTime / 1000)); // Points deducted for time
+        const moveScore = Math.max(0, 100 - (moveCount * 5)); // Points deducted for moves
+        const finalScore = Math.round((timeScore + moveScore) / 2);
+        
+        // Track game completion
+        gameScoring.completeGame(
+          GameScoringManager.UNTANGLE_NEURAL_NETWORK,
+          finalScore,
+          moveCount + 1, // +1 for the final successful move
+          {
+            completionTimeMs: finalCompletionTime,
+            moveCount: moveCount,
+            difficulty: GameDifficultyManager.getGlobalDifficulty(),
+            dataRevealed: dataRevealed.length
+          }
+        );
+        
         // Play success sound
-        try {
-          const audio = new Audio("/hackbook-w95/sounds/ding.mp3");
-          audio.volume = 0.7;
-          audio.play().catch(e => console.log("Audio play failed:", e));
-        } catch (error) {
-          console.error("Sound error:", error);
-        }
+        audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.7);
         
         setTimeout(() => {
           onSuccess(dataRevealed);
@@ -163,7 +245,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       
       return updatedConnections;
     });
-  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, connections.length]);
+  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, connections.length, moveCount]);
 
   // Draw the neural network
   const drawNetwork = useCallback(() => {
@@ -367,7 +449,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
 
       {/* Game Stats */}
       <div className="px-4 py-2 border-t border-green-500 flex justify-between text-sm">
-        <div>Difficulty: <span className="text-yellow-400">{difficulty.toUpperCase()}</span></div>
+        <div>Difficulty: <span className="text-yellow-400">{GameDifficultyManager.getGlobalDifficulty().toUpperCase()}</span></div>
         <div>Nodes: <span className="text-cyan-400">{nodes.length}</span></div>
         <div>Connections: <span className="text-cyan-400">{connections.length}</span></div>
         {completionTime && (

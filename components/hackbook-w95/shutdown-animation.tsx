@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import audioManager from "./hooks/useAudioManager";
 
 interface ShutdownAnimationProps {
   onComplete: () => void;
@@ -19,8 +20,7 @@ const ShutdownAnimation: React.FC<ShutdownAnimationProps> = ({ onComplete }) => 
   useEffect(() => {
     // Intentionally play the shutdown sound only once on component mount
     try {
-      const shutdownSound = new Audio("/hackbook-w95/sounds/shutdown.mp3");
-      shutdownSound.play().catch(e => console.log("Audio play failed:", e));
+      audioManager.playSound("/hackbook-w95/sounds/shutdown.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }
