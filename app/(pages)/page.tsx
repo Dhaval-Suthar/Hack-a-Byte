@@ -207,6 +207,43 @@ export default function Page() {
     }
   };
 
+  // Clear all session data for debugging
+  const handleClearSession = () => {
+    try {
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      
+      // Clear cookies
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        // Set cookie to expire in the past to delete it
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        // Also try to clear cookies for parent domain
+        const parts = window.location.hostname.split('.');
+        if (parts.length > 1) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${parts.slice(-2).join('.')}`;
+        }
+      });
+      
+      // Reset form state
+      setAccessCode(Array(6).fill(""));
+      setError(null);
+      setIsSubmitting(false);
+      
+      // Show confirmation
+      alert("All session data, localStorage, and cookies have been cleared. Please refresh the page if needed.");
+      
+    } catch (error) {
+      console.error("Error clearing session data:", error);
+      alert("Error clearing session data. Check console for details.");
+    }
+  };
+
   return (
     <>
       {/* Matrix Rain Background */}
@@ -362,6 +399,26 @@ export default function Page() {
               <div className="text-xs font-terminal text-gray-400">{stat.label}</div>
             </div>
           ))}
+        </motion.div>
+
+        {/* Debug/Troubleshooting Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+          transition={{ delay: 5, duration: 0.5 }}
+          className="mt-8 text-center"
+        >
+          <button
+            type="button"
+            onClick={handleClearSession}
+            className="text-xs text-gray-600 hover:text-cyber-danger border border-gray-800 hover:border-cyber-danger/30 transition-all rounded px-4 py-2 font-terminal bg-black/20 backdrop-blur-sm"
+            title="Reset all data if experiencing issues - clears localStorage, sessionStorage, and cookies"
+          >
+            🔧 RESET_ALL_DATA
+          </button>
+          <p className="text-xs text-gray-700 mt-1 font-terminal">
+            Experiencing issues? Use this to reset everything
+          </p>
         </motion.div>
       </main>
     </>
