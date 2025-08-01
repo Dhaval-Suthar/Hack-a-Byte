@@ -330,9 +330,11 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             }
           );
           
-          // Auto-trigger score screen after 3 seconds
+          // Auto-trigger score screen after 3 seconds (only if not already shown)
           setTimeout(() => {
-            setShowScoreScreen(true);
+            if (!showScoreScreen) {
+              setShowScoreScreen(true);
+            }
           }, 3000);
           
           // Call onSuccess callback to update database
@@ -342,7 +344,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         }
       }, 500);
     }
-  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound, calculateScore, difficulty, errorMessages.length, timeRemaining]);
+  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound, calculateScore, difficulty, errorMessages.length, timeRemaining, showScoreScreen]);
 
   // Handle keyboard events
   // NO KEYBOARD EVENT LISTENERS - Game is now purely click/mouse based
@@ -608,9 +610,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
               <div className="flex space-x-2">
                 <Button 
                   onClick={() => {
-                    // Calculate and show score screen with results tab
-                    const score = calculateScore();
-                    setFinalScore(score);
+                    // Use the already calculated final score instead of recalculating
                     setShowScoreScreen(true);
                   }} 
                   className="bg-green-600 hover:bg-green-700 text-xl px-8 py-4 font-bold animate-pulse"
