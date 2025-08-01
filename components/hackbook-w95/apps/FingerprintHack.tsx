@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import clsx from "clsx";
 
 interface FingerprintHackProps {
@@ -12,7 +13,8 @@ type GameState = "intro" | "playing" | "success" | "failed";
 
 interface FingerprintSegment {
   id: number;
-  pattern: string;
+  mainImage: string;
+  correctPattern: string;
   isCorrect: boolean;
   completed: boolean;
 }
@@ -21,26 +23,63 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   const [gameState, setGameState] = useState<GameState>("intro");
   const [currentSegment, setCurrentSegment] = useState<number>(0);
   const [segments, setSegments] = useState<FingerprintSegment[]>([]);
+  const [availablePatterns, setAvailablePatterns] = useState<string[][]>([]);
   const [timeLeft, setTimeLeft] = useState(60);
   const [attempts, setAttempts] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Initialize fingerprint segments
   useEffect(() => {
-    // Create 4 fingerprint segments, each with a correct pattern (0-5)
+    // Create 4 fingerprint segments, each with their corresponding images
     const newSegments: FingerprintSegment[] = [];
+    const newAvailablePatterns: string[][] = [];
     
     for (let i = 0; i < 4; i++) {
-      const correctPattern = Math.floor(Math.random() * 6);
+      const segmentNumber = i + 1;
+      // Each segment has 4 possible correct patterns
+      const correctPatternIndex = Math.floor(Math.random() * 4) + 1;
+      
       newSegments.push({
         id: i,
-        pattern: correctPattern.toString(),
+        mainImage: `/hackbook-w95/Fingerprints/main${segmentNumber}.png`,
+        correctPattern: `/hackbook-w95/Fingerprints/right${segmentNumber}_${correctPatternIndex}.png`,
         isCorrect: false,
         completed: false
       });
+
+      // Create a mix of correct and wrong patterns for selection (6 total patterns)
+      const segmentPatterns: string[] = [];
+      
+      // Add the correct pattern
+      segmentPatterns.push(`/hackbook-w95/Fingerprints/right${segmentNumber}_${correctPatternIndex}.png`);
+      
+      // Add 5 wrong patterns (only use wrong patterns, no other right patterns for this segment)
+      const wrongPatterns: string[] = [];
+      
+      // Add wrong patterns for this segment
+      for (let w = 1; w <= 4; w++) {
+        wrongPatterns.push(`/hackbook-w95/Fingerprints/wrong${segmentNumber}_${w}.png`);
+      }
+      
+      // Add right patterns from OTHER segments to make it more challenging
+      for (let otherSegment = 1; otherSegment <= 4; otherSegment++) {
+        if (otherSegment !== segmentNumber) {
+          for (let r = 1; r <= 4; r++) {
+            wrongPatterns.push(`/hackbook-w95/Fingerprints/right${otherSegment}_${r}.png`);
+          }
+        }
+      }
+      
+      // Shuffle and pick 5 wrong patterns
+      const shuffledWrong = wrongPatterns.sort(() => Math.random() - 0.5).slice(0, 5);
+      segmentPatterns.push(...shuffledWrong);
+      
+      // Shuffle all patterns so correct one isn't always first
+      newAvailablePatterns.push(segmentPatterns.sort(() => Math.random() - 0.5));
     }
     
     setSegments(newSegments);
+    setAvailablePatterns(newAvailablePatterns);
   }, []);
   
   // Sound effect helper
@@ -99,11 +138,11 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   }, [segments, onSuccess, onClose]);
 
   // Handle pattern selection
-  const handleSelectPattern = (patternId: number) => {
+  const handleSelectPattern = (selectedPattern: string) => {
     if (gameState !== "playing") return;
     
     const segment = segments[currentSegment];
-    const isCorrect = parseInt(segment.pattern) === patternId;
+    const isCorrect = segment.correctPattern === selectedPattern;
     
     if (isCorrect) {
       // Mark segment as completed with correct pattern
@@ -153,10 +192,19 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
             <p className="mb-4 text-green-400">Match all 4 fingerprint segments to bypass security.</p>
             
             <div className="grid grid-cols-2 grid-rows-2 gap-4 mb-6 w-96 h-96">
-              {[0, 1, 2, 3].map(index => (
+              {segments.map((segment, index) => (
                 <div key={index} className="bg-[#1a1a1a] border-2 border-green-900 p-2 flex items-center justify-center">
-                  <div className="bg-black w-full h-full flex items-center justify-center">
-                    <div className="text-5xl text-green-700 opacity-50">?</div>
+                  <div className="bg-black w-full h-full flex items-center justify-center relative">
+                    {segment.mainImage ? (
+                      <Image 
+                        src={segment.mainImage} 
+                        alt={`Fingerprint segment ${index + 1}`}
+                        fill
+                        className="object-contain opacity-30"
+                      />
+                    ) : (
+                      <div className="text-5xl text-green-700 opacity-50">?</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -189,11 +237,41 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                   >
                     <div className="w-full h-full bg-black flex items-center justify-center">
                       {segment.completed ? (
-                        <div className="text-green-500 text-2xl">✓</div>
+                        <div className="relative w-full h-full">
+                          <Image 
+                            src={segment.mainImage} 
+                            alt={`Fingerprint segment ${idx + 1}`}
+                            fill
+                            className="object-contain opacity-80"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-green-500 text-2xl bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center">✓</div>
+                          </div>
+                        </div>
                       ) : currentSegment === idx ? (
-                        <div className="text-amber-500 text-xs animate-pulse">SELECT MATCHING PATTERN</div>
+                        <div className="relative w-full h-full">
+                          <Image 
+                            src={segment.mainImage} 
+                            alt={`Fingerprint segment ${idx + 1}`}
+                            fill
+                            className="object-contain opacity-60"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-amber-500 text-xs animate-pulse bg-black bg-opacity-70 p-1 rounded">SELECT MATCHING PATTERN</div>
+                          </div>
+                        </div>
                       ) : (
-                        <div className="text-green-700 opacity-50 text-5xl">?</div>
+                        <div className="relative w-full h-full">
+                          <Image 
+                            src={segment.mainImage} 
+                            alt={`Fingerprint segment ${idx + 1}`}
+                            fill
+                            className="object-contain opacity-30"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-green-700 opacity-50 text-5xl">?</div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -211,66 +289,36 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
               </div>
               
               <div className="bg-[#0a0a0a] border border-green-900 p-3 flex-1">
-                <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                  {[0, 1, 2, 3, 4, 5].map(patternId => (
-                    <button
-                      key={patternId}
-                      onClick={() => handleSelectPattern(patternId)}
-                      disabled={segments[currentSegment]?.completed}
-                      className={clsx(
-                        "bg-black border hover:border-green-500 transition-colors p-1 h-28",
-                        segments[currentSegment]?.completed && parseInt(segments[currentSegment].pattern) === patternId
-                          ? "border-green-500" 
-                          : "border-gray-800"
-                      )}
-                    >
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-green-500 text-xs">
-                          {/* Simplified pattern representation */}
-                          <div className="border border-green-700 p-1 w-14 h-14">
-                            {patternId === 0 && (
-                              <div className="w-full h-full flex flex-col justify-between">
-                                <div className="w-full h-0.5 bg-green-500 my-1"></div>
-                                <div className="w-full h-0.5 bg-green-500 my-1"></div>
-                                <div className="w-full h-0.5 bg-green-500 my-1"></div>
-                              </div>
-                            )}
-                            {patternId === 1 && (
-                              <div className="w-full h-full flex flex-row justify-between">
-                                <div className="w-0.5 h-full bg-green-500 mx-1"></div>
-                                <div className="w-0.5 h-full bg-green-500 mx-1"></div>
-                                <div className="w-0.5 h-full bg-green-500 mx-1"></div>
-                              </div>
-                            )}
-                            {patternId === 2 && (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full border-2 border-green-500"></div>
-                              </div>
-                            )}
-                            {patternId === 3 && (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-8 h-8 border-2 border-green-500 transform rotate-45"></div>
-                              </div>
-                            )}
-                            {patternId === 4 && (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-10 h-0.5 bg-green-500 absolute transform rotate-45"></div>
-                                <div className="w-10 h-0.5 bg-green-500 absolute transform -rotate-45"></div>
-                              </div>
-                            )}
-                            {patternId === 5 && (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-green-500 m-1"></div>
-                                <div className="w-2 h-2 rounded-full bg-green-500 m-1"></div>
-                                <div className="w-2 h-2 rounded-full bg-green-500 m-1"></div>
-                              </div>
-                            )}
-                          </div>
+                {availablePatterns[currentSegment] ? (
+                  <div className="grid grid-cols-3 grid-rows-2 gap-2">
+                    {availablePatterns[currentSegment].map((patternImage, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectPattern(patternImage)}
+                        disabled={segments[currentSegment]?.completed}
+                        className={clsx(
+                          "bg-black border hover:border-green-500 transition-colors p-1 h-28",
+                          segments[currentSegment]?.completed && segments[currentSegment].correctPattern === patternImage
+                            ? "border-green-500" 
+                            : "border-gray-800"
+                        )}
+                      >
+                        <div className="w-full h-full flex items-center justify-center relative">
+                          <Image 
+                            src={patternImage} 
+                            alt={`Pattern option ${idx + 1}`}
+                            fill
+                            className="object-contain"
+                          />
                         </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-green-500">
+                    Loading patterns...
+                  </div>
+                )}
                 
                 <div className="flex justify-between mt-4">
                   <button 
@@ -308,7 +356,17 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
                 <div className="grid grid-cols-2 grid-rows-2 gap-2 mb-4 mx-auto w-64 h-64">
                   {segments.map((segment) => (
                     <div key={segment.id} className="bg-black border border-green-900 p-1 flex items-center justify-center">
-                      <div className="text-green-500 text-2xl">✓</div>
+                      <div className="relative w-full h-full">
+                        <Image 
+                          src={segment.mainImage} 
+                          alt={`Fingerprint segment ${segment.id + 1}`}
+                          fill
+                          className="object-contain opacity-80"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-green-500 text-xl bg-black bg-opacity-50 rounded-full w-6 h-6 flex items-center justify-center">✓</div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -57,7 +57,7 @@ const APPS: App[] = [
   new App("My Computer", "/hackbook-W95/app-icon/mycomputer.png"),
   new App("Internet Explorer", "/hackbook-W95/app-icon/ie.png"),
   new App("Inbox", "/hackbook-W95/app-icon/inbox.png"),
-  new App("Network Neighborhood", "/hackbook-W95/app-icon/ie.png"), // Using IE icon as network placeholder
+  new App("Network Neighborhood", "/hackbook-W95/app-icon/nn.png"), 
   new App("Recycle Bin", "/hackbook-W95/app-icon/recyclebin.png"),
   new App("Minesweeper", "/hackbook-W95/app-icon/minesweeper.png"),
   new App("CD Player", "/hackbook-W95/app-icon/cdplayer.png"),
