@@ -77,6 +77,19 @@ APPS.find(app => app.name === "Network Neighborhood")!.fullscreen = true;
 APPS.find(app => app.name === "Neural Network Analyzer")!.fullscreen = true;
 APPS.find(app => app.name === "Secure Vault")!.fullscreen = true;
 
+// Define window sizes for different app types
+const APP_WINDOW_SIZES: Record<string, { width: string | number; height: string | number }> = {
+  "Calculator": { width: 280, height: 400 },
+  "Minesweeper": { width: 350, height: 450 },
+  "CD Player": { width: 400, height: 300 },
+  "Paint": { width: 700, height: 600 },
+  "Terminal": { width: 650, height: 500 },
+  "WinTalk 95": { width: 500, height: 600 },
+  "Dev Tools": { width: 700, height: 600 },
+  // Default size for unlisted apps
+  "default": { width: '80vw', height: '80vh' }
+};
+
 const DefaultValues = {
   LINK: "https://en.wikipedia.org/wiki/Wikipedia:About",
 };
@@ -581,13 +594,23 @@ const Desktop = () => {
         appInstance.id = appInstanceId;
         
         // Prepare initial window position - set to fullscreen if app requires it
-        const initialPosition = appInstance.fullscreen ? {
-          isFullscreen: true,
-          x: 0,
-          y: 0,
-          width: '100%',
-          height: '100%'
-        } : undefined;
+        let initialPosition;
+        if (appInstance.fullscreen) {
+          initialPosition = {
+            isFullscreen: true,
+            x: 0,
+            y: 0,
+            width: '100%',
+            height: '100%'
+          };
+        } else {
+          // Get app-specific window size or use default
+          const appSize = APP_WINDOW_SIZES[app.name] || APP_WINDOW_SIZES.default;
+          initialPosition = {
+            width: appSize.width,
+            height: appSize.height
+          };
+        }
         
         // Register the window in the window manager with the unique ID
         windowManager.registerWindow(appInstanceId, initialPosition);
@@ -833,9 +856,14 @@ const Desktop = () => {
               onClose={() => handleCloseApp(app)}
               onSuccess={(password) => {
                 console.log("Password cracked:", password);
+                // Check if there's a parent callback function to call
+                if (app.metadata?.parentCallback) {
+                  const callback = app.metadata.parentCallback as unknown as (password: string) => void;
+                  callback(password);
+                }
                 handleCloseApp(app);
               }}
-              targetFileName="ShadowByte_Archive.zip"
+              targetFileName={app.metadata?.targetFileName as string || "ShadowByte_Archive.zip"}
             />
           );
         case "ZIP Archive":
