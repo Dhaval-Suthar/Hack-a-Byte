@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { registerForEvent, getAllEventsWithRegistrationCounts } from "@/app/actions/eventRegistration";
 
 interface Event {
   id: number;
@@ -140,6 +141,194 @@ const DifficultyMeter = ({ level }: DifficultyMeterProps) => {
   );
 };
 
+// Registration Modal Component
+interface RegistrationModalProps {
+  event: Event | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
+  const [email, setEmail] = useState("");
+  const [isFromSFIT, setIsFromSFIT] = useState(false);
+  const [playingMode, setPlayingMode] = useState<"online" | "offline">("online");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!event) return;
+    
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const result = await registerForEvent({
+        eventId: event.id,
+        email: email.trim(),
+        isFromSFIT,
+        playingMode
+      });
+      
+      if (result.success) {
+        onSuccess();
+        onClose();
+        // Reset form
+        setEmail("");
+        setIsFromSFIT(false);
+        setPlayingMode("online");
+      } else {
+        setError(result.error || "Registration failed");
+      }
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setEmail("");
+    setIsFromSFIT(false);
+    setPlayingMode("online");
+    setError("");
+    onClose();
+  };
+
+  if (!isOpen || !event) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+      >
+        <motion.div 
+          className="w-full max-w-md bg-black/90 border border-cyber-primary/60 rounded-lg overflow-hidden"
+          initial={{ y: 20, scale: 0.95 }}
+          animate={{ y: 0, scale: 1 }}
+          exit={{ y: 20, scale: 0.9 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-cyber-primary/20 px-6 py-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-cyber-primary">
+              Register for Event
+            </h2>
+            <button 
+              onClick={handleClose}
+              className="text-cyber-primary hover:text-cyber-secondary transition-colors"
+              disabled={isLoading}
+            >
+              ✕
+            </button>
+          </div>
+          
+          {/* Event Info */}
+          <div className="px-6 py-4 border-b border-cyber-primary/30">
+            <h3 className="text-white font-bold mb-1">{event.title}</h3>
+            <div className="text-sm text-gray-400">
+              📅 {event.date} • 🕒 {event.time}
+            </div>
+          </div>
+          
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6">
+            <div className="mb-4">
+              <label className="block text-cyber-secondary text-sm font-bold mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-black/70 border border-cyber-primary/40 rounded-md px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
+                placeholder="Enter your email address"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isFromSFIT}
+                  onChange={(e) => setIsFromSFIT(e.target.checked)}
+                  className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 rounded focus:ring-cyber-primary/50 focus:ring-2"
+                  disabled={isLoading}
+                />
+                <span className="text-white text-sm">
+                  I am a member of St. Francis Institute of Engineering
+                </span>
+              </label>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-cyber-secondary text-sm font-bold mb-2">
+                Mode of Playing
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="online"
+                    checked={playingMode === "online"}
+                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
+                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                    disabled={isLoading}
+                  />
+                  <span className="text-white text-sm">Online</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="offline"
+                    checked={playingMode === "offline"}
+                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
+                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                    disabled={isLoading}
+                  />
+                  <span className="text-white text-sm">Offline</span>
+                </label>
+              </div>
+            </div>
+            
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+            
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="flex-1 bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70 py-2 px-4 rounded-md transition-colors"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 cyber-button py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+              >
+                {isLoading ? "Registering..." : "Register"}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 export default function Page() {
   const [showIntro, setShowIntro] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -149,6 +338,11 @@ export default function Page() {
   const [eventQuery, setEventQuery] = useState("");
   const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [registrationCounts, setRegistrationCounts] = useState<Record<number, number>>({});
+  const [registrationModal, setRegistrationModal] = useState<{
+    isOpen: boolean;
+    event: Event | null;
+  }>({ isOpen: false, event: null });
 
   const today = new Date();
   const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -336,8 +530,14 @@ export default function Page() {
     }
   ];
   
+  // Create events with real registration counts
+  const eventsWithCounts = events.map(event => ({
+    ...event,
+    registered: registrationCounts[event.id] || 0
+  }));
+  
   // Filter events based on the selected view
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = eventsWithCounts.filter(event => {
     // Filter by date
     const isPast = new Date(event.date) < new Date(currentDate);
     if (activeView === "upcoming" && isPast) return false;
@@ -384,14 +584,53 @@ export default function Page() {
     };
   }, []);
 
-  const handleRegister = (eventId: number) => {
-    if (registeredEvents.includes(eventId)) {
-      setRegisteredEvents(prev => prev.filter(id => id !== eventId));
+  // Fetch registration counts on component mount
+  useEffect(() => {
+    const fetchRegistrationCounts = async () => {
+      try {
+        const result = await getAllEventsWithRegistrationCounts();
+        if (result.success) {
+          const counts: Record<number, number> = {};
+          Object.entries(result.registrationCounts).forEach(([eventId, data]) => {
+            counts[parseInt(eventId)] = data.total;
+          });
+          setRegistrationCounts(counts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch registration counts:", error);
+      }
+    };
+
+    fetchRegistrationCounts();
+  }, []);
+
+  const handleRegister = (event: Event) => {
+    const isRegistered = registeredEvents.includes(event.id);
+    
+    if (isRegistered) {
+      // User is already registered, do nothing (no unregister functionality)
+      return;
     } else {
-      setRegisteredEvents(prev => [...prev, eventId]);
+      // Open registration modal
+      setRegistrationModal({ isOpen: true, event });
+    }
+  };
+
+  const handleRegistrationSuccess = () => {
+    if (registrationModal.event) {
+      setRegisteredEvents(prev => [...prev, registrationModal.event!.id]);
+      // Increment the registration count for this event
+      setRegistrationCounts(prev => ({
+        ...prev,
+        [registrationModal.event!.id]: (prev[registrationModal.event!.id] || 0) + 1
+      }));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     }
+  };
+
+  const closeRegistrationModal = () => {
+    setRegistrationModal({ isOpen: false, event: null });
   };
 
   const renderEventCard = (event: Event) => {
@@ -461,17 +700,23 @@ export default function Page() {
               */}
               {!isPast && (
                 <button 
-                  className={`text-xs py-1 px-3 rounded-md transition-colors ${
+                  className={`text-xs py-1 px-3 rounded-md transition-all duration-300 relative overflow-hidden group ${
                     isRegistered
-                      ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary hover:bg-cyber-primary/30"
-                      : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70"
+                      ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary cursor-not-allowed opacity-80"
+                      : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   }`}
+                  disabled={isRegistered}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleRegister(event.id);
+                    if (!isRegistered) {
+                      handleRegister(event);
+                    }
                   }}
                 >
-                  {isRegistered ? "REGISTERED" : "REGISTER"}
+                  <span className="relative z-10">{isRegistered ? "REGISTERED" : "REGISTER"}</span>
+                  {!isRegistered && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+                  )}
                 </button>
               )}
             </div>
@@ -760,14 +1005,17 @@ export default function Page() {
             <div className="bg-black/50 border-t border-cyber-primary/30 px-6 py-4 flex justify-between">
               {new Date(selectedEvent.date) > new Date(currentDate) && (
                 <button 
-                  className={`py-2 px-6 rounded-md transition-colors ${
+                  className={`py-2 px-6 rounded-md transition-all duration-300 relative overflow-hidden group ${
                     registeredEvents.includes(selectedEvent.id)
-                      ? "bg-danger/20 text-danger border border-danger hover:bg-danger/30"
-                      : "cyber-button"
+                      ? "bg-danger/20 text-danger border border-danger hover:bg-danger/30 hover:shadow-lg hover:shadow-danger/20 hover:scale-105"
+                      : "cyber-button hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   }`}
-                  onClick={() => handleRegister(selectedEvent.id)}
+                  onClick={() => handleRegister(selectedEvent)}
                 >
-                  {registeredEvents.includes(selectedEvent.id) ? "CANCEL REGISTRATION" : "REGISTER NOW"}
+                  <span className="relative z-10">{registeredEvents.includes(selectedEvent.id) ? "CANCEL REGISTRATION" : "REGISTER NOW"}</span>
+                  {!registeredEvents.includes(selectedEvent.id) && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+                  )}
                 </button>
               )}
               
@@ -992,14 +1240,17 @@ export default function Page() {
                         */}
                         
                         <button 
-                          className={`py-1 px-5 rounded-md text-sm flex-1 transition-colors ${
+                          className={`py-1 px-5 rounded-md text-sm flex-1 transition-all duration-300 relative overflow-hidden group ${
                             registeredEvents.includes(filteredEvents[0].id)
-                              ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary hover:bg-cyber-primary/30"
-                              : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70"
+                              ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary hover:bg-cyber-primary/30 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
+                              : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                           }`}
-                          onClick={() => handleRegister(filteredEvents[0].id)}
+                          onClick={() => handleRegister(filteredEvents[0])}
                         >
-                          {registeredEvents.includes(filteredEvents[0].id) ? "REGISTERED" : "REGISTER"}
+                          <span className="relative z-10">{registeredEvents.includes(filteredEvents[0].id) ? "REGISTERED" : "REGISTER"}</span>
+                          {!registeredEvents.includes(filteredEvents[0].id) && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -1076,6 +1327,14 @@ export default function Page() {
       
       {/* Event details modal */}
       {renderEventDetailsModal()}
+      
+      {/* Registration Modal */}
+      <RegistrationModal
+        event={registrationModal.event}
+        isOpen={registrationModal.isOpen}
+        onClose={closeRegistrationModal}
+        onSuccess={handleRegistrationSuccess}
+      />
       
       {/* Floating CTA removed as requested */}
     </div>
