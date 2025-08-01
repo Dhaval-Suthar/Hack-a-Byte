@@ -151,9 +151,15 @@ Good luck with your assignment.
       setIsUnlocked(true);
       setShowPasswordDialog(false);
       playSound('success');
-      // Save mission progress
-      import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
-        MissionTracker.completeMission('zip_unlocked');
+      // Save mission progress using database-enhanced tracker
+      const deviceId = localStorage.getItem('selectedDeviceId');
+      import('../hooks/useDatabaseMissionTracker').then(({ DatabaseMissionTracker }) => {
+        DatabaseMissionTracker.completeMission('zip_unlocked', deviceId || undefined, 'hackbook-w95');
+      }).catch(() => {
+        // Fallback to original tracker
+        import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
+          MissionTracker.completeMission('zip_unlocked');
+        });
       });
     } else {
       playSound('error');
@@ -168,9 +174,15 @@ Good luck with your assignment.
     setIsUnlocked(true);
     setShowBruteForce(false);
     playSound('success');
-    // Save mission progress - Mark Mission 1 as complete
-    import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
-      MissionTracker.completeMission('mission1');
+    // Save mission progress - Mark Mission 1 as complete using database-enhanced tracker
+    const deviceId = localStorage.getItem('selectedDeviceId');
+    import('../hooks/useDatabaseMissionTracker').then(({ DatabaseMissionTracker }) => {
+      DatabaseMissionTracker.completeMission('mission1', deviceId || undefined, 'hackbook-w95');
+    }).catch(() => {
+      // Fallback to original tracker
+      import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
+        MissionTracker.completeMission('mission1');
+      });
     });
     // Show Win95Alert dialog with instructions to check client_data.txt
     setTimeout(() => {

@@ -1,0 +1,72 @@
+.confetti {
+  position: absolute;
+  pointer-events: none;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 100px)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.win95-window {
+  background-color: #c0c0c0;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.win95-title-bar {
+  background-color: #000080;
+  color: white;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.win95-button {
+  background-color: #c0c0c0;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 4px 12px;
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  font-size: 14px;
+  color: black;
+  cursor: pointer;
+}
+
+.win95-button:hover {
+  background-color: #d4d0c8;
+}
+
+.win95-button:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.win95-inset {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  background-color: white;
+}
+
+.win95-progress {
+  height: 16px;
+  background-color: #d4d0c8;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.win95-progress-bar {
+  height: 100%;
+  background-color: #000080;
+}

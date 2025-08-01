@@ -27,10 +27,10 @@ interface WinTalk95Props {
 const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  // Use shared credentials for login
+  // Get credentials for verification, but don't autofill them
   const creds = getSessionCreds();
-  const [username, setUsername] = useState(creds.username);
-  const [password, setPassword] = useState(creds.password);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [server, setServer] = useState("secure.ghostnet.corp");
   const [port, setPort] = useState("2847");
   const [connectionError, setConnectionError] = useState("");
