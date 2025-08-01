@@ -397,3 +397,49 @@ export async function bulkUpdateMissions(
     return { error: "Failed to bulk update missions" };
   }
 }
+
+/**
+ * Reset all progress for a user on a specific device
+ */
+export async function resetAllProgress(deviceId: string, deviceType: string) {
+  try {
+    const cookieStore = await cookies();
+    const userCookie = cookieStore.get(`device_${deviceId}_${deviceType}`);
+    
+    if (!userCookie || !userCookie.value) {
+      return { error: "User not logged in" };
+    }
+
+    const userData = JSON.parse(userCookie.value);
+    
+    await connectDb();
+
+    const user = await DeviceUser.findOne({
+      _id: new mongoose.Types.ObjectId(userData.userId),
+      deviceMacAddress: deviceId
+    });
+
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    // Reset all game state
+    user.gameState = {
+      missions: new Map(),
+      skills: new Map(),
+      unlockedApplications: [],
+      settings: new Map(),
+      totalScore: 0,
+      gamesCompleted: 0,
+      achievements: [],
+      lastActiveTime: new Date()
+    };
+
+    await user.save();
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error resetting user progress:", error);
+    return { error: "Failed to reset progress" };
+  }
+}

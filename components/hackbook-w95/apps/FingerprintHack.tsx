@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import clsx from "clsx";
+import audioManager from "../hooks/useAudioManager";
 
 interface FingerprintHackProps {
   onClose: () => void;
@@ -84,9 +85,7 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
   
   // Sound effect helper
   const playSound = (name: string) => {
-    const audio = new Audio(`/hackbook-w95/sounds/${name}.mp3`);
-    audio.volume = 0.7;
-    audio.play().catch(() => {});
+    audioManager.playSound(`/hackbook-w95/sounds/${name}.mp3`, 0.7);
   };
 
   // Timer logic

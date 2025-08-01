@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import audioManager from "../hooks/useAudioManager";
 
 interface Node {
   id: string;
@@ -39,6 +42,12 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
   const [completionTime, setCompletionTime] = useState<number | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [revealedData, setRevealedData] = useState<string>('');
+
+  // Start game tracking on component mount
+  useEffect(() => {
+    const currentDifficulty = GameDifficultyManager.getGlobalDifficulty();
+    gameScoring.startGame(GameScoringManager.UNTANGLE_NEURAL_NETWORK, currentDifficulty);
+  }, []);
 
   // Configuration based on difficulty
   // SIMPLIFIED: Fewer nodes, lower density, smaller canvas
@@ -140,21 +149,34 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       const allUntangled = updatedConnections.every(conn => !conn.isIntersecting);
       if (allUntangled && !gameComplete && updatedConnections.length > 0) {
         setGameComplete(true);
-        setCompletionTime(Date.now() - startTime);
+        const finalCompletionTime = Date.now() - startTime;
+        setCompletionTime(finalCompletionTime);
         setShowCelebration(true);
         
         // Generate revealed data based on difficulty
         const dataRevealed = generateRevealedData();
         setRevealedData(dataRevealed);
         
+        // Calculate score based on time and moves
+        const timeScore = Math.max(0, 100 - Math.floor(finalCompletionTime / 1000)); // Points deducted for time
+        const moveScore = Math.max(0, 100 - (moveCount * 5)); // Points deducted for moves
+        const finalScore = Math.round((timeScore + moveScore) / 2);
+        
+        // Track game completion
+        gameScoring.completeGame(
+          GameScoringManager.UNTANGLE_NEURAL_NETWORK,
+          finalScore,
+          moveCount + 1, // +1 for the final successful move
+          {
+            completionTimeMs: finalCompletionTime,
+            moveCount: moveCount,
+            difficulty: GameDifficultyManager.getGlobalDifficulty(),
+            dataRevealed: dataRevealed.length
+          }
+        );
+        
         // Play success sound
-        try {
-          const audio = new Audio("/hackbook-w95/sounds/ding.mp3");
-          audio.volume = 0.7;
-          audio.play().catch(e => console.log("Audio play failed:", e));
-        } catch (error) {
-          console.error("Sound error:", error);
-        }
+        audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.7);
         
         setTimeout(() => {
           onSuccess(dataRevealed);
@@ -163,7 +185,7 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
       
       return updatedConnections;
     });
-  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, connections.length]);
+  }, [nodes, doLinesIntersect, gameComplete, startTime, onSuccess, generateRevealedData, connections.length, moveCount]);
 
   // Draw the neural network
   const drawNetwork = useCallback(() => {

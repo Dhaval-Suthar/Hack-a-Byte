@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import clsx from "clsx";
+import audioManager from "../hooks/useAudioManager";
 
 interface BruteForceGameProps {
   onSuccess: (password: string) => void;
@@ -56,25 +57,22 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
   // Play sound effect
   const playSound = useCallback((soundType: 'click' | 'error' | 'success' | 'type') => {
     try {
-      let audio: HTMLAudioElement;
       switch (soundType) {
         case 'click':
-          audio = new Audio("/hackbook-w95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.3);
           break;
         case 'error':
-          audio = new Audio("/hackbook-w95/sounds/error.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/error.mp3", 0.3);
           break;
         case 'success':
-          audio = new Audio("/hackbook-w95/sounds/ding.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.3);
           break;
         case 'type':
-          audio = new Audio("/hackbook-w95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.3);
           break;
         default:
           return;
       }
-      audio.volume = 0.3;
-      audio.play().catch(e => console.log("Audio play failed:", e));
     } catch (error) {
       console.error("Sound error:", error);
     }

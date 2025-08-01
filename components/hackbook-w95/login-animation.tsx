@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import audioManager from "./hooks/useAudioManager";
 
 interface LoginAnimationProps {
   username: string;
@@ -22,10 +23,9 @@ const LoginAnimation: React.FC<LoginAnimationProps> = ({ username, onComplete })
 
     const timeouts: NodeJS.Timeout[] = [];
     
-    // Play login sound
+    // Play login sound using AudioManager
     try {
-      const loginSound = new Audio("/hackbook-w95/sounds/win95-startup.mp3");
-      loginSound.play().catch(e => console.log("Audio play failed:", e));
+      audioManager.playSound("/hackbook-w95/sounds/win95-startup.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }

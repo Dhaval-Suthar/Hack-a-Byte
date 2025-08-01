@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import audioManager from "./hooks/useAudioManager";
 
 const BootAnimation = () => {
   const [bootStage, setBootStage] = useState(0);
@@ -21,8 +22,7 @@ const BootAnimation = () => {
         setBootStage(stage);
         if (stage === 5) {
           try {
-            const bootSound = new Audio("/hackbook-w95/sounds/win95-startup.mp3");
-            bootSound.play().catch(e => console.log("Audio play failed:", e));
+            audioManager.playSound("/hackbook-w95/sounds/win95-startup.mp3", 0.7);
           } catch (error) {
             console.error("Audio error:", error);
           }

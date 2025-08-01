@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Button from "../../ui/Button";
 import ScoreScreen from "../components/ScoreScreen";
+import GameDifficultyManager from "../hooks/useGameDifficulty";
+import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
+import audioManager from "../hooks/useAudioManager";
 
 interface QuickEventPresserProps {
   onClose: () => void;
@@ -42,11 +45,24 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   const [windowGlitch, setWindowGlitch] = useState(false);
   const [showScoreScreen, setShowScoreScreen] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const [difficulty, setDifficulty] = useState("normal");
+  const [difficulty, setDifficulty] = useState(GameDifficultyManager.getGlobalDifficulty());
 
   const gameRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Listen for global difficulty changes
+  useEffect(() => {
+    // Set up listener for difficulty changes
+    const cleanupListener = GameDifficultyManager.onDifficultyChange((newDifficulty) => {
+      setDifficulty(newDifficulty);
+    });
+    
+    return () => {
+      // Clean up the listener when component unmounts
+      cleanupListener();
+    };
+  }, []);
 
   // Define event types with increasing difficulty - ALL CLICK/MOUSE BASED (NO HOTKEYS)
   const eventTypes = React.useMemo(() => [
@@ -115,24 +131,17 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
   // Play panic sounds
   const playPanicSound = useCallback((type: "alarm" | "error" | "success" | "tick") => {
     try {
-      let audio: HTMLAudioElement;
       switch (type) {
         case "alarm":
         case "error":
-          audio = new Audio("/hackbook-W95/sounds/error.mp3");
-          audio.volume = 0.7;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.7);
           break;
         case "success":
-          audio = new Audio("/hackbook-W95/sounds/ding.mp3");
-          audio.volume = 0.8;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.8);
           break;
         case "tick":
           // Simple tick sound using existing audio
-          audio = new Audio("/hackbook-W95/sounds/click.mp3");
-          audio.volume = 0.3;
-          audio.play().catch(console.log);
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.3);
           break;
       }
     } catch (error) {
@@ -146,14 +155,22 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
       setCurrentEvent(prev => prev ? { ...prev, failed: true } : null);
       
       // Add error message
-      setErrorMessages(prev => [...prev, `FATAL ERROR! Failed: ${currentEvent.instruction}`]);
+      setErrorMessages(prev => {
+        const newErrors = [...prev, `FATAL ERROR! Failed: ${currentEvent.instruction}`];
+        
+        // Update game progress with new attempt count
+        const totalAttempts = completedEvents + 1 + newErrors.length;
+        gameScoring.updateGameProgress(GameScoringManager.QUICK_EVENT_PRESSER, totalAttempts);
+        
+        return newErrors;
+      });
       
       // Remove time
       setTimeRemaining(prev => Math.max(0, prev - 3));
       
       playPanicSound("error");
     }
-  }, [currentEvent, playPanicSound]);
+  }, [currentEvent, playPanicSound, completedEvents]);
 
   // Generate random event
   const generateNewEvent = useCallback(() => {
@@ -295,10 +312,28 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             score = Math.min(100, score * 1.2); // 20% bonus for nightmare
           }
           
-          setFinalScore(Math.round(score));
+          const finalScore = Math.round(score);
+          setFinalScore(finalScore);
           
-          // Show score screen
-          setShowScoreScreen(true);
+          // Track game completion with total attempts (errors count as failed attempts)
+          const totalAttempts = completedEvents + 1 + errorMessages.length;
+          gameScoring.completeGame(
+            GameScoringManager.QUICK_EVENT_PRESSER,
+            finalScore,
+            totalAttempts,
+            {
+              completedEvents,
+              totalEvents: 10,
+              timeRemaining,
+              errors: errorMessages.length,
+              difficulty
+            }
+          );
+          
+          // Auto-trigger score screen after 3 seconds
+          setTimeout(() => {
+            setShowScoreScreen(true);
+          }, 3000);
           
           // Call onSuccess callback to update database
           onSuccess?.();
@@ -307,7 +342,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
         }
       }, 500);
     }
-  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound, calculateScore, difficulty]);
+  }, [currentEvent, completedEvents, onSuccess, generateNewEvent, playPanicSound, calculateScore, difficulty, errorMessages.length, timeRemaining]);
 
   // Handle keyboard events
   // NO KEYBOARD EVENT LISTENERS - Game is now purely click/mouse based
@@ -404,17 +439,23 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
     }
   }, [gameStarted, gameOver]);
 
-  // Start game with optional difficulty
-  const startGame = (selectedDifficulty: string = "normal") => {
-    setDifficulty(selectedDifficulty);
+  // Start game with optional difficulty, using global difficulty when available
+  const startGame = (selectedDifficulty?: string) => {
+    // If no difficulty is provided, get global difficulty from GameDifficultyManager
+    const difficultyToUse = selectedDifficulty || GameDifficultyManager.getGlobalDifficulty();
+    
+    setDifficulty(difficultyToUse);
     setGameStarted(true);
     setCompletedEvents(0);
     setGameOver(false);
     setGameWon(false);
     setErrorMessages([]);
     
+    // Start tracking this game in the scoring system
+    gameScoring.startGame(GameScoringManager.QUICK_EVENT_PRESSER, difficultyToUse);
+    
     // Set initial time based on difficulty
-    switch (selectedDifficulty) {
+    switch (difficultyToUse) {
       case "easy":
         setTimeRemaining(45); // More time for easy mode
         break;
@@ -489,38 +530,8 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
           </ul>
         </div>
 
-        <div className="bg-black p-6 border-2 border-red-500 mb-6">
-          <h3 className="text-xl font-bold text-red-300 mb-2">SELECT DIFFICULTY:</h3>
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
-            <Button
-              onClick={() => startGame("easy")}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
-            >
-              Easy
-            </Button>
-            <Button
-              onClick={() => startGame("normal")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
-            >
-              Normal
-            </Button>
-            <Button
-              onClick={() => startGame("hard")}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2"
-            >
-              Hard
-            </Button>
-            <Button
-              onClick={() => startGame("nightmare")}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
-            >
-              Nightmare
-            </Button>
-          </div>
-        </div>
-
         <Button
-          onClick={() => startGame("normal")}
+          onClick={() => startGame(GameDifficultyManager.getGlobalDifficulty())}
           className="bg-red-600 hover:bg-red-700 text-white text-xl px-8 py-4 border-2 border-red-400"
         >
           🚨 EMERGENCY START 🚨
@@ -531,13 +542,32 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
 
   // Handle difficulty selection and replay
   const handleReplay = (selectedDifficulty: string) => {
-    // Store the selected difficulty
+    // Store the selected difficulty both locally and globally
     setDifficulty(selectedDifficulty);
     
-    // Reset the game
+    // Store the difficulty globally for all games using the manager
+    GameDifficultyManager.setGlobalDifficulty(selectedDifficulty);
+    
+    // Clear the emergency protocol launched flag so it can be launched again
+    localStorage.removeItem("emergencyProtocolLaunched");
+    
+    // Reset the game state completely
     setShowScoreScreen(false);
     setGameOver(false);
     setGameWon(false);
+    setErrorMessages([]);
+    setCompletedEvents(0);
+    
+    // If there are any timeouts or intervals, clear them
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    if (eventTimeoutRef.current) {
+      clearTimeout(eventTimeoutRef.current);
+      eventTimeoutRef.current = null;
+    }
     
     // Start a new game with the selected difficulty
     startGame(selectedDifficulty);
@@ -545,12 +575,20 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
 
   if (gameOver) {
     if (gameWon && showScoreScreen) {
+      // Get deviceId from localStorage for leaderboard
+      let deviceId: string | undefined;
+      if (typeof window !== 'undefined') {
+        deviceId = localStorage.getItem("selectedDeviceId") || undefined;
+      }
+      
       return (
         <ScoreScreen
           score={finalScore}
           timeRemaining={timeRemaining}
           completedEvents={completedEvents}
           totalEvents={10}
+          difficulty={difficulty}
+          deviceId={deviceId}
           onReplay={handleReplay}
           onClose={onClose}
         />
@@ -567,17 +605,22 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             <p className="text-lg mb-4">System integrity maintained.</p>
             <p className="text-lg font-bold text-yellow-300">Mission Complete!</p>
             <div className="mt-8">
-              <Button 
-                onClick={() => {
-                  // Calculate and show score screen
-                  const score = calculateScore();
-                  setFinalScore(score);
-                  setShowScoreScreen(true);
-                }} 
-                className="bg-green-600 hover:bg-green-700"
-              >
-                View Results
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => {
+                    // Calculate and show score screen with results tab
+                    const score = calculateScore();
+                    setFinalScore(score);
+                    setShowScoreScreen(true);
+                  }} 
+                  className="bg-green-600 hover:bg-green-700 text-xl px-8 py-4 font-bold animate-pulse"
+                >
+                  🏆 View Results & Leaderboard 🏆
+                </Button>
+              </div>
+              <p className="text-sm text-gray-300 mt-4">
+                Click above to see your score and compare with other players!
+              </p>
             </div>
           </div>
         ) : (
@@ -634,6 +677,20 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
             className="h-full bg-green-500 transition-all duration-300"
             style={{ width: `${(completedEvents / 10) * 100}%` }}
           />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-sm">Difficulty:</span>
+          <span className={`font-bold text-sm ${
+            difficulty === "easy" 
+              ? "text-green-400" 
+              : difficulty === "hard" 
+              ? "text-orange-400" 
+              : difficulty === "nightmare" 
+              ? "text-red-400" 
+              : "text-yellow-400"
+          }`}>
+            {difficulty.toUpperCase()}
+          </span>
         </div>
       </div>
 

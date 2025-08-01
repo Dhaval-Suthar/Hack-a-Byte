@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import clsx from "clsx";
 import Image from "next/image";
 import { getSessionCreds } from "@/lib/creds";
+import audioManager from "../hooks/useAudioManager";
 
 interface Message {
   id: string;
@@ -92,25 +93,22 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
   // Play sound effect
   const playSound = useCallback((soundType: 'connect' | 'message' | 'error' | 'click') => {
     try {
-      let audio: HTMLAudioElement;
       switch (soundType) {
         case 'connect':
-          audio = new Audio("/hackbook-w95/sounds/ding.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.5);
           break;
         case 'message':
-          audio = new Audio("/hackbook-w95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.5);
           break;
         case 'error':
-          audio = new Audio("/hackbook-w95/sounds/error.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/error.mp3", 0.5);
           break;
         case 'click':
-          audio = new Audio("/hackbook-w95/sounds/click.mp3");
+          audioManager.playSound("/hackbook-w95/sounds/click.mp3", 0.5);
           break;
         default:
           return;
       }
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log("Audio play failed:", e));
     } catch (error) {
       console.error("Sound error:", error);
     }
@@ -319,6 +317,36 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
     sessionStorage.removeItem('wintalk95State');
     playSound('click');
   }, [playSound]);
+
+  // Listen for final mission completion to disconnect WinTalk
+  useEffect(() => {
+    const handleFinalMissionComplete = () => {
+      if (isConnected) {
+        // Add a final system message before disconnecting
+        const disconnectMessage: Message = {
+          id: `msg_${Date.now()}`,
+          sender: "SYSTEM",
+          content: "🎯 MISSION ACCOMPLISHED 🎯\n\n🔒 ShadowByte neutralized\n🛡️ Network secured\n📊 All data preserved\n\n🔌 Terminating secure connection...\n\nConnection lost.",
+          timestamp: new Date(),
+          isSystem: true
+        };
+        
+        setMessages(prev => [...prev, disconnectMessage]);
+        playSound('message');
+        
+        // Disconnect after showing the message
+        setTimeout(() => {
+          playSound('error'); // Play disconnect sound
+          handleLogout();
+        }, 4000);
+      }
+    };
+
+    window.addEventListener('finalMissionComplete', handleFinalMissionComplete);
+    return () => {
+      window.removeEventListener('finalMissionComplete', handleFinalMissionComplete);
+    };
+  }, [isConnected, handleLogout, playSound]);
 
   // Handle sending message
   const handleSendMessage = useCallback(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import audioManager from "../hooks/useAudioManager";
 
 interface NumberJumpingGameProps {
   onClose: () => void;
@@ -36,9 +37,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
   // Sound effects
   const playSound = useCallback((sound: string) => {
     try {
-      const audio = new Audio(`/hackbook-w95/sounds/${sound}.mp3`);
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log("Audio play failed:", e));
+      audioManager.playSound(`/hackbook-w95/sounds/${sound}.mp3`, 0.5);
     } catch (error) {
       console.error("Sound error:", error);
     }

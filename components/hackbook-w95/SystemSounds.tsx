@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
+import audioManager from './hooks/useAudioManager';
 
 interface SystemSoundsProps {
   enabled?: boolean;
@@ -17,17 +18,7 @@ export type SoundEvent =
   | 'shutdown';
 
 const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
-  // Create refs for all system sounds
-  const clickSound = useRef<HTMLAudioElement | null>(null);
-  const closeSound = useRef<HTMLAudioElement | null>(null);
-  const dingSound = useRef<HTMLAudioElement | null>(null);
-  const errorSound = useRef<HTMLAudioElement | null>(null);
-  const maximizeSound = useRef<HTMLAudioElement | null>(null);
-  const minimizeSound = useRef<HTMLAudioElement | null>(null);
-  const openSound = useRef<HTMLAudioElement | null>(null);
-  const shutdownSound = useRef<HTMLAudioElement | null>(null);
-
-  // Create event handler to play sounds
+  // Create event handler to play sounds using AudioManager
   useEffect(() => {
     if (!enabled) return;
 
@@ -35,30 +26,31 @@ const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
     const handleSystemSound = (event: CustomEvent<SoundEvent>) => {
       const soundType = event.detail;
       
+      // Use audioManager to play sounds with proper browser policy handling
       switch (soundType) {
         case 'click':
-          clickSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/click.mp3', 0.5);
           break;
         case 'close':
-          closeSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/close.mp3', 0.5);
           break;
         case 'ding':
-          dingSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/ding.mp3', 0.7);
           break;
         case 'error':
-          errorSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/error.mp3', 0.6);
           break;
         case 'maximize':
-          maximizeSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/maximize.mp3', 0.5);
           break;
         case 'minimize':
-          minimizeSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/minimize.mp3', 0.5);
           break;
         case 'open':
-          openSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/open.mp3', 0.5);
           break;
         case 'shutdown':
-          shutdownSound.current?.play();
+          audioManager.playSound('/hackbook-w95/sounds/shutdown.mp3', 0.7);
           break;
       }
     };
@@ -93,20 +85,29 @@ const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
     };
   }, [playSystemSound]);
 
-  if (!enabled) return null;
+  // Preload sounds with AudioManager after component mounts
+  useEffect(() => {
+    if (enabled) {
+      const soundPaths = [
+        '/hackbook-w95/sounds/click.mp3',
+        '/hackbook-w95/sounds/close.mp3',
+        '/hackbook-w95/sounds/ding.mp3',
+        '/hackbook-w95/sounds/error.mp3',
+        '/hackbook-w95/sounds/maximize.mp3',
+        '/hackbook-w95/sounds/minimize.mp3',
+        '/hackbook-w95/sounds/open.mp3',
+        '/hackbook-w95/sounds/shutdown.mp3'
+      ];
+      
+      // Preload after a brief delay to ensure user interaction is detected
+      setTimeout(() => {
+        audioManager.preloadSounds(soundPaths);
+      }, 1000);
+    }
+  }, [enabled]);
 
-  return (
-    <>
-      <audio ref={clickSound} src="/hackbook-w95/sounds/click.mp3" preload="auto" />
-      <audio ref={closeSound} src="/hackbook-w95/sounds/close.mp3" preload="auto" />
-      <audio ref={dingSound} src="/hackbook-w95/sounds/ding.mp3" preload="auto" />
-      <audio ref={errorSound} src="/hackbook-w95/sounds/error.mp3" preload="auto" />
-      <audio ref={maximizeSound} src="/hackbook-w95/sounds/maximize.mp3" preload="auto" />
-      <audio ref={minimizeSound} src="/hackbook-w95/sounds/minimize.mp3" preload="auto" />
-      <audio ref={openSound} src="/hackbook-w95/sounds/open.mp3" preload="auto" />
-      <audio ref={shutdownSound} src="/hackbook-w95/sounds/shutdown.mp3" preload="auto" />
-    </>
-  );
+  // No need to render audio elements - AudioManager handles everything
+  return null;
 };
 
 export default SystemSounds;
