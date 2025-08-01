@@ -14,8 +14,8 @@ interface Mail {
   link?: string;
 }
 
-export default function InboxMails({ openLink, setUnreadCount }: { openLink: (link: string) => void, setUnreadCount?: (count: number) => void }) {
-  const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
+export default function InboxMails({ setUnreadCount }: { setUnreadCount?: (count: number) => void }) {
+  // Removed selectedMail state since mails now open in separate windows
   const [mails, setMails] = useState<Mail[]>([
     {
       id: "ghost-contract",
@@ -64,7 +64,7 @@ Good hunting.
     }
   };
 
-  // Mark email as read when selected
+  // Mark email as read when selected and open in separate window
   const handleMailSelect = (mail: Mail) => {
     if (!mail.isRead) {
       const updatedMails = mails.map(m => 
@@ -73,7 +73,21 @@ Good hunting.
       setMails(updatedMails);
       updateUnreadCount(updatedMails);
     }
-    setSelectedMail(mail);
+    
+    // Open mail in separate Notepad window
+    const event = new CustomEvent('win95openfile', {
+      detail: {
+        path: `${mail.subject} - ${mail.sender}`,
+        content: `From: ${mail.sender}
+Sent: ${mail.date}
+To: New Windows 95 Customer
+Subject: ${mail.subject}
+
+${mail.content}${mail.link ? `\n\nLink: ${mail.link}` : ''}`,
+        extension: 'txt'
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   // Return early if there are no emails
@@ -91,8 +105,7 @@ Good hunting.
     >
       <div
         className={clsx("flex items-center border-b border-[#e0e0e0] py-1 px-1 cursor-pointer", {
-          "bg-[#0000aa] text-white": selectedMail?.id === mail.id,
-          "hover:bg-[#e0e0e0]": selectedMail?.id !== mail.id,
+          "hover:bg-[#e0e0e0]": true,
         })}
       >
         <div className="w-6 flex-shrink-0 flex items-center justify-center">
@@ -109,50 +122,7 @@ Good hunting.
         <div className="flex-1 px-2 text-sm text-right">{mail.date}</div>
       </div>
       
-      {selectedMail?.id === mail.id && (
-        <div className="fixed inset-16 z-10 flex flex-col bg-white border-2 border-[#808080]">
-          <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center">
-            <div className="flex-1 text-sm font-bold">Welcome! - Microsoft Exchange</div>
-            <button 
-              className="text-white h-[14px] flex items-center justify-center text-sm font-bold leading-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedMail(null);
-              }}
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="flex-1 flex flex-col p-2 overflow-auto">
-            <div className="border-b border-gray-300 pb-2 mb-2">
-              <div className="text-sm"><strong>From:</strong> {mail.sender}</div>
-              <div className="text-sm"><strong>Sent:</strong> {mail.date}</div>
-              <div className="text-sm"><strong>To:</strong> New Windows 95 Customer</div>
-              <div className="text-sm"><strong>Subject:</strong> {mail.subject}</div>
-            </div>
-            
-            <div className="font-serif whitespace-pre-wrap text-sm flex-1">{mail.content}</div>
-            
-            {mail.link && (
-              <div className="mt-4 text-sm">
-                <span>Browse the link: </span>
-                <span 
-                  className="text-blue-800 underline cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (mail.link) {
-                      openLink(mail.link);
-                    }
-                  }}
-                >
-                  {mail.link}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Mail detail view removed - mails now open in separate Notepad windows */}
     </div>
   ));
 }
