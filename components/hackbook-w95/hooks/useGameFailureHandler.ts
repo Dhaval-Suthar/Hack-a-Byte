@@ -41,25 +41,14 @@ export const useGameFailureHandler = () => {
         // Clear client-side storage including device selection for fresh start
         if (typeof window !== 'undefined') {
           // Preserve only playspace ID, clear device selection for re-selection
-          const preservedPlayspaceId = localStorage.getItem('selectedPlayspaceId');
+          const preservedPlayspaceId = localStorage.getItem("playspaceId");
           
-          // Clear all game and device related storage
-          localStorage.removeItem('selectedDeviceId');
-          localStorage.removeItem('gameProgress');
-          localStorage.removeItem('missionBriefingSeen');
-          // Clear any other game-related storage
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('game_') || key.startsWith('mission_') || key.startsWith('user_')) {
-              localStorage.removeItem(key);
-            }
-          });
+          // Clear all local storage except for essential non-game data
+          localStorage.clear();
           
           // Restore only playspace ID so user returns to same playspace but selects device again
           if (preservedPlayspaceId) {
-            localStorage.setItem('selectedPlayspaceId', preservedPlayspaceId);
-          }
-          if (preservedPlayspaceId) {
-            localStorage.setItem('selectedPlayspaceId', preservedPlayspaceId);
+            localStorage.setItem("playspaceId", preservedPlayspaceId);
           }
         }
 
