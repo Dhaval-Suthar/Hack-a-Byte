@@ -686,7 +686,7 @@ export default function Page() {
                         {[
                           { year: "2022", event: "HackaByte Genesis - First event with 150 participants" },
                           { year: "2023", event: "HackaByte Expansion - 4 events across 3 continents" },
-                          { year: "2024", event: "HackaByte Global - Events in 12 major cities" },
+                          { year: "2025", event: "HackaByte Global - Events in 12 major cities" },
                           { year: "2025", event: "HackaByte Nexus - Current season with record participation" }
                         ].map((item, index) => (
                           <motion.div 
