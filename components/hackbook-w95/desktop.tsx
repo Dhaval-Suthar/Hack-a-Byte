@@ -1075,10 +1075,18 @@ const Desktop = () => {
   // Open an application
   const handleOpenApp = useCallback(
     (app: App) => {
-      // Check if an app with the same name is already running
-      const existingApp = runningApps.find(runningApp => runningApp.name === app.name);
+      // Check if app is Notepad with filePath metadata
+      const isNewNotepadFile = app.name === "Notepad" && app.metadata && app.metadata.filePath;
       
-      if (existingApp) {
+      // Check if an app with the same name is already running
+      const existingApp = runningApps.find(runningApp => 
+        runningApp.name === app.name && 
+        // For Notepad, only consider it existing if it's the same file
+        !(app.name === "Notepad" && app.metadata?.filePath && 
+          runningApp.metadata?.filePath !== app.metadata.filePath)
+      );
+      
+      if (existingApp && !isNewNotepadFile) {
         // If app is already running, just activate its window
         if (existingApp.id) {
           windowManager.activateWindow(existingApp.id);
@@ -1176,8 +1184,34 @@ const Desktop = () => {
     };
 
     window.addEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+    
+    // Handle Notepad launch events (for new documents)
+    const handleLaunchNotepad = (event: CustomEvent) => {
+      const notepadData = event.detail;
+      
+      // Find Notepad app template
+      const notepadAppTemplate = APPS.find((app) => app.name === "Notepad");
+      
+      if (notepadAppTemplate) {
+        // Create a new instance of Notepad
+        const notepadApp = new App(notepadAppTemplate.name, notepadAppTemplate.icon);
+        
+        // Add file metadata
+        notepadApp.metadata = {
+          filePath: notepadData.filePath,
+          initialContent: notepadData.content
+        };
+        
+        // Launch the app
+        handleOpenApp(notepadApp);
+      }
+    };
+    
+    window.addEventListener('launchNotepad', handleLaunchNotepad as EventListener);
+    
     return () => {
       window.removeEventListener('devLaunchApp', handleDevLaunchApp as EventListener);
+      window.removeEventListener('launchNotepad', handleLaunchNotepad as EventListener);
     };
   }, [handleOpenApp]);
 
@@ -1453,8 +1487,10 @@ const Desktop = () => {
       const fileData = e.detail;
       if (fileData.extension === "txt") {
         // Find Notepad app
-        const notepadApp = APPS.find((app) => app.name === "Notepad");
-        if (notepadApp) {
+        const notepadAppTemplate = APPS.find((app) => app.name === "Notepad");
+        if (notepadAppTemplate) {
+          // Create a new instance of the Notepad app for this file
+          const notepadApp = new App(notepadAppTemplate.name, notepadAppTemplate.icon);
           // Add file metadata to the app
           notepadApp.metadata = {
             filePath: fileData.path,
