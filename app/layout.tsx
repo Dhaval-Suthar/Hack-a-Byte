@@ -81,6 +81,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/favicon.ico" />
         <link rel="canonical" href="https://hackabyte.games" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <script
