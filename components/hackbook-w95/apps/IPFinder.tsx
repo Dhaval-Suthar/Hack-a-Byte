@@ -76,6 +76,12 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
     setTargetIP(target);
     setGameStarted(true);
     
+    // Reset game state to ensure clean start
+    setWrongAttempts(0);
+    setGameFailed(false);
+    setGameComplete(false);
+    setShowGameOver(false);
+    
     // Start countdown timer
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -94,12 +100,18 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
 
   // Handle game failure - delete account
   useEffect(() => {
-    if (gameFailed) {
+    if (gameFailed && wrongAttempts >= MAX_ATTEMPTS) {
+      console.log('Game failed after reaching max attempts, handling failure');
+      setTimeout(() => {
+        handleFailure();
+      }, 3000); // 3 second delay to show failure message
+    } else if (gameFailed && timeLeft <= 0) {
+      console.log('Game failed due to timeout, handling failure');
       setTimeout(() => {
         handleFailure();
       }, 3000); // 3 second delay to show failure message
     }
-  }, [gameFailed, handleFailure]);
+  }, [gameFailed, handleFailure, wrongAttempts, timeLeft]);
 
   // Handle number click
   const handleNumberClick = (index: number, value: string) => {
@@ -121,13 +133,20 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
           setShowSuccessAnimation(true);
           setTimeout(() => onSuccess(attemptedIP), 2000);
         } else {
+          // Update wrong attempts counter
           const newWrongAttempts = wrongAttempts + 1;
           setWrongAttempts(newWrongAttempts);
           
+          console.log(`Wrong attempt ${newWrongAttempts} of ${MAX_ATTEMPTS}`);
+          
+          // Only fail if we've reached MAX_ATTEMPTS (3)
           if (newWrongAttempts >= MAX_ATTEMPTS) {
+            console.log('Max attempts reached, game over');
             setGameFailed(true);
             setShowGameOver(true);
           } else {
+            // Otherwise, show connection refused and reset for next attempt
+            console.log(`You have ${MAX_ATTEMPTS - newWrongAttempts} attempts remaining`);
             setShowConnectionRefused(true);
             setSelectedNumbers([]);
             setSelectedIndices([]);

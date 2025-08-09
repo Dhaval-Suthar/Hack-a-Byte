@@ -98,7 +98,7 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
   // Play victory sound and submit score
   useEffect(() => {
     // Play sound using audio manager
-    audioManager.playSound("/hackbook-w95/sounds/ding.mp3", 0.7);
+    audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.7);
 
     // Hide confetti after 5 seconds
     const timer = setTimeout(() => {
@@ -310,8 +310,16 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
                     
                     // Reset game progress flags
                     if (typeof window !== 'undefined') {
-                      // Get device ID for database reset
+                      // Get the values we want to preserve
                       const deviceId = localStorage.getItem("selectedDeviceId");
+                      const playspaceId = localStorage.getItem("playspaceId");
+                      
+                      // Clear all localStorage
+                      localStorage.clear();
+                      
+                      // Restore the values we want to keep
+                      if (deviceId) localStorage.setItem("selectedDeviceId", deviceId);
+                      if (playspaceId) localStorage.setItem("playspaceId", playspaceId);
                       
                       // Reset database progress if device ID is available
                       if (deviceId) {
@@ -327,28 +335,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
                           }
                         });
                       }
-                      
-                      // Remove game-specific flags to reset progress
-                      localStorage.removeItem("emergencyProtocolLaunched");
-                      localStorage.removeItem("secureVaultCompleted");
-                      localStorage.removeItem("neuralNetworkCompleted");
-                      
-                      // Remove app installation flags
-                      localStorage.removeItem("networkToolInstalled");
-                      localStorage.removeItem("neuralNetworkUnlocked");
-                      localStorage.removeItem("vaultUnlocked");
-                      localStorage.removeItem("devToolsUnlocked");
-                      
-                      // Remove mission progress flags
-                      localStorage.removeItem("mission1Completed");
-                      localStorage.removeItem("mission2Completed");
-                      localStorage.removeItem("neural_data_discovered");
-                      localStorage.removeItem("mission2JustCompleted");
-                      localStorage.removeItem("zebra_code_activated");
-                      localStorage.removeItem("final_mission");
-                      
-                      // Clear any other game state
-                      localStorage.removeItem("hasSeenMission");
                       
                       // Dispatch reset event before reloading
                       window.dispatchEvent(new CustomEvent('resetGameState'));

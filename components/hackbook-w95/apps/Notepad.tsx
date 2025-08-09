@@ -333,25 +333,26 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       // Save the new file content
       UserPreferences.setAppData(`notepad_${newFileName}`, newFileContent);
       
-      // Update current document
-      setText(newFileContent);
-      setModified(false);
-      setStatusMessage(`New file created: ${newFileName}`);
+      // Create and launch a new Notepad instance with this file instead of updating the current one
+      const newFileEvent = new CustomEvent("launchNotepad", {
+        detail: {
+          filePath: newFileName,
+          content: newFileContent
+        }
+      });
+      window.dispatchEvent(newFileEvent);
       
-      // Clear any search state
-      setSearchHits([]);
-      setCurrentHit(-1);
-      setSearchTerm("");
-      setReplaceTerm("");
+      // Set status message
+      setStatusMessage(`New file created in a new window: ${newFileName}`);
       
     } catch (error) {
       console.error("Error creating new file:", error);
       setStatusMessage("Error creating new file");
       
-      // Fallback to simple new document
+      // Fallback to simple new document in current window
       setText(defaultText);
       setModified(false);
-      setStatusMessage("New document created");
+      setStatusMessage("New document created in current window");
     }
   };
 
@@ -433,9 +434,9 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       // Try to load saved content first
       const savedContent = UserPreferences.getAppData(`notepad_${selectedFile}`, null) as string | null;
       
+      let content;
       if (savedContent !== null) {
-        setText(savedContent);
-        setStatusMessage(`Opened: ${selectedFile}`);
+        content = savedContent;
       } else {
         // Load default content based on filename
         let defaultContent = "";
@@ -457,11 +458,28 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
             defaultContent = `Contents of ${selectedFile}\n\nThis file was created in Notepad.\n\nYou can edit this content and save your changes.`;
         }
         
-        setText(defaultContent);
-        setStatusMessage(`Opened: ${selectedFile}`);
+        content = defaultContent;
         
         // Save the default content
         UserPreferences.setAppData(`notepad_${selectedFile}`, defaultContent);
+      }
+      
+      // Check if we should open in a new window
+      // Launch as a new window if we're opening a different file than the current one
+      if (filePath !== selectedFile) {
+        // Create and launch a new Notepad instance with this file
+        const openFileEvent = new CustomEvent("launchNotepad", {
+          detail: {
+            filePath: selectedFile,
+            content: content
+          }
+        });
+        window.dispatchEvent(openFileEvent);
+        setStatusMessage(`Opened in new window: ${selectedFile}`);
+      } else {
+        // Update current window content
+        setText(content);
+        setStatusMessage(`Opened: ${selectedFile}`);
       }
       
       setModified(false);

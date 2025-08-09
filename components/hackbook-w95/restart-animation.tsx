@@ -20,7 +20,7 @@ const RestartAnimation: React.FC<RestartAnimationProps> = ({ onComplete }) => {
   useEffect(() => {
     // Play shutdown sound (reused here for restart) using AudioManager
     try {
-      audioManager.playSound("/hackbook-w95/sounds/shutdown.mp3", 0.7);
+      audioManager.playSound("/hackbook-W95/sounds/shutdown.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }

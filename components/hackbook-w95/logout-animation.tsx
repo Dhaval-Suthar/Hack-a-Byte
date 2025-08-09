@@ -21,7 +21,7 @@ const LogoutAnimation: React.FC<LogoutAnimationProps> = ({ username, onComplete 
   useEffect(() => {
     // Play logout sound using AudioManager
     try {
-      audioManager.playSound("/hackbook-w95/sounds/shutdown.mp3", 0.7);
+      audioManager.playSound("/hackbook-W95/sounds/shutdown.mp3", 0.7);
     } catch (error) {
       console.error("Audio error:", error);
     }

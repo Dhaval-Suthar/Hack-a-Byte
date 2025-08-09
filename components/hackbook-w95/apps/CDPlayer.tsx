@@ -46,19 +46,19 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
       artist: "Pet Shop Boys", 
       title: "West End Girls", 
       duration: "03:55", 
-      audioFile: "/hackbook-w95/sounds/music/west-end-girls.mp3" // Temporary for testing
+      audioFile: "/hackbook-W95/sounds/music/west-end-girls.mp3" // Temporary for testing
     },
     { 
       artist: "Depeche Mode", 
       title: "Just Can't Get Enough", 
       duration: "03:45", 
-      audioFile: "/hackbook-w95/sounds/music/just-cant-get-enough.mp3" // Temporary for testing
+      audioFile: "/hackbook-W95/sounds/music/just-cant-get-enough.mp3" // Temporary for testing
     },
     { 
       artist: "New Order", 
       title: "Blue Monday", 
       duration: "07:29", 
-      audioFile: "/hackbook-w95/sounds/music/blue-monday.mp3" // Temporary for testing
+      audioFile: "/hackbook-W95/sounds/music/blue-monday.mp3" // Temporary for testing
     }
   ], []);
   

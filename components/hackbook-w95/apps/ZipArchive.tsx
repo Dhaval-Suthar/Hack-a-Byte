@@ -122,16 +122,16 @@ Good luck with your assignment.
       let audio: HTMLAudioElement;
       switch (soundType) {
         case 'click':
-          audio = new Audio("/hackbook-w95/sounds/click.mp3");
+          audio = new Audio("/hackbook-W95/sounds/click.mp3");
           break;
         case 'error':
-          audio = new Audio("/hackbook-w95/sounds/error.mp3");
+          audio = new Audio("/hackbook-W95/sounds/error.mp3");
           break;
         case 'success':
-          audio = new Audio("/hackbook-w95/sounds/ding.mp3");
+          audio = new Audio("/hackbook-W95/sounds/ding.mp3");
           break;
         case 'open':
-          audio = new Audio("/hackbook-w95/sounds/open.mp3");
+          audio = new Audio("/hackbook-W95/sounds/open.mp3");
           break;
         default:
           return;

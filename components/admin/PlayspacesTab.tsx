@@ -24,6 +24,7 @@ interface AccessCode {
 }
 
 interface Device {
+  _id: string;
   name: string;
   type: string;
   status: string;
@@ -711,7 +712,7 @@ export default function PlayspacesTab({
                               onClick={() =>
                                 onAssignDevice &&
                                 deviceModal.playspace &&
-                                onAssignDevice(device.macAddress, deviceModal.playspace._id)
+                                onAssignDevice(device._id, deviceModal.playspace._id)
                               }
                               className="bg-green-900/50 hover:bg-green-800/50 text-green-200 px-3 py-1 rounded text-sm"
                             >

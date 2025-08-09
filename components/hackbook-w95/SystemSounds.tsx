@@ -29,28 +29,28 @@ const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
       // Use audioManager to play sounds with proper browser policy handling
       switch (soundType) {
         case 'click':
-          audioManager.playSound('/hackbook-w95/sounds/click.mp3', 0.5);
+          audioManager.playSound('/hackbook-W95/sounds/click.mp3', 0.5);
           break;
         case 'close':
-          audioManager.playSound('/hackbook-w95/sounds/close.mp3', 0.5);
+          audioManager.playSound('/hackbook-W95/sounds/close.mp3', 0.5);
           break;
         case 'ding':
-          audioManager.playSound('/hackbook-w95/sounds/ding.mp3', 0.7);
+          audioManager.playSound('/hackbook-W95/sounds/ding.mp3', 0.7);
           break;
         case 'error':
-          audioManager.playSound('/hackbook-w95/sounds/error.mp3', 0.6);
+          audioManager.playSound('/hackbook-W95/sounds/error.mp3', 0.6);
           break;
         case 'maximize':
-          audioManager.playSound('/hackbook-w95/sounds/maximize.mp3', 0.5);
+          audioManager.playSound('/hackbook-W95/sounds/maximize.mp3', 0.5);
           break;
         case 'minimize':
-          audioManager.playSound('/hackbook-w95/sounds/minimize.mp3', 0.5);
+          audioManager.playSound('/hackbook-W95/sounds/minimize.mp3', 0.5);
           break;
         case 'open':
-          audioManager.playSound('/hackbook-w95/sounds/open.mp3', 0.5);
+          audioManager.playSound('/hackbook-W95/sounds/open.mp3', 0.5);
           break;
         case 'shutdown':
-          audioManager.playSound('/hackbook-w95/sounds/shutdown.mp3', 0.7);
+          audioManager.playSound('/hackbook-W95/sounds/shutdown.mp3', 0.7);
           break;
       }
     };
@@ -89,14 +89,14 @@ const SystemSounds: React.FC<SystemSoundsProps> = ({ enabled = true }) => {
   useEffect(() => {
     if (enabled) {
       const soundPaths = [
-        '/hackbook-w95/sounds/click.mp3',
-        '/hackbook-w95/sounds/close.mp3',
-        '/hackbook-w95/sounds/ding.mp3',
-        '/hackbook-w95/sounds/error.mp3',
-        '/hackbook-w95/sounds/maximize.mp3',
-        '/hackbook-w95/sounds/minimize.mp3',
-        '/hackbook-w95/sounds/open.mp3',
-        '/hackbook-w95/sounds/shutdown.mp3'
+        '/hackbook-W95/sounds/click.mp3',
+        '/hackbook-W95/sounds/close.mp3',
+        '/hackbook-W95/sounds/ding.mp3',
+        '/hackbook-W95/sounds/error.mp3',
+        '/hackbook-W95/sounds/maximize.mp3',
+        '/hackbook-W95/sounds/minimize.mp3',
+        '/hackbook-W95/sounds/open.mp3',
+        '/hackbook-W95/sounds/shutdown.mp3'
       ];
       
       // Preload after a brief delay to ensure user interaction is detected
