@@ -5,6 +5,34 @@ import DeviceUser from "@/models/DeviceUser";
 import Device from "@/models/Device";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+// Shared plain user type for safe serialization
+type PlainUser = {
+  _id: unknown;
+  username: string;
+  sessionId?: string;
+  gameState?: {
+    unlockedApplications?: string[];
+    skills?: Record<string, number> | Map<string, number>;
+    missions?: Record<string, unknown> | Map<string, unknown>;
+    gameStats?: {
+      totalPlayTime?: number;
+      loginCount?: number;
+      lastLoginDate?: string | Date;
+      achievementsUnlocked?: string[];
+    };
+    settings?: {
+      soundEnabled?: boolean;
+      showHiddenFiles?: boolean;
+      difficulty?: string;
+    };
+  };
+};
+
+function toObjectFromRecordOrMap<T = unknown>(value?: Record<string, T> | Map<string, T>) {
+  if (!value) return {} as Record<string, T>;
+  if (value instanceof Map) return Object.fromEntries(value) as Record<string, T>;
+  return value as Record<string, T>;
+}
 
 // Create a new device user
 export async function createDeviceUser(
@@ -198,30 +226,32 @@ export async function loginDeviceUser(
       }
     );
 
+    const plain = user.toObject({ flattenMaps: true }) as PlainUser;
+    const settings = plain.gameState?.settings || {};
     return { 
       success: true, 
       user: {
-        _id: user._id.toString(),
-        username: user.username,
-        sessionId: user.sessionId,
+        _id: String(plain._id),
+        username: plain.username,
+        sessionId: plain.sessionId,
         progress: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills)
         },
         gameState: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
-          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills),
+          missions: toObjectFromRecordOrMap(plain.gameState?.missions),
           gameStats: {
-            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
-            loginCount: user.gameState?.gameStats?.loginCount || 0,
-            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+            totalPlayTime: plain.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: plain.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: plain.gameState?.gameStats?.lastLoginDate ? new Date(plain.gameState.gameStats.lastLoginDate).toISOString() : new Date().toISOString(),
+            achievementsUnlocked: plain.gameState?.gameStats?.achievementsUnlocked || []
           },
-          settings: user.gameState?.settings || {
-            soundEnabled: true,
-            showHiddenFiles: false,
-            difficulty: 'medium'
+          settings: {
+            soundEnabled: settings.soundEnabled ?? true,
+            showHiddenFiles: settings.showHiddenFiles ?? false,
+            difficulty: settings.difficulty ?? 'medium'
           }
         }
       }
@@ -265,30 +295,32 @@ export async function getDeviceUser(
     user.lastActiveTime = new Date();
     await user.save();
 
+  const plain = user.toObject({ flattenMaps: true }) as PlainUser;
+    const settings = plain.gameState?.settings || {};
     return {
       isLoggedIn: true,
       user: {
-        _id: user._id.toString(),
-        username: user.username,
-        sessionId: user.sessionId,
+        _id: String(plain._id),
+        username: plain.username,
+        sessionId: plain.sessionId,
         progress: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills)
         },
         gameState: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
-          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills),
+          missions: toObjectFromRecordOrMap(plain.gameState?.missions),
           gameStats: {
-            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
-            loginCount: user.gameState?.gameStats?.loginCount || 0,
-            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+            totalPlayTime: plain.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: plain.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: plain.gameState?.gameStats?.lastLoginDate ? new Date(plain.gameState.gameStats.lastLoginDate).toISOString() : new Date().toISOString(),
+            achievementsUnlocked: plain.gameState?.gameStats?.achievementsUnlocked || []
           },
-          settings: user.gameState?.settings || {
-            soundEnabled: true,
-            showHiddenFiles: false,
-            difficulty: 'medium'
+          settings: {
+            soundEnabled: settings.soundEnabled ?? true,
+            showHiddenFiles: settings.showHiddenFiles ?? false,
+            difficulty: settings.difficulty ?? 'medium'
           }
         }
       }

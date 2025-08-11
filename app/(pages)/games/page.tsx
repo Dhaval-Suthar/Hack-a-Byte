@@ -8,7 +8,7 @@ export default function GamesIndex() {
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">Games</h1>
-      <p className="text-gray-600">Browse available mini-games. This index is generated from the new games registry.</p>
+      <p className="text-gray-600">Browse available mini-games. This index is generated from the games registry.</p>
       <ul className="space-y-3">
         {games.map((g) => (
           <li key={g.id} className="border p-4 rounded flex items-center justify-between">
@@ -23,3 +23,4 @@ export default function GamesIndex() {
     </div>
   );
 }
+ 
