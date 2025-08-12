@@ -338,7 +338,7 @@ export default function DeviceSelectionPage() {
 
       {/* Devices grid */}
       {!loading && !error && filteredDevices.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mt-4">
+        <div className="flex flex-wrap justify-center gap-6 w-full max-w-6xl mt-4">
           {filteredDevices.map((device: DeviceOption, index: number) => {
             const deviceInstances = getDeviceInstances(device.id);
             const selectedInstance = getSelectedDeviceInstance(device.id);
@@ -349,7 +349,7 @@ export default function DeviceSelectionPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + index * 0.1 }}
-                className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg hover:bg-gray-800 transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg hover:bg-gray-800 transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] w-full max-w-md flex-shrink-0"
               >
                 <div className="flex items-center mb-4">
                   <div className="mr-4">
@@ -475,7 +475,7 @@ export default function DeviceSelectionPage() {
       )}
 
       {/* Footer navigation and controls */}
-      <div className="mt-12 pt-8 border-t border-green-500/20 w-full max-w-4xl">
+      <div className="mt-12 pt-8 border-t border-green-500/20 w-full max-w-6xl">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-xs">
           <button
             onClick={() => router.push('/')}

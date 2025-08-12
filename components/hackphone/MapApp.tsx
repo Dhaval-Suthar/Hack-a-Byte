@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import type { Map as LeafletMap } from "leaflet";
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {
@@ -30,7 +31,7 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
   const [isLocating, setIsLocating] = useState(false);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [currentLocationName, setCurrentLocationName] = useState("Borivali West, Mumbai");
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { 
@@ -42,17 +43,26 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
 
   // Fix Leaflet default marker icons
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const L = require("leaflet");
-      
-      // Fix for default markers
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
+    // Dynamically import leaflet only on the client to avoid SSR issues
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled) return;
+      // Safely remove private _getIconUrl if present without using any
+      const iconProto = L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown };
+      if ("_getIconUrl" in iconProto) {
+        delete iconProto._getIconUrl;
+      }
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
         iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
         shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
       });
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Function to get location name from coordinates (reverse geocoding)
@@ -65,12 +75,18 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
       const data = await response.json();
       
       if (data && data.address) {
-        const { suburb, city, state, country } = data.address;
+        const { suburb, city, state, country } = data.address as {
+          suburb?: string;
+          city?: string;
+          state?: string;
+          country?: string;
+        };
         const locationParts = [];
         
         if (suburb) locationParts.push(suburb);
         if (city) locationParts.push(city);
         if (state && !city) locationParts.push(state);
+        if (!suburb && !city && !state && country) locationParts.push(country);
         
         return locationParts.length > 0 ? locationParts.join(", ") : "Unknown Location";
       }
@@ -82,7 +98,7 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
   };
 
   // Simulate getting user location
-  const getCurrentLocation = () => {
+  const getCurrentLocation = useCallback(() => {
     setIsLocating(true);
     
     if (navigator.geolocation) {
@@ -102,9 +118,7 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
           setIsLocating(false);
           
           // Fly to the new location if map is available
-          if (mapRef.current) {
-            mapRef.current.flyTo([newLocation.lat, newLocation.lng], zoomLevel);
-          }
+          mapRef.current?.flyTo([newLocation.lat, newLocation.lng]);
         },
         async (error) => {
           console.log("Geolocation error:", error);
@@ -135,12 +149,12 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
         setIsLocating(false);
       }, 1500);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Auto-locate on app open
     getCurrentLocation();
-  }, []);
+  }, [getCurrentLocation]);
 
   // Initialize location name on mount
   useEffect(() => {
@@ -148,9 +162,8 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
       const locationName = await getLocationName(userLocation.lat, userLocation.lng);
       setCurrentLocationName(locationName);
     };
-    
     initializeLocationName();
-  }, []);
+  }, [userLocation]);
 
   // Handle zoom changes
   const handleZoomIn = () => {
