@@ -5,8 +5,8 @@ import connectDB from "@/db/connectDb";
 import LeaderboardEntry from "@/models/LeaderboardEntry";
 import DeviceUser from "@/models/DeviceUser";
 
-// Type for serialized leaderboard entry
-interface SerializedLeaderboardEntry {
+// Type for serialized leaderboard entry (used in return types)
+export interface SerializedLeaderboardEntry {
   _id: string;
   username: string;
   score: number;

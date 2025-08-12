@@ -5,7 +5,7 @@ import Win95Alert from "@/components/hackbook-w95/Win95Alert";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { getDeviceUser, logoutDeviceUser } from "@/app/actions/deviceUser";
+import { logoutDeviceUser } from "@/app/actions/deviceUser";
 import audioManager from "@/components/hackbook-w95/hooks/useAudioManager";
 
 import Inbox from "@/components/hackbook-w95/apps/Inbox";
@@ -129,10 +129,12 @@ const Desktop = () => {
   const [showInstallNotification, setShowInstallNotification] = useState(false);
 
   // Neural Network Analyzer availability state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [neuralNetworkUnlocked, setNeuralNetworkUnlocked] = useState(false);
   const [showNeuralNetworkNotification, setShowNeuralNetworkNotification] = useState(false);
 
   // Secure Vault availability state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
   const [showVaultNotification, setShowVaultNotification] = useState(false);
 
@@ -141,6 +143,7 @@ const Desktop = () => {
   const [mission2JustCompleted, setMission2JustCompleted] = useState(false);
 
   // Dev Tools availability state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [devToolsUnlocked, setDevToolsUnlocked] = useState(false);
 
   // Database-driven unlocked applications state
