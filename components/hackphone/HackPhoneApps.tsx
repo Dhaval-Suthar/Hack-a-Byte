@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
+import MapApp from "./MapApp";
 
 interface User {
   _id: string;
@@ -470,6 +471,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return renderSettingsApp();
     case "messages":
       return <MessagingApp onClose={onClose} time={time} />;
+    case "maps":
+      return <MapApp onClose={onClose} time={time} />;
     default:
       return renderDefaultApp();
   }
