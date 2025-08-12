@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import MessagingApp from "./MessagingApp";
 
 interface User {
   _id: string;
@@ -467,6 +468,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return renderCryptoApp();
     case "settings":
       return renderSettingsApp();
+    case "messages":
+      return <MessagingApp onClose={onClose} time={time} />;
     default:
       return renderDefaultApp();
   }
