@@ -233,215 +233,255 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderSettingsApp = () => (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      {renderStatusBar()}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
+  <div className="w-screen h-screen" style={{ background: '#c5c5ca', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+    {/* iOS 4 Status Bar */}
+    <div className="flex justify-between items-center px-4 pt-3 pb-2 text-white text-xs" style={{ background: 'linear-gradient(to bottom, #6d6d72, #4a4a4a)' }}>
+      <div className="flex items-center space-x-1">
+        <div className="flex space-x-1">
+          <div className="w-1 h-3 bg-white rounded-sm"></div>
+          <div className="w-1 h-3 bg-white rounded-sm"></div>
+          <div className="w-1 h-3 bg-white rounded-sm"></div>
+          <div className="w-1 h-3 bg-white/60 rounded-sm"></div>
+          <div className="w-1 h-3 bg-white/60 rounded-sm"></div>
+        </div>
+        <span className="text-white font-medium">TDC</span>
+        <span className="text-white">3G</span>
       </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-1">
-          {/* Security Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Security</h2>
-            </div>
-            
-            {/* Passcode */}
-            <button
-              onClick={() => setShowPasswordSetup(!showPasswordSetup)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100"
-            >
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔒</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Passcode</div>
-                  <div className="text-sm text-gray-500">
-                    {devicePassword ? "On" : "Off"}
-                  </div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            {/* Face ID */}
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">👤</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Face ID</div>
-                  <div className="text-sm text-gray-500">Not available</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* General Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">General</h2>
-            </div>
-            
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">ℹ️</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">About</div>
-                  <div className="text-sm text-gray-500">HackPhone OS 1.0</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🎨</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Display & Brightness</div>
-                  <div className="text-sm text-gray-500">Auto</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔊</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Sounds & Haptics</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* Hacker Tools Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Hacker Tools</h2>
-            </div>
-            
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🌐</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Network Tools</div>
-                  <div className="text-sm text-gray-500">Scanner, WiFi, VPN</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔐</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Crypto Tools</div>
-                  <div className="text-sm text-gray-500">Encryption, Hashing</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* Passcode Setup Modal */}
-          {showPasswordSetup && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl p-6 m-4 w-full max-w-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  {devicePassword ? "Change Passcode" : "Set Passcode"}
-                </h3>
-                
-                <div className="space-y-4">
-                  {devicePassword && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Passcode
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter current passcode"
-                      />
-                    </div>
-                  )}
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      New Passcode
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter new passcode"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Passcode
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Confirm new passcode"
-                    />
-                  </div>
-                  
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={() => {
-                        setShowPasswordSetup(false);
-                        setNewPassword("");
-                        setConfirmPassword("");
-                      }}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (newPassword === confirmPassword && newPassword.length >= 4) {
-                          setDevicePassword(newPassword);
-                          setShowPasswordSetup(false);
-                          setNewPassword("");
-                          setConfirmPassword("");
-                          // Save to localStorage for persistence
-                          localStorage.setItem('hackphone_password', newPassword);
-                        }
-                      }}
-                      disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
-                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    >
-                      {devicePassword ? "Change" : "Set"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+      <div className="text-white font-bold">10:24</div>
+      <div className="flex items-center space-x-1">
+        <span className="text-white">90%</span>
+        <div className="w-6 h-3 border border-white rounded-sm relative">
+          <div className="w-4 h-1.5 bg-green-500 rounded-sm absolute top-0.5 left-0.5"></div>
+          <div className="w-0.5 h-1 bg-white absolute -right-0.5 top-1 rounded-full"></div>
         </div>
       </div>
     </div>
-  );
+
+    {/* iOS 4 Navigation Bar */}
+    <div className="text-white text-center py-3 font-bold text-lg relative" style={{ 
+      background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 50%, #777b82 51%, #6d7078 100%)',
+      borderBottom: '1px solid #4a4d52',
+      textShadow: '0 -1px 0 rgba(0,0,0,0.4)'
+    }}>
+      <div className="absolute top-0 left-0 right-0 h-px bg-white/50"></div>
+      Settings
+    </div>
+
+    {/* Content Area */}
+    <div className="px-3 pt-4 pb-6 overflow-y-auto" style={{ height: 'calc(100% - 88px)' }}>
+      
+      {/* Do Not Disturb Section */}
+      <div className="bg-white rounded-lg overflow-hidden mb-6 border border-[#a7a7aa]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-[#4a4a4a] rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 rounded-full border-2 border-white"></div>
+            </div>
+            <span className="text-black text-[17px]">Do Not Disturb</span>
+          </div>
+          <div className="relative">
+            <div className="w-12 h-7 bg-[#007AFF] rounded-full relative">
+              <div className="w-6 h-6 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div>
+            </div>
+            <span className="absolute right-2 top-1 text-white text-xs font-bold">ON</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Notifications Section */}
+      <div className="bg-white rounded-lg overflow-hidden mb-6 border border-[#a7a7aa]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded-full"></div>
+            </div>
+            <span className="text-black text-[17px]">Notifications</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+      </div>
+
+      {/* Main Settings Group */}
+      <div className="bg-white rounded-lg overflow-hidden mb-6 border border-[#a7a7aa]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        {/* General */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-[#666] rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">General</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+
+        {/* Sounds */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Sounds</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+
+        {/* Brightness & Wallpaper */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-pink-400 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-3 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Brightness & Wallpaper</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+
+        {/* Privacy */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-[#444] rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded-full"></div>
+            </div>
+            <span className="text-black text-[17px]">Privacy</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+      </div>
+
+      {/* iCloud Section */}
+      <div className="bg-white rounded-lg overflow-hidden mb-6 border border-[#a7a7aa]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-gray-400 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-3 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">iCloud</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-blue-400 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-3 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Mail, Contacts, Calendars</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+      </div>
+
+      {/* Custom Hacker Tools Section */}
+      <div className="bg-white rounded-lg overflow-hidden border border-[#a7a7aa]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <button
+          onClick={() => setShowPasswordSetup(!showPasswordSetup)}
+          className="w-full flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1] text-left"
+        >
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-red-600 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Passcode Lock</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-[#999] text-[17px] mr-2">{devicePassword ? "On" : "Off"}</span>
+            <span className="text-[#999] text-lg">❯</span>
+          </div>
+        </button>
+
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e1e1e1]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-green-600 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Network Scanner</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-purple-600 rounded-md flex items-center justify-center mr-3">
+              <div className="w-4 h-4 bg-white rounded"></div>
+            </div>
+            <span className="text-black text-[17px]">Crypto Tools</span>
+          </div>
+          <span className="text-[#999] text-lg">❯</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Passcode Modal */}
+    {showPasswordSetup && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 m-4 w-full max-w-sm border border-[#a7a7aa]" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+          <h3 className="text-lg font-bold text-center mb-4">
+            {devicePassword ? "Change Passcode" : "Set Passcode"}
+          </h3>
+          
+          <div className="space-y-4">
+            {devicePassword && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Current Passcode</label>
+                <input type="password" className="w-full px-3 py-2 border rounded-lg" placeholder="Enter current passcode" />
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">New Passcode</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+                placeholder="Enter new passcode"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Confirm Passcode</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+                placeholder="Confirm new passcode"
+              />
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <button
+                onClick={() => {
+                  setShowPasswordSetup(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (newPassword === confirmPassword && newPassword.length >= 4) {
+                    setDevicePassword(newPassword);
+                    setShowPasswordSetup(false);
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    localStorage.setItem('hackphone_password', newPassword);
+                  }
+                }}
+                disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300"
+              >
+                {devicePassword ? "Change" : "Set"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
 
   const renderDefaultApp = () => (
     <div className="w-screen h-screen bg-gray-900 flex flex-col">
