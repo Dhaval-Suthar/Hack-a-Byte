@@ -31,6 +31,25 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  
+  // Settings states
+  const [airplaneMode, setAirplaneMode] = useState(false);
+  const [wifiEnabled, setWifiEnabled] = useState(true);
+  const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [locationEnabled, setLocationEnabled] = useState(true);
+  const [brightness, setBrightness] = useState(75);
+  const [volume, setVolume] = useState(50);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  
+  // Modal states for different settings screens
+  const [showWifiSettings, setShowWifiSettings] = useState(false);
+  const [showBluetoothSettings, setShowBluetoothSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showGeneralSettings, setShowGeneralSettings] = useState(false);
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [showVolumeSettings, setShowVolumeSettings] = useState(false);
+  const [showBrightnessSettings, setShowBrightnessSettings] = useState(false);
 
   // Load saved password on component mount
   React.useEffect(() => {
@@ -39,8 +58,223 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       if (savedPassword) {
         setDevicePassword(savedPassword);
       }
+      
+      // Load other settings from localStorage
+      const savedAirplane = localStorage.getItem('hackphone_airplane');
+      const savedWifi = localStorage.getItem('hackphone_wifi');
+      const savedBluetooth = localStorage.getItem('hackphone_bluetooth');
+      const savedNotifications = localStorage.getItem('hackphone_notifications');
+      const savedLocation = localStorage.getItem('hackphone_location');
+      const savedBrightness = localStorage.getItem('hackphone_brightness');
+      const savedVolume = localStorage.getItem('hackphone_volume');
+      const savedVibration = localStorage.getItem('hackphone_vibration');
+      
+      if (savedAirplane) setAirplaneMode(JSON.parse(savedAirplane));
+      if (savedWifi) setWifiEnabled(JSON.parse(savedWifi));
+      if (savedBluetooth) setBluetoothEnabled(JSON.parse(savedBluetooth));
+      if (savedNotifications) setNotificationsEnabled(JSON.parse(savedNotifications));
+      if (savedLocation) setLocationEnabled(JSON.parse(savedLocation));
+      if (savedBrightness) setBrightness(parseInt(savedBrightness));
+      if (savedVolume) setVolume(parseInt(savedVolume));
+      if (savedVibration) setVibrationEnabled(JSON.parse(savedVibration));
     }
   }, []);
+
+  // Helper functions to save settings
+  const toggleAirplaneMode = () => {
+    const newValue = !airplaneMode;
+    setAirplaneMode(newValue);
+    localStorage.setItem('hackphone_airplane', JSON.stringify(newValue));
+    if (newValue) {
+      // Turn off wifi and bluetooth when airplane mode is on
+      setWifiEnabled(false);
+      setBluetoothEnabled(false);
+      localStorage.setItem('hackphone_wifi', JSON.stringify(false));
+      localStorage.setItem('hackphone_bluetooth', JSON.stringify(false));
+    }
+  };
+
+  const toggleWifi = () => {
+    if (!airplaneMode) {
+      const newValue = !wifiEnabled;
+      setWifiEnabled(newValue);
+      localStorage.setItem('hackphone_wifi', JSON.stringify(newValue));
+    }
+  };
+
+  const toggleBluetooth = () => {
+    if (!airplaneMode) {
+      const newValue = !bluetoothEnabled;
+      setBluetoothEnabled(newValue);
+      localStorage.setItem('hackphone_bluetooth', JSON.stringify(newValue));
+    }
+  };
+
+  const toggleNotifications = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    localStorage.setItem('hackphone_notifications', JSON.stringify(newValue));
+  };
+
+  const toggleLocation = () => {
+    const newValue = !locationEnabled;
+    setLocationEnabled(newValue);
+    localStorage.setItem('hackphone_location', JSON.stringify(newValue));
+  };
+
+  const toggleVibration = () => {
+    const newValue = !vibrationEnabled;
+    setVibrationEnabled(newValue);
+    localStorage.setItem('hackphone_vibration', JSON.stringify(newValue));
+  };
+
+  const updateBrightness = (value: number) => {
+    setBrightness(value);
+    localStorage.setItem('hackphone_brightness', value.toString());
+  };
+
+  const updateVolume = (value: number) => {
+    setVolume(value);
+    localStorage.setItem('hackphone_volume', value.toString());
+  };
+
+  // iOS 4 Modal Component
+  const SettingsModal = ({ 
+    title, 
+    isVisible, 
+    onClose, 
+    children 
+  }: { 
+    title: string; 
+    isVisible: boolean; 
+    onClose: () => void; 
+    children: React.ReactNode; 
+  }) => {
+    if (!isVisible) return null;
+    
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ 
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(2px)'
+      }}>
+        <div 
+          className="rounded-xl p-0 m-4 w-full max-w-sm border border-[#8a8a8f] overflow-hidden" 
+          style={{ 
+            background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 50%, #eeeeee 100%)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.9)',
+            maxHeight: '80vh'
+          }}
+        >
+          {/* Modal Header */}
+          <div className="text-center py-3 relative" style={{
+            background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 25%, #777b82 50%, #6d7078 75%, #5a5d63 100%)',
+            borderBottom: '1px solid #4a4d52',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.4)'
+          }}>
+            <button 
+              onClick={onClose}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 px-3 py-1 text-sm font-medium transition-all duration-150"
+              style={{
+                background: 'linear-gradient(to bottom, #6c7cfa 0%, #5c6cfa 25%, #4c63d2 50%, #3c53c2 75%, #2c43b2 100%)',
+                border: '1px solid #1c33a2',
+                borderRadius: '6px',
+                color: 'white',
+                textShadow: '0 -1px 0 rgba(0,0,0,0.6)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.3)'
+              }}
+            >
+              Back
+            </button>
+            <h3 className="text-white font-bold text-lg" style={{
+              textShadow: '0 -1px 0 rgba(0,0,0,0.6)'
+            }}>
+              {title}
+            </h3>
+            <div className="absolute top-0 left-0 right-0 h-px bg-white/60"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-black/30"></div>
+          </div>
+          
+          {/* Modal Content */}
+          <div className="max-h-96 overflow-y-auto" style={{ 
+            background: 'linear-gradient(to bottom, #c5c5ca 0%, #b8b8bd 50%, #a8a8ad 100%)' 
+          }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // iOS 4 Toggle Switch Component
+  const ToggleSwitch = ({ enabled, onToggle, disabled = false }: { 
+    enabled: boolean; 
+    onToggle: (e?: React.MouseEvent) => void; 
+    disabled?: boolean; 
+  }) => (
+    <button
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative w-12 h-7 rounded-full transition-all duration-300 ${disabled ? 'opacity-50' : ''}`}
+      style={{
+        background: enabled 
+          ? 'linear-gradient(to bottom, #4cd964 0%, #5ac8fa 25%, #007aff 50%, #0051d5 75%, #0040b3 100%)' 
+          : 'linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 25%, #d0d0d0 50%, #c0c0c0 75%, #b0b0b0 100%)',
+        border: `1px solid ${enabled ? '#0040b3' : '#999'}`,
+        boxShadow: enabled 
+          ? 'inset 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,64,179,0.3), 0 0 8px rgba(76,217,100,0.4)' 
+          : 'inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1)'
+      }}
+    >
+      <div 
+        className={`w-6 h-6 rounded-full shadow-lg transition-all duration-300 absolute top-0.5 ${
+          enabled ? 'left-5' : 'left-0.5'
+        }`}
+        style={{
+          background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 25%, #e8e8e8 50%, #d8d8d8 75%, #c8c8c8 100%)',
+          border: '1px solid #999',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.8)'
+        }}
+      />
+      {enabled && (
+        <div className="absolute inset-0 rounded-full" style={{
+          background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%)',
+          animation: 'shimmer 2s infinite'
+        }} />
+      )}
+    </button>
+  );
+
+  // iOS 4 Slider Component
+  const Slider = ({ value, onChange, min = 0, max = 100 }: {
+    value: number;
+    onChange: (value: number) => void;
+    min?: number;
+    max?: number;
+  }) => (
+    <div className="flex items-center space-x-3">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value))}
+        className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
+        style={{
+          background: `linear-gradient(to right, 
+            #007aff 0%, 
+            #0051d5 ${value/2}%, 
+            #4cd964 ${value}%, 
+            #e0e0e0 ${value}%, 
+            #d0d0d0 100%)`,
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.8)',
+          border: '1px solid #999'
+        }}
+      />
+      <span className="text-[#666] text-sm font-medium w-8 text-right" style={{
+        textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+      }}>{value}%</span>
+    </div>
+  );
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { 
@@ -233,419 +467,841 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderSettingsApp = () => (
-  <div className="w-screen h-screen" style={{ background: '#c5c5ca', fontFamily: 'Helvetica, Arial, sans-serif' }}>
-    {/* iOS 4 Status Bar */}
-    <div className="flex justify-between items-center px-4 pt-3 pb-2 text-white text-xs" style={{ background: 'linear-gradient(to bottom, #6d6d72, #4a4a4a)' }}>
-      <div className="flex items-center space-x-1">
-        <div className="flex space-x-1">
-          <div className="w-1 h-3 bg-white rounded-sm"></div>
-          <div className="w-1 h-3 bg-white rounded-sm"></div>
-          <div className="w-1 h-3 bg-white rounded-sm"></div>
-          <div className="w-1 h-3 bg-white/60 rounded-sm"></div>
-          <div className="w-1 h-3 bg-white/60 rounded-sm"></div>
-        </div>
-        <span className="text-white font-medium ml-1">Carrier</span>
-        <span className="text-white">3G</span>
-      </div>
-      <div className="text-white font-bold">{formatTime(time)}</div>
-      <div className="flex items-center space-x-1">
-        <span className="text-white">100%</span>
-        <div className="w-6 h-3 border border-white rounded-sm relative">
-          <div className="w-5 h-1.5 bg-green-500 rounded-sm absolute top-0.5 left-0.5"></div>
-          <div className="w-0.5 h-1 bg-white absolute -right-0.5 top-1 rounded-full"></div>
-        </div>
-      </div>
-    </div>
-
-    {/* iOS 4 Navigation Bar */}
-    <div className="text-white text-center py-3 font-bold text-lg relative" style={{ 
-      background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 50%, #777b82 51%, #6d7078 100%)',
-      borderBottom: '1px solid #4a4d52',
-      textShadow: '0 -1px 0 rgba(0,0,0,0.4)'
+    <div className="w-screen h-screen" style={{ 
+      background: 'linear-gradient(to bottom, #c5c5ca 0%, #b8b8bd 50%, #a8a8ad 100%)', 
+      fontFamily: '-apple-system, Helvetica, Arial, sans-serif' 
     }}>
-      <div className="absolute top-0 left-0 right-0 h-px bg-white/50"></div>
-      Settings
-    </div>
-
-    {/* Content Area */}
-    <div className="px-4 pt-6 pb-6 overflow-y-auto" style={{ height: 'calc(100% - 88px)' }}>
-      
-      {/* Airplane Mode */}
-      <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+      {/* iOS 4 Status Bar */}
+      <div className="flex justify-between items-center px-4 pt-3 pb-2 text-white text-xs" style={{ 
+        background: 'linear-gradient(to bottom, #6d6d72 0%, #4a4a4f 50%, #3a3a3f 100%)',
+        borderBottom: '1px solid #2a2a2f',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
       }}>
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #ff8c00 0%, #ff6500 100%)',
-              border: '1px solid #cc5200',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs font-bold">✈️</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Airplane Mode</span>
-          </div>
-          <div className="relative">
-            <div className="w-12 h-7 rounded-full relative" style={{
-              background: 'linear-gradient(to bottom, #eee 0%, #ccc 100%)',
-              border: '1px solid #999',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-            }}>
-              <div className="w-6 h-6 bg-white rounded-full absolute left-0.5 top-0.5 shadow-sm" style={{
-                background: 'linear-gradient(to bottom, #fff 0%, #ddd 100%)',
-                border: '1px solid #aaa'
+        <div className="flex items-center space-x-1">
+          <div className="flex space-x-1">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="w-1 h-3 bg-white rounded-sm" style={{
+                boxShadow: '0 0 2px rgba(255,255,255,0.5)'
               }}></div>
-            </div>
+            ))}
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="w-1 h-3 bg-white/60 rounded-sm"></div>
+            ))}
+          </div>
+          <span className="text-white font-medium ml-1" style={{
+            textShadow: '0 -1px 0 rgba(0,0,0,0.7)'
+          }}>
+            {airplaneMode ? 'No Service' : 'Carrier'}
+          </span>
+          {!airplaneMode && <span className="text-white" style={{
+            textShadow: '0 -1px 0 rgba(0,0,0,0.7)'
+          }}>3G</span>}
+          {airplaneMode && <span className="text-white">✈️</span>}
+        </div>
+        <div className="text-white font-bold" style={{
+          textShadow: '0 -1px 0 rgba(0,0,0,0.7)'
+        }}>
+          {formatTime(time)}
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="text-white" style={{
+            textShadow: '0 -1px 0 rgba(0,0,0,0.7)'
+          }}>100%</span>
+          <div className="w-6 h-3 border border-white rounded-sm relative" style={{
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.1))'
+          }}>
+            <div className="w-5 h-1.5 rounded-sm absolute top-0.5 left-0.5" style={{
+              background: 'linear-gradient(to bottom, #4cd964 0%, #5ac8fa 100%)',
+              boxShadow: '0 0 3px rgba(76,217,100,0.6)'
+            }}></div>
+            <div className="w-0.5 h-1 bg-white absolute -right-0.5 top-1 rounded-full"></div>
           </div>
         </div>
       </div>
 
-      {/* Wi-Fi */}
-      <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+      {/* iOS 4 Navigation Bar */}
+      <div className="text-white text-center py-3 font-bold text-lg relative" style={{ 
+        background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 25%, #777b82 50%, #6d7078 75%, #5a5d63 100%)',
+        borderBottom: '1px solid #4a4d52',
+        textShadow: '0 -1px 0 rgba(0,0,0,0.6)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.4)'
       }}>
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #7ec8e3 0%, #52a4c4 100%)',
-              border: '1px solid #3e8bb0',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">📶</div>
-            </div>
-            <div>
-              <span className="text-black text-[17px] font-medium">Wi-Fi</span>
-              <div className="text-[#999] text-sm">HackaByte Network</div>
-            </div>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-      </div>
-
-      {/* Main Settings Group */}
-      <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
-      }}>
-        {/* General */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
-              border: '1px solid #5a5a63',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">⚙️</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">General</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        {/* Sounds */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
-              border: '1px solid #0040b3',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🔊</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Sounds</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        {/* Brightness & Wallpaper */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #ff3b30 0%, #d70015 100%)',
-              border: '1px solid #b50000',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🌅</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Brightness & Wallpaper</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        {/* Privacy */}
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
-              border: '1px solid #5a5a63',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🔒</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Privacy</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-      </div>
-
-      {/* Apps & Media Group */}
-      <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
-      }}>
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
-              border: '1px solid #0040b3',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">☁️</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">iCloud</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
-              border: '1px solid #0040b3',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">📧</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Mail, Contacts, Calendars</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #ff9500 0%, #ff6500 100%)',
-              border: '1px solid #cc5200',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🎵</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Music</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #ff3b30 0%, #d70015 100%)',
-              border: '1px solid #b50000',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">📱</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Phone</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-      </div>
-
-      {/* Security Group */}
-      <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
-      }}>
-        <button
-          onClick={() => setShowPasswordSetup(!showPasswordSetup)}
-          className="w-full flex items-center justify-between px-4 py-4 text-left border-b border-[#d9d9d9]"
-        >
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
-              border: '1px solid #5a5a63',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🔐</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Passcode Lock</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-[#999] text-[17px] mr-2">{devicePassword ? "On" : "Off"}</span>
-            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-          </div>
-        </button>
-
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #34c759 0%, #248a3d 100%)',
-              border: '1px solid #1e7e34',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">📡</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Network Scanner</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #af52de 0%, #8e44ad 100%)',
-              border: '1px solid #732d91',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">🔒</div>
-            </div>
-            <span className="text-black text-[17px] font-medium">Crypto Tools</span>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-      </div>
-
-      {/* Developer Section */}
-      <div className="bg-white rounded-xl overflow-hidden border border-[#a7a7aa]" style={{ 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
-      }}>
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
-              background: 'linear-gradient(to bottom, #5856d6 0%, #4b4acf 100%)',
-              border: '1px solid #3d3cb8',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
-            }}>
-              <div className="text-white text-xs">⚡</div>
-            </div>
-            <div>
-              <span className="text-black text-[17px] font-medium">Developer</span>
-              <div className="text-[#999] text-sm">Advanced hacking tools</div>
-            </div>
-          </div>
-          <span className="text-[#4b82f6] text-lg font-bold">❯</span>
-        </div>
-      </div>
-    </div>
-
-    {/* Passcode Modal */}
-    {showPasswordSetup && (
-      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ 
-        background: 'rgba(0,0,0,0.7)'
-      }}>
-        <div 
-          className="rounded-xl p-4 m-4 w-full max-w-sm border border-[#a7a7aa]" 
-          style={{ 
-            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+        <button 
+          onClick={onClose}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 px-3 py-1 text-sm font-medium transition-all duration-150"
+          style={{
+            background: 'linear-gradient(to bottom, #6c7cfa 0%, #5c6cfa 25%, #4c63d2 50%, #3c53c2 75%, #2c43b2 100%)',
+            border: '1px solid #1c33a2',
+            borderRadius: '6px',
+            color: 'white',
+            textShadow: '0 -1px 0 rgba(0,0,0,0.6)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.3)'
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'translateY(-50%) scale(0.95)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
           }}
         >
-          {/* Modal Header */}
-          <div className="text-center py-3 mb-2" style={{
-            background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 50%, #777b82 51%, #6d7078 100%)',
-            borderRadius: '8px 8px 0 0',
-            margin: '-16px -16px 16px -16px',
-            borderBottom: '1px solid #4a4d52'
-          }}>
-            <h3 className="text-white font-bold text-lg" style={{
-              textShadow: '0 -1px 0 rgba(0,0,0,0.4)'
-            }}>
-              {devicePassword ? "Change Passcode" : "Set Passcode"}
-            </h3>
+          Back
+        </button>
+        <div className="absolute top-0 left-0 right-0 h-px bg-white/60"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-black/30"></div>
+        Settings
+      </div>
+
+      {/* Content Area */}
+      <div className="px-4 pt-6 pb-6 overflow-y-auto" style={{ height: 'calc(100% - 88px)' }}>
+        
+        {/* Airplane Mode */}
+        <div className="rounded-xl overflow-hidden mb-4 border border-[#8a8a8f]" style={{ 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.8)',
+          background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 50%, #eeeeee 100%)'
+        }}>
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #ff9500 0%, #ff8c00 25%, #ff6500 50%, #e55100 75%, #cc4700 100%)',
+                border: '1px solid #b33e00',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.3)'
+              }}>
+                <span className="text-white text-sm font-bold" style={{
+                  textShadow: '0 -1px 0 rgba(0,0,0,0.5)'
+                }}>✈</span>
+              </div>
+              <span className="text-black text-[17px] font-medium" style={{
+                textShadow: '0 1px 0 rgba(255,255,255,0.8)'
+              }}>Airplane Mode</span>
+            </div>
+            <ToggleSwitch enabled={airplaneMode} onToggle={toggleAirplaneMode} />
           </div>
-          
-          <div className="space-y-4">
-            {devicePassword && (
+        </div>
+
+        {/* Wi-Fi */}
+        <div className="rounded-xl overflow-hidden mb-4 border border-[#8a8a8f]" style={{ 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.8)',
+          background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 50%, #eeeeee 100%)'
+        }}>
+          <button
+            onClick={() => setShowWifiSettings(true)}
+            className="w-full flex items-center justify-between px-4 py-4 border-b border-[#d0d0d0] text-left transition-all duration-150"
+            style={{
+              background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 100%)'
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(to bottom, #e8e8e8 0%, #d8d8d8 100%)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 100%)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 100%)';
+            }}
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #87ceeb 0%, #7ec8e3 25%, #52a4c4 50%, #4a94b4 75%, #3e8bb0 100%)',
+                border: '1px solid #2e7ba0',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.3)'
+              }}>
+                <div className="w-4 h-4 flex flex-col items-center justify-end">
+                  {[...Array(3)].map((_, i) => (
+                    <div 
+                      key={i}
+                      className={`w-1 bg-white rounded-sm mb-0.5 ${wifiEnabled ? 'opacity-100' : 'opacity-30'}`}
+                      style={{ 
+                        height: `${(i + 1) * 2}px`,
+                        textShadow: '0 -1px 0 rgba(0,0,0,0.5)',
+                        boxShadow: wifiEnabled ? '0 0 2px rgba(255,255,255,0.8)' : 'none'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
               <div>
-                <label className="block text-[#4b4b4b] text-sm font-medium mb-2">Current Passcode</label>
-                <input 
-                  type="password" 
-                  className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]" 
+                <span className="text-black text-[17px] font-medium" style={{
+                  textShadow: '0 1px 0 rgba(255,255,255,0.8)'
+                }}>Wi-Fi</span>
+                <div className="text-[#666] text-sm" style={{
+                  textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+                }}>
+                  {wifiEnabled && !airplaneMode ? 'HackaByte Network' : 'Off'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <ToggleSwitch 
+                enabled={wifiEnabled} 
+                onToggle={(e) => {
+                  e?.stopPropagation();
+                  toggleWifi();
+                }} 
+                disabled={airplaneMode}
+              />
+              <span className="text-[#4b82f6] text-lg font-bold ml-2" style={{
+                textShadow: '0 1px 0 rgba(255,255,255,0.3)'
+              }}>❯</span>
+            </div>
+          </button>
+
+          {/* Bluetooth */}
+          <button
+            onClick={() => setShowBluetoothSettings(true)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #5856d6 0%, #4b4acf 100%)',
+                border: '1px solid #3d3cb8',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">⚡</span>
+              </div>
+              <div>
+                <span className="text-black text-[17px] font-medium">Bluetooth</span>
+                <div className="text-[#999] text-sm">
+                  {bluetoothEnabled && !airplaneMode ? 'On' : 'Off'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <ToggleSwitch 
+                enabled={bluetoothEnabled} 
+                onToggle={(e) => {
+                  e?.stopPropagation();
+                  toggleBluetooth();
+                }} 
+                disabled={airplaneMode}
+              />
+              <span className="text-[#4b82f6] text-lg font-bold ml-2">❯</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Notifications */}
+        <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+        }}>
+          <button
+            onClick={() => setShowNotificationSettings(true)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #ff3b30 0%, #d70015 100%)',
+                border: '1px solid #b50000',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">📢</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Notifications</span>
+            </div>
+            <div className="flex items-center">
+              <ToggleSwitch 
+                enabled={notificationsEnabled} 
+                onToggle={(e) => {
+                  e?.stopPropagation();
+                  toggleNotifications();
+                }} 
+              />
+              <span className="text-[#4b82f6] text-lg font-bold ml-2">❯</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Sounds & Brightness Group */}
+        <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+        }}>
+          {/* Sounds */}
+          <button
+            onClick={() => setShowVolumeSettings(true)}
+            className="w-full px-4 py-4 border-b border-[#d9d9d9] text-left"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                  background: 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
+                  border: '1px solid #0040b3',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+                }}>
+                  <span className="text-white text-sm">🔊</span>
+                </div>
+                <span className="text-black text-[17px] font-medium">Volume</span>
+              </div>
+              <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+            </div>
+            <div className="pl-11">
+              <Slider value={volume} onChange={updateVolume} />
+            </div>
+          </button>
+
+          {/* Vibration */}
+          <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
+                border: '1px solid #5a5a63',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">📳</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Vibration</span>
+            </div>
+            <ToggleSwitch enabled={vibrationEnabled} onToggle={toggleVibration} />
+          </div>
+
+          {/* Brightness */}
+          <button
+            onClick={() => setShowBrightnessSettings(true)}
+            className="w-full px-4 py-4 text-left"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                  background: 'linear-gradient(to bottom, #ff9500 0%, #ff6500 100%)',
+                  border: '1px solid #cc5200',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+                }}>
+                  <span className="text-white text-sm">☀️</span>
+                </div>
+                <span className="text-black text-[17px] font-medium">Brightness</span>
+              </div>
+              <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+            </div>
+            <div className="pl-11">
+              <Slider value={brightness} onChange={updateBrightness} />
+            </div>
+          </button>
+        </div>
+
+        {/* Main Settings Group */}
+        <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+        }}>
+          {/* General */}
+          <button
+            onClick={() => setShowGeneralSettings(true)}
+            className="w-full flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9] text-left"
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
+                border: '1px solid #5a5a63',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">⚙️</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">General</span>
+            </div>
+            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+          </button>
+
+          {/* Location Services */}
+          <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
+                border: '1px solid #5a5a63',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">�</span>
+              </div>
+              <div>
+                <span className="text-black text-[17px] font-medium">Location Services</span>
+                <div className="text-[#999] text-sm">
+                  {locationEnabled ? 'On' : 'Off'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <ToggleSwitch enabled={locationEnabled} onToggle={toggleLocation} />
+              <span className="text-[#4b82f6] text-lg font-bold ml-2">❯</span>
+            </div>
+          </div>
+
+          {/* Privacy */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
+                border: '1px solid #5a5a63',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">�</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Privacy</span>
+            </div>
+            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+          </div>
+        </div>
+
+        {/* Security Group */}
+        <div className="bg-white rounded-xl overflow-hidden mb-4 border border-[#a7a7aa]" style={{ 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+        }}>
+          <button
+            onClick={() => setShowPasswordSetup(!showPasswordSetup)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left border-b border-[#d9d9d9]"
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #8e8e93 0%, #6d6d78 100%)',
+                border: '1px solid #5a5a63',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">🔐</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Passcode Lock</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-[#999] text-[17px] mr-2">{devicePassword ? "On" : "Off"}</span>
+              <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+            </div>
+          </button>
+
+          <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d9d9]">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #34c759 0%, #248a3d 100%)',
+                border: '1px solid #1e7e34',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">📡</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Network Scanner</span>
+            </div>
+            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #af52de 0%, #8e44ad 100%)',
+                border: '1px solid #732d91',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">�</span>
+              </div>
+              <span className="text-black text-[17px] font-medium">Crypto Tools</span>
+            </div>
+            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+          </div>
+        </div>
+
+        {/* Developer Section */}
+        <div className="bg-white rounded-xl overflow-hidden border border-[#a7a7aa]" style={{ 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+        }}>
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style={{
+                background: 'linear-gradient(to bottom, #5856d6 0%, #4b4acf 100%)',
+                border: '1px solid #3d3cb8',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.2)'
+              }}>
+                <span className="text-white text-sm">💻</span>
+              </div>
+              <div>
+                <span className="text-black text-[17px] font-medium">Developer</span>
+                <div className="text-[#999] text-sm">Advanced hacking tools</div>
+              </div>
+            </div>
+            <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+          </div>
+        </div>
+      </div>
+
+      {/* All Settings Modals */}
+      <SettingsModal 
+        title="Wi-Fi Settings" 
+        isVisible={showWifiSettings} 
+        onClose={() => setShowWifiSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="rounded-lg p-4 border border-[#8a8a8f]" style={{
+            background: 'linear-gradient(to bottom, #ffffff 0%, #f8f8f8 50%, #eeeeee 100%)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.8)'
+          }}>
+            <h4 className="font-medium text-[17px] mb-3" style={{
+              textShadow: '0 1px 0 rgba(255,255,255,0.8)',
+              color: '#333'
+            }}>Available Networks</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2 px-2 rounded" style={{
+                background: 'linear-gradient(to bottom, rgba(76,217,100,0.1), rgba(76,217,100,0.05))'
+              }}>
+                <span className="text-[15px] font-medium" style={{
+                  textShadow: '0 1px 0 rgba(255,255,255,0.6)',
+                  color: '#2d5a2d'
+                }}>HackaByte Network ✓</span>
+                <div className="flex space-x-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="w-1 h-3 rounded-sm" style={{
+                      background: 'linear-gradient(to bottom, #4cd964, #5ac8fa)',
+                      boxShadow: '0 0 3px rgba(76,217,100,0.6)'
+                    }}></div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 rounded" style={{
+                background: 'linear-gradient(to bottom, rgba(255,193,7,0.1), rgba(255,193,7,0.05))'
+              }}>
+                <span className="text-[15px]" style={{
+                  textShadow: '0 1px 0 rgba(255,255,255,0.6)',
+                  color: '#5d4e37'
+                }}>SecureWiFi 🔒</span>
+                <div className="flex space-x-1">
+                  <div className="w-1 h-3 bg-orange-400 rounded-sm"></div>
+                  <div className="w-1 h-3 bg-orange-400 rounded-sm"></div>
+                  <div className="w-1 h-3 bg-gray-300 rounded-sm"></div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 rounded" style={{
+                background: 'linear-gradient(to bottom, rgba(108,117,125,0.1), rgba(108,117,125,0.05))'
+              }}>
+                <span className="text-[15px]" style={{
+                  textShadow: '0 1px 0 rgba(255,255,255,0.6)',
+                  color: '#495057'
+                }}>Guest_Network</span>
+                <div className="flex space-x-1">
+                  <div className="w-1 h-3 bg-gray-400 rounded-sm"></div>
+                  <div className="w-1 h-3 bg-gray-300 rounded-sm"></div>
+                  <div className="w-1 h-3 bg-gray-300 rounded-sm"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="Bluetooth Settings" 
+        isVisible={showBluetoothSettings} 
+        onClose={() => setShowBluetoothSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <h4 className="font-medium text-[17px] mb-3">Paired Devices</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-[15px]">🎧 AirPods Pro</span>
+                <span className="text-[13px] text-[#666]">Connected</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-[15px]">⌨️ Magic Keyboard</span>
+                <span className="text-[13px] text-[#666]">Not Connected</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="Notifications" 
+        isVisible={showNotificationSettings} 
+        onClose={() => setShowNotificationSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Allow Notifications</span>
+                <ToggleSwitch enabled={notificationsEnabled} onToggle={toggleNotifications} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Show Previews</span>
+                <ToggleSwitch enabled={true} onToggle={() => {}} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Badge App Icon</span>
+                <ToggleSwitch enabled={true} onToggle={() => {}} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="General Settings" 
+        isVisible={showGeneralSettings} 
+        onClose={() => setShowGeneralSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <div className="space-y-3">
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">About</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">Software Update</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">Reset</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="Privacy Settings" 
+        isVisible={showPrivacySettings} 
+        onClose={() => setShowPrivacySettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Location Services</span>
+                <ToggleSwitch enabled={locationEnabled} onToggle={toggleLocation} />
+              </div>
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">Contacts</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">Photos</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+              <button className="flex items-center justify-between w-full py-2 text-left">
+                <span className="text-[15px]">Camera</span>
+                <span className="text-[#4b82f6] text-lg font-bold">❯</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="Volume Settings" 
+        isVisible={showVolumeSettings} 
+        onClose={() => setShowVolumeSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[15px] font-medium mb-2">Ringer and Alerts</label>
+                <Slider value={volume} onChange={updateVolume} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Change with Buttons</span>
+                <ToggleSwitch enabled={true} onToggle={() => {}} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Vibrate on Ring</span>
+                <ToggleSwitch enabled={vibrationEnabled} onToggle={toggleVibration} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Vibrate on Silent</span>
+                <ToggleSwitch enabled={true} onToggle={() => {}} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      <SettingsModal 
+        title="Brightness Settings" 
+        isVisible={showBrightnessSettings} 
+        onClose={() => setShowBrightnessSettings(false)}
+      >
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-lg p-4 border border-[#a7a7aa]" style={{
+            background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)'
+          }}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[15px] font-medium mb-2">Brightness Level</label>
+                <Slider value={brightness} onChange={updateBrightness} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px]">Auto-Brightness</span>
+                <ToggleSwitch enabled={true} onToggle={() => {}} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingsModal>
+
+      {/* Enhanced Passcode Modal */}
+      {showPasswordSetup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ 
+          background: 'rgba(0,0,0,0.7)'
+        }}>
+          <div 
+            className="rounded-xl p-4 m-4 w-full max-w-sm border border-[#a7a7aa]" 
+            style={{ 
+              background: 'linear-gradient(to bottom, #fefefe 0%, #ebebeb 100%)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            }}
+          >
+            {/* Modal Header */}
+            <div className="text-center py-3 mb-2" style={{
+              background: 'linear-gradient(to bottom, #b0b3b6 0%, #8a8e94 50%, #777b82 51%, #6d7078 100%)',
+              borderRadius: '8px 8px 0 0',
+              margin: '-16px -16px 16px -16px',
+              borderBottom: '1px solid #4a4d52'
+            }}>
+              <h3 className="text-white font-bold text-lg" style={{
+                textShadow: '0 -1px 0 rgba(0,0,0,0.4)'
+              }}>
+                {devicePassword ? "Change Passcode" : "Set Passcode"}
+              </h3>
+            </div>
+            
+            <div className="space-y-4">
+              {devicePassword && (
+                <div>
+                  <label className="block text-[#4b4b4b] text-sm font-medium mb-2">Current Passcode</label>
+                  <input 
+                    type="password" 
+                    className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]" 
+                    style={{
+                      background: 'linear-gradient(to bottom, #fff 0%, #f5f5f5 100%)',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                    }}
+                    placeholder="Enter current passcode" 
+                  />
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-[#4b4b4b] text-sm font-medium mb-2">New Passcode</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]"
                   style={{
                     background: 'linear-gradient(to bottom, #fff 0%, #f5f5f5 100%)',
                     boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
                   }}
-                  placeholder="Enter current passcode" 
+                  placeholder="Enter new passcode"
                 />
               </div>
-            )}
-            
-            <div>
-              <label className="block text-[#4b4b4b] text-sm font-medium mb-2">New Passcode</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]"
-                style={{
-                  background: 'linear-gradient(to bottom, #fff 0%, #f5f5f5 100%)',
-                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-                }}
-                placeholder="Enter new passcode"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-[#4b4b4b] text-sm font-medium mb-2">Confirm Passcode</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]"
-                style={{
-                  background: 'linear-gradient(to bottom, #fff 0%, #f5f5f5 100%)',
-                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-                }}
-                placeholder="Confirm new passcode"
-              />
-            </div>
-            
-            <div className="flex space-x-3 pt-4">
-              <button
-                onClick={() => {
-                  setShowPasswordSetup(false);
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}
-                className="flex-1 px-4 py-3 border border-[#a7a7aa] rounded-lg text-black font-medium"
-                style={{
-                  background: 'linear-gradient(to bottom, #fff 0%, #e8e8e8 100%)',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (newPassword === confirmPassword && newPassword.length >= 4) {
-                    setDevicePassword(newPassword);
+              
+              <div>
+                <label className="block text-[#4b4b4b] text-sm font-medium mb-2">Confirm Passcode</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-3 border border-[#a7a7aa] rounded-lg text-[17px]"
+                  style={{
+                    background: 'linear-gradient(to bottom, #fff 0%, #f5f5f5 100%)',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                  }}
+                  placeholder="Confirm new passcode"
+                />
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => {
                     setShowPasswordSetup(false);
                     setNewPassword("");
                     setConfirmPassword("");
-                    localStorage.setItem('hackphone_password', newPassword);
-                  }
-                }}
-                disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
-                className="flex-1 px-4 py-3 text-white rounded-lg font-medium disabled:opacity-50"
-                style={{
-                  background: !newPassword || newPassword !== confirmPassword || newPassword.length < 4 
-                    ? 'linear-gradient(to bottom, #ccc 0%, #aaa 100%)' 
-                    : 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
-                  border: '1px solid #0040b3',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                }}
-              >
-                {devicePassword ? "Change" : "Set"}
-              </button>
+                  }}
+                  className="flex-1 px-4 py-3 border border-[#a7a7aa] rounded-lg text-black font-medium"
+                  style={{
+                    background: 'linear-gradient(to bottom, #fff 0%, #e8e8e8 100%)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (newPassword === confirmPassword && newPassword.length >= 4) {
+                      setDevicePassword(newPassword);
+                      setShowPasswordSetup(false);
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      localStorage.setItem('hackphone_password', newPassword);
+                    }
+                  }}
+                  disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
+                  className="flex-1 px-4 py-3 text-white rounded-lg font-medium disabled:opacity-50"
+                  style={{
+                    background: !newPassword || newPassword !== confirmPassword || newPassword.length < 4 
+                      ? 'linear-gradient(to bottom, #ccc 0%, #aaa 100%)' 
+                      : 'linear-gradient(to bottom, #007aff 0%, #0051d5 100%)',
+                    border: '1px solid #0040b3',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {devicePassword ? "Change" : "Set"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+
+      {/* Custom CSS for sliders and animations */}
+      <style jsx>{`
+        input[type="range"]::-webkit-slider-thumb {
+          appearance: none;
+          height: 22px;
+          width: 22px;
+          border-radius: 50%;
+          background: linear-gradient(to bottom, #ffffff 0%, #f8f8f8 25%, #e8e8e8 50%, #d8d8d8 75%, #c8c8c8 100%);
+          border: 1px solid #999;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+          transition: all 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+          background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 25%, #e0e0e0 50%, #d0d0d0 75%, #c0c0c0 100%);
+          box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+          background: linear-gradient(to bottom, #f0f0f0 0%, #e8e8e8 25%, #d8d8d8 50%, #c8c8c8 75%, #b8b8b8 100%);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+          height: 22px;
+          width: 22px;
+          border-radius: 50%;
+          background: linear-gradient(to bottom, #ffffff 0%, #f8f8f8 25%, #e8e8e8 50%, #d8d8d8 75%, #c8c8c8 100%);
+          border: 1px solid #999;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%) rotate(45deg); }
+          100% { transform: translateX(200%) rotate(45deg); }
+        }
+        button:active {
+          transform: scale(0.98);
+        }
+      `}</style>
+    </div>
+  );
 
   const renderDefaultApp = () => (
     <div className="w-screen h-screen bg-gray-900 flex flex-col">
