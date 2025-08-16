@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
+import StockMarketApp from "./apps/StockMarketApp";
 
 interface User {
   _id: string;
@@ -476,6 +477,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <MapApp onClose={onClose} time={time} />;
     case "music":
     return <MusicApp onClose={onClose} time={time} />;
+    case "stocks":
+      return <StockMarketApp onClose={onClose} time={time} />;
     default:
       return renderDefaultApp();
   }
