@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
+import GalleryApp from "./GalleryApp";
+import CameraApp from "./CameraApp";
 import StockMarketApp from "./apps/StockMarketApp";
 import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
@@ -25,6 +27,7 @@ interface HackPhoneAppsProps {
   onClose: () => void;
   user: User | null;
   time: Date;
+  onAppSwitch?: (appId: string) => void;
   onOpenApp?: (appId: string) => void;
   initialPhoneNumber?: string;
 }
@@ -34,6 +37,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   onClose,
   user,
   time,
+  onAppSwitch,
   onOpenApp,
   initialPhoneNumber,
 }) => {
@@ -484,6 +488,19 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <MapApp onClose={onClose} time={time} />;
     case "music":
       return <MusicApp onClose={onClose} time={time} />;
+    case "camera":
+      return <CameraApp 
+        onClose={onClose} 
+        time={time} 
+        onOpenGallery={() => onAppSwitch?.('photos')}
+      />;
+    case "photos":
+    case "gallery":
+      return <GalleryApp 
+        onClose={onClose} 
+        time={time} 
+        onOpenCamera={() => onAppSwitch?.('camera')}
+      />;
     case "stocks":
       return <StockMarketApp onClose={onClose} time={time} />;
     case "snakee":
