@@ -34,6 +34,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
 
   const apps: App[] = [
+    { id: "clock", name: "Clock", icon: "🕐", color: "bg-black" },
     { id: "terminal", name: "Terminal", icon: "⌨️", color: "bg-black" },
     { id: "files", name: "Files", icon: "📁", color: "bg-blue-500" },
     { id: "network", name: "Network", icon: "🌐", color: "bg-green-500" },

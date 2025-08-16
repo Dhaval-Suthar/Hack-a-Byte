@@ -6,6 +6,7 @@ import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
 import GalleryApp from "./GalleryApp";
 import CameraApp from "./CameraApp";
+import ClockApp from "./ClockApp";
 import StockMarketApp from "./apps/StockMarketApp";
 import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
@@ -482,6 +483,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return renderCryptoApp();
     case "settings":
       return renderSettingsApp();
+    case "clock":
+      return <ClockApp onClose={onClose} time={time} />;
     case "messages":
       return <MessagingApp onClose={onClose} time={time} />;
     case "maps":
