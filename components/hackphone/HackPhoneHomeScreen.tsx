@@ -47,6 +47,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     { id: "notes", name: "Notes", icon: "📝", color: "bg-yellow-400" },
     { id: "calculator", name: "Calculator", icon: "🧮", color: "bg-gray-700" },
     { id: "camera", name: "Camera", icon: "📷", color: "bg-gray-600" },
+    { id: "photos", name: "Photos", icon: "🖼️", color: "bg-pink-500" },
     { id: "maps", name: "Maps", icon: "🗺️", color: "bg-green-600" },
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },

@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
+import GalleryApp from "./GalleryApp";
+import CameraApp from "./CameraApp";
 
 interface User {
   _id: string;
@@ -21,6 +23,7 @@ interface HackPhoneAppsProps {
   onClose: () => void;
   user: User | null;
   time: Date;
+  onAppSwitch?: (appId: string) => void;
 }
 
 const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
@@ -28,6 +31,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   onClose,
   user,
   time,
+  onAppSwitch,
 }) => {
   const [devicePassword, setDevicePassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -475,7 +479,20 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "maps":
       return <MapApp onClose={onClose} time={time} />;
     case "music":
-    return <MusicApp onClose={onClose} time={time} />;
+      return <MusicApp onClose={onClose} time={time} />;
+    case "camera":
+      return <CameraApp 
+        onClose={onClose} 
+        time={time} 
+        onOpenGallery={() => onAppSwitch?.('photos')}
+      />;
+    case "photos":
+    case "gallery":
+      return <GalleryApp 
+        onClose={onClose} 
+        time={time} 
+        onOpenCamera={() => onAppSwitch?.('camera')}
+      />;
     default:
       return renderDefaultApp();
   }

@@ -94,6 +94,10 @@ const HackPhoneDesktop = () => {
     setCurrentApp(null);
   };
 
+  const handleAppSwitch = (appId: string) => {
+    setCurrentApp(appId);
+  };
+
   if (isLoading) {
     return <HackPhoneBootScreen />;
   }
@@ -105,6 +109,7 @@ const HackPhoneDesktop = () => {
         onClose={handleAppClose}
         user={user}
         time={time}
+        onAppSwitch={handleAppSwitch}
       />
     );
   }
