@@ -105,6 +105,7 @@ const HackPhoneDesktop = () => {
         onClose={handleAppClose}
         user={user}
         time={time}
+        onOpenApp={handleAppOpen}
       />
     );
   }

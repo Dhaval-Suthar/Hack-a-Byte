@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
+import ContactsApp from "./ContactsApp";
+import PhoneApp from "./PhoneApp";
 
 interface User {
   _id: string;
@@ -21,6 +23,8 @@ interface HackPhoneAppsProps {
   onClose: () => void;
   user: User | null;
   time: Date;
+  onOpenApp?: (appId: string) => void;
+  initialPhoneNumber?: string;
 }
 
 const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
@@ -28,6 +32,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   onClose,
   user,
   time,
+  onOpenApp,
+  initialPhoneNumber,
 }) => {
   const [devicePassword, setDevicePassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -475,7 +481,11 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "maps":
       return <MapApp onClose={onClose} time={time} />;
     case "music":
-    return <MusicApp onClose={onClose} time={time} />;
+      return <MusicApp onClose={onClose} time={time} />;
+    case "contacts":
+      return <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />;
+    case "phone":
+      return <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />;
     default:
       return renderDefaultApp();
   }
