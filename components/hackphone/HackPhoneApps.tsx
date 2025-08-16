@@ -458,10 +458,9 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
 
   const renderCalendarApp = () => (
     <div className="w-screen h-screen bg-gray-50 flex flex-col">
-      {renderStatusBar()}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
+      {/* <div className="bg-white border-b border-gray-200 px-4 py-3">
         <h1 className="text-lg font-semibold text-gray-900">Calendar</h1>
-      </div>
+      </div> */}
       <div className="flex-1 overflow-hidden">
         <Calendar time={time} />
       </div>
