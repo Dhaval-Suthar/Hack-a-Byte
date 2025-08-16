@@ -2,6 +2,70 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
+// Constants and pure helpers (module scope to keep stable identities)
+const GRID_RADIUS = 9;
+const DIRECTIONS = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 },
+];
+
+const hexToPixel = (q: number, r: number, size: number) => {
+  const x = size * Math.sqrt(3) * (q + r / 2);
+  const y = size * (3 / 2) * r;
+  return { x, y };
+};
+
+const coordKey = (c: { q: number; r: number }) => `${c.q},${c.r}`;
+
+const axialWrap = (q: number, r: number) => {
+  let x = q,
+    z = r,
+    y = -x - z;
+  const span = 2 * GRID_RADIUS + 1;
+  x = ((x + GRID_RADIUS) % span + span) % span - GRID_RADIUS;
+  y = ((y + GRID_RADIUS) % span + span) % span - GRID_RADIUS;
+  z = -x - y;
+  return { q: x, r: z };
+};
+
+const allCells = () => {
+  const cells: Array<{ q: number; r: number }> = [];
+  for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
+    const r1 = Math.max(-GRID_RADIUS, -q - GRID_RADIUS);
+    const r2 = Math.min(GRID_RADIUS, -q + GRID_RADIUS);
+    for (let r = r1; r <= r2; r++) {
+      cells.push({ q, r });
+    }
+  }
+  return cells;
+};
+
+const randomEmptyCell = (excludeSet: Set<string>) => {
+  const cells = allCells().filter((c) => !excludeSet.has(coordKey(c)));
+  return cells.length ? cells[Math.floor(Math.random() * cells.length)] : null;
+};
+
+const drawHexPath = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number
+) => {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i;
+    const px = x + size * Math.cos(angle);
+    const py = y + size * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+};
+
 interface SnakeeGameProps {
   onClose: () => void;
   time: Date;
@@ -27,12 +91,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     animationId: null as number | null
   });
 
-  const HEX_BASE = 36;
-  const GRID_RADIUS = 9;
-  const DIRECTIONS = [
-    {q:1,r:0}, {q:1,r:-1}, {q:0,r:-1},
-    {q:-1,r:0}, {q:-1,r:1}, {q:0,r:1}
-  ];
+  // (HEX_BASE) removed as unused
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { 
@@ -50,54 +109,9 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     }
   }, []);
 
-  // Hex coordinate utilities
-  const hexToPixel = (q: number, r: number, size: number) => {
-    const x = size * Math.sqrt(3) * (q + r/2);
-    const y = size * 3/2 * r;
-    return {x, y};
-  };
+  // Hex coordinate utilities moved to module scope above
 
-  const coordKey = (c: {q: number, r: number}) => `${c.q},${c.r}`;
-
-  const axialWrap = (q: number, r: number) => {
-    let x = q, z = r, y = -x - z;
-    const span = 2 * GRID_RADIUS + 1;
-    x = ((x + GRID_RADIUS) % span + span) % span - GRID_RADIUS;
-    y = ((y + GRID_RADIUS) % span + span) % span - GRID_RADIUS;
-    z = -x - y;
-    return {q: x, r: z};
-  };
-
-  const allCells = () => {
-    const cells = [];
-    for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
-      const r1 = Math.max(-GRID_RADIUS, -q - GRID_RADIUS);
-      const r2 = Math.min(GRID_RADIUS, -q + GRID_RADIUS);
-      for (let r = r1; r <= r2; r++) {
-        cells.push({q, r});
-      }
-    }
-    return cells;
-  };
-
-  const randomEmptyCell = (excludeSet: Set<string>) => {
-    const cells = allCells().filter(c => !excludeSet.has(coordKey(c)));
-    return cells.length ? cells[Math.floor(Math.random() * cells.length)] : null;
-  };
-
-  const drawHexPath = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = Math.PI / 3 * i;
-      const px = x + size * Math.cos(angle);
-      const py = y + size * Math.sin(angle);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-  };
-
-  const placeFood = () => {
+  const placeFood = useCallback(() => {
     const exclude = new Set(gameStateRef.current.snake.map(coordKey));
     const base = randomEmptyCell(exclude);
     if (!base) {
@@ -122,9 +136,9 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       type, 
       spawnAt: Date.now() / 1000 
     };
-  };
+  }, [level]);
 
-  const initGame = () => {
+  const initGame = useCallback(() => {
     gameStateRef.current.snake = [{q:0,r:0}, {q:-1,r:1}, {q:-2,r:2}];
     gameStateRef.current.dirIndex = 0;
     gameStateRef.current.targetDir = 0;
@@ -138,9 +152,29 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       clearInterval(gameStateRef.current.moveTimer);
       gameStateRef.current.moveTimer = null;
     }
-  };
+  }, [placeFood]);
 
-  const tickMove = () => {
+  const gameOver = useCallback(() => {
+    setIsRunning(false);
+    setGameStatus("GAME OVER");
+    if (gameStateRef.current.moveTimer) {
+      clearInterval(gameStateRef.current.moveTimer);
+      gameStateRef.current.moveTimer = null;
+    }
+    
+    // Add screen shake effect for game over
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.animation = 'shake 0.5s ease-in-out';
+      setTimeout(() => {
+        if (canvas) canvas.style.animation = '';
+      }, 500);
+    }
+    
+    setTimeout(() => initGame(), 3000);
+  }, [initGame]);
+
+  const tickMove = useCallback(() => {
     if (!isRunning) return;
     
     const state = gameStateRef.current;
@@ -210,27 +244,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       // No food eaten, remove tail (normal movement)
       state.snake.shift();
     }
-  };
-
-  const gameOver = () => {
-    setIsRunning(false);
-    setGameStatus("GAME OVER");
-    if (gameStateRef.current.moveTimer) {
-      clearInterval(gameStateRef.current.moveTimer);
-      gameStateRef.current.moveTimer = null;
-    }
-    
-    // Add screen shake effect for game over
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.style.animation = 'shake 0.5s ease-in-out';
-      setTimeout(() => {
-        if (canvas) canvas.style.animation = '';
-      }, 500);
-    }
-    
-    setTimeout(() => initGame(), 3000);
-  };
+  }, [isRunning, highScore, placeFood, gameOver]);
 
   const startGame = () => {
     if (isRunning) return;
@@ -258,7 +272,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     gameStateRef.current.targetDir = idx;
   };
 
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -437,29 +451,32 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     // Reset shadow
     ctx.shadowBlur = 0;
     gameStateRef.current.animationId = requestAnimationFrame(draw);
-  };
+  }, []);
 
   useEffect(() => {
     initGame();
     draw();
-    
+    // Copy ref to a local variable so cleanup doesn't access a potentially changed ref
+    const stateAtMount = gameStateRef.current;
     return () => {
+      if (stateAtMount.moveTimer) {
+        clearInterval(stateAtMount.moveTimer);
+      }
+      if (stateAtMount.animationId) {
+        cancelAnimationFrame(stateAtMount.animationId);
+      }
+    };
+  }, [initGame, draw]);
+
+  useEffect(() => {
+    if (isRunning) {
       if (gameStateRef.current.moveTimer) {
         clearInterval(gameStateRef.current.moveTimer);
       }
-      if (gameStateRef.current.animationId) {
-        cancelAnimationFrame(gameStateRef.current.animationId);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isRunning && gameStateRef.current.moveTimer) {
-      clearInterval(gameStateRef.current.moveTimer);
       const moveMs = 1000 / speed;
       gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
     }
-  }, [speed, isRunning]);
+  }, [speed, isRunning, tickMove]);
 
   // Touch event handlers for swipe detection
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -620,7 +637,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
           
           <div className="bg-black/50 border border-yellow-500/30 rounded p-3">
             <p className="text-yellow-200 font-mono text-xs text-center">
-              "In the digital realm, only the smartest snakes survive."
+              &quot;In the digital realm, only the smartest snakes survive.&quot;
             </p>
           </div>
         </div>
