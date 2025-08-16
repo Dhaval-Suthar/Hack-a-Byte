@@ -455,6 +455,13 @@ const StockMarketApp: React.FC<StockMarketAppProps> = ({ onClose, time }) => {
     </div>
   );
 
+  // Typed tabs for the tab bar
+  const tabs: { id: "market" | "portfolio" | "trade"; label: string }[] = [
+    { id: "market", label: "Market" },
+    { id: "portfolio", label: "Portfolio" },
+    { id: "trade", label: "Trade" },
+  ];
+
   return (
     <div className="w-screen h-screen bg-gradient-to-b from-[#b4c6d7] to-[#8fa4b8] flex flex-col relative overflow-hidden font-[Helvetica,Arial,ui-sans-serif]">
       {/* Status bar */}
@@ -495,14 +502,10 @@ const StockMarketApp: React.FC<StockMarketAppProps> = ({ onClose, time }) => {
 
       {/* Tab bar */}
       <div className="bg-gradient-to-b from-[#e6e6e6] to-[#d4d4d4] border-b border-[#c0c0c0] flex">
-        {[
-          { id: "market", label: "Market" },
-          { id: "portfolio", label: "Portfolio" },
-          { id: "trade", label: "Trade" }
-        ].map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-150 ${
               activeTab === tab.id
                 ? "bg-gradient-to-b from-white to-[#f0f0f0] text-blue-600 border-b-2 border-blue-600"
