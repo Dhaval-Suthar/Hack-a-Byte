@@ -51,6 +51,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     { id: "stocks", name: "Stocks", icon: "📈", color: "bg-emerald-600" },
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
+    { id: "snakee", name: "Snakee", icon: "🐍", color: "bg-green-500" },
   ];
 
   const appsPerPage = 20; // 4x5 grid
