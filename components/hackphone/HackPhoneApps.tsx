@@ -6,6 +6,10 @@ import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
 import GalleryApp from "./GalleryApp";
 import CameraApp from "./CameraApp";
+import StockMarketApp from "./apps/StockMarketApp";
+import SnakeeGame from "./apps/SnakeeGame";
+import ContactsApp from "./ContactsApp";
+import PhoneApp from "./PhoneApp";
 
 interface User {
   _id: string;
@@ -24,6 +28,8 @@ interface HackPhoneAppsProps {
   user: User | null;
   time: Date;
   onAppSwitch?: (appId: string) => void;
+  onOpenApp?: (appId: string) => void;
+  initialPhoneNumber?: string;
 }
 
 const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
@@ -32,6 +38,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   user,
   time,
   onAppSwitch,
+  onOpenApp,
+  initialPhoneNumber,
 }) => {
   const [devicePassword, setDevicePassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -493,6 +501,14 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
         time={time} 
         onOpenCamera={() => onAppSwitch?.('camera')}
       />;
+    case "stocks":
+      return <StockMarketApp onClose={onClose} time={time} />;
+    case "snakee":
+      return <SnakeeGame onClose={onClose} time={time} />;
+    case "contacts":
+      return <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />;
+    case "phone":
+      return <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />;
     default:
       return renderDefaultApp();
   }

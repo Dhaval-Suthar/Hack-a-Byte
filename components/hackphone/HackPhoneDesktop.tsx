@@ -110,6 +110,7 @@ const HackPhoneDesktop = () => {
         user={user}
         time={time}
         onAppSwitch={handleAppSwitch}
+        onOpenApp={handleAppOpen}
       />
     );
   }
