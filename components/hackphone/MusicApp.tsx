@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 
 
 // --- Types ---
@@ -149,10 +150,10 @@ const demoTracks: Track[] = [
 // --- Main Component ---
 interface MusicAppProps {
   onClose: () => void;
-  time: Date;
+  time?: Date; // Made optional since it's not used
 }
 
-function MusicApp({ onClose, time }: MusicAppProps) {
+function MusicApp({ onClose }: MusicAppProps) {
  const [tab, setTab] = useState<Tab>("Songs");
  const [queue, setQueue] = useState<Track[]>(demoTracks);
  const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -182,7 +183,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
        }
      }
    } catch {}
- }, []);
+ }, [queue]);
 
 
  // Persist preferences
@@ -202,6 +203,15 @@ function MusicApp({ onClose, time }: MusicAppProps) {
    audio.volume = volume;
  }, [volume]);
 
+ const playRandomNext = useCallback(() => {
+   if (queue.length <= 1) return;
+   let idx = currentIndex;
+   while (idx === currentIndex) {
+     idx = Math.floor(Math.random() * queue.length);
+   }
+   setCurrentIndex(idx);
+   setIsPlaying(true);
+ }, [queue.length, currentIndex]);
 
  useEffect(() => {
    const audio = audioRef.current;
@@ -243,7 +253,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
      audio.removeEventListener("loadedmetadata", onLoaded);
      audio.removeEventListener("ended", onEnd);
    };
- }, [currentIndex, shuffle, repeat, queue]);
+ }, [currentIndex, shuffle, repeat, queue, playRandomNext]);
 
 
  useEffect(() => {
@@ -255,7 +265,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
    if (isPlaying) {
      audio.play().catch(() => setIsPlaying(false));
    }
- }, [currentIndex, queue]);
+ }, [currentIndex, queue, isPlaying]);
 
 
  useEffect(() => {
@@ -286,16 +296,6 @@ function MusicApp({ onClose, time }: MusicAppProps) {
  const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
 
 
- const playTrackById = (id: string) => {
-   const idx = queue.findIndex(t => t.id === id);
-   if (idx >= 0) {
-     setCurrentIndex(idx);
-     setIsPlaying(true);
-     setTab("Now Playing");
-   }
- };
-
-
  const playFromCollection = (tracks: Track[], start: number) => {
    setQueue(tracks);
    setCurrentIndex(start);
@@ -311,7 +311,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
      return;
    }
    if (shuffle) {
-     playRandomNext(true);
+     playRandomNext();
      return;
    }
    const prev = currentIndex - 1;
@@ -340,17 +340,6 @@ function MusicApp({ onClose, time }: MusicAppProps) {
    } else {
      setIsPlaying(false);
    }
- };
-
-
- const playRandomNext = (prev = false) => {
-   if (queue.length <= 1) return;
-   let idx = currentIndex;
-   while (idx === currentIndex) {
-     idx = Math.floor(Math.random() * queue.length);
-   }
-   setCurrentIndex(idx);
-   setIsPlaying(true);
  };
 
 
@@ -478,7 +467,7 @@ function SongsView({ tracks, onPlay }: { tracks: Track[]; onPlay: (index: number
      <div className="ios-list">
        {tracks.map((t, i) => (
          <button key={t.id} className="ios-row w-full text-left" onClick={() => onPlay(i)}>
-           <img src={t.cover} alt="cover" className="w-10 h-10 rounded mr-3"/>
+           <Image src={t.cover || ""} alt="cover" width={40} height={40} className="rounded mr-3"/>
            <div>
              <div className="ios-title">{t.title}</div>
              <div className="ios-sub">{t.artist} — {t.album}</div>
@@ -582,7 +571,7 @@ function NowPlayingView({
 }) {
  return (
    <div className="px-4 py-5 flex flex-col items-center gap-4">
-     <img src={track?.cover} alt="cover" className="now-art"/>
+     <Image src={track?.cover || ""} alt="cover" width={260} height={260} className="now-art"/>
      <div className="text-center">
        <div className="text-[18px] font-semibold text-black">{track?.title || "—"}</div>
        <div className="text-[13px] text-[#6d6d72] mt-0.5">{track ? `${track.artist} — ${track.album}` : ""}</div>
