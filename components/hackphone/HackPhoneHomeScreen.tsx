@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface App {
   id: string;
@@ -32,27 +32,35 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   time,
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
 
   const apps: App[] = [
     { id: "terminal", name: "Terminal", icon: "⌨️", color: "bg-black" },
     { id: "files", name: "Files", icon: "📁", color: "bg-blue-500" },
     { id: "network", name: "Network", icon: "🌐", color: "bg-green-500" },
-    { id: "crypto", name: "Crypto", icon: "🔐", color: "bg-purple-500" },
-    { id: "scanner", name: "Scanner", icon: "📡", color: "bg-red-500" },
-    { id: "code", name: "Code", icon: "💻", color: "bg-orange-500" },
-    { id: "logs", name: "Logs", icon: "📊", color: "bg-yellow-500" },
+    { id: "code", name: "Code", icon: "�", color: "bg-orange-500" },
     { id: "settings", name: "Settings", icon: "⚙️", color: "bg-gray-500" },
     { id: "games", name: "Games", icon: "🎮", color: "bg-indigo-500" },
-    { id: "mail", name: "Mail", icon: "📧", color: "bg-blue-600" },
+    { id: "mail", name: "Mail", icon: "�", color: "bg-blue-600" },
     { id: "notes", name: "Notes", icon: "📝", color: "bg-yellow-400" },
     { id: "calculator", name: "Calculator", icon: "🧮", color: "bg-gray-700" },
-    { id: "camera", name: "Camera", icon: "📷", color: "bg-gray-600" },
-    { id: "maps", name: "Maps", icon: "🗺️", color: "bg-green-600" },
+    { id: "camera", name: "Camera", icon: "�", color: "bg-gray-600" },
+    { id: "maps", name: "Maps", icon: "�️", color: "bg-green-600" },
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
+    { id: "youtube", name: "YouTube", icon: "▶️", color: "bg-red-600" },
+    { id: "messages", name: "Messages", icon: "💬", color: "bg-green-500" },
+    { id: "photos", name: "Photos", icon: "🖼️", color: "bg-yellow-600" },
   ];
 
-  const appsPerPage = 20; // 4x5 grid
+  const appsPerPage = 16; // 4x4 grid to better fit iPhone 4 screen
   const totalPages = Math.ceil(apps.length / appsPerPage);
   const currentApps = apps.slice(currentPage * appsPerPage, (currentPage + 1) * appsPerPage);
 
@@ -73,11 +81,52 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   };
 
   const handleAppClick = (app: App) => {
-    if (app.isLocked) {
-      // Show locked app notification
+    if (app.isLocked || isDragging) {
+      // Show locked app notification or prevent clicks during drag
       return;
     }
     onAppOpen(app.id);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(false);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const currentTouch = e.targetTouches[0].clientX;
+    if (touchStart !== null) {
+      const diff = touchStart - currentTouch;
+      setDragOffset(-diff);
+      setIsDragging(Math.abs(diff) > 10);
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setDragOffset(0);
+      setIsDragging(false);
+      return;
+    }
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+    if (isRightSwipe && currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+
+    setDragOffset(0);
+    setIsDragging(false);
+  };
+
+  const onTouchEndCapture = (e: React.TouchEvent) => {
+    setTouchEnd(e.changedTouches[0].clientX);
   };
 
   return (
@@ -116,39 +165,60 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
         <div className="text-base text-white/80">{formatDate(time)}</div>
       </div>
 
-      {/* App grid */}
-      <div className="flex-1 px-6 py-4 relative z-10">
-        <div className="grid grid-cols-4 gap-6 h-full content-start">
-          {currentApps.map((app) => (
-            <button
-              key={app.id}
-              onClick={() => handleAppClick(app)}
-              className="flex flex-col items-center group"
-            >
-              {/* App icon */}
-              <div className={`w-[60px] h-[60px] ${app.color} rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden`}>
-                {/* App icon gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                
-                <span className="text-2xl relative z-10">{app.icon}</span>
-                
-                {app.isLocked && (
-                  <div className="absolute top-1 right-1 w-4 h-4 bg-black/50 rounded-full flex items-center justify-center">
-                    <span className="text-xs">🔒</span>
-                  </div>
-                )}
+      {/* App grid container with swipe */}
+      <div 
+        className="flex-1 relative z-10 overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchEndCapture={onTouchEndCapture}
+        ref={containerRef}
+      >
+        <div 
+          className="flex transition-transform duration-300 ease-out h-full"
+          style={{ 
+            transform: `translateX(calc(${-currentPage * 100}% + ${dragOffset}px))`,
+          }}
+        >
+          {Array.from({ length: totalPages }).map((_, pageIndex) => {
+            const pageApps = apps.slice(pageIndex * appsPerPage, (pageIndex + 1) * appsPerPage);
+            return (
+              <div key={pageIndex} className="w-full flex-shrink-0 px-6 py-4">
+                <div className="grid grid-cols-4 gap-6 h-full content-start">
+                  {pageApps.map((app) => (
+                    <button
+                      key={app.id}
+                      onClick={() => handleAppClick(app)}
+                      className="flex flex-col items-center group"
+                    >
+                      {/* App icon */}
+                      <div className={`w-[60px] h-[60px] ${app.color} rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden`}>
+                        {/* App icon gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                        
+                        <span className="text-2xl relative z-10">{app.icon}</span>
+                        
+                        {app.isLocked && (
+                          <div className="absolute top-1 right-1 w-4 h-4 bg-black/50 rounded-full flex items-center justify-center">
+                            <span className="text-xs">🔒</span>
+                          </div>
+                        )}
 
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        {/* Shine effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                      </div>
+                      
+                      {/* App name */}
+                      <span className="text-white text-[11px] font-medium text-center leading-tight max-w-full truncate drop-shadow">
+                        {app.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              
-              {/* App name */}
-              <span className="text-white text-[11px] font-medium text-center leading-tight max-w-full truncate drop-shadow">
-                {app.name}
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
