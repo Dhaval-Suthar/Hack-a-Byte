@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
+import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
 import PhoneApp from "./PhoneApp";
 
@@ -482,6 +483,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <MapApp onClose={onClose} time={time} />;
     case "music":
       return <MusicApp onClose={onClose} time={time} />;
+    case "snakee":
+      return <SnakeeGame onClose={onClose} time={time} />;
     case "contacts":
       return <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />;
     case "phone":
