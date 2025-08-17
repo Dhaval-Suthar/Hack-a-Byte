@@ -223,7 +223,8 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
           event.date.getFullYear() === selectedDate.getFullYear()
         )
         .map((event, i) => (
-          <div key={i} className={styles.event}>
+        .map((event) => (
+          <div key={event.id} className={styles.event}>
             <div className={styles.eventDot} />
             <span>{event.startTime} {event.title}</span>
           </div>
