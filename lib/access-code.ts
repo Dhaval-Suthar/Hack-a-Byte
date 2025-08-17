@@ -48,12 +48,27 @@ export const handleAccessCode = async (formData: FormData) => {
       codeDocument.maxUsages &&
       codeDocument.usageCount >= codeDocument.maxUsages
     ) {
-      return { success: false, error: "This access code has reached its usage limit" };
+      return { 
+        success: false, 
+        error: `This access code has reached its usage limit (${codeDocument.maxUsages} uses)`
+      };
     }
 
     // Increment usage count for all code types
     codeDocument.usageCount += 1;
     await codeDocument.save();
+
+    // Log usage for tracking
+    console.log(`Access code ${codeDocument.code} used. Usage count: ${codeDocument.usageCount}/${codeDocument.maxUsages || 'unlimited'}`);
+
+    // Check if this was the last usage for usage-limited codes
+    if (
+      codeDocument.type === "usage-limited" &&
+      codeDocument.maxUsages &&
+      codeDocument.usageCount >= codeDocument.maxUsages
+    ) {
+      console.log(`Access code ${codeDocument.code} has reached its maximum usage limit and is now exhausted.`);
+    }
 
     // Set cookies for the user session - use await with cookies()
     const cookieStore = await cookies();
