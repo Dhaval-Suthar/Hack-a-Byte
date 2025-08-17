@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './Calendar.module.css';
 
 interface CalendarProps {
@@ -93,7 +93,7 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
     let iCalString = "BEGIN:VCALENDAR\nVERSION:2.0\n";
     events.forEach(event => {
       iCalString += "BEGIN:VEVENT\n";
-      iCalString += `DTSTART:${formatDateToICal(event.date)}\n`;
+  iCalString += `DTSTART:${formatDateToICal(event.date)}\n`;
       iCalString += `SUMMARY:${event.title}\n`;
       iCalString += "END:VEVENT\n";
     });
@@ -109,6 +109,15 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Simple iCalendar date formatter (date only, UTC midnight)
+  const formatDateToICal = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    return `${year}${month}${day}T000000Z`;
+  };
+
   const isToday = (date: Date) => {
     return date.getDate() === time.getDate() &&
            date.getMonth() === time.getMonth() &&
@@ -122,7 +131,7 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
           <div className={styles.listView}>
             {events
               .sort((a, b) => a.date.getTime() - b.date.getTime())
-              .map((event, i) => (
+              .map((event) => (
                 <div key={event.id} className={styles.listEvent}>
                   <div className={styles.eventDate}>
                     {event.date.toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -145,7 +154,6 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
             <div className={styles.dayHeader}>
               {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
-            {todayEvents.map((event, i) => (
             {todayEvents.map((event) => (
               <div key={event.id} className={styles.dayEvent}>
                 <div className={styles.eventDot} />
@@ -222,7 +230,6 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
           event.date.getMonth() === selectedDate.getMonth() &&
           event.date.getFullYear() === selectedDate.getFullYear()
         )
-        .map((event, i) => (
         .map((event) => (
           <div key={event.id} className={styles.event}>
             <div className={styles.eventDot} />
