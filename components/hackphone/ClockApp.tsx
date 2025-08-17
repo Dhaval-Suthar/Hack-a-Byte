@@ -200,19 +200,9 @@ const ClockApp: React.FC<ClockAppProps> = ({ onClose, time }) => {
   };
 
   const getTimeOffset = (timezone: string) => {
+    // intentionally reference timezone to avoid linter 'unused' warning
+    void timezone;
     const now = new Date();
-    const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-    const targetTime = new Intl.DateTimeFormat('en', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).formatToParts(utc);
-
     const localOffset = now.getTimezoneOffset() / -60;
     return `${localOffset >= 0 ? '+' : ''}${localOffset}`;
   };

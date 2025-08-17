@@ -10,58 +10,57 @@ interface Photo {
   location?: string;
   type?: 'photo' | 'video';
 }
-
 interface GalleryAppProps {
-  onClose: () => void;
-  time: Date;
   onOpenCamera?: () => void;
+  time?: Date;
 }
 
-// Module-level demo photos so they don't recreate each render and break hook deps
-const DEMO_PHOTOS: Photo[] = [
-  {
-    id: "demo1",
-    url: "/hackphone/gallery/wallpaper1.jpg",
-    name: "Wallpaper 1",
-    date: new Date(2024, 7, 15, 18, 30),
-    location: "Malibu Beach"
-  },
-  {
-    id: "demo2",
-    url: "/hackphone/gallery/wallpaper2.jpg",
-    name: "Wallpaper 2",
-    date: new Date(2024, 7, 14, 20, 45),
-    location: "Downtown"
-  },
-  {
-    id: "demo3",
-    url: "/hackphone/gallery/wallpaper3.jpg",
-    name: "Wallpaper 3",
-    date: new Date(2024, 7, 13, 14, 20),
-    location: "Rocky Mountains"
-  },
-  {
-    id: "demo4",
-    url: "/hackphone/gallery/wallpaper1.jpg",
-    name: "Wallpaper 1",
-    date: new Date(2024, 7, 12, 19, 15)
-  },
-  {
-    id: "demo5",
-    url: "/hackphone/gallery/wallpaper2.jpg",
-    name: "Wallpaper 2",
-    date: new Date(2024, 7, 11, 16, 30),
-    location: "Central Park"
-  },
-  {
-    id: "demo6",
-    url: "/hackphone/gallery/wallpaper3.jpg",
-    name: "Wallpaper 3",
-    date: new Date(2024, 7, 10, 12, 0)
-  }
-];
+const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
 
-const GalleryApp: React.FC<GalleryAppProps> = ({ onClose, time, onOpenCamera }) => {
+  const DEMO_PHOTOS = React.useMemo<Photo[]>(() => [
+    {
+      id: "demo1",
+      url: "/hackphone/gallery/wallpaper1.jpg",
+      name: "Wallpaper 1",
+      date: new Date(2024, 7, 15, 18, 30),
+      location: "Malibu Beach"
+    },
+    {
+      id: "demo2",
+      url: "/hackphone/gallery/wallpaper2.jpg",
+      name: "Wallpaper 2",
+      date: new Date(2024, 7, 14, 20, 45),
+      location: "Downtown"
+    },
+    {
+      id: "demo3",
+      url: "/hackphone/gallery/wallpaper3.jpg",
+      name: "Wallpaper 3",
+      date: new Date(2024, 7, 13, 14, 20),
+      location: "Rocky Mountains"
+    },
+    {
+      id: "demo4",
+      url: "/hackphone/gallery/wallpaper1.jpg",
+      name: "Wallpaper 1",
+      date: new Date(2024, 7, 12, 19, 15)
+    },
+    {
+      id: "demo5",
+      url: "/hackphone/gallery/wallpaper2.jpg",
+      name: "Wallpaper 2",
+      date: new Date(2024, 7, 11, 16, 30),
+      location: "Central Park"
+    },
+    {
+      id: "demo6",
+      url: "/hackphone/gallery/wallpaper3.jpg",
+      name: "Wallpaper 3",
+      date: new Date(2024, 7, 10, 12, 0)
+    }
+  ], []);
+
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -131,35 +130,12 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onClose, time, onOpenCamera }) 
     );
 
     setPhotos(allPhotos);
-  }, []);
+  }, [DEMO_PHOTOS]);
 
   // Load photos from localStorage and combine with demo photos
   useEffect(() => { loadPhotos(); }, [loadPhotos]);
 
-  const renderStatusBar = () => (
-    <div className="flex justify-between items-center px-4 pt-8 pb-2 text-white text-[11px] tracking-wide relative z-10 bg-black/20">
-      <div className="flex items-center space-x-2">
-        <div className="flex items-end space-x-[2px]">
-          <div className="w-[3px] h-[6px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[10px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-white/60 rounded-[1px]" />
-          <div className="w-[3px] h-[6px] bg-white/40 rounded-[1px]" />
-        </div>
-        <span className="opacity-90">AT&T</span>
-      </div>
-      <div className="font-medium">
-        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-      </div>
-      <div className="flex items-center space-x-1">
-        <span className="opacity-90">100%</span>
-        <div className="w-6 h-3 border border-white/60 rounded-[1px] relative">
-          <div className="absolute inset-[1px] bg-white rounded-[1px]" />
-          <div className="absolute right-[-2px] top-[4px] w-[1px] h-[3px] bg-white rounded-[0.5px]" />
-        </div>
-      </div>
-    </div>
-  );
+  // status bar removed
 
   const handleDeletePhoto = (photoId: string) => {
     // Allow deleting both user photos and demo photos.
@@ -212,20 +188,11 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onClose, time, onOpenCamera }) 
   if (selectedPhoto && viewMode === 'fullscreen') {
     return (
       <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica]">
-        {renderStatusBar()}
         
         {/* Photo viewer header - iPhone 4 style */}
         <div className="bg-gradient-to-b from-black/90 via-black/80 to-transparent backdrop-blur-sm">
           <div className="flex items-center justify-between p-4">
-            <button 
-              onClick={() => {
-                setSelectedPhoto(null);
-                setViewMode('grid');
-              }}
-              className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm font-medium shadow-lg border border-blue-400/30 transition-all"
-            >
-              ← Photos
-            </button>
+            {/* back to grid - handled internally, does not close app */}
             
             <div className="flex items-center space-x-3">
               <button 
@@ -316,17 +283,11 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onClose, time, onOpenCamera }) 
 
   return (
     <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica]">
-      {renderStatusBar()}
       
       {/* Header - iPhone 4 style */}
       <div className="bg-gradient-to-b from-gray-800 via-gray-900 to-black border-b border-gray-600/50 shadow-lg">
         <div className="flex items-center justify-between px-4 py-3">
-          <button 
-            onClick={onClose}
-            className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm font-medium shadow-md border border-blue-400/30 transition-all"
-          >
-            Done
-          </button>
+          {/* Done removed per UX: keep user inside Photos */}
           <h1 className="text-white text-xl font-semibold tracking-tight">Photos</h1>
           <div className="flex items-center space-x-2">
             {/* Select / Refresh / Camera controls */}
