@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 
 interface SafariAppProps {
   onClose: () => void;
@@ -367,7 +367,7 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
                 </p>
                 <div className="space-y-4 text-sm text-gray-500">
                   <p>This is a simulated Safari browser for iOS 4.</p>
-                  <p>Use the address bar to "navigate" to different sites.</p>
+                  <p>Use the address bar to &quot;navigate&quot; to different sites.</p>
                   <p>Access bookmarks and history using the buttons above.</p>
                 </div>
                 
