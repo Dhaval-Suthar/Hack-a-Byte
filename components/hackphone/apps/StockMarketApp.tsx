@@ -16,12 +16,8 @@ interface Portfolio {
   avgPrice: number;
 }
 
-interface StockMarketAppProps {
-  onClose: () => void;
-  time: Date;
-}
-
-const StockMarketApp: React.FC<StockMarketAppProps> = ({ onClose, time }) => {
+interface StockMarketAppProps { time?: Date }
+const StockMarketApp: React.FC<StockMarketAppProps> = () => {
   const [activeTab, setActiveTab] = useState<"market" | "portfolio" | "trade">("market");
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   const [tradeAmount, setTradeAmount] = useState("");
@@ -76,13 +72,7 @@ const StockMarketApp: React.FC<StockMarketAppProps> = ({ onClose, time }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
+  
 
   const formatStockPrice = (stock: StockData, amount: number) => {
     const indianStocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ADANIENT'];
@@ -464,37 +454,12 @@ const StockMarketApp: React.FC<StockMarketAppProps> = ({ onClose, time }) => {
 
   return (
     <div className="w-screen h-screen bg-gradient-to-b from-[#b4c6d7] to-[#8fa4b8] flex flex-col relative overflow-hidden font-[Helvetica,Arial,ui-sans-serif]">
-      {/* Status bar */}
-      <div className="flex justify-between items-center px-4 pt-8 pb-3 text-[#2c2c2c] text-[11px] tracking-wide relative z-10">
-        <div className="flex items-center space-x-2">
-          <div className="flex items-end space-x-[2px]">
-            <div className="w-[3px] h-[6px] bg-[#2c2c2c] rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-[#2c2c2c] rounded-[1px]" />
-            <div className="w-[3px] h-[10px] bg-[#2c2c2c] rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-[#2c2c2c]/60 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-[#2c2c2c]/40 rounded-[1px]" />
-          </div>
-          <span className="opacity-90">AT&T</span>
-          <span className="opacity-90">3G</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="opacity-90">{formatTime(time)}</span>
-          <div className="w-7 h-[14px] border border-[#2c2c2c]/70 rounded-[2px] relative">
-            <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-[#2c2c2c]/70 rounded-sm absolute -right-[5px] top-[4px]" />
-          </div>
-        </div>
-      </div>
+  {/* status bar removed */}
 
       {/* App header */}
       <div className="px-4 py-2 bg-gradient-to-b from-[#c8d4e0] to-[#a8bcc8] border-b border-[#8fa4b8] relative">
         <div className="flex items-center justify-between">
-          <button
-            onClick={onClose}
-            className="text-blue-600 font-medium text-sm bg-gradient-to-b from-[#e8f0f8] to-[#d0e0f0] px-3 py-1 rounded border border-[#a0b8d0] active:from-[#d0e0f0] active:to-[#c0d8f0] transition-all duration-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
-          >
-            ← Back
-          </button>
+          {/* Back removed per UX: stay inside Stocks app */}
           <h1 className="text-lg font-bold text-[#2c2c2c]">Stocks</h1>
           <div className="w-[60px]" />
         </div>
