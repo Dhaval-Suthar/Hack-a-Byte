@@ -34,6 +34,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
 
   const apps: App[] = [
+    { id: "clock", name: "Clock", icon: "🕐", color: "bg-black" },
     { id: "terminal", name: "Terminal", icon: "⌨️", color: "bg-black" },
     { id: "files", name: "Files", icon: "📁", color: "bg-blue-500" },
     { id: "network", name: "Network", icon: "🌐", color: "bg-green-500" },
@@ -48,9 +49,12 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     { id: "notes", name: "Notes", icon: "📝", color: "bg-yellow-400" },
     { id: "calculator", name: "Calculator", icon: "🧮", color: "bg-gray-700" },
     { id: "camera", name: "Camera", icon: "📷", color: "bg-gray-600" },
+    { id: "photos", name: "Photos", icon: "🖼️", color: "bg-pink-500" },
     { id: "maps", name: "Maps", icon: "🗺️", color: "bg-green-600" },
+    { id: "stocks", name: "Stocks", icon: "📈", color: "bg-emerald-600" },
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
+    { id: "snakee", name: "Snakee", icon: "🐍", color: "bg-green-500" },
   ];
 
   const appsPerPage = 20; // 4x5 grid
