@@ -267,7 +267,7 @@
   flex-shrink: 0;
 }
 
-.eventIndicator {
+.calendarEventIndicator {
   width: 4px;
   height: 4px;
   background-color: #ff9500;
