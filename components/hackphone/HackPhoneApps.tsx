@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
+import Calendar from "./apps/Calendar/Calendar";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
 import GalleryApp from "./GalleryApp";
 import CameraApp from "./CameraApp";
+import ClockApp from "./ClockApp";
 import StockMarketApp from "./apps/StockMarketApp";
 import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
 import PhoneApp from "./PhoneApp";
+import NotesApp from "./apps/NotesApp";
+
 
 interface User {
   _id: string;
@@ -441,6 +445,17 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     </div>
   );
 
+  const renderCalendarApp = () => (
+    <div className="w-screen h-screen bg-gray-50 flex flex-col">
+      {/* <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <h1 className="text-lg font-semibold text-gray-900">Calendar</h1>
+      </div> */}
+      <div className="flex-1 overflow-hidden">
+        <Calendar time={time} />
+      </div>
+    </div>
+  );
+
   // Render the appropriate app
   switch (appId) {
     case "terminal":
@@ -453,6 +468,10 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return renderCryptoApp();
     case "settings":
       return renderSettingsApp();
+    case "calendar":
+      return renderCalendarApp();
+    case "clock":
+      return <ClockApp onClose={onClose} time={time} />;
     case "messages":
       return <MessagingApp time={time} />;
     case "maps":
@@ -483,6 +502,11 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />;
     case "phone":
       return <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />;
+    case "notes":
+       return <NotesApp onClose={onClose} time={time.toLocaleTimeString()} />;
+
+
+
     default:
       return renderDefaultApp();
   }

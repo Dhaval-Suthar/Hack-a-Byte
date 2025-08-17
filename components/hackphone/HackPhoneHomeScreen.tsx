@@ -64,6 +64,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     []
   );
 
+
   // Distribute apps across exactly 3 pages in a round-robin fashion to "scatter" them
   const TOTAL_PAGES = 3;
   const pages: App[][] = useMemo(() => {
