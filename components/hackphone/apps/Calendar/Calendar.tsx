@@ -124,7 +124,7 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
             {events
               .sort((a, b) => a.date.getTime() - b.date.getTime())
               .map((event, i) => (
-                <div key={i} className={styles.listEvent}>
+                <div key={event.id} className={styles.listEvent}>
                   <div className={styles.eventDate}>
                     {event.date.toLocaleDateString([], { month: 'short', day: 'numeric' })}
                   </div>
