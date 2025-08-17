@@ -4,11 +4,11 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 
 interface CameraAppProps {
   onClose: () => void;
-  time: Date;
   onOpenGallery?: () => void;
+  time?: Date;
 }
 
-const CameraApp: React.FC<CameraAppProps> = ({ onClose, time, onOpenGallery }) => {
+const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -404,36 +404,12 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, time, onOpenGallery }) =
     }, 100);
   }, [facingMode, initializeCamera]);
 
-  const renderStatusBar = () => (
-    <div className="flex justify-between items-center px-4 pt-8 pb-2 text-white text-[11px] tracking-wide relative z-10">
-      <div className="flex items-center space-x-2">
-        <div className="flex items-end space-x-[2px]">
-          <div className="w-[3px] h-[6px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[10px] bg-white rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-white/60 rounded-[1px]" />
-          <div className="w-[3px] h-[6px] bg-white/40 rounded-[1px]" />
-        </div>
-        <span className="opacity-90">AT&T</span>
-      </div>
-      <div className="font-medium">
-        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-      </div>
-      <div className="flex items-center space-x-1">
-        <span className="opacity-90">100%</span>
-        <div className="w-6 h-3 border border-white/60 rounded-[1px] relative">
-          <div className="absolute inset-[1px] bg-white rounded-[1px]" />
-          <div className="absolute right-[-2px] top-[4px] w-[1px] h-[3px] bg-white rounded-[0.5px]" />
-        </div>
-      </div>
-    </div>
-  );
+  // status bar removed
 
 
   if (hasPermission === false) {
     return (
       <div className="w-screen h-screen bg-black flex flex-col">
-        {renderStatusBar()}
         
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white p-8">
@@ -465,7 +441,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, time, onOpenGallery }) =
 
   return (
     <div className="w-screen h-screen bg-black flex flex-col relative overflow-hidden font-[Helvetica]">
-      {renderStatusBar()}
+      
       
       {/* Camera viewfinder */}
       <div className="flex-1 relative bg-black">

@@ -15,23 +15,14 @@ interface Contact {
 
 interface ContactsAppProps {
   onClose: () => void;
-  time: Date;
   onOpenPhone?: (phoneNumber?: string) => void;
+  time?: Date;
 }
-
-const ContactsApp: React.FC<ContactsAppProps> = ({ onClose, time, onOpenPhone }) => {
+const ContactsApp: React.FC<ContactsAppProps> = ({ onClose, onOpenPhone }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [view, setView] = useState<"list" | "details" | "link" | "unified">("list");
   const [linkingContact, setLinkingContact] = useState<Contact | null>(null);
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
 
   // Demo contacts data
   const contacts: Contact[] = useMemo(() => [
@@ -99,28 +90,7 @@ const ContactsApp: React.FC<ContactsAppProps> = ({ onClose, time, onOpenPhone })
     return [contact, ...linked];
   };
 
-  const renderStatusBar = () => (
-    <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] tracking-wide bg-white">
-      <div className="flex items-center space-x-1">
-        <div className="flex items-end space-x-[2px]">
-          <div className="w-[3px] h-[6px] bg-black rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-black rounded-[1px]" />
-          <div className="w-[3px] h-[10px] bg-black rounded-[1px]" />
-          <div className="w-[3px] h-[8px] bg-black/60 rounded-[1px]" />
-          <div className="w-[3px] h-[6px] bg-black/40 rounded-[1px]" />
-        </div>
-        <span className="opacity-90">Verizon</span>
-        <span className="opacity-90">📶</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <span className="opacity-90 font-bold">{formatTime(time)}</span>
-        <div className="w-7 h-[14px] border border-black/70 rounded-[2px] relative">
-          <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-          <div className="w-[3px] h-[6px] bg-black/70 rounded-sm absolute -right-[5px] top-[4px]" />
-        </div>
-      </div>
-    </div>
-  );
+  // status bar removed
 
   const renderSearchBar = () => (
     <div className="px-4 py-2 bg-white border-b border-gray-200">
@@ -487,7 +457,6 @@ const ContactsApp: React.FC<ContactsAppProps> = ({ onClose, time, onOpenPhone })
 
   return (
     <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      {renderStatusBar()}
       
       {view === "list" && (
         <>

@@ -20,11 +20,10 @@ interface Conversation {
 }
 
 interface MessagingAppProps {
-  onClose: () => void;
-  time: Date;
+  time?: Date;
 }
 
-const MessagingApp: React.FC<MessagingAppProps> = ({ onClose, time }) => {
+const MessagingApp: React.FC<MessagingAppProps> = () => {
   const [currentView, setCurrentView] = useState<"conversations" | "chat" | "compose">("conversations");
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -146,13 +145,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ onClose, time }) => {
     }
   ]);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
+  // status bar time removed
 
   const formatMessageTime = (date: Date) => {
     const now = new Date();
@@ -212,39 +205,12 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ onClose, time }) => {
     <div className="w-screen h-screen bg-white flex flex-col">
       {/* Combined Status Bar and Header */}
       <div className="bg-gradient-to-b from-[#cdd5df] to-[#a7b1bf] border-b border-[#8a95a1]">
-        {/* Status Bar */}
-        <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] tracking-wide">
-          <div className="flex items-center space-x-1">
-            {/* Signal bars */}
-            <div className="flex items-end space-x-[2px]">
-              <div className="w-[3px] h-[6px] bg-black rounded-[1px]" />
-              <div className="w-[3px] h-[8px] bg-black rounded-[1px]" />
-              <div className="w-[3px] h-[10px] bg-black rounded-[1px]" />
-              <div className="w-[3px] h-[8px] bg-black/60 rounded-[1px]" />
-              <div className="w-[3px] h-[6px] bg-black/40 rounded-[1px]" />
-            </div>
-            <span className="opacity-90 text-[11px]">Verizon</span>
-            <span className="opacity-90">📶</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="opacity-90 font-bold">{formatTime(time)}</span>
-            {/* Battery */}
-            <div className="w-7 h-[14px] border border-black/70 rounded-[2px] relative">
-              <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-              <div className="w-[3px] h-[6px] bg-black/70 rounded-sm absolute -right-[5px] top-[4px]" />
-            </div>
-          </div>
-        </div>
+    {/* status bar removed */}
         
         {/* Header */}
         <div className="px-4 py-2">
           <div className="flex items-center justify-between">
-            <button 
-              onClick={onClose}
-              className="text-[#1f5be6] font-bold text-[17px]"
-            >
-              Back
-            </button>
+            {/* Back removed per UX: stay inside Messages app */}
             <h1 className="text-[20px] font-bold text-[#1a1a1a] drop-shadow-sm">Messages</h1>
             <button 
               onClick={() => setCurrentView("compose")}
@@ -369,12 +335,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ onClose, time }) => {
               <span className="opacity-90">📶</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="opacity-90">{formatTime(time)}</span>
-              {/* Battery */}
-              <div className="w-7 h-[14px] border border-black/70 rounded-[2px] relative">
-                <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-                <div className="w-[3px] h-[6px] bg-black/70 rounded-sm absolute -right-[5px] top-[4px]" />
-              </div>
+              {/* time removed */}
             </div>
           </div>
           
@@ -650,7 +611,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ onClose, time }) => {
             <span className="opacity-90">📶</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="opacity-90">{formatTime(time)}</span>
+              {/* time removed */}
             {/* Battery */}
             <div className="w-7 h-[14px] border border-black/70 rounded-[2px] relative">
               <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />

@@ -148,12 +148,7 @@ const demoTracks: Track[] = [
 
 
 // --- Main Component ---
-interface MusicAppProps {
-  onClose: () => void;
-  time?: Date; // Made optional since it's not used
-}
-
-function MusicApp({ onClose }: MusicAppProps) {
+function MusicApp() {
  const [tab, setTab] = useState<Tab>("Songs");
  const [queue, setQueue] = useState<Track[]>(demoTracks);
  const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -365,8 +360,8 @@ function MusicApp({ onClose }: MusicAppProps) {
          <span>Hackphone</span>
          <span>{isPlaying ? "▶︎" : "❚❚"} {fmtTime(progress)} / {fmtTime(duration || current?.duration || 0)}</span>
        </div>
-       <div className="h-10 flex items-center justify-between px-2">
-         <button onClick={onClose} className="text-[#1f5be6] font-bold text-[17px]"> Back </button>
+        <div className="h-10 flex items-center justify-between px-2">
+         {/* Back removed per UX: shouldn't return to home from Music */}
 
          <button className="px-2 py-1 text-sm rounded" style={{ color: "#ff9500" }} onClick={() => setTab("Songs")}>Music</button>
          

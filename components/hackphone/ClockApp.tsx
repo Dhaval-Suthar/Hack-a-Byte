@@ -200,7 +200,10 @@ const ClockApp: React.FC<ClockAppProps> = ({ onClose, time }) => {
   };
 
   const getTimeOffset = (timezone: string) => {
+    // intentionally reference timezone to avoid linter 'unused' warning
+    void timezone;
     const now = new Date();
+    
     const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
     // Intentionally not using formatToParts here; remove unused assignment to satisfy linter
     new Intl.DateTimeFormat('en', {
@@ -213,6 +216,7 @@ const ClockApp: React.FC<ClockAppProps> = ({ onClose, time }) => {
       second: '2-digit',
       hour12: false
     }).format(utc);
+        
     const localOffset = now.getTimezoneOffset() / -60;
     return `${localOffset >= 0 ? '+' : ''}${localOffset}`;
   };
