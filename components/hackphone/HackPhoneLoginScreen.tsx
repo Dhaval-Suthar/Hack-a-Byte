@@ -25,7 +25,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
 }) => {
   const [inputUsername, setInputUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [time, setTime] = useState(new Date());
+  // time state removed for status bar
   const [showLockAnimation, setShowLockAnimation] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [slidePosition, setSlidePosition] = useState(0);
@@ -35,14 +35,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const knobRef = useRef<HTMLDivElement | null>(null);
 
-  // Update time every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+  // status bar time removed
 
   // Show lock screen animation when logging in with username
   useEffect(() => {
@@ -122,14 +115,6 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
-
   const formatDate = (date: Date) => {
     return date.toLocaleDateString([], { 
       weekday: 'long',
@@ -141,22 +126,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
   if (showLockAnimation && username) {
     return (
       <div className="w-screen h-screen bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 flex flex-col">
-        {/* Status bar */}
-        <div className="flex justify-between items-center px-6 pt-12 pb-4 text-white text-sm">
-          <div className="flex items-center space-x-1">
-            <div className="flex space-x-1">
-              <div className="w-1 h-1 bg-white rounded-full"></div>
-              <div className="w-1 h-1 bg-white rounded-full"></div>
-              <div className="w-1 h-1 bg-white rounded-full"></div>
-              <div className="w-1 h-1 bg-white/50 rounded-full"></div>
-              <div className="w-1 h-1 bg-white/50 rounded-full"></div>
-            </div>
-            <span className="ml-2 text-xs">HackPhone</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <span className="text-xs">{formatTime(time)}</span>
-          </div>
-        </div>
+  {/* status bar removed */}
 
         {/* Welcome message */}
         <div className="flex-1 flex flex-col items-center justify-center text-white text-center px-8">
@@ -200,33 +170,12 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
         <div className="absolute inset-0 opacity-[0.07]" style={{backgroundImage:"radial-gradient(circle at 20% 10%, rgba(255,255,255,0.25) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 45%)"}} />
         <div className="absolute inset-0" style={{backgroundImage:"url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"160\" viewBox=\"0 0 160 160\"><filter id=\"n\"><feTurbulence baseFrequency=\"0.8\" numOctaves=\"2\" seed=\"2\"/></filter><rect width=\"100%\" height=\"100%\" filter=\"url(%23n)\" opacity=\"0.04\"/></svg>')"}} />
 
-        {/* Status bar (classic black) */}
-        <div className="flex justify-between items-center px-4 pt-8 pb-3 text-white text-[11px] tracking-wide relative z-10">
-          <div className="flex items-center space-x-2">
-            {/* Signal bars */}
-            <div className="flex items-end space-x-[2px]">
-              <div className="w-[3px] h-[6px] bg-white rounded-[1px]" />
-              <div className="w-[3px] h-[8px] bg-white rounded-[1px]" />
-              <div className="w-[3px] h-[10px] bg-white rounded-[1px]" />
-              <div className="w-[3px] h-[8px] bg-white/60 rounded-[1px]" />
-              <div className="w-[3px] h-[6px] bg-white/40 rounded-[1px]" />
-            </div>
-            <span className="opacity-90">AT&T</span>
-            <span className="opacity-90">3G</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="opacity-90">{formatTime(time)}</span>
-            <div className="w-7 h-[14px] border border-white/70 rounded-[2px] relative">
-              <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-              <div className="w-[3px] h-[6px] bg-white/70 rounded-sm absolute -right-[5px] top-[4px]" />
-            </div>
-          </div>
-        </div>
+  {/* status bar removed */}
 
         {/* Time display */}
         <div className="text-center text-white mb-8 relative z-10">
-          <div className="text-6xl font-thin mb-2">{formatTime(time)}</div>
-          <div className="text-lg text-white/70">{formatDate(time)}</div>
+          <div className="text-6xl font-thin mb-2">{/* time removed */}</div>
+          <div className="text-lg text-white/70">{formatDate(new Date())}</div>
         </div>
 
         {/* Lock screen content */}

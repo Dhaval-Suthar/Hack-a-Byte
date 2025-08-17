@@ -66,13 +66,10 @@ const drawHexPath = (
   ctx.closePath();
 };
 
-interface SnakeeGameProps {
-  onClose: () => void;
-  time: Date;
-}
-
-const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
+interface SnakeeGameProps { onClose?: () => void; time?: Date }
+const SnakeeGame: React.FC<SnakeeGameProps> = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [gameStatus, setGameStatus] = useState("Menu");
@@ -93,13 +90,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
   // (HEX_BASE) removed as unused
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
+  
 
   // Load high score from localStorage
   useEffect(() => {
@@ -246,26 +237,25 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     }
   }, [isRunning, highScore, placeFood, gameOver]);
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     if (isRunning) return;
     setIsRunning(true);
     setGameStatus("Running");
-    
     const moveMs = 1000 / speed;
     if (gameStateRef.current.moveTimer) {
       clearInterval(gameStateRef.current.moveTimer);
     }
     gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
-  };
+  }, [isRunning, speed, tickMove]);
 
-  const pauseGame = () => {
+  const pauseGame = useCallback(() => {
     setIsRunning(false);
     setGameStatus("Paused");
     if (gameStateRef.current.moveTimer) {
       clearInterval(gameStateRef.current.moveTimer);
       gameStateRef.current.moveTimer = null;
     }
-  };
+  }, []);
 
   const setDirection = (idx: number) => {
     if ((idx + 3) % 6 === gameStateRef.current.dirIndex) return;
@@ -467,6 +457,66 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       }
     };
   }, [initGame, draw]);
+
+  // Responsive canvas sizing (retina-aware)
+  useEffect(() => {
+    const resize = () => {
+      const canvas = canvasRef.current;
+      const wrapper = wrapperRef.current;
+      if (!canvas || !wrapper) return;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = wrapper.getBoundingClientRect();
+      // keep canvas within a reasonable max size while remaining responsive
+      const w = Math.min(rect.width, 640);
+      const h = Math.min(rect.height || (w * 1.15), 720);
+      // set CSS size
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      // set backing store size
+      const bw = Math.floor(w * dpr);
+      const bh = Math.floor(h * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  // Keyboard controls (desktop)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // map some keys to hex directions
+      // E:0, NE:1, NW:2, W:3, SW:4, SE:5
+      const keyMap: Record<string, number> = {
+        ArrowRight: 0,
+        ArrowLeft: 3,
+        ArrowUp: 1,
+        ArrowDown: 4,
+        w: 2,
+        e: 1,
+        d: 0,
+        a: 3,
+        z: 4,
+        x: 5,
+      };
+      const k = e.key;
+      const lower = k.length === 1 ? k.toLowerCase() : k;
+      const dir = keyMap[lower];
+      if (dir !== undefined) {
+        setDirection(dir);
+        if (!isRunning) startGame();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isRunning, startGame]);
 
   useEffect(() => {
     if (isRunning) {
@@ -713,23 +763,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
         }
       `}</style>
 
-      {/* Status bar with retro styling */}
-      <div className="flex justify-between items-center px-6 pt-12 pb-4 text-white text-sm relative z-10 bg-black/50 backdrop-blur-sm border-b border-cyan-500/30">
-        <button 
-          onClick={onClose} 
-          className="text-cyan-400 text-sm font-mono hover:text-cyan-300 transition-colors duration-200 px-3 py-1 border border-cyan-500/50 rounded bg-black/30"
-        >
-          ← BACK
-        </button>
-        <div className="flex items-center space-x-3">
-          <div className="text-green-400 font-mono text-xs animate-pulse">●</div>
-          <span className="text-xs font-mono text-cyan-300">{formatTime(time)}</span>
-          <div className="w-7 h-4 border border-cyan-400/60 rounded-sm relative bg-black/50">
-            <div className="w-4 h-2 bg-green-400 rounded-sm m-0.5 animate-pulse" />
-            <div className="w-0.5 h-1.5 bg-cyan-400/60 rounded-full absolute -right-1 top-1" />
-          </div>
-        </div>
-      </div>
+  {/* status bar removed */}
 
         {/* Game header */}
         <div className="text-center py-4 relative z-10">
@@ -757,14 +791,14 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
           </div>
         </div>      {/* Main game area */}
       <div className="flex-1 flex flex-col p-4 relative z-10">
-        {/* Game canvas with retro border */}
-        <div className="relative mx-auto mb-4">
+  {/* Game canvas with retro border */}
+  <div ref={wrapperRef} className="relative mx-auto mb-4">
           <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-green-500/20 rounded-lg blur-sm"></div>
           <canvas
             ref={canvasRef}
             width={320}
             height={380}
-            className="relative bg-black rounded-lg border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20 touch-none"
+            className="relative bg-black rounded-lg border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20"
             style={{ 
               maxWidth: '100%', 
               height: 'auto',
