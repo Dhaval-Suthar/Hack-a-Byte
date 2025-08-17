@@ -53,7 +53,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
     { id: "snakee", name: "Snakee", icon: "🐍", color: "bg-green-500" },
-    { id: "safari", name: "Safari", icon: "🌐", color: "bg-blue-600" },
+    { id: "safari", name: "Safari", icon: "🧭", color: "bg-blue-500" },
   ];
 
   const appsPerPage = 20; // 4x5 grid
@@ -193,10 +193,10 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
             <span className="text-2xl relative z-10">💬</span>
           </button>
           
-          <button onClick={() => onAppOpen("safari")} className="w-[56px] h-[56px] bg-blue-600 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
+          <button onClick={() => onAppOpen("safari")} className="w-[56px] h-[56px] bg-blue-500 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-            <span className="text-2xl relative z-10">🌐</span>
+            <span className="text-2xl relative z-10">🧭</span>
           </button>
           
           <button onClick={() => onAppOpen("ipod")} className="w-[56px] h-[56px] bg-gradient-to-b from-gray-300 to-gray-600 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">

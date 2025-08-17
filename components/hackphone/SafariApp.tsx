@@ -27,14 +27,14 @@ interface Tab {
 }
 
 const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
-  const [currentUrl, setCurrentUrl] = useState("https://www.google.com");
-  const [inputUrl, setInputUrl] = useState("https://www.google.com");
+  const [currentUrl, setCurrentUrl] = useState("https://www.apple.com");
+  const [inputUrl, setInputUrl] = useState("https://www.apple.com");
   const [isLoading, setIsLoading] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showTabs, setShowTabs] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: "1", title: "Google", url: "https://www.google.com", isLoading: false }
+    { id: "1", title: "Apple", url: "https://www.apple.com", isLoading: false }
   ]);
   const [activeTabId, setActiveTabId] = useState("1");
   const [canGoBack, setCanGoBack] = useState(false);
@@ -43,23 +43,23 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
 
   const bookmarks: Bookmark[] = [
     { name: "Apple", url: "https://www.apple.com", icon: "🍎" },
-    { name: "GitHub", url: "https://github.com", icon: "🐙" },
-    { name: "Stack Overflow", url: "https://stackoverflow.com", icon: "📚" },
-    { name: "Reddit", url: "https://www.reddit.com", icon: "🤖" },
+    { name: "iPhone", url: "https://www.apple.com/iphone", icon: "�" },
+    { name: "GitHub", url: "https://github.com", icon: "�" },
+    { name: "Google", url: "https://www.google.com", icon: "🔍" },
     { name: "YouTube", url: "https://www.youtube.com", icon: "📺" },
-    { name: "Twitter", url: "https://twitter.com", icon: "🐦" },
-    { name: "Facebook", url: "https://www.facebook.com", icon: "📘" },
+    { name: "Facebook", url: "https://www.facebook.com", icon: "�" },
+    { name: "Twitter", url: "https://twitter.com", icon: "�" },
     { name: "Wikipedia", url: "https://www.wikipedia.org", icon: "📖" },
-    { name: "Mozilla", url: "https://www.mozilla.org", icon: "🦊" },
-    { name: "W3Schools", url: "https://www.w3schools.com", icon: "🎓" },
+    { name: "ESPN", url: "https://www.espn.com", icon: "⚽" },
+    { name: "CNN", url: "https://www.cnn.com", icon: "📰" },
   ];
 
   const history: HistoryItem[] = [
-    { title: "Google", url: "https://www.google.com", timestamp: new Date(Date.now() - 1000 * 60 * 5) },
-    { title: "Apple", url: "https://www.apple.com", timestamp: new Date(Date.now() - 1000 * 60 * 15) },
-    { title: "GitHub", url: "https://github.com", timestamp: new Date(Date.now() - 1000 * 60 * 30) },
-    { title: "Stack Overflow", url: "https://stackoverflow.com", timestamp: new Date(Date.now() - 1000 * 60 * 45) },
-    { title: "YouTube", url: "https://www.youtube.com", timestamp: new Date(Date.now() - 1000 * 60 * 60) },
+    { title: "Apple", url: "https://www.apple.com", timestamp: new Date(Date.now() - 1000 * 60 * 5) },
+    { title: "iPhone - Apple", url: "https://www.apple.com/iphone", timestamp: new Date(Date.now() - 1000 * 60 * 15) },
+    { title: "Google", url: "https://www.google.com", timestamp: new Date(Date.now() - 1000 * 60 * 30) },
+    { title: "YouTube", url: "https://www.youtube.com", timestamp: new Date(Date.now() - 1000 * 60 * 45) },
+    { title: "Facebook", url: "https://www.facebook.com", timestamp: new Date(Date.now() - 1000 * 60 * 60) },
   ];
 
   const formatTime = (date: Date) => {
@@ -106,10 +106,24 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
     setIsLoading(true);
     setCurrentUrl(url);
     
+    // Get appropriate title for the URL
+    let title = getDisplayUrl(url);
+    if (url.includes('apple.com/iphone')) {
+      title = "iPhone - Apple";
+    } else if (url.includes('apple.com')) {
+      title = "Apple";
+    } else if (url.includes('google.com')) {
+      title = "Google";
+    } else if (url.includes('facebook.com')) {
+      title = "Facebook";
+    } else if (url.includes('youtube.com')) {
+      title = "YouTube";
+    }
+    
     // Update current tab
     setTabs(prev => prev.map(tab => 
       tab.id === activeTabId 
-        ? { ...tab, url, title: getDisplayUrl(url), isLoading: true }
+        ? { ...tab, url, title, isLoading: true }
         : tab
     ));
     
@@ -129,21 +143,55 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
     setInputUrl(bookmark.url);
     setCurrentUrl(bookmark.url);
     setShowBookmarks(false);
-    handleUrlSubmit();
+    
+    // Update current tab with bookmark info
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId 
+        ? { ...tab, url: bookmark.url, title: bookmark.name, isLoading: true }
+        : tab
+    ));
+    
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, isLoading: false }
+          : tab
+      ));
+      setCanGoBack(true);
+    }, 1200);
   };
 
   const handleHistoryClick = (item: HistoryItem) => {
     setInputUrl(item.url);
     setCurrentUrl(item.url);
     setShowHistory(false);
-    handleUrlSubmit();
+    
+    // Update current tab with history info
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId 
+        ? { ...tab, url: item.url, title: item.title, isLoading: true }
+        : tab
+    ));
+    
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, isLoading: false }
+          : tab
+      ));
+      setCanGoBack(true);
+    }, 1200);
   };
 
   const addNewTab = () => {
     const newTab: Tab = {
       id: Date.now().toString(),
-      title: "New Tab",
-      url: "https://www.google.com",
+      title: "Apple",
+      url: "https://www.apple.com",
       isLoading: false
     };
     setTabs(prev => [...prev, newTab]);
@@ -204,62 +252,68 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
 
   const renderMainView = () => (
     <div className="flex-1 bg-white flex flex-col">
-      {/* Navigation Bar */}
-      <div className="bg-gradient-to-b from-gray-200 to-gray-300 border-b border-gray-400 px-3 py-2">
+      {/* Navigation Bar - More iPhone 4 accurate */}
+      <div className="bg-gradient-to-b from-[#dcdcdc] via-[#d1d1d1] to-[#c7c7c7] border-b border-[#999] px-3 py-2 shadow-sm">
         <div className="flex items-center space-x-3">
           {/* Back/Forward buttons */}
           <div className="flex space-x-1">
             <button
               onClick={() => setCanGoBack(false)}
               disabled={!canGoBack}
-              className={`w-8 h-8 rounded-md flex items-center justify-center text-blue-500 ${
-                canGoBack ? 'bg-white border border-gray-300 active:bg-gray-100' : 'text-gray-400'
+              className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-lg ${
+                canGoBack 
+                  ? 'bg-gradient-to-b from-white via-[#f5f5f5] to-[#e8e8e8] border border-[#999] text-[#1a73e8] shadow-sm active:bg-gradient-to-b active:from-[#e8e8e8] active:to-[#d0d0d0]' 
+                  : 'text-[#999] bg-transparent'
               }`}
             >
-              ←
+              ◀
             </button>
             <button
               onClick={() => setCanGoForward(false)}
               disabled={!canGoForward}
-              className={`w-8 h-8 rounded-md flex items-center justify-center text-blue-500 ${
-                canGoForward ? 'bg-white border border-gray-300 active:bg-gray-100' : 'text-gray-400'
+              className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-lg ${
+                canGoForward 
+                  ? 'bg-gradient-to-b from-white via-[#f5f5f5] to-[#e8e8e8] border border-[#999] text-[#1a73e8] shadow-sm active:bg-gradient-to-b active:from-[#e8e8e8] active:to-[#d0d0d0]' 
+                  : 'text-[#999] bg-transparent'
               }`}
             >
-              →
+              ▶
             </button>
           </div>
 
           {/* URL Bar */}
           <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
-              className="w-full h-8 px-3 pr-10 rounded-md border border-gray-300 bg-white text-sm text-gray-800 placeholder-gray-500"
-              placeholder="Search or enter website name"
-            />
-            {isLoading ? (
-              <div className="absolute right-3 top-2 w-4 h-4">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (
-              <button
-                onClick={handleUrlSubmit}
-                className="absolute right-2 top-1 w-6 h-6 bg-blue-500 rounded text-white text-xs flex items-center justify-center"
-              >
-                →
-              </button>
-            )}
+            <div className="relative bg-white rounded-lg border border-[#999] shadow-inner">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
+                className="w-full h-8 px-3 pr-8 rounded-lg bg-transparent text-sm text-gray-800 placeholder-gray-500 focus:outline-none"
+                placeholder="Search or enter website name"
+              />
+              {isLoading ? (
+                <div className="absolute right-3 top-2 w-4 h-4">
+                  <div className="w-4 h-4 border-2 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <button
+                  onClick={handleUrlSubmit}
+                  className="absolute right-2 top-1 w-6 h-6 bg-gradient-to-b from-[#4d90fe] to-[#1a73e8] rounded text-white text-xs flex items-center justify-center shadow-sm"
+                >
+                  →
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Bookmarks button */}
           <button
             onClick={() => setShowBookmarks(!showBookmarks)}
-            className="w-8 h-8 rounded-md bg-white border border-gray-300 flex items-center justify-center text-blue-500 active:bg-gray-100"
+            className="w-8 h-8 rounded-md bg-gradient-to-b from-white via-[#f5f5f5] to-[#e8e8e8] border border-[#999] flex items-center justify-center text-[#1a73e8] shadow-sm active:bg-gradient-to-b active:from-[#e8e8e8] active:to-[#d0d0d0]"
           >
-            📚
+            �
           </button>
         </div>
       </div>
@@ -270,17 +324,17 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
           <div className="absolute inset-0 bg-white z-10">
             <div className="p-4">
               <h2 className="text-lg font-semibold mb-4 text-gray-800">Bookmarks</h2>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {bookmarks.map((bookmark, index) => (
                   <button
                     key={index}
                     onClick={() => handleBookmarkClick(bookmark)}
-                    className="w-full flex items-center p-3 border border-gray-200 rounded-lg active:bg-gray-100"
+                    className="w-full flex items-center p-3 border-b border-gray-200 active:bg-blue-50"
                   >
-                    <span className="text-2xl mr-3">{bookmark.icon}</span>
+                    <span className="text-xl mr-3">{bookmark.icon}</span>
                     <div className="flex-1 text-left">
                       <div className="font-medium text-gray-800">{bookmark.name}</div>
-                      <div className="text-sm text-gray-500">{getDisplayUrl(bookmark.url)}</div>
+                      <div className="text-sm text-blue-600">{getDisplayUrl(bookmark.url)}</div>
                     </div>
                   </button>
                 ))}
@@ -291,16 +345,16 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
           <div className="absolute inset-0 bg-white z-10">
             <div className="p-4">
               <h2 className="text-lg font-semibold mb-4 text-gray-800">History</h2>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {history.map((item, index) => (
                   <button
                     key={index}
                     onClick={() => handleHistoryClick(item)}
-                    className="w-full flex items-center p-3 border border-gray-200 rounded-lg active:bg-gray-100"
+                    className="w-full flex items-center p-3 border-b border-gray-200 active:bg-blue-50"
                   >
                     <div className="flex-1 text-left">
                       <div className="font-medium text-gray-800">{item.title}</div>
-                      <div className="text-sm text-gray-500">{getDisplayUrl(item.url)}</div>
+                      <div className="text-sm text-blue-600">{getDisplayUrl(item.url)}</div>
                       <div className="text-xs text-gray-400">{formatHistoryTime(item.timestamp)}</div>
                     </div>
                   </button>
@@ -312,10 +366,10 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
           <div className="absolute inset-0 bg-gray-100 z-10">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Tabs ({tabs.length})</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Pages ({tabs.length})</h2>
                 <button
                   onClick={addNewTab}
-                  className="w-8 h-8 bg-blue-500 rounded text-white text-lg flex items-center justify-center"
+                  className="w-8 h-8 bg-gradient-to-b from-[#4d90fe] to-[#1a73e8] rounded text-white text-lg flex items-center justify-center shadow-sm"
                 >
                   +
                 </button>
@@ -324,7 +378,7 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
                 {tabs.map((tab) => (
                   <div
                     key={tab.id}
-                    className={`relative bg-white rounded-lg border-2 ${
+                    className={`relative bg-white rounded-lg shadow-md border-2 ${
                       tab.id === activeTabId ? 'border-blue-500' : 'border-gray-200'
                     }`}
                   >
@@ -333,12 +387,12 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
                       className="w-full p-4 text-left"
                     >
                       <div className="font-medium text-gray-800 truncate">{tab.title}</div>
-                      <div className="text-sm text-gray-500 truncate">{getDisplayUrl(tab.url)}</div>
+                      <div className="text-sm text-blue-600 truncate">{getDisplayUrl(tab.url)}</div>
                     </button>
                     {tabs.length > 1 && (
                       <button
                         onClick={() => closeTab(tab.id)}
-                        className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full text-white text-xs flex items-center justify-center"
+                        className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full text-white text-xs flex items-center justify-center shadow-sm"
                       >
                         ×
                       </button>
@@ -350,55 +404,169 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
           </div>
         ) : (
           // Web content simulation
-          <div className="p-4 text-center">
+          <div className="p-4 text-center bg-white">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="w-8 h-8 border-2 border-[#1a73e8] border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-gray-600">Loading...</p>
               </div>
             ) : (
               <div className="space-y-6 py-8">
-                <div className="text-4xl mb-4">🌐</div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                  {activeTab?.title || "Safari"}
-                </h1>
-                <p className="text-gray-600 mb-6">
-                  Currently viewing: {getDisplayUrl(currentUrl)}
-                </p>
-                <div className="space-y-4 text-sm text-gray-500">
-                  <p>This is a simulated Safari browser for iOS 4.</p>
-                  <p>Use the address bar to "navigate" to different sites.</p>
-                  <p>Access bookmarks and history using the buttons above.</p>
-                </div>
                 
                 {/* Simulated content based on URL */}
-                {currentUrl.includes('google.com') && (
-                  <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold mb-2">Google Search</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="p-2 bg-white rounded border">
-                        <div className="text-blue-600 font-medium">Apple - Official Site</div>
-                        <div className="text-green-600">www.apple.com</div>
-                        <div className="text-gray-600">Discover the innovative world of Apple...</div>
+                {currentUrl.includes('apple.com') && !currentUrl.includes('iphone') && (
+                  <div className="text-left">
+                    {/* Apple homepage simulation */}
+                    <div className="bg-black text-white text-center py-8 rounded-lg mb-6">
+                      <div className="text-4xl mb-4">�</div>
+                      <h1 className="text-2xl font-bold mb-2">Apple</h1>
+                      <p className="text-lg">Think Different.</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <button 
+                        onClick={() => {
+                          setInputUrl("https://www.apple.com/iphone");
+                          setCurrentUrl("https://www.apple.com/iphone");
+                        }}
+                        className="bg-gray-100 p-4 rounded-lg text-center hover:bg-gray-200"
+                      >
+                        <div className="text-2xl mb-2">📱</div>
+                        <div className="font-medium">iPhone</div>
+                      </button>
+                      <div className="bg-gray-100 p-4 rounded-lg text-center">
+                        <div className="text-2xl mb-2">💻</div>
+                        <div className="font-medium">Mac</div>
                       </div>
-                      <div className="p-2 bg-white rounded border">
-                        <div className="text-blue-600 font-medium">GitHub</div>
-                        <div className="text-green-600">github.com</div>
-                        <div className="text-gray-600">Build software better, together.</div>
+                      <div className="bg-gray-100 p-4 rounded-lg text-center">
+                        <div className="text-2xl mb-2">📱</div>
+                        <div className="font-medium">iPad</div>
+                      </div>
+                      <div className="bg-gray-100 p-4 rounded-lg text-center">
+                        <div className="text-2xl mb-2">⌚</div>
+                        <div className="font-medium">Watch</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentUrl.includes('apple.com/iphone') && (
+                  <div className="text-left">
+                    {/* iPhone page simulation */}
+                    <div className="bg-gradient-to-b from-blue-500 to-blue-700 text-white text-center py-8 rounded-lg mb-6">
+                      <div className="text-4xl mb-4">📱</div>
+                      <h1 className="text-2xl font-bold mb-2">iPhone 4</h1>
+                      <p className="text-lg">This changes everything. Again.</p>
+                    </div>
+                    
+                    <div className="space-y-4 text-sm">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold mb-2">Features</h3>
+                        <ul className="space-y-1 text-gray-600">
+                          <li>• Retina Display</li>
+                          <li>• FaceTime Video Calling</li>
+                          <li>• 5MP Camera with LED Flash</li>
+                          <li>• 1080p HD Video Recording</li>
+                          <li>• iOS 4</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
                 )}
                 
-                {currentUrl.includes('apple.com') && (
-                  <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold mb-2">🍎 Apple</h3>
-                    <p className="text-sm text-gray-600">Think Different.</p>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 bg-white rounded">iPhone</div>
-                      <div className="p-2 bg-white rounded">iPad</div>
-                      <div className="p-2 bg-white rounded">Mac</div>
-                      <div className="p-2 bg-white rounded">Watch</div>
+                {currentUrl.includes('google.com') && (
+                  <div className="text-left">
+                    <div className="text-center mb-8">
+                      <div className="text-6xl mb-4">G🔍🔴🟡🔵</div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search Google or type URL"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-full text-center focus:outline-none focus:border-blue-500"
+                        />
+                        <button className="absolute right-3 top-3 text-blue-500">🔍</button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+                        <div className="text-blue-600 font-medium">Apple - Official Site</div>
+                        <div className="text-green-600 text-xs">www.apple.com</div>
+                        <div className="text-gray-600 text-xs">Discover the innovative world of Apple and shop everything iPhone, iPad, Apple Watch, Mac, and Apple TV...</div>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+                        <div className="text-blue-600 font-medium">YouTube</div>
+                        <div className="text-green-600 text-xs">www.youtube.com</div>
+                        <div className="text-gray-600 text-xs">Enjoy the videos and music you love, upload original content, and share it all...</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentUrl.includes('facebook.com') && (
+                  <div className="text-left">
+                    <div className="bg-blue-600 text-white text-center py-6 rounded-lg mb-6">
+                      <div className="text-4xl mb-2">📘</div>
+                      <h1 className="text-xl font-bold">facebook</h1>
+                      <p className="text-sm">Connect with friends and the world around you on Facebook.</p>
+                    </div>
+                    
+                    <div className="space-y-3 text-sm">
+                      <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-blue-500">
+                        <div className="font-medium text-gray-800">John Doe</div>
+                        <div className="text-gray-600 text-xs">2 hours ago</div>
+                        <p className="text-gray-700 mt-2">Just got the new iPhone 4! The camera quality is amazing 📱📸</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-blue-500">
+                        <div className="font-medium text-gray-800">Jane Smith</div>
+                        <div className="text-gray-600 text-xs">4 hours ago</div>
+                        <p className="text-gray-700 mt-2">Beautiful sunset today! 🌅</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentUrl.includes('youtube.com') && (
+                  <div className="text-left">
+                    <div className="bg-red-600 text-white text-center py-6 rounded-lg mb-6">
+                      <div className="text-4xl mb-2">📺</div>
+                      <h1 className="text-xl font-bold">YouTube</h1>
+                      <p className="text-sm">Broadcast Yourself</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <div className="bg-gray-300 h-24 rounded mb-2 flex items-center justify-center">
+                          <span className="text-2xl">▶️</span>
+                        </div>
+                        <div className="font-medium text-sm">iPhone 4 Official Commercial</div>
+                        <div className="text-gray-600 text-xs">Apple • 2.1M views</div>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <div className="bg-gray-300 h-24 rounded mb-2 flex items-center justify-center">
+                          <span className="text-2xl">▶️</span>
+                        </div>
+                        <div className="font-medium text-sm">iOS 4 Features Overview</div>
+                        <div className="text-gray-600 text-xs">TechReview • 856K views</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Default content for unrecognized URLs */}
+                {!currentUrl.includes('apple.com') && !currentUrl.includes('google.com') && !currentUrl.includes('facebook.com') && !currentUrl.includes('youtube.com') && (
+                  <div className="space-y-6 py-8">
+                    <div className="text-4xl mb-4">🌐</div>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-4">
+                      {activeTab?.title || "Safari"}
+                    </h1>
+                    <p className="text-gray-600 mb-6">
+                      Currently viewing: {getDisplayUrl(currentUrl)}
+                    </p>
+                    <div className="space-y-4 text-sm text-gray-500">
+                      <p>This is Safari for iPhone 4.</p>
+                      <p>Use the address bar to navigate to different sites.</p>
+                      <p>Access bookmarks and history using the navigation buttons.</p>
                     </div>
                   </div>
                 )}
@@ -411,27 +579,27 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
   );
 
   return (
-    <div className="w-screen h-screen bg-gradient-to-b from-blue-400 to-blue-600 flex flex-col">
+    <div className="w-screen h-screen bg-white flex flex-col">
       {renderStatusBar()}
       
-      {/* Safari Header */}
-      <div className="bg-gradient-to-b from-gray-300 to-gray-400 border-b border-gray-500 px-4 py-2">
+      {/* Safari Header - iPhone 4 Style */}
+      <div className="bg-gradient-to-b from-[#dcdcdc] via-[#d1d1d1] to-[#c7c7c7] border-b border-[#999] px-4 py-2 shadow-sm">
         <div className="flex items-center justify-between">
           <button
             onClick={onClose}
-            className="text-blue-600 font-medium text-sm px-2 py-1"
+            className="text-[#1a73e8] font-medium text-base px-2 py-1 active:opacity-50"
           >
             Done
           </button>
-          <h1 className="text-lg font-semibold text-gray-800">Safari</h1>
-          <div className="flex space-x-3">
+          <h1 className="text-lg font-bold text-gray-800 tracking-tight">Safari</h1>
+          <div className="flex space-x-4">
             <button
               onClick={() => {
                 setShowHistory(!showHistory);
                 setShowBookmarks(false);
                 setShowTabs(false);
               }}
-              className="text-blue-600 text-sm px-2 py-1"
+              className="text-[#1a73e8] text-base px-2 py-1 active:opacity-50"
             >
               History
             </button>
@@ -441,9 +609,9 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
                 setShowBookmarks(false);
                 setShowHistory(false);
               }}
-              className="text-blue-600 text-sm px-2 py-1"
+              className="text-[#1a73e8] text-base px-2 py-1 active:opacity-50"
             >
-              Tabs
+              Pages
             </button>
           </div>
         </div>
@@ -451,8 +619,8 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
 
       {renderMainView()}
 
-      {/* Bottom Toolbar */}
-      <div className="bg-gradient-to-b from-gray-300 to-gray-400 border-t border-gray-500 px-4 py-2">
+      {/* Bottom Toolbar - iPhone 4 Style */}
+      <div className="bg-gradient-to-b from-[#dcdcdc] via-[#d1d1d1] to-[#c7c7c7] border-t border-[#999] px-4 py-3 shadow-sm">
         <div className="flex items-center justify-around">
           <button
             onClick={() => {
@@ -460,24 +628,30 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
               setShowHistory(false);
               setShowTabs(false);
             }}
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 active:opacity-50"
           >
-            <span className="text-blue-600 text-lg">📚</span>
-            <span className="text-xs text-gray-700">Bookmarks</span>
+            <div className="w-7 h-7 flex items-center justify-center">
+              <span className="text-[#1a73e8] text-lg">�</span>
+            </div>
+            <span className="text-xs text-gray-700 font-medium">Bookmarks</span>
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 active:opacity-50"
           >
-            <span className="text-blue-600 text-lg">🔄</span>
-            <span className="text-xs text-gray-700">Refresh</span>
+            <div className="w-7 h-7 flex items-center justify-center">
+              <span className="text-[#1a73e8] text-lg">🔄</span>
+            </div>
+            <span className="text-xs text-gray-700 font-medium">Refresh</span>
           </button>
           <button
             onClick={addNewTab}
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 active:opacity-50"
           >
-            <span className="text-blue-600 text-lg">+</span>
-            <span className="text-xs text-gray-700">New Tab</span>
+            <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-b from-white via-[#f5f5f5] to-[#e8e8e8] border border-[#999] rounded shadow-sm">
+              <span className="text-[#1a73e8] text-base font-bold">+</span>
+            </div>
+            <span className="text-xs text-gray-700 font-medium">New Page</span>
           </button>
           <button
             onClick={() => {
@@ -489,10 +663,12 @@ const SafariApp: React.FC<SafariAppProps> = ({ onClose, time }) => {
                 });
               }
             }}
-            className="flex flex-col items-center space-y-1"
+            className="flex flex-col items-center space-y-1 active:opacity-50"
           >
-            <span className="text-blue-600 text-lg">📤</span>
-            <span className="text-xs text-gray-700">Share</span>
+            <div className="w-7 h-7 flex items-center justify-center">
+              <span className="text-[#1a73e8] text-lg">↗️</span>
+            </div>
+            <span className="text-xs text-gray-700 font-medium">Share</span>
           </button>
         </div>
       </div>
