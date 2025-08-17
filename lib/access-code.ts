@@ -61,13 +61,14 @@ export const handleAccessCode = async (formData: FormData) => {
     // Log usage for tracking
     console.log(`Access code ${codeDocument.code} used. Usage count: ${codeDocument.usageCount}/${codeDocument.maxUsages || 'unlimited'}`);
 
-    // Check if this was the last usage for usage-limited codes
+    // Check if this was the last usage for usage-limited codes and delete if exhausted
     if (
       codeDocument.type === "usage-limited" &&
       codeDocument.maxUsages &&
       codeDocument.usageCount >= codeDocument.maxUsages
     ) {
-      console.log(`Access code ${codeDocument.code} has reached its maximum usage limit and is now exhausted.`);
+      console.log(`Access code ${codeDocument.code} has reached its maximum usage limit and will be deleted.`);
+      await AccessCodeModel.deleteOne({ _id: codeDocument._id });
     }
 
     // Set cookies for the user session - use await with cookies()

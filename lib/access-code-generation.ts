@@ -35,13 +35,13 @@ function generateUniqueCode(): string {
 }
 
 /**
- * Creates a playspace with appropriate devices based on the playing device type
+ * Creates a playspace with one shared device based on the playing device type
+ * Each team gets exactly one device regardless of team size
  */
 async function createPlayspaceWithDevices(
   playspaceName: string, 
   playspaceDescription: string, 
-  deviceType: "hackphone" | "hackbook-w95",
-  numberOfPlayers: number
+  deviceType: "hackphone" | "hackbook-w95"
 ): Promise<{
   success: boolean;
   playspaceId?: string;
@@ -61,32 +61,30 @@ async function createPlayspaceWithDevices(
     await newPlayspace.save();
     const playspaceId = newPlayspace._id.toString();
 
-    // Create devices for the playspace
+    // Create ONE device for the playspace (shared by the entire team)
     const deviceIds: string[] = [];
     
-    for (let i = 0; i < numberOfPlayers; i++) {
-      // Generate a unique MAC address for the device
-      const deviceMacAddress = generateDeviceMacAddress();
-      
-      const newDevice = new Device({
-        deviceType,
-        deviceMacAddress,
-        status: "online",
-        playspace: new mongoose.Types.ObjectId(playspaceId),
-        configuration: {
-          osVersion: deviceType === "hackphone" ? "iOS 16" : "Windows 95",
-          installedApps: deviceType === "hackphone" 
-            ? ["Safari", "Calculator", "Settings", "Terminal", "Files", "Network Scanner", "Crypto Toolkit"]
-            : ["Notepad", "Calculator", "Paint", "MyComputer", "Terminal", "Minesweeper", "CD Player"],
-          theme: "default",
-          securityLevel: 1
-        },
-        logs: []
-      });
+    // Generate a unique MAC address for the single team device
+    const deviceMacAddress = generateDeviceMacAddress();
+    
+    const newDevice = new Device({
+      deviceType,
+      deviceMacAddress,
+      status: "online",
+      playspace: new mongoose.Types.ObjectId(playspaceId),
+      configuration: {
+        osVersion: deviceType === "hackphone" ? "iOS 16" : "Windows 95",
+        installedApps: deviceType === "hackphone" 
+          ? ["Safari", "Calculator", "Settings", "Terminal", "Files", "Network Scanner", "Crypto Toolkit"]
+          : ["Notepad", "Calculator", "Paint", "MyComputer", "Terminal", "Minesweeper", "CD Player"],
+        theme: "default",
+        securityLevel: 1
+      },
+      logs: []
+    });
 
-      await newDevice.save();
-      deviceIds.push(newDevice._id.toString());
-    }
+    await newDevice.save();
+    deviceIds.push(newDevice._id.toString());
 
     return {
       success: true,
@@ -155,14 +153,13 @@ export async function createAccessCodeAndPlayspace(
     
     // Create playspace name and description
     const playspaceName = `${eventTitle} - Team ${accessCode}`;
-    const playspaceDescription = `Gaming environment for ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''} using ${deviceType === "hackphone" ? "HackPhone (Smartphone)" : "HackBook W95 (PC/Laptop)"} devices. Registration ID: ${registrationId}`;
+    const playspaceDescription = `Shared gaming environment for ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''} using one ${deviceType === "hackphone" ? "HackPhone (Smartphone)" : "HackBook W95 (PC/Laptop)"} device. Registration ID: ${registrationId}`;
 
-    // Create playspace with devices
+    // Create playspace with one shared device
     const playspaceResult = await createPlayspaceWithDevices(
       playspaceName,
       playspaceDescription,
-      deviceType,
-      numberOfPlayers
+      deviceType
     );
 
     if (!playspaceResult.success) {

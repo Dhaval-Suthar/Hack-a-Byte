@@ -695,11 +695,11 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
                     </li>
                     <li>
                       <span class="warning-icon">👥</span>
-                      <span><strong>Team access:</strong> Share with your ${numberOfPlayers} team member${numberOfPlayers > 1 ? 's' : ''}</span>
+                      <span><strong>Shared device:</strong> Your team of ${numberOfPlayers} will share one device</span>
                     </li>
                     <li>
                       <span class="warning-icon">📱</span>
-                      <span><strong>Device specific:</strong> Use only on ${playingDevice === 'smartphone' ? 'smartphones' : 'PC/laptops'}</span>
+                      <span><strong>Device type:</strong> ${playingDevice === 'smartphone' ? 'HackPhone (Mobile Interface)' : 'HackBook W95 (Desktop Interface)'}</span>
                     </li>
                   </ul>
                 </div>
