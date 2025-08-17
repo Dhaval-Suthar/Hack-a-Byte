@@ -146,7 +146,8 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
               {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
             {todayEvents.map((event, i) => (
-              <div key={i} className={styles.dayEvent}>
+            {todayEvents.map((event) => (
+              <div key={event.id} className={styles.dayEvent}>
                 <div className={styles.eventDot} />
                 <span>{event.startTime} {event.title}</span>
               </div>
