@@ -73,7 +73,7 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
   const handleNewEvent = () => {
     if (newEvent.title && newEvent.date) {
       setEvents(prev => [...prev, {
-        id: Math.random().toString(),
+        id: crypto.randomUUID(),
         title: newEvent.title!,
         date: newEvent.date!,
         startTime: newEvent.startTime || '12:00 PM'
