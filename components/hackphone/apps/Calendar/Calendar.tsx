@@ -29,7 +29,6 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
     endTime?: string;
     description?: string;
   }
-
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
