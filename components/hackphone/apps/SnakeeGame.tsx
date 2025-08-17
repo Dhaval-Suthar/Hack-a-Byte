@@ -67,13 +67,16 @@ interface SnakeeGameProps {
 }
 
 const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
+  // mark props as used to avoid lint warnings when they're intentionally unused
+  void onClose;
+  void time;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [gameStatus, setGameStatus] = useState("Menu");
   const [level, setLevel] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
-  const [speed, setSpeed] = useState(4);
+  const [speed] = useState(4);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -88,13 +91,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
   // (HEX_BASE) removed as unused
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
+  // formatTime helper removed (unused in this component)
 
   // Load high score from localStorage
   useEffect(() => {
@@ -257,14 +254,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
   };
 
-  const pauseGame = () => {
-    setIsRunning(false);
-    setGameStatus("Paused");
-    if (gameStateRef.current.moveTimer) {
-      clearInterval(gameStateRef.current.moveTimer);
-      gameStateRef.current.moveTimer = null;
-    }
-  };
+  // pauseGame removed (unused) — use game state toggles via setIsRunning/setGameStatus directly when needed
 
   const setDirection = (idx: number) => {
     if ((idx + 3) % 6 === gameStateRef.current.dirIndex) return;

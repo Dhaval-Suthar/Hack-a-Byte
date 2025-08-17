@@ -1,65 +1,34 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 interface HackPhoneLoginScreenProps {
-  username?: string;
-  onLogin?: (username: string, password: string) => void;
-  error?: string | null;
-  isLoading?: boolean;
-  isSigningUp?: boolean;
-  onSignupToggle?: () => void;
-  isPlayspaceUser?: boolean;
   onSlideToUnlock?: () => void;
 }
 
-const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
-  username,
-  onLogin,
-  error,
-  isLoading = false,
-  isSigningUp = false,
-  onSignupToggle,
-  isPlayspaceUser = false,
-  onSlideToUnlock,
-}) => {
-  const [inputUsername, setInputUsername] = useState("");
-  const [password, setPassword] = useState("");
-  // time state removed for status bar
-  const [showLockAnimation, setShowLockAnimation] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
+const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUnlock }) => {
   const [slidePosition, setSlidePosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
-  const [hasPasscode, setHasPasscode] = useState(false);
+  const [now, setNow] = useState(new Date());
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const knobRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const latestClientX = useRef<number | null>(null);
 
-  // status bar time removed
-
-  // Show lock screen animation when logging in with username
   useEffect(() => {
-    if (username) {
-      setShowLockAnimation(true);
-    }
-  }, [username]);
-
-  // Determine if device has a passcode without reading localStorage during render
-  useEffect(() => {
-    try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("hackphone_password") : null;
-      setHasPasscode(!!saved);
-    } catch {}
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
-  // Handle slide to unlock
   const getMaxPosition = () => {
     const sliderEl = sliderRef.current;
     const knobEl = knobRef.current;
     if (!sliderEl || !knobEl) return 0;
     const sliderWidth = sliderEl.clientWidth;
     const knobWidth = knobEl.clientWidth;
-    return Math.max(0, sliderWidth - knobWidth - 8); // padding compensation
+    return Math.max(0, sliderWidth - knobWidth - 8);
   };
 
   const handleSlideStart = (clientX: number) => {
@@ -69,299 +38,160 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({
 
   const handleSlideMove = (clientX: number) => {
     if (!isDragging) return;
-    const maxPosition = getMaxPosition();
-    const newPos = Math.max(0, Math.min(maxPosition, clientX - dragStartX));
-    setSlidePosition(newPos);
+    // Throttle updates with requestAnimationFrame for smoother motion
+    latestClientX.current = clientX;
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const maxPosition = getMaxPosition();
+      const client = latestClientX.current ?? clientX;
+      const newPos = Math.max(0, Math.min(maxPosition, client - dragStartX));
+      setSlidePosition(newPos);
+    });
   };
 
   const handleSlideEnd = () => {
+    // cancel any pending rAF
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     const maxPosition = getMaxPosition();
-    if (slidePosition > maxPosition * 0.75) {
+    if (slidePosition > maxPosition * 0.7) {
       setSlidePosition(maxPosition);
       setTimeout(() => {
         if (onSlideToUnlock) onSlideToUnlock();
-        else setShowLoginForm(true);
-      }, 150);
+      }, 200);
     } else {
       setSlidePosition(0);
     }
     setIsDragging(false);
   };
 
-  // Pointer events (unified mouse/touch)
   const onPointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch {}
     handleSlideStart(e.clientX);
   };
   const onPointerMove = (e: React.PointerEvent) => handleSlideMove(e.clientX);
   const onPointerUp = (e: React.PointerEvent) => {
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
     handleSlideEnd();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onLogin) {
-      // Check if it's device password mode
-      if (hasPasscode) {
-        // For device password, use password field for passcode and dummy username
-        onLogin("device", password.trim());
-      } else {
-        // For playspace login, use both username and password
-        if (inputUsername.trim() && password.trim()) {
-          onLogin(inputUsername.trim(), password.trim());
-        }
-      }
-    }
-  };
+  const formatDate = (date: Date) => date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString([], { 
-      weekday: 'long',
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  if (showLockAnimation && username) {
-    return (
-      <div className="w-screen h-screen bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 flex flex-col">
-  {/* status bar removed */}
-
-        {/* Welcome message */}
-        <div className="flex-1 flex flex-col items-center justify-center text-white text-center px-8">
-          <div className="mb-8">
-            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-md border border-white/30">
-              <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
-                <span className="text-2xl">👤</span>
-              </div>
-            </div>
-            <h2 className="text-2xl font-light mb-2">Welcome back</h2>
-            <p className="text-lg text-white/80">{username}</p>
-          </div>
-
-          {/* Unlock animation */}
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 border-2 border-white/60 border-t-white rounded-full animate-spin mb-4" />
-            <p className="text-sm text-white/70">Unlocking HackPhone...</p>
-          </div>
-        </div>
-
-        {/* Bottom indicator */}
-        <div className="pb-8 flex justify-center">
-          <div className="w-32 h-1 bg-white/30 rounded-full" />
-        </div>
-      </div>
-    );
-  }
+  // Compute progress percent for the fill bar (safe if refs not ready)
+  const maxPosForRender = getMaxPosition();
+  const progressPercent = maxPosForRender > 0 ? Math.max(0, Math.min(100, (slidePosition / maxPosForRender) * 100)) : 0;
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica,Arial,ui-sans-serif]">
+    <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica,Arial,ui-sans-serif] overflow-hidden">
       <style jsx>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
       `}</style>
-      {/* Lock screen background */}
+
       <div className="flex-1 relative overflow-hidden">
-        {/* iPhone 4-ish wallpaper feel (cool blue aurora with subtle noise) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a2342] via-[#0f2e5e] to-[#091a2e]" />
-        <div className="absolute inset-0 opacity-[0.07]" style={{backgroundImage:"radial-gradient(circle at 20% 10%, rgba(255,255,255,0.25) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 45%)"}} />
-        <div className="absolute inset-0" style={{backgroundImage:"url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"160\" viewBox=\"0 0 160 160\"><filter id=\"n\"><feTurbulence baseFrequency=\"0.8\" numOctaves=\"2\" seed=\"2\"/></filter><rect width=\"100%\" height=\"100%\" filter=\"url(%23n)\" opacity=\"0.04\"/></svg>')"}} />
-
-  {/* status bar removed */}
-
-        {/* Time display */}
-        <div className="text-center text-white mb-8 relative z-10">
-          <div className="text-6xl font-thin mb-2">{/* time removed */}</div>
-          <div className="text-lg text-white/70">{formatDate(new Date())}</div>
+        <div
+          className="absolute left-0 right-0 top-0"
+          style={{ bottom: 'calc(clamp(58px,10.5vw,76px) + 0.75rem)' }}
+        >
+          <Image src="/hackphone/lock-screen.png" alt="lock screen" fill className="object-cover" />
         </div>
 
-        {/* Lock screen content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
-          {onSlideToUnlock && !showLoginForm ? (
-            // Slide to unlock interface
-            <div className="text-center text-white">
-              <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-8 mx-auto backdrop-blur-md border border-white/20">
-                <span className="text-4xl">🔒</span>
-              </div>
-              
-              {/* Slide to unlock */}
-              <div className="w-72 mx-auto mb-8">
-                <div
-                  ref={sliderRef}
-                  className="relative w-72 h-12 bg-black/40 rounded-full border border-white/25 overflow-hidden"
-                  style={{boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.4)"}}
-                >
-                  {/* shimmer text */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="relative text-[13px] tracking-wide uppercase">
-                      <span className="text-white/60" style={{background: "linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.3) 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", backgroundSize: "200% 100%", animation: "shimmer 2s infinite"}}>slide to unlock</span>
-                    </div>
-                  </div>
+        <div className="text-center text-white mb-8 relative z-10 pt-20">
+          <div className="text-6xl font-thin mb-2 drop-shadow-lg">{formatTime(now)}</div>
+          <div className="text-lg text-white/90 drop-shadow-lg">{formatDate(now)}</div>
+        </div>
 
-                  {/* knob */}
-                  <div
-                    ref={knobRef}
-                    className="absolute top-1 left-1 w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer select-none"
-                    style={{transform: `translateX(${slidePosition}px)`, boxShadow: "0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.9)"}}
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={onPointerUp}
-                    onPointerCancel={onPointerUp}
+  <div className="flex-1"></div>
+
+  {/* Bottom bezel overlay */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/80 border-t border-white/10 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.7)] overflow-hidden z-[40]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-black/70" />
+        </div>
+
+        {/* Slider positioned just above the Home button (above bezel, below home) */}
+        <div className="absolute left-0 right-0 bottom-20 z-[45] pointer-events-auto">
+          <div className="w-full max-w-[22rem] mx-auto px-6">
+            <div
+              ref={sliderRef}
+              className="relative w-full h-12 rounded-[22px] border border-white/20 overflow-hidden supports-[backdrop-filter]:backdrop-blur-sm bg-gradient-to-b from-black/70 via-black/50 to-black/60 shadow-[inset_0_2px_0_rgba(255,255,255,0.06),inset_0_-2px_0_rgba(0,0,0,0.6),0_8px_20px_rgba(0,0,0,0.6)]"
+            >
+              {/* Track subtle hairlines */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-white/25 opacity-60" />
+              <div className="absolute bottom-0 left-0 right-0 h-px bg-black/70" />
+
+              {/* Progress fill */}
+              <div
+                aria-hidden
+                className="absolute left-1 top-1 bottom-1 rounded-full bg-gradient-to-r from-cyan-400/45 via-sky-400/25 to-transparent pointer-events-none"
+                style={{ width: `${progressPercent}%`, transition: isDragging ? 'none' : 'width 220ms ease' }}
+              />
+
+              {/* Instruction label with shimmer, padded to clear the knob */}
+              <div className="absolute inset-0 flex items-center justify-center pl-16 pr-4 pointer-events-none">
+                <div className="relative text-[13px] tracking-wide">
+                  <span
+                    className="text-white/85 drop-shadow-md"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.45) 100%)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      color: "transparent",
+                      backgroundSize: "180% 100%",
+                      animation: "shimmer 1.6s infinite",
+                    }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 4l8 8-8 8" />
-                    </svg>
-                  </div>
+                    slide to unlock
+                  </span>
                 </div>
               </div>
-              
-              <p className="text-sm text-white/50 mb-6">
-                Swipe to access HackPhone
-              </p>
+
+              {/* Circular knob */}
+              <div
+                ref={knobRef}
+                className={`absolute top-1 left-1 h-10 w-10 rounded-full border border-black/10 bg-white/95 flex items-center justify-center ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'} select-none shadow-[0_8px_20px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-2px_4px_rgba(0,0,0,0.12)]`}
+                style={{ transform: `translateX(${slidePosition}px)`, transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(.2,.9,.3,1)' }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+              >
+                {/* Inner ring and icon */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white to-neutral-200" />
+                <div className="relative z-10 w-3.5 h-3.5 rounded-full bg-black/12" />
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute z-20">
+                  <path d="M8 5l8 7-8 7" />
+                </svg>
+              </div>
             </div>
-          ) : onLogin || showLoginForm ? (
-            // Passcode entry for device password
-            hasPasscode ? (
-              <div className="w-full max-w-sm">
-                <div className="bg-black/30 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                      <span className="text-2xl">🔓</span>
-                    </div>
-                    <h2 className="text-xl font-light text-white mb-2">Enter Passcode</h2>
-                    <p className="text-sm text-white/70">Enter your device passcode to unlock</p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <input
-                        type="password"
-                        placeholder="Device Passcode"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-blue-400 focus:bg-white/20 transition-all text-center text-lg tracking-widest"
-                        disabled={isLoading}
-                        autoFocus
-                      />
-                    </div>
-
-                    {error && (
-                      <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-200 text-sm text-center">
-                        {error}
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isLoading || !password.trim()}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                          Unlocking...
-                        </div>
-                      ) : (
-                        "Unlock"
-                      )}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ) : (
-              // Original login form for playspace authentication
-              <div className="w-full max-w-sm">
-                <div className="bg-black/30 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                      <span className="text-2xl">🔓</span>
-                    </div>
-                    <h2 className="text-xl font-light text-white mb-2">
-                      {isSigningUp ? "Create Account" : isPlayspaceUser ? "Device Login" : "Join HackPhone"}
-                    </h2>
-                    <p className="text-sm text-white/70">
-                      {isSigningUp ? "Set up your HackPhone profile" : isPlayspaceUser ? "Enter your device credentials" : "Enter your hacker credentials"}
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        value={inputUsername}
-                        onChange={(e) => setInputUsername(e.target.value)}
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-blue-400 focus:bg-white/20 transition-all"
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:border-blue-400 focus:bg-white/20 transition-all"
-                        disabled={isLoading}
-                      />
-                    </div>
-
-                    {error && (
-                      <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-200 text-sm text-center">
-                        {error}
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isLoading || !inputUsername.trim() || !password.trim()}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                          Connecting...
-                        </div>
-                      ) : (
-                        isSigningUp ? "Create Account" : "Unlock"
-                      )}
-                    </button>
-
-                    {onSignupToggle && !isPlayspaceUser && (
-                      <button
-                        type="button"
-                        onClick={onSignupToggle}
-                        className="w-full text-blue-400 hover:text-blue-300 text-sm py-2 transition-colors"
-                      >
-                        {isSigningUp ? "Already have an account? Sign in" : "New to HackPhone? Create account"}
-                      </button>
-                    )}
-                  </form>
-                </div>
-              </div>
-            )
-          ) : (
-            // Just display mode (when no onLogin and no onSlideToUnlock)
-            <div className="text-center text-white">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-md border border-white/30">
-                <span className="text-3xl">🔒</span>
-              </div>
-              <p className="text-lg text-white/80">HackPhone is locked</p>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom indicators */}
-        <div className="pb-8 flex justify-center relative z-10">
-          <div className="flex space-x-2">
-            <div className="w-2 h-2 bg-white/60 rounded-full" />
-            <div className="w-2 h-2 bg-white/30 rounded-full" />
-            <div className="w-2 h-2 bg-white/30 rounded-full" />
           </div>
         </div>
+
+        {/* Home button */}
+        <button
+          aria-label="Home"
+          className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/70 border border-white/10 ring-1 ring-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.65)] active:translate-y-[1px] transition-transform duration-100 supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50]"
+        >
+          <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/18 via-transparent to-transparent" />
+          <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.55)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.04),inset_0_-6px_10px_rgba(0,0,0,0.55)]" />
+          <div
+            className="pointer-events-none absolute -top-1 left-0 w-[65%] h-[65%] opacity-45"
+            style={{
+              background:
+                "radial-gradient(120px 80px at 30% 20%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 55%, transparent 60%)",
+              borderTopLeftRadius: 9999,
+            }}
+          />
+          <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/85 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.4)]" />
+        </button>
       </div>
     </div>
   );
