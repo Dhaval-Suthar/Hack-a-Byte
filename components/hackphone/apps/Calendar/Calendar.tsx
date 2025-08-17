@@ -93,7 +93,7 @@ const Calendar: React.FC<CalendarProps> = ({ time }) => {
     let iCalString = "BEGIN:VCALENDAR\nVERSION:2.0\n";
     events.forEach(event => {
       iCalString += "BEGIN:VEVENT\n";
-      iCalString += `DTSTART:${event.date.toISOString()}\n`;
+      iCalString += `DTSTART:${formatDateToICal(event.date)}\n`;
       iCalString += `SUMMARY:${event.title}\n`;
       iCalString += "END:VEVENT\n";
     });
