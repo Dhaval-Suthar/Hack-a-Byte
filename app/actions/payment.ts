@@ -3,8 +3,7 @@
 import connectDb from "@/db/connectDb";
 import EventRegistration from "@/models/EventRegistration";
 import { createRazorpayOrder, verifyRazorpayPayment, getEventRegistrationFeePerPerson } from "@/lib/razorpay";
-import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
-import { sendAccessCodeEmail } from "@/lib/nodemailer";
+import { completeRegistrationPipeline } from "@/lib/event-registration";
 
 export interface CreatePaymentOrderData {
   eventId: number;
@@ -168,51 +167,17 @@ export async function verifyEventPayment(
       };
     }
 
-    // Generate access code and create playspace (if not already done)
-    if (!updatedRegistration.accessCodeId) {
-      console.log("Creating access code and playspace for paid registration:", registrationId);
-      
-      const accessCodeResult = await createAccessCodeAndPlayspace({
-        numberOfPlayers: updatedRegistration.numberOfPlayers,
-        playingDevice: updatedRegistration.playingDevice,
-        eventTitle: eventDetails.eventTitle,
-        registrationId: registrationId
-      });
-      
-      if (accessCodeResult.success) {
-        // Update registration with access code and playspace info
-        await EventRegistration.findByIdAndUpdate(registrationId, {
-          accessCodeId: accessCodeResult.accessCodeId,
-          playspaceId: accessCodeResult.playspaceId
-        });
-        
-        // Send access code email
-        console.log("Sending access code email to:", updatedRegistration.email);
-        
-        const emailResult = await sendAccessCodeEmail({
-          email: updatedRegistration.email,
-          eventTitle: eventDetails.eventTitle,
-          accessCode: accessCodeResult.accessCode!,
-          numberOfPlayers: updatedRegistration.numberOfPlayers,
-          playingDevice: updatedRegistration.playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
-          maxUsages: updatedRegistration.numberOfPlayers,
-          playspaceName: accessCodeResult.playspaceName!,
-          instructions: `Payment confirmed! Use your access code to enter your dedicated gaming environment and start your cybersecurity challenge!`
-        });
-        
-        if (emailResult.success) {
-          // Mark email as sent
-          await EventRegistration.findByIdAndUpdate(registrationId, {
-            accessCodeSent: true,
-            accessCodeSentAt: new Date()
-          });
-          console.log("Access code email sent successfully to:", updatedRegistration.email);
-        } else {
-          console.error("Failed to send access code email:", emailResult.error);
-        }
-      } else {
-        console.error("Failed to create access code and playspace:", accessCodeResult.error);
-      }
+    // Generate access code, create team, and send email via shared pipeline
+    const pipelineResult = await completeRegistrationPipeline({
+      registrationId,
+      eventId: eventDetails.eventId,
+      eventTitle: eventDetails.eventTitle,
+      email: updatedRegistration.email,
+      numberOfPlayers: updatedRegistration.numberOfPlayers,
+      playingDevice: updatedRegistration.playingDevice,
+    });
+    if (!pipelineResult.success) {
+      console.error("Registration completion pipeline failed:", pipelineResult.error);
     }
 
     return {

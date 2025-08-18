@@ -19,6 +19,8 @@ export interface AccessCodeAndPlayspaceResult {
   accessCodeId?: string;
   playspaceId?: string;
   playspaceName?: string;
+  // First and only device created for the playspace (shared team device)
+  deviceId?: string;
   error?: string;
 }
 
@@ -70,7 +72,8 @@ async function createPlayspaceWithDevices(
     const newDevice = new Device({
       deviceType,
       deviceMacAddress,
-      status: "online",
+      // Devices should be offline by default; will go online when all team members join
+      status: "offline",
       playspace: new mongoose.Types.ObjectId(playspaceId),
       configuration: {
         osVersion: deviceType === "hackphone" ? "iOS 16" : "Windows 95",
@@ -162,7 +165,7 @@ export async function createAccessCodeAndPlayspace(
       deviceType
     );
 
-    if (!playspaceResult.success) {
+  if (!playspaceResult.success) {
       return {
         success: false,
         error: playspaceResult.error
@@ -188,7 +191,8 @@ export async function createAccessCodeAndPlayspace(
       accessCode: accessCode,
       accessCodeId: newAccessCode._id.toString(),
       playspaceId: playspaceResult.playspaceId!,
-      playspaceName
+      playspaceName,
+      deviceId: playspaceResult.deviceIds?.[0]
     };
 
   } catch (error) {

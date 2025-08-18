@@ -3,7 +3,7 @@
 import connectDb from "@/db/connectDb";
 import EventRegistration from "@/models/EventRegistration";
 import { AccessCode } from "@/models/AccessCode";
-import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
+import { completeRegistrationPipeline } from "@/lib/event-registration";
 import { sendAccessCodeEmail } from "@/lib/nodemailer";
 
 export interface EventRegistrationData {
@@ -66,76 +66,32 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
     
     await registration.save();
     const registrationId = registration._id.toString();
-    
-    // Generate access code and create playspace
-    console.log("Creating access code and playspace for registration:", registrationId);
-    
-    const accessCodeResult = await createAccessCodeAndPlayspace({
+
+    // Complete registration via shared pipeline (access code, team, email)
+    const { success, error, accessCode, playspaceName } = await completeRegistrationPipeline({
+      registrationId,
+      eventId,
+      eventTitle: `Event ${eventId}`,
+      email,
       numberOfPlayers,
-      playingDevice,
-      eventTitle: `Event ${eventId}`, // You might want to fetch actual event title
-      registrationId
+      playingDevice
     });
-    
-    if (!accessCodeResult.success) {
-      console.error("Failed to create access code and playspace:", accessCodeResult.error);
-      return {
-        success: false,
-        error: `Registration created but failed to generate access code: ${accessCodeResult.error}`
-      };
-    }
-    
-    // Update registration with access code and playspace info
-    registration.accessCodeId = accessCodeResult.accessCodeId;
-    registration.playspaceId = accessCodeResult.playspaceId;
-    await registration.save();
-    
-    // Send access code email
-    console.log("Sending access code email to:", email);
-    
-    const emailResult = await sendAccessCodeEmail({
-      email: email.toLowerCase(),
-      eventTitle: `Event ${eventId}`, // You might want to fetch actual event title
-      accessCode: accessCodeResult.accessCode!,
-      numberOfPlayers,
-      playingDevice: playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
-      maxUsages: numberOfPlayers,
-      playspaceName: accessCodeResult.playspaceName!,
-      instructions: "Use your access code to enter your dedicated gaming environment and start your cybersecurity challenge!"
-    });
-    
-    if (emailResult.success) {
-      // Mark email as sent
-      registration.accessCodeSent = true;
-      registration.accessCodeSentAt = new Date();
-      await registration.save();
-      
-      console.log("Access code email sent successfully to:", email);
-    } else {
-      console.error("Failed to send access code email:", emailResult.error);
-      // Don't fail the entire registration if email fails
+    if (!success) {
+      return { success: false, error };
     }
     
     return { 
       success: true, 
-      message: emailResult.success 
-        ? "Successfully registered for the event! Check your email for the access code."
-        : "Successfully registered for the event! Access code generated but email sending failed.",
+      message: "Successfully registered for the event! Check your email for the access code.",
       registrationId,
-      accessCode: accessCodeResult.accessCode,
-      playspaceName: accessCodeResult.playspaceName
+      accessCode,
+      playspaceName
     };
     
   } catch (error: unknown) {
     console.error("Event registration error:", error);
     
-    // Handle duplicate key error specifically
-    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
-      return { 
-        success: false, 
-        error: "You are already registered for this event" 
-      };
-    }
+  // Duplicate key is unlikely since we allow multiple registrations; keep generic message
     
     return { 
       success: false, 
@@ -201,7 +157,6 @@ export async function checkRegistrationStatus(eventId: number, email: string) {
       success: true, 
       isRegistered: !!registration,
       registrationData: registration ? {
-        isFromSFIT: registration.isFromSFIT,
         registrationDate: registration.registrationDate.toISOString()
       } : null
     };
@@ -220,25 +175,16 @@ export async function getEventRegistrationCount(eventId: number) {
     await connectDb();
     
     const count = await EventRegistration.countDocuments({ eventId });
-    const sfitCount = await EventRegistration.countDocuments({ 
-      eventId, 
-      isFromSFIT: true 
-    });
-    
     return { 
       success: true, 
-      totalRegistrations: count,
-      sfitRegistrations: sfitCount,
-      externalRegistrations: count - sfitCount
+      totalRegistrations: count
     };
     
   } catch (error: unknown) {
     console.error("Get registration count error:", error);
     return { 
       success: false, 
-      totalRegistrations: 0,
-      sfitRegistrations: 0,
-      externalRegistrations: 0
+  totalRegistrations: 0
     };
   }
 }
@@ -252,20 +198,16 @@ export async function getAllEventsWithRegistrationCounts() {
       {
         $group: {
           _id: "$eventId",
-          totalRegistrations: { $sum: 1 },
-          sfitRegistrations: {
-            $sum: { $cond: [{ $eq: ["$isFromSFIT", true] }, 1, 0] }
-          }
+          totalRegistrations: { $sum: 1 }
         }
       }
     ]);
     
     // Convert to a map for easier lookup
-    const registrationMap: Record<number, { total: number; sfit: number }> = {};
+    const registrationMap: Record<number, { total: number }> = {};
     registrationData.forEach(item => {
       registrationMap[item._id] = {
-        total: item.totalRegistrations,
-        sfit: item.sfitRegistrations
+        total: item.totalRegistrations
       };
     });
     
