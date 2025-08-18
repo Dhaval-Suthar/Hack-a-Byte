@@ -11,6 +11,7 @@ export interface CreateAccessCodeAndPlayspaceOptions {
   playingDevice: "smartphone" | "pc_laptop";
   eventTitle: string;
   registrationId: string;
+  codePrefix?: string; // optional prefix for generated access codes (e.g., '3' for event codes)
 }
 
 export interface AccessCodeAndPlayspaceResult {
@@ -25,15 +26,22 @@ export interface AccessCodeAndPlayspaceResult {
 }
 
 /**
- * Generates a unique 6-digit access code
+ * Generates a unique 6-digit access code. If a prefix is provided it will
+ * be placed at the start (prefix length must be < 6). The remaining digits
+ * are randomly generated.
  */
-function generateUniqueCode(): string {
+function generateUniqueCode(prefix?: string): string {
   const digits = '0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += digits.charAt(Math.floor(Math.random() * digits.length));
+  const maxLen = 6;
+
+  const safePrefix = prefix && prefix.length < maxLen ? prefix : '';
+  const remaining = maxLen - safePrefix.length;
+
+  let tail = '';
+  for (let i = 0; i < remaining; i++) {
+    tail += digits.charAt(Math.floor(Math.random() * digits.length));
   }
-  return code;
+  return `${safePrefix}${tail}`;
 }
 
 /**
@@ -138,7 +146,7 @@ export async function createAccessCodeAndPlayspace(
     const maxAttempts = 10;
 
     do {
-      accessCode = generateUniqueCode();
+      accessCode = generateUniqueCode(options.codePrefix);
       const existingCode = await AccessCodeModel.findOne({ code: accessCode });
       isUnique = !existingCode;
       attempts++;

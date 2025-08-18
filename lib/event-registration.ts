@@ -109,6 +109,7 @@ export async function completeRegistrationPipeline(
         playingDevice,
         eventTitle,
         registrationId,
+        codePrefix: '3', // event access codes must start with '3'
       });
       if (!acResult.success) {
         return { success: false, error: acResult.error || "Failed to create access code" };
