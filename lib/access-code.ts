@@ -42,34 +42,7 @@ export const handleAccessCode = async (formData: FormData) => {
       return { success: false, error: "This access code has expired" };
     }
 
-    // Check if code has reached usage limit (usage-limited codes)
-    if (
-      codeDocument.type === "usage-limited" &&
-      codeDocument.maxUsages &&
-      codeDocument.usageCount >= codeDocument.maxUsages
-    ) {
-      return { 
-        success: false, 
-        error: `This access code has reached its usage limit (${codeDocument.maxUsages} uses)`
-      };
-    }
-
-    // Increment usage count for all code types
-    codeDocument.usageCount += 1;
-    await codeDocument.save();
-
-    // Log usage for tracking
-    console.log(`Access code ${codeDocument.code} used. Usage count: ${codeDocument.usageCount}/${codeDocument.maxUsages || 'unlimited'}`);
-
-    // Check if this was the last usage for usage-limited codes and delete if exhausted
-    if (
-      codeDocument.type === "usage-limited" &&
-      codeDocument.maxUsages &&
-      codeDocument.usageCount >= codeDocument.maxUsages
-    ) {
-      console.log(`Access code ${codeDocument.code} has reached its maximum usage limit and will be deleted.`);
-      await AccessCodeModel.deleteOne({ _id: codeDocument._id });
-    }
+  // For usage-limited team codes, we don't increment here; we handle usage during role selection
 
     // Set cookies for the user session - use await with cookies()
     const cookieStore = await cookies();
@@ -90,7 +63,8 @@ export const handleAccessCode = async (formData: FormData) => {
 
     return {
       success: true,
-      redirect: "/device-selection",
+      // If usage-limited (team) code, go to role selection flow
+      redirect: codeDocument.type === "usage-limited" ? `/role-selection?code=${codeDocument.code}` : "/device-selection",
       userData: codeDocument.userData || {},
       playspaceId: playspaceId,
     };

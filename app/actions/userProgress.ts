@@ -1,9 +1,109 @@
 "use server";
 
 import connectDb from "@/db/connectDb";
+import AccessCodeModel from "@/models/AccessCode";
+import Team from "@/models/Team";
+import type { TeamMember as TeamMemberType } from "@/models/Team";
+import Device from "@/models/Device";
 import DeviceUser, { MissionProgress, UserGameState } from "@/models/DeviceUser";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+
+export async function getAvailableRoles(accessCode: string) {
+  try {
+    await connectDb();
+
+    const codeDocument = await AccessCodeModel.findOne({ code: accessCode, isActive: true });
+    if (!codeDocument) {
+      return { success: false, error: "Invalid access code" };
+    }
+
+    const team = await Team.findOne({ accessCodeId: codeDocument._id });
+    if (!team) {
+      return { success: false, error: "No team found for this code" };
+    }
+
+    const members = team.teamMembers as unknown as TeamMemberType[];
+    const takenRoles = new Set(
+      members.filter((m: TeamMemberType) => !!m.role).map((m: TeamMemberType) => String(m.role))
+    );
+    // Static roles for now; can be made dynamic per event
+    const roles = ["Leader", "Hacker", "Analyst", "Defender"];
+    const available = roles.filter(r => !takenRoles.has(r));
+
+    return { success: true, teamId: team._id.toString(), availableRoles: available, totalSlots: team.numberOfPlayers };
+  } catch (error) {
+    console.error("Error getting available roles:", error);
+    return { success: false, error: "Failed to fetch roles" };
+  }
+}
+
+export async function validateAndUseAccessCode(params: { accessCode: string; username: string; role: string; }) {
+  try {
+    const { accessCode, username, role } = params;
+    await connectDb();
+
+    const codeDocument = await AccessCodeModel.findOne({ code: accessCode, isActive: true });
+    if (!codeDocument) {
+      return { success: false, error: "Invalid access code" };
+    }
+
+    // Usage limit checks
+    if (codeDocument.maxUsages && codeDocument.usageCount >= codeDocument.maxUsages) {
+      return { success: false, error: "Access code usage limit reached" };
+    }
+
+  const team = await Team.findOne({ accessCodeId: codeDocument._id });
+    if (!team) {
+      return { success: false, error: "Team not found for this code" };
+    }
+  const members: TeamMemberType[] = (team.teamMembers as unknown as TeamMemberType[]) || [];
+
+    // Prevent duplicate roles in the same team
+  const roleExists = members.some((m: TeamMemberType) => m.role === role);
+    if (roleExists) {
+      return { success: false, error: `Role "${role}" is already taken by another team member` };
+    }
+
+    // Find first available member slot
+  const memberIndex = members.findIndex((m: TeamMemberType) => !m.accessCodeUsed);
+    if (memberIndex === -1) {
+      return { success: false, error: "No available slots for this team" };
+    }
+
+    team.teamMembers[memberIndex].username = username;
+    team.teamMembers[memberIndex].role = role;
+    team.teamMembers[memberIndex].accessCodeUsed = true;
+    team.teamMembers[memberIndex].accessCodeUsedAt = new Date();
+
+    // Increment access code usage
+    codeDocument.usageCount += 1;
+    await codeDocument.save();
+
+    // If all members joined, bring device online and start team timer
+  const allJoined = members.every((m: TeamMemberType) => m.accessCodeUsed);
+    if (allJoined) {
+      if (team.deviceId) {
+        await Device.findByIdAndUpdate(team.deviceId, { status: "online" });
+      }
+      team.timer.startTime = new Date();
+      team.timer.isActive = true;
+    }
+
+    await team.save();
+
+    return {
+      success: true,
+      teamId: team._id.toString(),
+      playspaceId: team.playspaceId ? (team.playspaceId as unknown as mongoose.Types.ObjectId).toString() : undefined,
+      deviceId: team.deviceId ? (team.deviceId as unknown as mongoose.Types.ObjectId).toString() : undefined,
+      allJoined,
+    };
+  } catch (error) {
+    console.error("Error validating access code:", error);
+    return { success: false, error: "Failed to use access code" };
+  }
+}
 
 /**
  * Get user progress/game state from database

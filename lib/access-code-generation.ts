@@ -11,6 +11,7 @@ export interface CreateAccessCodeAndPlayspaceOptions {
   playingDevice: "smartphone" | "pc_laptop";
   eventTitle: string;
   registrationId: string;
+  codePrefix?: string; // optional prefix for generated access codes (e.g., '3' for event codes)
 }
 
 export interface AccessCodeAndPlayspaceResult {
@@ -19,19 +20,28 @@ export interface AccessCodeAndPlayspaceResult {
   accessCodeId?: string;
   playspaceId?: string;
   playspaceName?: string;
+  // First and only device created for the playspace (shared team device)
+  deviceId?: string;
   error?: string;
 }
 
 /**
- * Generates a unique 6-digit access code
+ * Generates a unique 6-digit access code. If a prefix is provided it will
+ * be placed at the start (prefix length must be < 6). The remaining digits
+ * are randomly generated.
  */
-function generateUniqueCode(): string {
+function generateUniqueCode(prefix?: string): string {
   const digits = '0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += digits.charAt(Math.floor(Math.random() * digits.length));
+  const maxLen = 6;
+
+  const safePrefix = prefix && prefix.length < maxLen ? prefix : '';
+  const remaining = maxLen - safePrefix.length;
+
+  let tail = '';
+  for (let i = 0; i < remaining; i++) {
+    tail += digits.charAt(Math.floor(Math.random() * digits.length));
   }
-  return code;
+  return `${safePrefix}${tail}`;
 }
 
 /**
@@ -70,7 +80,8 @@ async function createPlayspaceWithDevices(
     const newDevice = new Device({
       deviceType,
       deviceMacAddress,
-      status: "online",
+      // Devices should be offline by default; will go online when all team members join
+      status: "offline",
       playspace: new mongoose.Types.ObjectId(playspaceId),
       configuration: {
         osVersion: deviceType === "hackphone" ? "iOS 16" : "Windows 95",
@@ -135,7 +146,7 @@ export async function createAccessCodeAndPlayspace(
     const maxAttempts = 10;
 
     do {
-      accessCode = generateUniqueCode();
+      accessCode = generateUniqueCode(options.codePrefix);
       const existingCode = await AccessCodeModel.findOne({ code: accessCode });
       isUnique = !existingCode;
       attempts++;
@@ -162,7 +173,7 @@ export async function createAccessCodeAndPlayspace(
       deviceType
     );
 
-    if (!playspaceResult.success) {
+  if (!playspaceResult.success) {
       return {
         success: false,
         error: playspaceResult.error
@@ -188,7 +199,8 @@ export async function createAccessCodeAndPlayspace(
       accessCode: accessCode,
       accessCodeId: newAccessCode._id.toString(),
       playspaceId: playspaceResult.playspaceId!,
-      playspaceName
+      playspaceName,
+      deviceId: playspaceResult.deviceIds?.[0]
     };
 
   } catch (error) {
