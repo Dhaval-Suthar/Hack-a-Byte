@@ -19,6 +19,9 @@ import Notepad from "@/components/hackbook-w95/apps/Notepad";
 import Calculator from "@/components/hackbook-w95/apps/Calculator";
 import Paint from "@/components/hackbook-w95/apps/Paint";
 
+// E95 Exclusive Apps
+import BlackMart from "@/components/hackbook-e95/apps/BlackMart";
+
 import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
 import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
 import WelcomeDialog from "@/components/hackbook-w95/dialogs/WelcomeDialog";
@@ -58,6 +61,7 @@ const APPS: App[] = [
   new App("Notepad", "/hackbook-W95/app-icon/notepad.png"),
   new App("Calculator", "/hackbook-W95/app-icon/calculator.png"),
   new App("Paint", "/hackbook-W95/app-icon/paint.png"),
+  new App("BlackMart", "/hackbook-W95/app-icon/blackmart.svg"),
 ];
 
 // Define window sizes for different app types
@@ -66,6 +70,7 @@ const APP_WINDOW_SIZES: Record<string, { width: string | number; height: string 
   "CD Player": { width: 400, height: 300 },
   "Paint": { width: 700, height: 600 },
   "Minesweeper": { width: 400, height: 450 },
+  "BlackMart": { width: "90vw", height: "85vh" },
   "default": { width: "80vw", height: "80vh" }
 };
 
@@ -404,6 +409,8 @@ export default function HackBookE95DesktopCore() {
           return <Paint onClose={() => handleCloseApp(app)} />;
         case "Minesweeper":
           return <Minesweeper onClose={() => handleCloseApp(app)} />;
+        case "BlackMart":
+          return <BlackMart onClose={() => handleCloseApp(app)} />;
         default:
           return null;
       }
