@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 
 interface HackPhoneLoginScreenProps {
@@ -21,6 +21,54 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // (global event listeners moved below so they can reference stable handlers)
+
+  const getMaxPosition = useCallback(() => {
+    const sliderEl = sliderRef.current;
+    const knobEl = knobRef.current;
+    if (!sliderEl || !knobEl) return 0;
+    const sliderWidth = sliderEl.clientWidth;
+    const knobWidth = knobEl.clientWidth;
+    return Math.max(0, sliderWidth - knobWidth - 8);
+  }, []);
+
+  const handleSlideStart = (clientX: number) => {
+    setIsDragging(true);
+    setDragStartX(clientX - slidePosition);
+  };
+
+  const handleSlideMove = useCallback((clientX: number) => {
+    if (!isDragging) return;
+    // Throttle updates with requestAnimationFrame for smoother motion
+    latestClientX.current = clientX;
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const maxPosition = getMaxPosition();
+      const client = latestClientX.current ?? clientX;
+      const newPos = Math.max(0, Math.min(maxPosition, client - dragStartX));
+      setSlidePosition(newPos);
+    });
+  }, [isDragging, dragStartX, getMaxPosition]);
+
+  const handleSlideEnd = useCallback(() => {
+    // cancel any pending rAF
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    const maxPosition = getMaxPosition();
+    if (slidePosition > maxPosition * 0.6) {
+      setSlidePosition(maxPosition);
+      setTimeout(() => {
+        if (onSlideToUnlock) onSlideToUnlock();
+      }, 200);
+    } else {
+      setSlidePosition(0);
+    }
+    setIsDragging(false);
+  }, [slidePosition, getMaxPosition, onSlideToUnlock]);
 
   // Global mouse/pointer event listeners for smooth dragging
   useEffect(() => {
@@ -95,53 +143,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
       document.body.style.userSelect = '';
       document.body.style.webkitUserSelect = '';
     };
-  }, [isDragging]);
-
-  const getMaxPosition = () => {
-    const sliderEl = sliderRef.current;
-    const knobEl = knobRef.current;
-    if (!sliderEl || !knobEl) return 0;
-    const sliderWidth = sliderEl.clientWidth;
-    const knobWidth = knobEl.clientWidth;
-    return Math.max(0, sliderWidth - knobWidth - 8);
-  };
-
-  const handleSlideStart = (clientX: number) => {
-    setIsDragging(true);
-    setDragStartX(clientX - slidePosition);
-  };
-
-  const handleSlideMove = (clientX: number) => {
-    if (!isDragging) return;
-    // Throttle updates with requestAnimationFrame for smoother motion
-    latestClientX.current = clientX;
-    if (rafRef.current !== null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      const maxPosition = getMaxPosition();
-      const client = latestClientX.current ?? clientX;
-      const newPos = Math.max(0, Math.min(maxPosition, client - dragStartX));
-      setSlidePosition(newPos);
-    });
-  };
-
-  const handleSlideEnd = () => {
-    // cancel any pending rAF
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    const maxPosition = getMaxPosition();
-    if (slidePosition > maxPosition * 0.6) {
-      setSlidePosition(maxPosition);
-      setTimeout(() => {
-        if (onSlideToUnlock) onSlideToUnlock();
-      }, 200);
-    } else {
-      setSlidePosition(0);
-    }
-    setIsDragging(false);
-  };
+  }, [isDragging, handleSlideMove, handleSlideEnd]);
 
   // Pointer Events
   const onPointerDown = (e: React.PointerEvent) => {
