@@ -298,7 +298,12 @@ function useClickSound() {
     lastRef.current = now;
 
     try {
-      const ctx = (ctxRef.current ||= new (window.AudioContext || (window as any).webkitAudioContext)());
+  type AudioCtorType = { new (): AudioContext };
+  type Win = Window & { AudioContext?: AudioCtorType; webkitAudioContext?: AudioCtorType };
+  const win = window as Win;
+  const AudioCtor = win.AudioContext || win.webkitAudioContext;
+      if (!AudioCtor) return;
+      const ctx = (ctxRef.current ||= new AudioCtor());
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = "square";
@@ -311,7 +316,9 @@ function useClickSound() {
       g.gain.exponentialRampToValueAtTime(0.03, t + 0.001);
       g.gain.exponentialRampToValueAtTime(0.00001, t + 0.06);
       o.stop(t + 0.08);
-    } catch (_) {}
+    } catch {
+      // ignore audio errors
+    }
   }, []);
 }
 export default CalculatorApp;
