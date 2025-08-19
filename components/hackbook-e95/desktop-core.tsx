@@ -608,7 +608,7 @@ export default function HackBookE95DesktopCore() {
               }}
             >
               <div className="w-8 h-8 flex items-center justify-center mr-1">
-                <Image src="/hackbook-W95/app-icon/shutdown.png" alt="Shut Down" width={32} height={32} priority />
+                <Image src="/hackbook-W95/app-icon/shut-down.png" alt="Shut Down" width={32} height={32} priority />
               </div>
               <span className="text-sm">Shut Down...</span>
             </div>
