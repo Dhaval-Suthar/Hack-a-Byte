@@ -7,18 +7,15 @@ interface CalculatorAppProps {
   time: string;
 }
 
-function CalculatorApp({ onClose, time }: CalculatorAppProps) {
+function CalculatorApp({}: CalculatorAppProps) {
   return (
-    <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center p-6 relative">
-      {/* Top bar for Hackphone frame */}
-      <div className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 py-2 text-sm">
-        <span>{time}</span>
-        <button onClick={onClose} className="text-red-400">
-          ✕
-        </button>
+    <div className="h-full w-full bg-neutral-900 text-white relative">
+      <div
+        className="absolute inset-0 px-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 64px)", paddingTop: "12px" }}
+      >
+        <IPhone4Calculator />
       </div>
-
-      <IPhone4Calculator />
     </div>
   );
 }
@@ -110,7 +107,7 @@ function IPhone4Calculator() {
   }, []);
 
   const clear = useCallback(() => {
-    setState({ display: "0", operand: null, op: null, overwrite: true, lastKey: null, lastOperand: null });
+  setState({ display: "0", operand: null, op: null, overwrite: true, lastKey: null, lastOperand: null });
   }, []);
 
   const plusMinus = useCallback(() => {
@@ -134,6 +131,10 @@ function IPhone4Calculator() {
       if (s.operand === null) {
         return { ...s, operand: current, op, overwrite: true, lastKey: op, lastOperand: null };
       }
+      // If user just pressed an operator and is changing it, don't compute again
+      if (s.overwrite) {
+        return { ...s, op, lastKey: op };
+      }
       const result = compute(s.operand, current, s.op);
       return {
         ...s,
@@ -153,9 +154,19 @@ function IPhone4Calculator() {
       if (s.op && s.operand !== null) {
         const right = s.overwrite && s.lastOperand !== null ? s.lastOperand : current;
         const result = compute(s.operand, right, s.op);
-        return { ...s, display: formatDisplay(result), operand: result, overwrite: true, lastKey: "=", lastOperand: right };
+  return { ...s, display: formatDisplay(result), operand: result, overwrite: true, lastKey: "=", lastOperand: right };
       }
       return s;
+    });
+  }, []);
+
+  const backspace = useCallback(() => {
+    setState((s) => {
+      if (s.overwrite) return s;
+      const clean = s.display;
+      if (clean.length <= 1) return { ...s, display: "0", overwrite: true };
+      const next = clean.slice(0, -1);
+      return { ...s, display: next === "-" ? "0" : next };
     });
   }, []);
 
@@ -174,12 +185,13 @@ function IPhone4Calculator() {
       else if (key === "x" || key === "X") setOperator("×");
       else if (key === "/") setOperator("÷");
       else if (key === "Enter" || key === "=") equals();
+    else if (key === "Backspace") backspace();
       else if (key.toLowerCase() === "c" || key === "Escape") clear();
       else if (key === "%") percent();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [clear, equals, inputDigit, inputDot, percent, setOperator, playClick]);
+  }, [clear, equals, inputDigit, inputDot, percent, setOperator, backspace, playClick]);
 
   const opIs = useCallback((op: Op) => state.op === op, [state.op]);
 
@@ -193,60 +205,79 @@ function IPhone4Calculator() {
     else setState((s) => ({ ...s, display: "0", overwrite: true }));
   }, [acOrC, clear]);
 
+  // Copy-to-clipboard for display value
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard?.writeText(state.display.replace(/,/g, ""));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* ignore */
+    }
+  }, [state.display]);
+
   return (
-    <div className="w-[330px] select-none">
-      <div className="rounded-[42px] bg-neutral-800 p-3 shadow-[inset_0_2px_10px_rgba(255,255,255,0.06),0_15px_40px_rgba(0,0,0,0.6)]">
-        <div className="rounded-[34px] bg-[radial-gradient(120%_120%_at_50%_-20%,#1a1a1a,#000)] p-5 border border-black/40 shadow-inner">
-          <TopSpeakerNotch />
-          <div className="mt-4 mb-3">
-            <div className="text-right text-5xl font-light tracking-widest tabular-nums drop-shadow-[0_1px_0_rgba(0,0,0,0.8)]">
-              <LCD value={state.display} />
-            </div>
+    <div className="h-full w-full select-none flex flex-col">
+      {/* Display and history */}
+      <div className="mb-3">
+        <div className="relative">
+          <div className="text-right text-5xl font-light tracking-widest tabular-nums drop-shadow-[0_1px_0_rgba(0,0,0,0.9)]">
+            <LCD value={state.display} onClick={handleCopy} />
           </div>
+          {copied && (
+            <div className="absolute right-2 -bottom-5 text-xs text-emerald-300/90">Copied</div>
+          )}
+        </div>
+  {/* no history */}
+      </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            <CalcButton label={acOrC} variant="function" onClick={() => { playClick(); handleClear(); }} />
-            <CalcButton label="+/-" variant="function" onClick={() => { playClick(); plusMinus(); }} />
-            <CalcButton label="%" variant="function" onClick={() => { playClick(); percent(); }} />
-            <CalcButton label="÷" active={opIs("÷")} variant="operator" onClick={() => { playClick(); setOperator("÷"); }} />
+      {/* Keypad fills remaining space */}
+      <div className="flex-1">
+        <div className="grid grid-cols-4 grid-rows-5 gap-3 h-full">
+          <CalcButton label={acOrC} variant="function" onClick={() => { playClick(); handleClear(); }} />
+          <CalcButton label="+/-" variant="function" onClick={() => { playClick(); plusMinus(); }} />
+          <CalcButton label="%" variant="function" onClick={() => { playClick(); percent(); }} />
+          <CalcButton label="÷" active={opIs("÷")} variant="operator" onClick={() => { playClick(); setOperator("÷"); }} />
 
-            <CalcButton label="7" onClick={() => { playClick(); inputDigit("7"); }} />
-            <CalcButton label="8" onClick={() => { playClick(); inputDigit("8"); }} />
-            <CalcButton label="9" onClick={() => { playClick(); inputDigit("9"); }} />
-            <CalcButton label="×" active={opIs("×")} variant="operator" onClick={() => { playClick(); setOperator("×"); }} />
+          <CalcButton label="7" onClick={() => { playClick(); inputDigit("7"); }} />
+          <CalcButton label="8" onClick={() => { playClick(); inputDigit("8"); }} />
+          <CalcButton label="9" onClick={() => { playClick(); inputDigit("9"); }} />
+          <CalcButton label="×" active={opIs("×")} variant="operator" onClick={() => { playClick(); setOperator("×"); }} />
 
-            <CalcButton label="4" onClick={() => { playClick(); inputDigit("4"); }} />
-            <CalcButton label="5" onClick={() => { playClick(); inputDigit("5"); }} />
-            <CalcButton label="6" onClick={() => { playClick(); inputDigit("6"); }} />
-            <CalcButton label="-" active={opIs("-")} variant="operator" onClick={() => { playClick(); setOperator("-"); }} />
+          <CalcButton label="4" onClick={() => { playClick(); inputDigit("4"); }} />
+          <CalcButton label="5" onClick={() => { playClick(); inputDigit("5"); }} />
+          <CalcButton label="6" onClick={() => { playClick(); inputDigit("6"); }} />
+          <CalcButton label="-" active={opIs("-")} variant="operator" onClick={() => { playClick(); setOperator("-"); }} />
 
-            <CalcButton label="1" onClick={() => { playClick(); inputDigit("1"); }} />
-            <CalcButton label="2" onClick={() => { playClick(); inputDigit("2"); }} />
-            <CalcButton label="3" onClick={() => { playClick(); inputDigit("3"); }} />
-            <CalcButton label="+" active={opIs("+")} variant="operator" onClick={() => { playClick(); setOperator("+"); }} />
+          <CalcButton label="1" onClick={() => { playClick(); inputDigit("1"); }} />
+          <CalcButton label="2" onClick={() => { playClick(); inputDigit("2"); }} />
+          <CalcButton label="3" onClick={() => { playClick(); inputDigit("3"); }} />
+          <CalcButton label="+" active={opIs("+")} variant="operator" onClick={() => { playClick(); setOperator("+"); }} />
 
-            <CalcButton label="0" wide onClick={() => { playClick(); inputDigit("0"); }} />
-            <CalcButton label="." onClick={() => { playClick(); inputDot(); }} />
-            <CalcButton label="=" variant="operator" onClick={() => { playClick(); equals(); }} />
-          </div>
+          <CalcButton label="0" wide onClick={() => { playClick(); inputDigit("0"); }} />
+          <CalcButton label="." onClick={() => { playClick(); inputDot(); }} />
+          <CalcButton label="=" variant="operator" onClick={() => { playClick(); equals(); }} />
         </div>
       </div>
     </div>
   );
 }
 
-function TopSpeakerNotch() {
-  return (
-    <div className="flex justify-center mt-1">
-      <div className="h-1.5 w-20 rounded-full bg-black/70 shadow-[inset_0_-1px_2px_rgba(255,255,255,0.2)]" />
-    </div>
-  );
-}
+// Removed TopSpeakerNotch for full-screen app layout
 
-function LCD({ value }: { value: string }) {
+function LCD({ value, onClick }: { value: string; onClick?: () => void | Promise<void> }) {
   return (
-    <div className="px-3 py-2 rounded-xl bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2))] border border-white/5">
-      <div className="text-emerald-200/95 font-[100] tracking-[0.08em]">
+    <div
+      className="relative px-3 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[linear-gradient(180deg,rgba(40,65,40,0.7),rgba(7,18,7,0.95))] shadow-[inset_0_2px_8px_rgba(255,255,255,0.06),inset_0_-8px_18px_rgba(0,0,0,0.7)]"
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      title={onClick ? "Click to copy" : undefined}
+    >
+      {/* Top gloss */}
+      <div className="pointer-events-none absolute inset-x-2 top-1 h-5 rounded-[14px] bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0))]" />
+      <div className="text-emerald-200/95 font-[100] tracking-[0.08em] select-text cursor-[inherit]">
         {value}
       </div>
     </div>
@@ -262,13 +293,24 @@ interface CalcButtonProps {
 }
 
 function CalcButton({ label, onClick, variant = "digit", wide, active }: CalcButtonProps) {
-  const common = "h-16 rounded-2xl text-2xl font-medium active:scale-[0.98] transition-all duration-100 focus:outline-none select-none";
+  const common = "h-full min-h-14 rounded-2xl text-2xl font-medium active:scale-[0.98] transition-all duration-100 focus:outline-none select-none";
 
   const variants: Record<string, string> = {
-    digit: "bg-[linear-gradient(180deg,#4f5257,#2e3136)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_6px_14px_rgba(0,0,0,0.6)] border border-black/30",
-    operator: (active ? "bg-[linear-gradient(180deg,#ffb44a,#ff931e)]" : "bg-[linear-gradient(180deg,#ff9a2f,#d97700)]") +
-      " text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_6px_14px_rgba(0,0,0,0.6)] border border-black/20",
-    function: "bg-[linear-gradient(180deg,#d7d7d7,#8d8d8d)] text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_14px_rgba(0,0,0,0.6)] border border-black/20",
+    // iOS4: Dark glossy keys
+    digit:
+      "bg-[linear-gradient(180deg,#61656b,#31343a)] text-white border border-black/40 " +
+      "shadow-[inset_0_2px_0_rgba(255,255,255,0.18),inset_0_-2px_0_rgba(0,0,0,0.45),0_8px_16px_rgba(0,0,0,0.7)]",
+    // iOS4: Orange operator keys with strong gloss
+    operator:
+      (active
+        ? "bg-[linear-gradient(180deg,#ffbd64,#ff9727)]"
+        : "bg-[linear-gradient(180deg,#ffa340,#e18100)]") +
+      " text-black border border-black/30 " +
+      "shadow-[inset_0_2px_0_rgba(255,255,255,0.55),inset_0_-2px_0_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.65)]",
+    // iOS4: Silver function keys
+    function:
+      "bg-[linear-gradient(180deg,#e0e0e0,#9a9a9a)] text-black border border-black/25 " +
+      "shadow-[inset_0_2px_0_rgba(255,255,255,0.75),inset_0_-2px_0_rgba(0,0,0,0.28),0_8px_16px_rgba(0,0,0,0.6)]",
   };
 
   return (
@@ -279,9 +321,10 @@ function CalcButton({ label, onClick, variant = "digit", wide, active }: CalcBut
       aria-label={label}
       data-variant={variant}
     >
+      {/* Gloss highlights */}
       <div className="pointer-events-none absolute inset-0 rounded-2xl" aria-hidden>
-        <div className="absolute inset-x-0 -top-5 h-12 bg-white/20 blur-[6px] opacity-70" />
-        <div className="absolute inset-x-0 top-1 h-px bg-white/40" />
+        <div className="absolute inset-x-1 -top-5 h-10 bg-white/25 blur-[8px] opacity-70" />
+        <div className="absolute inset-x-2 top-1 h-px bg-white/50" />
       </div>
       <span className="drop-shadow-[0_1px_0_rgba(0,0,0,0.5)]">{label}</span>
     </motion.button>
