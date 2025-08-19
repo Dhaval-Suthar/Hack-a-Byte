@@ -85,6 +85,16 @@ const ProgramsMenu: React.FC<ProgramsMenuProps> = ({ onClose, onProgramClick }) 
             </div>
             <span className="text-sm">Windows Explorer</span>
           </div>
+
+          <div
+            className="px-1 py-1 hover:bg-[#000080] hover:text-white flex items-center"
+            onClick={() => onProgramClick("BlackMart")}
+          >
+            <div className="w-6 h-6 flex items-center justify-center mr-1">
+              <Image src="/hackbook-W95/app-icon/blackmart.svg" alt="BlackMart" width={24} height={24} priority />
+            </div>
+            <span className="text-sm">BlackMart</span>
+          </div>
         </div>
       </div>
     </div>
