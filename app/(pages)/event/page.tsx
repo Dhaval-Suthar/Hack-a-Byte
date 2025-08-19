@@ -2,6 +2,42 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { registerForEvent, getAllEventsWithRegistrationCounts } from "@/app/actions/eventRegistration";
+import { createEventPaymentOrder, verifyEventPayment } from "@/app/actions/payment";
+import { useRouter } from "next/navigation";
+
+// Razorpay type declarations
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: {
+    email: string;
+  };
+  theme: {
+    color: string;
+  };
+  modal: {
+    ondismiss: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => {
+      open(): void;
+    };
+  }
+}
 
 interface Event {
   id: number;
@@ -151,9 +187,10 @@ interface RegistrationModalProps {
 }
 
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [isFromSFIT, setIsFromSFIT] = useState(false);
-  const [playingMode, setPlayingMode] = useState<"online" | "offline">("online");
+  const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("pc_laptop");
+  const [numberOfPlayers, setNumberOfPlayers] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -166,34 +203,116 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
     setError("");
     
     try {
-      const result = await registerForEvent({
-        eventId: event.id,
-        email: email.trim(),
-        isFromSFIT,
-        playingMode
-      });
-      
-      if (result.success) {
-        onSuccess();
-        onClose();
-        // Reset form
-        setEmail("");
-        setIsFromSFIT(false);
-        setPlayingMode("online");
+      // For Mosaic event (ID 100), use payment flow
+      if (event.id === 100) {
+        // Create payment order
+        const orderResult = await createEventPaymentOrder({
+          eventId: event.id,
+          email: email.trim(),
+          playingDevice,
+          numberOfPlayers
+        });
+
+        if (!orderResult.success) {
+          setError(orderResult.error || "Failed to create payment order");
+          setIsLoading(false);
+          return;
+        }
+
+        // Initialize Razorpay payment
+        const options: RazorpayOptions = {
+          key: orderResult.key || '',
+          amount: orderResult.amount || 0,
+          currency: orderResult.currency || 'INR',
+          name: "Hack-a-Byte 2025",
+          description: `Registration for ${event.title}`,
+          order_id: orderResult.orderId || '',
+          handler: async function (response: RazorpayResponse) {
+            try {
+              // Verify payment
+              const verifyResult = await verifyEventPayment(
+                orderResult.registrationId,
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                },
+                {
+                  eventId: event.id,
+                  eventTitle: event.title,
+                  eventDate: event.date,
+                  eventTime: event.time,
+                  eventLocation: event.location
+                }
+              );
+
+              if (verifyResult.success) {
+                onSuccess();
+                onClose();
+                // Reset form
+                setEmail("");
+                setPlayingDevice("pc_laptop");
+                setNumberOfPlayers(1);
+                // Redirect user to home page to enter access code
+                router.push("/");
+              } else {
+                setError(verifyResult.error || "Payment verification failed");
+              }
+            } catch (error) {
+              console.error("Payment verification error:", error);
+              setError("Payment verification failed. Please contact support.");
+            }
+            setIsLoading(false);
+          },
+          prefill: {
+            email: email.trim(),
+          },
+          theme: {
+            color: "#00ff88"
+          },
+          modal: {
+            ondismiss: function() {
+              setIsLoading(false);
+            }
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
       } else {
-        setError(result.error || "Registration failed");
+        // For other events, use the original flow
+        const result = await registerForEvent({
+          eventId: event.id,
+          email: email.trim(),
+          playingDevice,
+          numberOfPlayers
+        });
+        
+        if (result.success) {
+          onSuccess();
+          onClose();
+          // Reset form
+          setEmail("");
+          setPlayingDevice("pc_laptop");
+          setNumberOfPlayers(1);
+          // Redirect user to home page to enter access code
+          router.push("/");
+        } else {
+          setError(result.error || "Registration failed");
+        }
+        setIsLoading(false);
       }
-    } catch {
+    } catch (error) {
+      console.error("Registration error:", error);
       setError("An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   };
 
   const handleClose = () => {
     setEmail("");
-    setIsFromSFIT(false);
-    setPlayingMode("online");
+    setPlayingDevice("pc_laptop");
+    setNumberOfPlayers(1);
     setError("");
     onClose();
   };
@@ -232,16 +351,33 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
           
           {/* Event Info */}
           <div className="px-6 py-4 border-b border-cyber-primary/30">
-            <h3 className="text-white font-bold mb-1">{event.title}</h3>
-            <div className="text-sm text-gray-400">
-              📅 {event.date} • 🕒 {event.time}
+            <h3 className="text-white font-bold mb-1 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-cyber-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+              {event.title}
+            </h3>
+            <div className="text-sm text-gray-400 flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+              {event.date}
+              <span className="mx-2">•</span>
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              {event.time}
             </div>
           </div>
           
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6">
             <div className="mb-4">
-              <label className="block text-cyber-secondary text-sm font-bold mb-2">
+              <label className="flex items-center text-cyber-secondary text-sm font-bold mb-2">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
                 Email Address
               </label>
               <input
@@ -256,49 +392,97 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
             </div>
             
             <div className="mb-6">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isFromSFIT}
-                  onChange={(e) => setIsFromSFIT(e.target.checked)}
-                  className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 rounded focus:ring-cyber-primary/50 focus:ring-2"
-                  disabled={isLoading}
-                />
-                <span className="text-white text-sm">
-                  I am a member of St. Francis Institute of Engineering
-                </span>
-              </label>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-cyber-secondary text-sm font-bold mb-2">
-                Mode of Playing
+              <label className="flex items-center text-cyber-secondary text-sm font-bold mb-2">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1h-5l1.5 2H14a1 1 0 110 2H6a1 1 0 110-2h1.5L9 13H4a1 1 0 01-1-1V4zm1 1v6h12V5H4z" clipRule="evenodd" />
+                </svg>
+                Playing Device
               </label>
               <div className="flex space-x-4">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
-                    value="online"
-                    checked={playingMode === "online"}
-                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
+                    value="smartphone"
+                    checked={playingDevice === "smartphone"}
+                    onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
                     className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
                     disabled={isLoading}
                   />
-                  <span className="text-white text-sm">Online</span>
+                  <span className="text-white text-sm">
+                    <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zM6 4a1 1 0 011-1h6a1 1 0 011 1v10H6V4z" clipRule="evenodd" />
+                    </svg>
+                    Smartphone
+                  </span>
                 </label>
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
-                    value="offline"
-                    checked={playingMode === "offline"}
-                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
+                    value="pc_laptop"
+                    checked={playingDevice === "pc_laptop"}
+                    onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
                     className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
                     disabled={isLoading}
                   />
-                  <span className="text-white text-sm">Offline</span>
+                  <span className="text-white text-sm">
+                    <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1h-5l1.5 2H14a1 1 0 110 2H6a1 1 0 110-2h1.5L9 13H4a1 1 0 01-1-1V4zm1 1v6h12V5H4z" clipRule="evenodd" />
+                    </svg>
+                    PC/Laptop
+                  </span>
                 </label>
               </div>
             </div>
+
+            <div className="mb-6">
+              <label className="flex items-center text-cyber-secondary text-sm font-bold mb-2">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                </svg>
+                Number of Players (1-4)
+              </label>
+              <select
+                value={numberOfPlayers}
+                onChange={(e) => setNumberOfPlayers(parseInt(e.target.value))}
+                className="w-full bg-black/70 border border-cyber-primary/40 rounded-md px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
+                required
+                disabled={isLoading}
+              >
+                <option value={1}>1 Player</option>
+                <option value={2}>2 Players</option>
+                <option value={3}>3 Players</option>
+                <option value={4}>4 Players</option>
+              </select>
+            </div>
+
+            {/* Fee Display for Mosaic Event */}
+            {event.id === 100 && (
+              <div className="mb-6 p-4 bg-cyber-primary/10 border border-cyber-primary/40 rounded-md">
+                <h4 className="text-cyber-primary font-bold mb-2 flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
+                    <path fillRule="evenodd" d="M15 7a1 1 0 011 1v5a1 1 0 01-1 1H6a1 1 0 01-1-1V8a1 1 0 011-1h9zM6 8v5h9V8H6z" clipRule="evenodd" />
+                  </svg>
+                  Registration Fee
+                </h4>
+                <div className="text-white text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-cyber-secondary">Per Person: </span>
+                    <span className="text-cyber-primary font-bold">₹100</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-cyber-secondary">Total ({numberOfPlayers} player{numberOfPlayers > 1 ? 's' : ''}): </span>
+                    <span className="text-cyber-primary font-bold text-lg">₹{numberOfPlayers * 100}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    Secure payment via Razorpay
+                  </p>
+                </div>
+              </div>
+            )}
             
             {error && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md">
@@ -320,7 +504,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 className="flex-1 cyber-button py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
-                {isLoading ? "Registering..." : "Register"}
+                {isLoading ? "Processing..." : (event.id === 100 ? "Pay & Register" : "Register")}
               </button>
             </div>
           </form>
@@ -337,7 +521,6 @@ export default function Page() {
   const [activeView, setActiveView] = useState("upcoming");
   const [scanlines, setScanlines] = useState(true);
   const [eventQuery, setEventQuery] = useState("");
-  const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [registrationCounts, setRegistrationCounts] = useState<Record<number, number>>({});
   const [registrationModal, setRegistrationModal] = useState<{
@@ -606,20 +789,12 @@ export default function Page() {
   }, []);
 
   const handleRegister = (event: Event) => {
-    const isRegistered = registeredEvents.includes(event.id);
-    
-    if (isRegistered) {
-      // User is already registered, do nothing (no unregister functionality)
-      return;
-    } else {
-      // Open registration modal
-      setRegistrationModal({ isOpen: true, event });
-    }
+    // Always allow registration (multiple registrations per email allowed)
+    setRegistrationModal({ isOpen: true, event });
   };
 
   const handleRegistrationSuccess = () => {
     if (registrationModal.event) {
-      setRegisteredEvents(prev => [...prev, registrationModal.event!.id]);
       // Increment the registration count for this event
       setRegistrationCounts(prev => ({
         ...prev,
@@ -635,7 +810,6 @@ export default function Page() {
   };
 
   const renderEventCard = (event: Event) => {
-    const isRegistered = registeredEvents.includes(event.id);
     const isPast = new Date(event.date) < new Date(currentDate);
     
     return (
@@ -701,23 +875,14 @@ export default function Page() {
               */}
               {!isPast && (
                 <button 
-                  className={`text-xs py-1 px-3 rounded-md transition-all duration-300 relative overflow-hidden group ${
-                    isRegistered
-                      ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary cursor-not-allowed opacity-80"
-                      : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                  }`}
-                  disabled={isRegistered}
+                  className="text-xs py-1 px-3 rounded-md transition-all duration-300 relative overflow-hidden group bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!isRegistered) {
-                      handleRegister(event);
-                    }
+                    handleRegister(event);
                   }}
                 >
-                  <span className="relative z-10">{isRegistered ? "REGISTERED" : "REGISTER"}</span>
-                  {!isRegistered && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                  )}
+                  <span className="relative z-10">REGISTER</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                 </button>
               )}
             </div>
@@ -1006,17 +1171,11 @@ export default function Page() {
             <div className="bg-black/50 border-t border-cyber-primary/30 px-6 py-4 flex justify-between">
               {new Date(selectedEvent.date) > new Date(currentDate) && (
                 <button 
-                  className={`py-2 px-6 rounded-md transition-all duration-300 relative overflow-hidden group ${
-                    registeredEvents.includes(selectedEvent.id)
-                      ? "bg-danger/20 text-danger border border-danger hover:bg-danger/30 hover:shadow-lg hover:shadow-danger/20 hover:scale-105"
-                      : "cyber-button hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                  }`}
+                  className="cyber-button py-2 px-6 rounded-md transition-all duration-300 relative overflow-hidden group hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   onClick={() => handleRegister(selectedEvent)}
                 >
-                  <span className="relative z-10">{registeredEvents.includes(selectedEvent.id) ? "CANCEL REGISTRATION" : "REGISTER NOW"}</span>
-                  {!registeredEvents.includes(selectedEvent.id) && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                  )}
+                  <span className="relative z-10">REGISTER NOW</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                 </button>
               )}
               
@@ -1241,17 +1400,11 @@ export default function Page() {
                         */}
                         
                         <button 
-                          className={`py-1 px-5 rounded-md text-sm flex-1 transition-all duration-300 relative overflow-hidden group ${
-                            registeredEvents.includes(filteredEvents[0].id)
-                              ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary hover:bg-cyber-primary/30 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                              : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                          }`}
+                          className="py-1 px-5 rounded-md text-sm flex-1 transition-all duration-300 relative overflow-hidden group bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                           onClick={() => handleRegister(filteredEvents[0])}
                         >
-                          <span className="relative z-10">{registeredEvents.includes(filteredEvents[0].id) ? "REGISTERED" : "REGISTER"}</span>
-                          {!registeredEvents.includes(filteredEvents[0].id) && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                          )}
+                          <span className="relative z-10">REGISTER</span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                         </button>
                       </div>
                     </div>

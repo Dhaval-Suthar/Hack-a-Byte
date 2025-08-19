@@ -10,7 +10,7 @@ export interface FileSystemItem {
   type: 'file' | 'directory';
   size?: number;
   content?: string;
-  lastModified?: Date;
+  lastModified?: Date | string;
   path: string;
   children?: FileSystemItem[];
   isHidden?: boolean;
@@ -27,8 +27,9 @@ export interface FileSystemItem {
 
 // Generate a unique storage key based on playspace and user info
 // This uses the shared getUserStorageKey function but keeps original key format for backward compatibility
-const getStorageKey = (debug = false) => {
-  return getUserStorageKey('win95FileSystem', debug);
+const getStorageKey = (debug = false, isE95 = false) => {
+  const baseKey = isE95 ? 'e95FileSystem' : 'win95FileSystem';
+  return getUserStorageKey(baseKey, debug);
 };
 
 // Example initial file system structure
@@ -447,8 +448,47 @@ const initialFileSystem: FileSystemItem[] = [
 
 export type FileOperation = 'copy' | 'cut' | 'delete' | 'rename' | 'newFolder' | 'newFile';
 
-export default function useFileSystem(options = { debug: false }) {
-  const [fileSystem, setFileSystem] = useState<FileSystemItem[]>(initialFileSystem);
+export default function useFileSystem(options = { debug: false, isE95: false }) {
+  // Helper function to restore Date objects after JSON serialization
+  const restoreDates = useCallback((items: FileSystemItem[]): FileSystemItem[] => {
+    const processItem = (item: FileSystemItem): FileSystemItem => {
+      const newItem = {...item};
+      
+      // Convert lastModified back to Date if it exists
+      if (newItem.lastModified) {
+        newItem.lastModified = new Date(newItem.lastModified);
+      }
+      
+      // Process children recursively
+      if (newItem.children && newItem.children.length > 0) {
+        newItem.children = newItem.children.map(processItem);
+      }
+      
+      return newItem;
+    };
+
+    return items.map(processItem);
+  }, []);
+
+  // Create filtered file system based on E95 mode
+  const getFilteredFileSystem = useCallback(() => {
+    if (!options.isE95) return initialFileSystem;
+    
+    // For E95 mode, filter out the Old_Files directory
+    const filteredFS = JSON.parse(JSON.stringify(initialFileSystem)); // Deep clone
+    const cDrive = filteredFS.find((item: FileSystemItem) => item.path === 'C:');
+    if (cDrive?.children) {
+      const documents = cDrive.children.find((item: FileSystemItem) => item.path === 'C:\\Documents');
+      if (documents?.children) {
+        // Remove Old_Files directory
+        documents.children = documents.children.filter((item: FileSystemItem) => item.name !== 'Old_Files');
+      }
+    }
+    // Restore Date objects after JSON cloning
+    return restoreDates(filteredFS);
+  }, [options.isE95, restoreDates]);
+
+  const [fileSystem, setFileSystem] = useState<FileSystemItem[]>(getFilteredFileSystem);
   const [currentDirectory, setCurrentDirectory] = useState<string>('C:');
   const [selectedItems, setSelectedItems] = useState<FileSystemItem[]>([]);
   const [clipboard, setClipboard] = useState<{items: FileSystemItem[], operation: FileOperation | null}>({
@@ -464,7 +504,7 @@ export default function useFileSystem(options = { debug: false }) {
     try {
       // Find the C: drive
       const cDriveIndex = savedFileSystem.findIndex(item => item.path === 'C:');
-      if (cDriveIndex === -1) return initialFileSystem; // Fallback if C: drive not found
+      if (cDriveIndex === -1) return getFilteredFileSystem(); // Fallback if C: drive not found
 
       // Find the Documents folder
       const documentsIndex = savedFileSystem[cDriveIndex].children?.findIndex(
@@ -472,8 +512,8 @@ export default function useFileSystem(options = { debug: false }) {
       );
       
       if (documentsIndex === undefined || documentsIndex === -1) {
-        // Documents folder doesn't exist, use initial file system
-        return initialFileSystem;
+        // Documents folder doesn't exist, use filtered file system
+        return getFilteredFileSystem();
       }
 
       // Check if Old_Files directory already exists
@@ -481,8 +521,8 @@ export default function useFileSystem(options = { debug: false }) {
         item => item.path === 'C:\\Documents\\Old_Files'
       );
 
-      if (!oldFilesExists) {
-        // Add the Old_Files directory with the ZIP file
+      if (!oldFilesExists && !options.isE95) {
+        // Add the Old_Files directory with the ZIP file (skip in E95 mode)
         const newFileSystem = JSON.parse(JSON.stringify(savedFileSystem)); // Deep clone
         
         const oldFilesDir = {
@@ -528,23 +568,23 @@ export default function useFileSystem(options = { debug: false }) {
 
       return savedFileSystem; // No migration needed
     } catch (error) {
-      console.error('Migration failed, using initial file system:', error);
-      return initialFileSystem;
+      console.error('Migration failed, using filtered file system:', error);
+      return getFilteredFileSystem();
     }
-  }, [debugMode]);
+  }, [debugMode, getFilteredFileSystem, options.isE95]);
 
   // Debug function to reset file system (for development/testing)
   const resetFileSystem = useCallback(() => {
     try {
-      const storageKey = getStorageKey(debugMode);
+      const storageKey = getStorageKey(debugMode, options.isE95);
       localStorage.removeItem(storageKey);
-      setFileSystem(initialFileSystem);
+      setFileSystem(getFilteredFileSystem());
       setCurrentDirectory('C:');
       console.log('File system reset to initial state');
     } catch (error) {
       console.error('Failed to reset file system:', error);
     }
-  }, [debugMode]);
+  }, [debugMode, getFilteredFileSystem, options.isE95]);
 
   // Expose reset function globally for development
   useEffect(() => {
@@ -554,25 +594,6 @@ export default function useFileSystem(options = { debug: false }) {
       delete (window as Window & { resetWin95FileSystem?: () => void }).resetWin95FileSystem;
     }
   }, [debugMode, resetFileSystem]);
-  const restoreDates = useCallback((items: FileSystemItem[]): FileSystemItem[] => {
-    const processItem = (item: FileSystemItem): FileSystemItem => {
-      const newItem = {...item};
-      
-      // Convert lastModified back to Date if it exists
-      if (newItem.lastModified) {
-        newItem.lastModified = new Date(newItem.lastModified);
-      }
-      
-      // Process children recursively
-      if (newItem.children && newItem.children.length > 0) {
-        newItem.children = newItem.children.map(processItem);
-      }
-      
-      return newItem;
-    };
-
-    return items.map(processItem);
-  }, []);
 
   // Initialize from localStorage if available, or use default for new users
   useEffect(() => {
@@ -581,12 +602,12 @@ export default function useFileSystem(options = { debug: false }) {
       try {
         // Only proceed if localStorage is available
         if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-          setFileSystem(initialFileSystem);
+          setFileSystem(getFilteredFileSystem());
           return;
         }
         
         try {
-          const storageKey = getStorageKey(debugMode);
+          const storageKey = getStorageKey(debugMode, options.isE95);
           let savedFileSystem = null;
           
           // Safe localStorage access with try-catch
@@ -594,7 +615,7 @@ export default function useFileSystem(options = { debug: false }) {
             savedFileSystem = localStorage.getItem(storageKey);
           } catch (storageError) {
             if (debugMode) console.warn("Failed to access localStorage:", storageError);
-            setFileSystem(initialFileSystem);
+            setFileSystem(getFilteredFileSystem());
             return;
           }
           
@@ -605,9 +626,21 @@ export default function useFileSystem(options = { debug: false }) {
               if (Array.isArray(parsedFileSystem)) {
                 // Apply migration to ensure new features are available
                 const migratedFileSystem = migrateFileSystem(parsedFileSystem);
+                
+                // If in E95 mode, filter out Old_Files even from saved data
+                if (options.isE95) {
+                  const cDrive = migratedFileSystem.find((item: FileSystemItem) => item.path === 'C:');
+                  if (cDrive?.children) {
+                    const documents = cDrive.children.find((item: FileSystemItem) => item.path === 'C:\\Documents');
+                    if (documents?.children) {
+                      documents.children = documents.children.filter((item: FileSystemItem) => item.name !== 'Old_Files');
+                    }
+                  }
+                }
+                
                 setFileSystem(restoreDates(migratedFileSystem));
                 
-                // Save the migrated file system back to localStorage
+                // Save the migrated (and potentially filtered) file system back to localStorage
                 try {
                   localStorage.setItem(storageKey, JSON.stringify(migratedFileSystem));
                 } catch (saveError) {
@@ -620,7 +653,7 @@ export default function useFileSystem(options = { debug: false }) {
               }
             } catch (parseError) {
               console.error("Error parsing saved file system:", parseError);
-              setFileSystem(initialFileSystem);
+              setFileSystem(getFilteredFileSystem());
               
               // Clear corrupted data
               try {
@@ -630,14 +663,15 @@ export default function useFileSystem(options = { debug: false }) {
               }
             }
           } else {
-            // For new users, use the default initial file system
-            if (debugMode) console.log(`No saved file system found for ${storageKey}, using default`);
-            setFileSystem(initialFileSystem);
+            // For new users, use the filtered file system (respects E95 mode)
+            if (debugMode) console.log(`No saved file system found for ${storageKey}, using filtered default`);
+            setFileSystem(getFilteredFileSystem());
             
-            // Defer saving the default file system to avoid immediate write after read
+            // Defer saving the filtered file system to avoid immediate write after read
             setTimeout(() => {
               try {
-                localStorage.setItem(storageKey, JSON.stringify(initialFileSystem));
+                const fileSystemToSave = getFilteredFileSystem();
+                localStorage.setItem(storageKey, JSON.stringify(fileSystemToSave));
               } catch (saveError) {
                 console.error("Error saving initial file system:", saveError);
               }
@@ -645,18 +679,18 @@ export default function useFileSystem(options = { debug: false }) {
           }
         } catch (error) {
           console.error("Error in file system initialization:", error);
-          // Fallback to default
-          setFileSystem(initialFileSystem);
+          // Fallback to filtered file system
+          setFileSystem(getFilteredFileSystem());
         }
       } catch (fatalError) {
         // Last resort error handling
         console.error("Fatal error during file system initialization:", fatalError);
-        setFileSystem(initialFileSystem);
+        setFileSystem(getFilteredFileSystem());
       }
     }, 100);
 
     return () => clearTimeout(initTimeout);
-  }, [restoreDates, debugMode, migrateFileSystem]);
+  }, [restoreDates, debugMode, migrateFileSystem, getFilteredFileSystem, options.isE95]);
 
   // Save to localStorage on changes with debouncing and error handling
   useEffect(() => {
@@ -665,7 +699,7 @@ export default function useFileSystem(options = { debug: false }) {
       try {
         // Check if localStorage is available and the operation is not aborting
         if (typeof localStorage !== 'undefined') {
-          const storageKey = getStorageKey(debugMode);
+          const storageKey = getStorageKey(debugMode, options.isE95);
           // Serialize with try-catch to handle circular references
           try {
             const serializedData = JSON.stringify(fileSystem);
@@ -687,7 +721,7 @@ export default function useFileSystem(options = { debug: false }) {
 
     // Clear timeout on cleanup to avoid memory leaks
     return () => clearTimeout(saveTimeout);
-  }, [fileSystem, debugMode]);
+  }, [fileSystem, debugMode, options.isE95]);
 
   // Helper function to find a directory by path
   const findDirectoryByPath = (path: string, items = fileSystem): FileSystemItem | null => {

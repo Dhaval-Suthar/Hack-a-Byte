@@ -42,18 +42,7 @@ export const handleAccessCode = async (formData: FormData) => {
       return { success: false, error: "This access code has expired" };
     }
 
-    // Check if code has reached usage limit (usage-limited codes)
-    if (
-      codeDocument.type === "usage-limited" &&
-      codeDocument.maxUsages &&
-      codeDocument.usageCount >= codeDocument.maxUsages
-    ) {
-      return { success: false, error: "This access code has reached its usage limit" };
-    }
-
-    // Increment usage count for all code types
-    codeDocument.usageCount += 1;
-    await codeDocument.save();
+  // For usage-limited team codes, we don't increment here; we handle usage during role selection
 
     // Set cookies for the user session - use await with cookies()
     const cookieStore = await cookies();
@@ -74,7 +63,8 @@ export const handleAccessCode = async (formData: FormData) => {
 
     return {
       success: true,
-      redirect: "/device-selection",
+      // If usage-limited (team) code, go to role selection flow
+      redirect: codeDocument.type === "usage-limited" ? `/role-selection?code=${codeDocument.code}` : "/device-selection",
       userData: codeDocument.userData || {},
       playspaceId: playspaceId,
     };

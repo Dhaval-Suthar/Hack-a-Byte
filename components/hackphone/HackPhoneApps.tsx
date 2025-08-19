@@ -1,16 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
+import Calendar from "./apps/Calendar/Calendar";
 import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
 import GalleryApp from "./GalleryApp";
 import CameraApp from "./CameraApp";
+import ClockApp from "./ClockApp";
+import SafariApp from "./SafariApp";
 import StockMarketApp from "./apps/StockMarketApp";
 import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
 import PhoneApp from "./PhoneApp";
 import WeatherApp from "./WeatherApp";
+import NotesApp from "./apps/NotesApp";
+import CalculatorApp from "./CalculatorApp";
 
 interface User {
   _id: string;
@@ -57,34 +62,10 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     }
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
-
-  const renderStatusBar = () => (
-    <div className="flex justify-between items-center px-6 pt-12 pb-4 text-white text-sm relative z-10">
-      <div className="flex items-center space-x-2">
-        <button onClick={onClose} className="text-blue-400 text-sm">
-          ← Back
-        </button>
-      </div>
-      <div className="flex items-center space-x-2">
-        <span className="text-xs font-medium">{formatTime(time)}</span>
-        <div className="w-7 h-4 border border-white/60 rounded-sm relative">
-          <div className="w-4 h-2 bg-green-500 rounded-sm m-0.5" />
-          <div className="w-0.5 h-1.5 bg-white/60 rounded-full absolute -right-1 top-1" />
-        </div>
-      </div>
-    </div>
-  );
+  // Status bar removed globally (signal/time/battery) per UX request
 
   const renderTerminalApp = () => (
-    <div className="w-screen h-screen bg-black flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-black flex flex-col">
       <div className="flex-1 p-4 font-mono text-green-400 text-sm overflow-y-auto">
         <div className="mb-4">
           <div className="text-white mb-2">HackPhone Terminal v2.0</div>
@@ -129,8 +110,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderFilesApp = () => (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-gray-100 flex flex-col">
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <h1 className="text-lg font-semibold text-gray-900">Files</h1>
       </div>
@@ -163,8 +143,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderNetworkApp = () => (
-    <div className="w-screen h-screen bg-black flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-black flex flex-col">
       <div className="bg-green-900 border-b border-green-700 px-4 py-3">
         <h1 className="text-lg font-semibold text-green-100">Network Scanner</h1>
       </div>
@@ -203,8 +182,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderCryptoApp = () => (
-    <div className="w-screen h-screen bg-purple-900 flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-purple-900 flex flex-col">
       <div className="bg-purple-800 border-b border-purple-700 px-4 py-3">
         <h1 className="text-lg font-semibold text-purple-100">Crypto Toolkit</h1>
       </div>
@@ -248,8 +226,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderSettingsApp = () => (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-gray-100 flex flex-col">
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
       </div>
@@ -459,14 +436,24 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderDefaultApp = () => (
-    <div className="w-screen h-screen bg-gray-900 flex flex-col">
-      {renderStatusBar()}
+  <div className="w-screen h-screen bg-gray-900 flex flex-col">
       <div className="flex-1 flex items-center justify-center text-white">
         <div className="text-center">
           <div className="text-6xl mb-4">🚧</div>
           <h2 className="text-xl font-medium mb-2">App Under Development</h2>
           <p className="text-gray-400">The {appId} app is coming soon!</p>
         </div>
+      </div>
+    </div>
+  );
+
+  const renderCalendarApp = () => (
+    <div className="w-screen h-screen bg-gray-50 flex flex-col">
+      {/* <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <h1 className="text-lg font-semibold text-gray-900">Calendar</h1>
+      </div> */}
+      <div className="flex-1 overflow-hidden">
+        <Calendar time={time} />
       </div>
     </div>
   );
@@ -483,12 +470,18 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return renderCryptoApp();
     case "settings":
       return renderSettingsApp();
+    case "calendar":
+      return renderCalendarApp();
+    case "clock":
+      return <ClockApp onClose={onClose} />;
+    case "safari":
+      return <SafariApp onClose={onClose} />;
     case "messages":
-      return <MessagingApp onClose={onClose} time={time} />;
+      return <MessagingApp time={time} />;
     case "maps":
       return <MapApp onClose={onClose} time={time} />;
     case "music":
-      return <MusicApp onClose={onClose} time={time} />;
+      return <MusicApp />;
     case "camera":
       return <CameraApp 
         onClose={onClose} 
@@ -498,13 +491,16 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "photos":
     case "gallery":
       return <GalleryApp 
-        onClose={onClose} 
         time={time} 
         onOpenCamera={() => onAppSwitch?.('camera')}
       />;
     case "stocks":
-      return <StockMarketApp onClose={onClose} time={time} />;
+      return <StockMarketApp time={time} />;
     case "snakee":
+      return <SnakeeGame onClose={onClose} time={time} />;
+    case "game":
+    case "games":
+      // The Home screen uses the id "game" for the Games icon — route it to Snakee
       return <SnakeeGame onClose={onClose} time={time} />;
     case "contacts":
       return <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />;
@@ -512,6 +508,10 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />;
     case "weather":
       return <WeatherApp onClose={onClose} time={time} />;
+    case "notes":
+       return <NotesApp onClose={onClose} time={time.toLocaleTimeString()} />;
+    case  "calculator":
+      return <CalculatorApp onClose={onClose} time={time.toLocaleTimeString()} />;
     default:
       return renderDefaultApp();
   }

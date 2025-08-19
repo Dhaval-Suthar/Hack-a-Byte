@@ -21,10 +21,10 @@ const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), {
 
 interface MapAppProps {
   onClose: () => void;
-  time: Date;
+  time?: Date;
 }
 
-const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
+const MapApp: React.FC<MapAppProps> = ({ onClose }) => {
   const [userLocation, setUserLocation] = useState({ lat: 19.2307, lng: 72.8567 }); // Borivali West, Mumbai
   const [mapCenter, setMapCenter] = useState({ lat: 19.2307, lng: 72.8567 });
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -33,13 +33,7 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
   const [currentLocationName, setCurrentLocationName] = useState("Borivali West, Mumbai");
   const mapRef = useRef<LeafletMap | null>(null);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
+  
 
   // Fix Leaflet default marker icons
   useEffect(() => {
@@ -201,29 +195,7 @@ const MapApp: React.FC<MapAppProps> = ({ onClose, time }) => {
 
   return (
     <div className="w-screen h-screen bg-white flex flex-col relative overflow-hidden">
-      {/* Status Bar - Modern iOS Style */}
-      <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] tracking-wide bg-white relative z-20">
-        <div className="flex items-center space-x-1">
-          {/* Signal bars */}
-          <div className="flex items-end space-x-[2px]">
-            <div className="w-[3px] h-[6px] bg-black rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-black rounded-[1px]" />
-            <div className="w-[3px] h-[10px] bg-black rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-black/60 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-black/40 rounded-[1px]" />
-          </div>
-          <span className="opacity-90 text-[11px]">AT&T</span>
-          <span className="opacity-90">3G</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="opacity-90 font-bold">{formatTime(time)}</span>
-          {/* Battery */}
-          <div className="w-7 h-[14px] border border-black/70 rounded-[2px] relative">
-            <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-black/70 rounded-sm absolute -right-[5px] top-[4px]" />
-          </div>
-        </div>
-      </div>
+  {/* status bar removed */}
 
       {/* Header - Silver iOS Maps Style */}
       <div className="bg-gradient-to-b from-[#e6e6e6] via-[#d1d1d1] to-[#b8b8b8] border-b border-[#a0a0a0] px-4 py-3 relative z-20">

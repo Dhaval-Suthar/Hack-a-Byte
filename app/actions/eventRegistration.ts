@@ -2,23 +2,43 @@
 
 import connectDb from "@/db/connectDb";
 import EventRegistration from "@/models/EventRegistration";
+import { AccessCode } from "@/models/AccessCode";
+import { completeRegistrationPipeline } from "@/lib/event-registration";
+import { sendAccessCodeEmail } from "@/lib/nodemailer";
 
 export interface EventRegistrationData {
   eventId: number;
   email: string;
-  isFromSFIT: boolean;
-  playingMode: "online" | "offline";
+  playingDevice: "smartphone" | "pc_laptop";
+  numberOfPlayers: number;
 }
 
-export async function registerForEvent(data: EventRegistrationData) {
+export interface EventRegistrationResult {
+  success: boolean;
+  message?: string;
+  registrationId?: string;
+  accessCode?: string;
+  playspaceName?: string;
+  error?: string;
+}
+
+export async function registerForEvent(data: EventRegistrationData): Promise<EventRegistrationResult> {
   try {
-    const { eventId, email, isFromSFIT, playingMode } = data;
+    const { eventId, email, playingDevice, numberOfPlayers } = data;
     
     // Validate inputs
-    if (!eventId || !email) {
+    if (!eventId || !email || !playingDevice || !numberOfPlayers) {
       return { 
         success: false, 
-        error: "Event ID and email are required" 
+        error: "All fields are required" 
+      };
+    }
+
+    // Validate number of players
+    if (numberOfPlayers < 1 || numberOfPlayers > 4) {
+      return { 
+        success: false, 
+        error: "Number of players must be between 1 and 4" 
       };
     }
     
@@ -33,46 +53,45 @@ export async function registerForEvent(data: EventRegistrationData) {
     
     await connectDb();
     
-    // Check if user is already registered for this event
-    const existingRegistration = await EventRegistration.findOne({ 
-      eventId, 
-      email: email.toLowerCase() 
-    });
-    
-    if (existingRegistration) {
-      return { 
-        success: false, 
-        error: "You are already registered for this event" 
-      };
-    }
-    
-    // Create registration
+    // Create registration (allowing multiple registrations per email)
     const registration = new EventRegistration({
       eventId,
       email: email.toLowerCase(),
-      isFromSFIT: Boolean(isFromSFIT),
-      playingMode,
-      registrationDate: new Date()
+      playingDevice,
+      numberOfPlayers,
+      paymentStatus: "paid", // For free events or non-Mosaic events
+      registrationDate: new Date(),
+      accessCodeSent: false
     });
     
     await registration.save();
+    const registrationId = registration._id.toString();
+
+    // Complete registration via shared pipeline (access code, team, email)
+    const { success, error, accessCode, playspaceName } = await completeRegistrationPipeline({
+      registrationId,
+      eventId,
+      eventTitle: `Event ${eventId}`,
+      email,
+      numberOfPlayers,
+      playingDevice
+    });
+    if (!success) {
+      return { success: false, error };
+    }
     
     return { 
       success: true, 
-      message: "Successfully registered for the event!",
-      registrationId: registration._id.toString()
+      message: "Successfully registered for the event! Check your email for the access code.",
+      registrationId,
+      accessCode,
+      playspaceName
     };
     
   } catch (error: unknown) {
     console.error("Event registration error:", error);
     
-    // Handle duplicate key error specifically
-    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
-      return { 
-        success: false, 
-        error: "You are already registered for this event" 
-      };
-    }
+  // Duplicate key is unlikely since we allow multiple registrations; keep generic message
     
     return { 
       success: false, 
@@ -138,7 +157,6 @@ export async function checkRegistrationStatus(eventId: number, email: string) {
       success: true, 
       isRegistered: !!registration,
       registrationData: registration ? {
-        isFromSFIT: registration.isFromSFIT,
         registrationDate: registration.registrationDate.toISOString()
       } : null
     };
@@ -157,25 +175,16 @@ export async function getEventRegistrationCount(eventId: number) {
     await connectDb();
     
     const count = await EventRegistration.countDocuments({ eventId });
-    const sfitCount = await EventRegistration.countDocuments({ 
-      eventId, 
-      isFromSFIT: true 
-    });
-    
     return { 
       success: true, 
-      totalRegistrations: count,
-      sfitRegistrations: sfitCount,
-      externalRegistrations: count - sfitCount
+      totalRegistrations: count
     };
     
   } catch (error: unknown) {
     console.error("Get registration count error:", error);
     return { 
       success: false, 
-      totalRegistrations: 0,
-      sfitRegistrations: 0,
-      externalRegistrations: 0
+  totalRegistrations: 0
     };
   }
 }
@@ -189,20 +198,16 @@ export async function getAllEventsWithRegistrationCounts() {
       {
         $group: {
           _id: "$eventId",
-          totalRegistrations: { $sum: 1 },
-          sfitRegistrations: {
-            $sum: { $cond: [{ $eq: ["$isFromSFIT", true] }, 1, 0] }
-          }
+          totalRegistrations: { $sum: 1 }
         }
       }
     ]);
     
     // Convert to a map for easier lookup
-    const registrationMap: Record<number, { total: number; sfit: number }> = {};
+    const registrationMap: Record<number, { total: number }> = {};
     registrationData.forEach(item => {
       registrationMap[item._id] = {
-        total: item.totalRegistrations,
-        sfit: item.sfitRegistrations
+        total: item.totalRegistrations
       };
     });
     
@@ -216,6 +221,127 @@ export async function getAllEventsWithRegistrationCounts() {
     return { 
       success: false, 
       registrationCounts: {}
+    };
+  }
+}
+
+export async function resendAccessCode(registrationId: string): Promise<EventRegistrationResult> {
+  try {
+    await connectDb();
+    
+    // Find the registration
+    const registration = await EventRegistration.findById(registrationId)
+      .populate('accessCodeId')
+      .populate('playspaceId');
+    
+    if (!registration) {
+      return {
+        success: false,
+        error: "Registration not found"
+      };
+    }
+    
+    if (!registration.accessCodeId) {
+      return {
+        success: false,
+        error: "No access code found for this registration"
+      };
+    }
+    
+    // Get the access code details
+    const accessCode = registration.accessCodeId as AccessCode;
+    const playspace = registration.playspaceId as { _id: string; name: string; description: string };
+    
+    // Resend the email
+    const emailResult = await sendAccessCodeEmail({
+      email: registration.email,
+      eventTitle: `Event ${registration.eventId}`,
+      accessCode: accessCode.code,
+      numberOfPlayers: registration.numberOfPlayers,
+      playingDevice: registration.playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
+      maxUsages: accessCode.maxUsages || registration.numberOfPlayers,
+      playspaceName: playspace?.name || `Event ${registration.eventId} - Team ${accessCode.code}`,
+      instructions: "This is a resent access code. Use it to enter your gaming environment."
+    });
+    
+    if (emailResult.success) {
+      // Update the sent status
+      registration.accessCodeSent = true;
+      registration.accessCodeSentAt = new Date();
+      await registration.save();
+      
+      return {
+        success: true,
+        message: "Access code resent successfully!",
+        registrationId: registration._id.toString(),
+        accessCode: accessCode.code,
+        playspaceName: playspace?.name
+      };
+    } else {
+      return {
+        success: false,
+        error: `Failed to resend access code: ${emailResult.error}`
+      };
+    }
+    
+  } catch (error: unknown) {
+    console.error("Resend access code error:", error);
+    return {
+      success: false,
+      error: "Failed to resend access code. Please try again."
+    };
+  }
+}
+
+export async function getRegistrationDetails(registrationId: string) {
+  try {
+    await connectDb();
+    
+    const registration = await EventRegistration.findById(registrationId)
+      .populate('accessCodeId')
+      .populate('playspaceId');
+    
+    if (!registration) {
+      return {
+        success: false,
+        error: "Registration not found"
+      };
+    }
+    
+    const accessCode = registration.accessCodeId as AccessCode;
+    const playspace = registration.playspaceId as { _id: string; name: string; description: string };
+    
+    return {
+      success: true,
+      registration: {
+        _id: registration._id.toString(),
+        eventId: registration.eventId,
+        email: registration.email,
+        playingDevice: registration.playingDevice,
+        numberOfPlayers: registration.numberOfPlayers,
+        paymentStatus: registration.paymentStatus,
+        registrationDate: registration.registrationDate.toISOString(),
+        accessCodeSent: registration.accessCodeSent,
+        accessCodeSentAt: registration.accessCodeSentAt?.toISOString(),
+        accessCode: accessCode ? {
+          code: accessCode.code,
+          usageCount: accessCode.usageCount,
+          maxUsages: accessCode.maxUsages,
+          isActive: accessCode.isActive
+        } : null,
+        playspace: playspace ? {
+          _id: playspace._id.toString(),
+          name: playspace.name,
+          description: playspace.description
+        } : null
+      }
+    };
+    
+  } catch (error: unknown) {
+    console.error("Get registration details error:", error);
+    return {
+      success: false,
+      error: "Failed to fetch registration details"
     };
   }
 }
