@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 
 interface HackPhoneLoginScreenProps {
@@ -22,21 +22,23 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
     return () => clearInterval(t);
   }, []);
 
-  const getMaxPosition = () => {
+  // (global event listeners moved below so they can reference stable handlers)
+
+  const getMaxPosition = useCallback(() => {
     const sliderEl = sliderRef.current;
     const knobEl = knobRef.current;
     if (!sliderEl || !knobEl) return 0;
     const sliderWidth = sliderEl.clientWidth;
     const knobWidth = knobEl.clientWidth;
     return Math.max(0, sliderWidth - knobWidth - 8);
-  };
+  }, []);
 
   const handleSlideStart = (clientX: number) => {
     setIsDragging(true);
     setDragStartX(clientX - slidePosition);
   };
 
-  const handleSlideMove = (clientX: number) => {
+  const handleSlideMove = useCallback((clientX: number) => {
     if (!isDragging) return;
     // Throttle updates with requestAnimationFrame for smoother motion
     latestClientX.current = clientX;
@@ -48,16 +50,16 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
       const newPos = Math.max(0, Math.min(maxPosition, client - dragStartX));
       setSlidePosition(newPos);
     });
-  };
+  }, [isDragging, dragStartX, getMaxPosition]);
 
-  const handleSlideEnd = () => {
+  const handleSlideEnd = useCallback(() => {
     // cancel any pending rAF
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
     const maxPosition = getMaxPosition();
-    if (slidePosition > maxPosition * 0.7) {
+    if (slidePosition > maxPosition * 0.6) {
       setSlidePosition(maxPosition);
       setTimeout(() => {
         if (onSlideToUnlock) onSlideToUnlock();
@@ -66,15 +68,136 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
       setSlidePosition(0);
     }
     setIsDragging(false);
-  };
+  }, [slidePosition, getMaxPosition, onSlideToUnlock]);
 
+  // Global mouse/pointer event listeners for smooth dragging
+  useEffect(() => {
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleSlideMove(e.clientX);
+      }
+    };
+
+    const handleGlobalPointerUp = (e: PointerEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleSlideEnd();
+      }
+    };
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleSlideMove(e.clientX);
+      }
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleSlideEnd();
+      }
+    };
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches[0]) {
+        e.preventDefault();
+        handleSlideMove(e.touches[0].clientX);
+      }
+    };
+
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleSlideEnd();
+      }
+    };
+
+    if (isDragging) {
+      // Add global listeners when dragging starts
+      document.addEventListener('pointermove', handleGlobalPointerMove, { passive: false });
+      document.addEventListener('pointerup', handleGlobalPointerUp, { passive: false });
+      document.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleGlobalMouseUp, { passive: false });
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+      document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
+      
+      // Prevent text selection while dragging
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+    } else {
+      // Reset styles when not dragging
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    }
+
+    return () => {
+      // Clean up global listeners
+      document.removeEventListener('pointermove', handleGlobalPointerMove);
+      document.removeEventListener('pointerup', handleGlobalPointerUp);
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    };
+  }, [isDragging, handleSlideMove, handleSlideEnd]);
+
+  // Pointer Events
   const onPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
     try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch {}
     handleSlideStart(e.clientX);
   };
-  const onPointerMove = (e: React.PointerEvent) => handleSlideMove(e.clientX);
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+      handleSlideMove(e.clientX);
+    }
+  };
   const onPointerUp = (e: React.PointerEvent) => {
+    e.preventDefault();
     try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
+    handleSlideEnd();
+  };
+
+  // Touch Events (fallback for better compatibility)
+  const onTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touch) {
+      handleSlideStart(touch.clientX);
+    }
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (touch) {
+        handleSlideMove(touch.clientX);
+      }
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleSlideEnd();
+  };
+
+  // Mouse Events (fallback for desktop)
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleSlideStart(e.clientX);
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+      handleSlideMove(e.clientX);
+    }
+  };
+  const onMouseUp = (e: React.MouseEvent) => {
+    e.preventDefault();
     handleSlideEnd();
   };
 
@@ -117,11 +240,12 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
         </div>
 
         {/* Slider positioned just above the Home button (above bezel, below home) */}
-        <div className="absolute left-0 right-0 bottom-20 z-[45] pointer-events-auto">
+        <div className="absolute left-0 right-0 bottom-20 z-[45] pointer-events-auto touch-none">
           <div className="w-full max-w-[22rem] mx-auto px-6">
             <div
               ref={sliderRef}
-              className="relative w-full h-12 rounded-[22px] border border-white/20 overflow-hidden supports-[backdrop-filter]:backdrop-blur-sm bg-gradient-to-b from-black/70 via-black/50 to-black/60 shadow-[inset_0_2px_0_rgba(255,255,255,0.06),inset_0_-2px_0_rgba(0,0,0,0.6),0_8px_20px_rgba(0,0,0,0.6)]"
+              className="relative w-full h-12 rounded-[22px] border border-white/20 overflow-hidden supports-[backdrop-filter]:backdrop-blur-sm bg-gradient-to-b from-black/70 via-black/50 to-black/60 shadow-[inset_0_2px_0_rgba(255,255,255,0.06),inset_0_-2px_0_rgba(0,0,0,0.6),0_8px_20px_rgba(0,0,0,0.6)] touch-none"
+              style={{ touchAction: 'none' }}
             >
               {/* Track subtle hairlines */}
               <div className="absolute top-0 left-0 right-0 h-px bg-white/25 opacity-60" />
@@ -130,26 +254,36 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
               {/* Progress fill */}
               <div
                 aria-hidden
-                className="absolute left-1 top-1 bottom-1 rounded-full bg-gradient-to-r from-cyan-400/45 via-sky-400/25 to-transparent pointer-events-none"
-                style={{ width: `${progressPercent}%`, transition: isDragging ? 'none' : 'width 220ms ease' }}
+                className={`absolute left-1 top-1 bottom-1 rounded-full pointer-events-none transition-colors duration-200 ${
+                  progressPercent > 60 
+                    ? 'bg-gradient-to-r from-green-400/60 via-green-400/40 to-green-400/20' 
+                    : 'bg-gradient-to-r from-cyan-400/45 via-sky-400/25 to-transparent'
+                }`}
+                style={{ 
+                  width: `${progressPercent}%`, 
+                  transition: isDragging ? 'background-color 200ms ease' : 'width 220ms ease, background-color 200ms ease' 
+                }}
               />
 
               {/* Instruction label with shimmer, padded to clear the knob */}
               <div className="absolute inset-0 flex items-center justify-center pl-16 pr-4 pointer-events-none">
                 <div className="relative text-[13px] tracking-wide">
                   <span
-                    className="text-white/85 drop-shadow-md"
+                    className={`drop-shadow-md transition-opacity duration-200 ${
+                      progressPercent > 60 ? 'opacity-75' : 'opacity-100'
+                    }`}
                     style={{
-                      background:
-                        "linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.45) 100%)",
+                      background: progressPercent > 60
+                        ? "linear-gradient(90deg, rgba(34,197,94,0.8) 0%, rgba(34,197,94,1) 50%, rgba(34,197,94,0.8) 100%)"
+                        : "linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.45) 100%)",
                       WebkitBackgroundClip: "text",
                       backgroundClip: "text",
                       color: "transparent",
                       backgroundSize: "180% 100%",
-                      animation: "shimmer 1.6s infinite",
+                      animation: progressPercent > 60 ? "shimmer 0.8s infinite" : "shimmer 1.6s infinite",
                     }}
                   >
-                    slide to unlock
+                    {progressPercent > 60 ? 'release to unlock' : 'slide to unlock'}
                   </span>
                 </div>
               </div>
@@ -157,12 +291,28 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
               {/* Circular knob */}
               <div
                 ref={knobRef}
-                className={`absolute top-1 left-1 h-10 w-10 rounded-full border border-black/10 bg-white/95 flex items-center justify-center ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'} select-none shadow-[0_8px_20px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-2px_4px_rgba(0,0,0,0.12)]`}
-                style={{ transform: `translateX(${slidePosition}px)`, transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(.2,.9,.3,1)' }}
+                className={`absolute top-1 left-1 h-10 w-10 rounded-full border border-black/10 bg-white/95 flex items-center justify-center ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'} select-none touch-none transition-shadow duration-200 ${
+                  progressPercent > 60 
+                    ? 'shadow-[0_8px_20px_rgba(0,0,0,0.45),0_0_20px_rgba(34,197,94,0.4),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-2px_4px_rgba(0,0,0,0.12)]' 
+                    : 'shadow-[0_8px_20px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-2px_4px_rgba(0,0,0,0.12)]'
+                }`}
+                style={{ 
+                  transform: `translateX(${slidePosition}px)`, 
+                  transition: isDragging ? 'box-shadow 200ms ease' : 'transform 200ms cubic-bezier(.2,.9,.3,1), box-shadow 200ms ease',
+                  touchAction: 'none',
+                  willChange: 'transform'
+                }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onTouchCancel={onTouchEnd}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
               >
                 {/* Inner ring and icon */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white to-neutral-200" />
