@@ -1,21 +1,10 @@
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
+import Razorpay from "razorpay";
+import crypto from "crypto";
 
-// Lazy singleton so importing this module never immediately crashes
-// when env vars are absent in local dev.
-let _razorpayInstance: InstanceType<typeof Razorpay> | null = null;
-
-function getRazorpayInstance() {
-  if (_razorpayInstance) return _razorpayInstance;
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keyId || !keySecret) {
-    console.warn('[razorpay] RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET missing. Payment functions will return error until configured.');
-    return null;
-  }
-  _razorpayInstance = new Razorpay({ key_id: keyId, key_secret: keySecret });
-  return _razorpayInstance;
-}
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
 
 export interface CreateOrderParams {
   amount: number; // Amount in paisa (multiply by 100 for rupees)
@@ -32,13 +21,6 @@ export interface PaymentVerificationParams {
 // Create Razorpay order
 export const createRazorpayOrder = async (params: CreateOrderParams) => {
   try {
-    const razorpay = getRazorpayInstance();
-    if (!razorpay) {
-      return {
-        success: false,
-        error: 'Payment gateway not configured',
-      };
-    }
     const options = {
       amount: params.amount,
       currency: params.currency,
@@ -52,10 +34,10 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
       order,
     };
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
+    console.error("Error creating Razorpay order:", error);
     return {
       success: false,
-      error: 'Failed to create payment order',
+      error: "Failed to create payment order",
     };
   }
 };
@@ -63,10 +45,8 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
 // Verify Razorpay payment
 export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolean => {
   try {
-  const razorpay = getRazorpayInstance();
-  if (!razorpay) return false;
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = params;
-    
+
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
@@ -75,7 +55,7 @@ export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolea
 
     return expectedSignature === razorpay_signature;
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error("Error verifying payment:", error);
     return false;
   }
 };
@@ -86,9 +66,9 @@ export const getEventRegistrationFeePerPerson = (eventId: number): number => {
   if (eventId === 100) {
     return 10000; // ₹100 per person
   }
-  
+
   // Default fee for other events
   return 5000; // ₹50 per person
 };
 
-export default getRazorpayInstance;
+export default razorpay;
