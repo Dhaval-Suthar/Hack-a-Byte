@@ -69,7 +69,7 @@ export default function DevicesTab({
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-300 mb-2">Create New Device</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"].map((deviceType) => (
+          {["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"].map((deviceType) => (
             <button
               key={deviceType}
               onClick={() => onCreateDevice(deviceType)}
