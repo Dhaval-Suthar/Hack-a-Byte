@@ -15,7 +15,7 @@ import ContactsApp from "./ContactsApp";
 import PhoneApp from "./PhoneApp";
 import NotesApp from "./apps/NotesApp";
 import CalculatorApp from "./CalculatorApp";
-
+import HackPhoneFiles from "./FileApp";
 
 interface User {
   _id: string;
@@ -511,7 +511,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case  "calculator":
       return <CalculatorApp onClose={onClose} time={time.toLocaleTimeString()} />;
 
-
+    case "files":
+       return < HackPhoneFiles onClose={onClose} time={time.toLocaleTimeString()} />;
     default:
       return renderDefaultApp();
   }
