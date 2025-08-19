@@ -158,6 +158,14 @@ export default function DeviceSelectionPage() {
       platform: "desktop",
     },
     {
+      id: "hackbook-e95",
+      name: "HackBook E95",
+      icon: "/hackbook-W95/app-icon/windows-logo.png",
+      description: "Essential Windows 95 interface with core applications only - no mini games.",
+      path: "/hackbook-e95",
+      platform: "desktop",
+    },
+    {
       id: "hackbook-l",
       name: "HackBook Linux",
       icon: "/hackbook-l/linux-logo.png",

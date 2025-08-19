@@ -7,11 +7,12 @@ import useFileSystem, { FileSystemItem } from "@/components/hackbook-w95/hooks/u
 
 interface MyComputerProps {
   onClose: () => void;
+  isE95?: boolean;
 }
 
-const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
-  // Initialize file system with debug mode disabled to prevent excessive logging
-  const fs = useFileSystem({ debug: false });
+const MyComputer: React.FC<MyComputerProps> = ({ onClose, isE95 = false }) => {
+  // Initialize file system with debug mode disabled and E95 mode flag
+  const fs = useFileSystem({ debug: false, isE95 });
   const [selectedItem, setSelectedItem] = useState<FileSystemItem | null>(null);
   const [viewMode, setViewMode] = useState<'icons' | 'details' | 'list' | 'smallIcons'>('details');
   const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(false);
@@ -86,9 +87,16 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose }) => {
   };
 
   // Format date
-  const formatDate = (date?: Date): string => {
+  const formatDate = (date?: Date | string): string => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { 
+    
+    // Handle both Date objects and string dates (from JSON serialization)
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) return '';
+    
+    return dateObj.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric',
