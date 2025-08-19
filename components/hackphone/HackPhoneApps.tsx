@@ -16,6 +16,7 @@ import PhoneApp from "./PhoneApp";
 import WeatherApp from "./WeatherApp";
 import NotesApp from "./apps/NotesApp";
 import CalculatorApp from "./CalculatorApp";
+import MailApp from "./MailApp";
 
 interface User {
   _id: string;
@@ -471,6 +472,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "settings":
       return renderSettingsApp();
     case "calendar":
+    case "calender":  // Handle typo
       return renderCalendarApp();
     case "clock":
       return <ClockApp onClose={onClose} />;
@@ -512,6 +514,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
        return <NotesApp onClose={onClose} time={time.toLocaleTimeString()} />;
     case  "calculator":
       return <CalculatorApp onClose={onClose} time={time.toLocaleTimeString()} />;
+    case "mail":
+      return <MailApp onClose={onClose} time={time} />;
     default:
       return renderDefaultApp();
   }

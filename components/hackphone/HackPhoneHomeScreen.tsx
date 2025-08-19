@@ -42,7 +42,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   const apps: App[] = useMemo(
     () => [
       { id: "messages", name: "Messages", icon: "/hackphone/apps/message/app-icon.png", color: "" },
-      { id: "calender", name: "Calendar", icon: "/hackphone/apps/calender/app-icon.png", color: "" },
+      { id: "calendar", name: "Calendar", icon: "/hackphone/apps/calender/app-icon.png", color: "" },
       { id: "photos", name: "Photos", icon: "/hackphone/apps/photos/app-icon.png", color: "" },
       { id: "camera", name: "Camera", icon: "/hackphone/apps/camera/app-icon.png", color: "" },
       { id: "youtube", name: "YouTube", icon: "/hackphone/apps/youtube/app-icon.png", color: "" },

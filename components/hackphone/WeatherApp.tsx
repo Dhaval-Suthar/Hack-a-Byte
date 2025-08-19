@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 interface WeatherAppProps {
   onClose: () => void;
@@ -29,7 +29,7 @@ interface WeatherData {
 }
 
 const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
-  const [weatherData, setWeatherData] = useState<WeatherData>({
+  const weatherData: WeatherData = {
     location: "Cupertino",
     currentTemp: 49,
     condition: "Partly Cloudy",
@@ -91,7 +91,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
         { time: "3:00 PM", temp: 63, icon: "🌧️" },
       ],
     }
-  });
+  };
 
   const [selectedDay, setSelectedDay] = useState<string>(
     weatherData.forecast?.[0]?.day ?? "SUNDAY"
@@ -111,27 +111,6 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
       </div>
     </div>
   );
-
-  const getWeatherIcon = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case 'sunny':
-      case 'clear':
-        return '☀️';
-      case 'partly cloudy':
-      case 'cloudy':
-        return '☁️';
-      case 'rainy':
-      case 'rain':
-        return '🌧️';
-      case 'stormy':
-        return '⛈️';
-      case 'snowy':
-      case 'snow':
-        return '❄️';
-      default:
-        return '☁️';
-    }
-  };
 
   return (
     <div className="w-screen h-screen relative overflow-hidden">
