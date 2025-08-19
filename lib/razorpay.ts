@@ -1,5 +1,5 @@
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
+import Razorpay from "razorpay";
+import crypto from "crypto";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -34,10 +34,10 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
       order,
     };
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
+    console.error("Error creating Razorpay order:", error);
     return {
       success: false,
-      error: 'Failed to create payment order',
+      error: "Failed to create payment order",
     };
   }
 };
@@ -46,7 +46,7 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
 export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolean => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = params;
-    
+
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
@@ -55,7 +55,7 @@ export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolea
 
     return expectedSignature === razorpay_signature;
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error("Error verifying payment:", error);
     return false;
   }
 };
@@ -66,7 +66,7 @@ export const getEventRegistrationFeePerPerson = (eventId: number): number => {
   if (eventId === 100) {
     return 10000; // ₹100 per person
   }
-  
+
   // Default fee for other events
   return 5000; // ₹50 per person
 };
