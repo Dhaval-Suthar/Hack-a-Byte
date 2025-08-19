@@ -206,7 +206,13 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
     if (item.metadata?.deletedDate instanceof Date) {
       return item.metadata.deletedDate as Date;
     }
-    return item.lastModified;
+    
+    // Handle both Date objects and string dates (from JSON serialization)
+    if (item.lastModified) {
+      return item.lastModified instanceof Date ? item.lastModified : new Date(item.lastModified);
+    }
+    
+    return undefined;
   };
 
   // Handle menu click
