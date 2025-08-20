@@ -14,6 +14,7 @@ import SnakeeGame from "./apps/SnakeeGame";
 import ContactsApp from "./ContactsApp";
 import PhoneApp from "./PhoneApp";
 import NotesApp from "./apps/NotesApp";
+import BlackMartPhone from "./apps/BlackMartPhone";
 
 
 interface User {
@@ -507,6 +508,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />;
     case "notes":
        return <NotesApp onClose={onClose} time={time.toLocaleTimeString()} />;
+    case "blackmart":
+      return <BlackMartPhone onClose={onClose} time={time} />;
 
 
 
