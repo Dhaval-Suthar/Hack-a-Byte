@@ -43,8 +43,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
       { day: "WEDNESDAY", icon: "🌧️", high: 57, low: 45 },
       { day: "THURSDAY", icon: "🌧️", high: 54, low: 45 },
       { day: "FRIDAY", icon: "🌧️", high: 58, low: 45 },
-    ]
-    ,
+    ],
     hourly: [
       { time: "5:00 PM", temp: 59, icon: "🌤️" },
       { time: "6:00 PM", temp: 58, icon: "🌤️" },
@@ -90,12 +89,10 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
         { time: "12:00 PM", temp: 62, icon: "🌧️" },
         { time: "3:00 PM", temp: 63, icon: "🌧️" },
       ],
-    }
+    },
   });
 
-  const [selectedDay, setSelectedDay] = useState<string>(
-    weatherData.forecast?.[0]?.day ?? "SUNDAY"
-  );
+  const [selectedDay, setSelectedDay] = useState<string>(weatherData.forecast?.[0]?.day ?? "SUNDAY");
 
   const renderStatusBar = () => (
     <div className="flex justify-between items-center px-4 py-1 text-white text-sm font-medium bg-black bg-opacity-30">
@@ -103,9 +100,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
         <span>•••</span>
         <span className="text-xs">📶</span>
       </div>
-      <div className="font-semibold">
-        {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </div>
+      <div className="font-semibold">{time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
       <div className="flex items-center space-x-1">
         <span className="text-xs">🔋</span>
       </div>
@@ -114,22 +109,22 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
 
   const getWeatherIcon = (condition: string) => {
     switch (condition.toLowerCase()) {
-      case 'sunny':
-      case 'clear':
-        return '☀️';
-      case 'partly cloudy':
-      case 'cloudy':
-        return '☁️';
-      case 'rainy':
-      case 'rain':
-        return '🌧️';
-      case 'stormy':
-        return '⛈️';
-      case 'snowy':
-      case 'snow':
-        return '❄️';
+      case "sunny":
+      case "clear":
+        return "☀️";
+      case "partly cloudy":
+      case "cloudy":
+        return "☁️";
+      case "rainy":
+      case "rain":
+        return "🌧️";
+      case "stormy":
+        return "⛈️";
+      case "snowy":
+      case "snow":
+        return "❄️";
       default:
-        return '☁️';
+        return "☁️";
     }
   };
 
@@ -137,7 +132,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
     <div className="w-screen h-screen relative overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700"></div>
-      
+
       {/* Cloud background pattern */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-20 left-10 text-white text-6xl">☁️</div>
@@ -145,9 +140,9 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
         <div className="absolute top-60 left-1/4 text-white text-5xl">☁️</div>
       </div>
 
-  <div className="relative z-10 flex flex-col h-full text-white overflow-y-auto">
+      <div className="relative z-10 flex flex-col h-full text-white overflow-y-auto">
         {renderStatusBar()}
-        
+
         {/* Header with back button */}
         <div className="px-4 py-3 flex items-center">
           <button
@@ -161,7 +156,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
           </div>
           <div className="w-10 h-10"></div> {/* Spacer for centering */}
         </div>
-        
+
         {/* Main weather content - two column layout */}
         <div className="flex-1 px-4 py-4">
           <div className="grid grid-cols-12 gap-4 min-h-full">
@@ -171,7 +166,9 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-xl font-medium">{weatherData.location}</h1>
-                    <div className="text-sm opacity-80">H: {weatherData.high}° L: {weatherData.low}°</div>
+                    <div className="text-sm opacity-80">
+                      H: {weatherData.high}° L: {weatherData.low}°
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-6xl font-light">{weatherData.currentTemp}°</div>
@@ -223,7 +220,10 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
                 <div className="px-4 pb-4 flex items-center justify-center text-xs opacity-70">
                   <div className="flex items-center space-x-2">
                     <span>🌐</span>
-                    <span>Updated {time.toLocaleDateString()} {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span>
+                      Updated {time.toLocaleDateString()}{" "}
+                      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -233,7 +233,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
           </div>
         </div>
 
-  {/* Bottom navigation indicator removed */}
+        {/* Bottom navigation indicator removed */}
       </div>
     </div>
   );
