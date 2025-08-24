@@ -17,8 +17,8 @@ import WeatherApp from "./WeatherApp";
 import NotesApp from "./apps/NotesApp";
 import AppStore from "./apps/AppStore";
 import CalculatorApp from "./CalculatorApp";
+import HackPhoneFiles from "./FileApp";
 import MailApp from "./MailApp";
-
 
 interface User {
   _id: string;
@@ -113,36 +113,13 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   );
 
   const renderFilesApp = () => (
-  <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-lg font-semibold text-gray-900">Files</h1>
-      </div>
-      <div className="flex-1 p-4">
-        <div className="space-y-3">
-          {[
-            { name: "Documents", icon: "📁", size: "12 items", type: "folder" },
-            { name: "Downloads", icon: "📥", size: "8 items", type: "folder" },
-            { name: "Photos", icon: "🖼️", size: "142 items", type: "folder" },
-            { name: "Scripts", icon: "📜", size: "5 items", type: "folder" },
-            { name: "hack-tools.zip", icon: "🗜️", size: "2.4 MB", type: "file" },
-            { name: "network-scan.log", icon: "📄", size: "156 KB", type: "file" },
-            { name: "encrypted-data.bin", icon: "🔒", size: "892 KB", type: "file" },
-          ].map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center p-3 bg-white rounded-lg border border-gray-200 active:bg-gray-50"
-            >
-              <span className="text-2xl mr-3">{item.icon}</span>
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{item.name}</div>
-                <div className="text-sm text-gray-500">{item.size}</div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <HackPhoneFiles 
+      onClose={(info) => {
+        console.log('Files app closed:', info);
+        // Handle close if needed
+      }}
+      time={time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    />
   );
 
   const renderNetworkApp = () => (
@@ -518,6 +495,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <AppStore onClose={onClose} time={time} />;
     case  "calculator":
       return <CalculatorApp onClose={onClose} time={time.toLocaleTimeString()} />;
+    case "files":
+       return < HackPhoneFiles onClose={onClose} time={time.toLocaleTimeString()} />;
     case "mail":
       return <MailApp onClose={onClose} time={time} />;
     default:
