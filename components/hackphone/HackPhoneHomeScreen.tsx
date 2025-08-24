@@ -60,11 +60,11 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
       { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
       { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
-  { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" }, // ensure correct Files icon image
+      { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" },
+      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
     ],
     []
   );
-
 
   // Distribute apps across exactly 3 pages in a round-robin fashion to "scatter" them
   const TOTAL_PAGES = 3;
@@ -76,8 +76,6 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     return buckets;
   }, [apps]);
   const totalPages = TOTAL_PAGES;
-
-  
 
   // date formatting helper removed — home screen no longer shows a date header
 
@@ -137,13 +135,18 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
         style={{ backgroundImage: "url(/hackphone/home-screen-bg.png)" }}
       />
       {/* Subtle lighting layer for depth, harmless on older browsers */}
-      <div className="absolute inset-0 pointer-events-none" style={{backgroundImage:"radial-gradient(circle at 20% 10%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.10) 0, rgba(255,255,255,0) 45%)"}} />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 20% 10%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.10) 0, rgba(255,255,255,0) 45%)",
+        }}
+      />
 
-
-  {/* Time */}
-  <div className="text-center text-white relative z-10 pt-2">
-    <div className="text-5xl font-thin mb-1">{/* time removed */}</div>
-  </div>
+      {/* Time */}
+      <div className="text-center text-white relative z-10 pt-2">
+        <div className="text-5xl font-thin mb-1">{/* time removed */}</div>
+      </div>
 
       {/* App pages (swipeable) */}
       <div className="flex-1 px-0 sm:px-0 py-4 relative z-10 select-none">
@@ -170,7 +173,9 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                       className="flex flex-col items-center group"
                     >
                       {/* App icon */}
-                      <div className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center ${app.id === "files" ? "mb-0 p-0" : "mb-2"} shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}>
+                      <div
+                        className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}
+                      >
                         <Image
                           src={app.icon}
                           alt={`${app.name} icon`}
@@ -196,7 +201,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       </div>
 
       {/* Page indicator dots */}
-  {totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex justify-center space-x-2 pb-4 relative z-10">
           {Array.from({ length: totalPages }).map((_, index) => (
             <button
@@ -219,31 +224,55 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />
           <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/40" />
           <div className="flex justify-center items-center h-full space-x-8 relative z-10">
-          {/* Dock apps with real icons */}
-          <button onClick={() => onAppOpen("phone")} className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5">
-            <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-          </button>
-          
-          <button onClick={() => onAppOpen("messages")} className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5">
-            <Image src="/hackphone/apps/message/app-icon.png" alt="Messages" fill className="object-cover" sizes="56px" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-          </button>
-          
-          <button onClick={() => onAppOpen("safari")} className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5">
-            <Image src="/hackphone/apps/safari/app-icon.png" alt="Safari" fill className="object-cover" sizes="56px" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-          </button>
-          
-          <button onClick={() => onAppOpen("music")} className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5">
-            <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-          </button>
+            {/* Dock apps with real icons */}
+            <button
+              onClick={() => onAppOpen("phone")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("messages")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image
+                src="/hackphone/apps/message/app-icon.png"
+                alt="Messages"
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("safari")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image
+                src="/hackphone/apps/safari/app-icon.png"
+                alt="Safari"
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("music")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
           </div>
         </div>
       </div>
 
-  {/* Home button bezel and button moved to Desktop overlay to make it persistent across screens */}
+      {/* Home button bezel and button moved to Desktop overlay to make it persistent across screens */}
     </div>
   );
 };

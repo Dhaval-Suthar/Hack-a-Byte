@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { registerForEvent, getAllEventsWithRegistrationCounts } from "@/app/actions/eventRegistration";
 import { createEventPaymentOrder, verifyEventPayment } from "@/app/actions/payment";
+import { useRouter } from "next/navigation";
 
 // Razorpay type declarations
 interface RazorpayResponse {
@@ -186,6 +187,7 @@ interface RegistrationModalProps {
 }
 
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("pc_laptop");
   const [numberOfPlayers, setNumberOfPlayers] = useState(1);
@@ -251,6 +253,8 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 setEmail("");
                 setPlayingDevice("pc_laptop");
                 setNumberOfPlayers(1);
+                // Redirect user to home page to enter access code
+                router.push("/");
               } else {
                 setError(verifyResult.error || "Payment verification failed");
               }
@@ -291,6 +295,8 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
           setEmail("");
           setPlayingDevice("pc_laptop");
           setNumberOfPlayers(1);
+          // Redirect user to home page to enter access code
+          router.push("/");
         } else {
           setError(result.error || "Registration failed");
         }
