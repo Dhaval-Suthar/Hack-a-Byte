@@ -7,7 +7,7 @@ interface Track {
  id: string;
  title: string;
  artist: string;
-// album: string;
+album?: string;
  duration: number; // seconds
  src: string; // audio file URL
  cover?: string; // image URL / data URI
@@ -463,10 +463,10 @@ function SongsView({ tracks, onPlay }: { tracks: Track[]; onPlay: (index: number
        {tracks.map((t, i) => (
          <button key={t.id} className="ios-row w-full text-left" onClick={() => onPlay(i)}>
            <Image src={t.cover || ""} alt="cover" width={40} height={40} className="rounded mr-3"/>
-           <div>
-             <div className="ios-title">{t.title}</div>
-             <div className="ios-sub">{t.artist} — {t.album}</div>
-           </div>
+            <div>
+              <div className="ios-title">{t.title}</div>
+              <div className="ios-sub">{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
+            </div>
            <div className="ml-auto text-[12px] text-[#6d6d72]">{fmtTime(t.duration)}</div>
          </button>
        ))}
@@ -569,7 +569,7 @@ function NowPlayingView({
      <Image src={track?.cover || ""} alt="cover" width={260} height={260} className="now-art"/>
      <div className="text-center">
        <div className="text-[18px] font-semibold text-black">{track?.title || "—"}</div>
-       <div className="text-[13px] text-[#6d6d72] mt-0.5">{track ? `${track.artist} — ${track.album}` : ""}</div>
+  <div className="text-[13px] text-[#6d6d72] mt-0.5">{track ? `${track.artist}${track.album ? ' — ' + track.album : ''}` : ""}</div>
      </div>
 
 
