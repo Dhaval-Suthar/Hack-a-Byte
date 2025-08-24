@@ -124,7 +124,7 @@ const HackPhoneDesktop = () => {
       {/* Persistent bottom overlay: bezel + home button */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/80 border-t border-white/10 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.7)] overflow-hidden z-[40]"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black border-t border-white/10 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.7)] overflow-hidden z-[40]"
       >
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40" />
         <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />

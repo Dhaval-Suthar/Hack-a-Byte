@@ -59,7 +59,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       { id: "clock", name: "Clock", icon: "/hackphone/apps/clock/app-icon.png", color: "" },
       { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
       { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
-      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
+  { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
     ],
     []
   );
