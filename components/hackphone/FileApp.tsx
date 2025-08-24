@@ -1,13 +1,12 @@
 "use client";
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 
 /**
- * HackPhone Files — an iOS 4–style file system app mock built for Next.js + React + TypeScript
+ * HackPhone Files — an iOS-style file system app with modern interface
  *
- * Drop this component anywhere in your Next.js app (app/ or pages/) and render <HackPhoneFiles />.
- * Tailwind CSS recommended for styling (classes included below). The UI intentionally uses
- * skeuomorphic gradients and gloss to evoke iOS 3/4.
+ * Enhanced file browser interface with locations, favorites, and browse functionality
+ * Built for Next.js + React + TypeScript with iOS-style design
  *
  * Props:
  *  - onClose?: (info: CloseInfo) => void
@@ -22,7 +21,8 @@ import { AnimatePresence, motion } from "framer-motion";
  */
 
 // ---------- Types ----------
-type ItemType = "folder" | "file";
+type ItemType = "folder" | "file" | "location";
+type ViewType = "browse" | "locations" | "folder";
 
 export type FSItem = {
   id: string;
@@ -31,6 +31,8 @@ export type FSItem = {
   children?: FSItem[]; // folders can have children
   sizeBytes?: number; // files only
   modifiedAt?: string; // ISO date
+  icon?: string; // icon path for locations
+  itemCount?: number; // for folders
 };
 
 export type CloseInfo = {
@@ -48,11 +50,67 @@ export interface HackPhoneFilesProps {
 }
 
 // ---------- Demo Data ----------
+const locationData: FSItem[] = [
+  {
+    id: "icloud",
+    name: "iCloud Drive",
+    type: "location",
+    icon: "/hackphone/apps/files/icloud_drive.png",
+    itemCount: 0,
+  },
+  {
+    id: "on-my-phone",
+    name: "On My iPhone",
+    type: "location", 
+    icon: "/hackphone/apps/files/on_my_phone.png",
+    itemCount: 0,
+  },
+  {
+    id: "drive",
+    name: "Drive",
+    type: "location",
+    icon: "/hackphone/apps/files/drive.png",
+    itemCount: 0,
+  },
+  {
+    id: "recently-deleted",
+    name: "Recently Deleted",
+    type: "location",
+    icon: "/hackphone/apps/files/recently_deleted.png",
+    itemCount: 0,
+  },
+];
+
+const favoritesData: FSItem[] = [
+  {
+    id: "downloads-fav",
+    name: "Downloads",
+    type: "folder",
+    icon: "/hackphone/apps/files/downloads.png",
+    itemCount: 8,
+  },
+  {
+    id: "downloads2-fav",
+    name: "Downloads",
+    type: "folder",
+    icon: "/hackphone/apps/files/downloads2.png",
+    itemCount: 8,
+  },
+  {
+    id: "downloads3-fav",
+    name: "Downloads 2",
+    type: "folder",
+    icon: "/hackphone/apps/files/downloadss.png",
+    itemCount: 142,
+  },
+];
+
 const demoData: FSItem[] = [
   {
     id: "docs",
     name: "Documents",
     type: "folder",
+    itemCount: 12,
     children: [
       {
         id: "resume.pdf",
@@ -74,16 +132,38 @@ const demoData: FSItem[] = [
     id: "photos",
     name: "Photos",
     type: "folder",
+    itemCount: 142,
     children: [
       { id: "july", name: "July", type: "folder", children: [] },
       { id: "august", name: "August", type: "folder", children: [] },
     ],
   },
   {
-    id: "readme.md",
-    name: "README.md",
+    id: "scripts",
+    name: "Scripts",
+    type: "folder",
+    itemCount: 5,
+    children: [],
+  },
+  {
+    id: "hack-tools",
+    name: "hack-tools.zip",
     type: "file",
-    sizeBytes: 1_024,
+    sizeBytes: 2_400_000,
+    modifiedAt: "2025-08-12T09:10:00Z",
+  },
+  {
+    id: "network-scan",
+    name: "network-scan.log",
+    type: "file",
+    sizeBytes: 156_000,
+    modifiedAt: "2025-08-12T09:10:00Z",
+  },
+  {
+    id: "encrypted-data",
+    name: "encrypted-data.bin",
+    type: "file",
+    sizeBytes: 892_000,
     modifiedAt: "2025-08-12T09:10:00Z",
   },
 ];
@@ -91,8 +171,15 @@ const demoData: FSItem[] = [
 // ---------- Helpers ----------
 const bytes = (n?: number) =>
   typeof n === "number"
-    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n) + " B"
+    ? n > 1_000_000 
+      ? (n / 1_000_000).toFixed(1) + " MB"
+      : n > 1_000 
+      ? (n / 1_000).toFixed(1) + " KB"
+      : new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n) + " B"
     : "—";
+
+const formatItemCount = (count?: number) => 
+  count === 1 ? "1 item" : `${count || 0} items`;
 
 function useInactivityTimer(enabled: boolean, ms: number | undefined, onTimeout: () => void) {
   const ref = useRef<number | null>(null);
@@ -122,17 +209,12 @@ function HackPhoneFiles({
   onClose,
   timeoutMs = undefined,
   root = demoData,
-  time,
 }: HackPhoneFilesProps) {
-  const [launched, setLaunched] = useState(false);
-  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const [launched, setLaunched] = useState(true); // Auto-launch the interface
+  const [openedAt, setOpenedAt] = useState<number | null>(Date.now()); // Set opened time immediately
+  const [currentView, setCurrentView] = useState<ViewType>("browse");
   const [stack, setStack] = useState<FSItem[][]>([root]);
   const cwd = stack[stack.length - 1];
-
-  const breadcrumb = useMemo(() => {
-    const names = ["Files", ...stack.slice(1).map((arr) => findFolderName(root, arr) ?? "").filter(Boolean)];
-    return names.join(" ▸ ");
-  }, [stack, root]);
 
   const closeWith = (reason: CloseInfo["reason"]) => {
     const now = Date.now();
@@ -141,6 +223,7 @@ function HackPhoneFiles({
     setLaunched(false);
     setOpenedAt(null);
     setStack([root]);
+    setCurrentView("browse");
   };
 
   useInactivityTimer(Boolean(launched), timeoutMs, () => closeWith("autoTimeout"));
@@ -159,162 +242,337 @@ function HackPhoneFiles({
   };
 
   return (
-    <div className="w-full min-h-[600px] h-full bg-[#0b0c0f] text-white flex items-center justify-center p-6">
-      <div className="relative w-[360px] h-[720px] rounded-[42px] shadow-2xl overflow-hidden"
-        style={{
-          background:
-            "radial-gradient(1200px 600px at 50% -20%, #222 0%, #111 55%, #0b0c0f 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <StatusBar time={time} />
-
-        <div className="absolute inset-0 pt-16 pb-8 px-6">
-          <div className="grid grid-cols-4 gap-5 place-items-center">
-            <AppIcon
-              label="Files"
-              onClick={() => {
-                setLaunched(true);
-                setOpenedAt(Date.now());
-              }}
-            />
+    <div className="w-full h-full bg-gradient-to-b from-[#f7f7f7] to-[#f0f0f0] text-black flex flex-col pb-8"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+    >
+      {/* Search Bar */}
+      <div className="px-4 pt-4 pb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-3 flex items-center">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full bg-white/70 border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:bg-white focus:border-blue-500"
+          />
         </div>
+      </div>
 
-        <AnimatePresence>
-          {launched && (
-            <motion.div
-              key="files-app"
-              initial={{ y: 720, scale: 0.96, opacity: 0.8 }}
-              animate={{ y: 0, scale: 1, opacity: 1 }}
-              exit={{ y: 720, scale: 0.98, opacity: 0.8 }}
-              transition={{ type: "spring", stiffness: 220, damping: 28 }}
-              className="absolute inset-0 bg-gradient-to-b from-[#f2f2f2] to-[#e5e5e5] text-black"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-            >
-              <AppHeader title={breadcrumb} onClose={() => closeWith("closeButton")} />
+      <div className="flex-1 overflow-y-auto">
+        {currentView === "browse" && (
+          <BrowseView 
+            onNavigateToLocations={() => setCurrentView("locations")}
+            favoriteItems={favoritesData}
+            onItemClick={(item) => {
+              if (item.type === "folder") {
+                setCurrentView("folder");
+                setStack([root]);
+              }
+            }}
+          />
+        )}
 
-              <div className="px-3 pb-6">
-                <div className="flex items-center justify-between py-2">
-                  <div className="text-[13px] text-black/70">{cwd.length} items</div>
-                  <div className="flex items-center gap-2 text-black/70">
-                    <span className="text-[13px]">{openedAt ? prettyDuration(Date.now() - openedAt) : "—"}</span>
-                    <button
-                      className="px-2 py-1 rounded-lg bg-white/60 hover:bg-white/80 text-[12px] border border-black/10"
-                      onClick={() => setStack([root])}
-                    >
-                      Home
-                    </button>
-                  </div>
+        {currentView === "locations" && (
+          <LocationsView 
+            items={locationData}
+            onBack={() => setCurrentView("browse")}
+            onItemClick={() => {
+              setCurrentView("folder");
+              setStack([root]);
+            }}
+          />
+        )}
+
+        {currentView === "folder" && (
+          <FolderView
+            items={cwd}
+            onBack={() => setCurrentView("browse")}
+            onItemClick={(item) => {
+              if (item.type === "folder") {
+                const next = item.children ?? [];
+                setStack((s) => [...s, next]);
+              }
+            }}
+          />
+        )}
+      </div>
+
+      {/* Bottom Taskbar - iOS Files App Style */}
+      <div className="bg-white/95 backdrop-blur-md border-t border-gray-200/50 pb-8">
+        <div className="flex items-center justify-around py-3">
+          <button 
+            className={`flex flex-col items-center p-2 ${currentView === "browse" ? "text-blue-600" : "text-gray-600"}`}
+            onClick={() => setCurrentView("browse")}
+          >
+            <Image 
+              src="/hackphone/apps/files/browse_icon.png" 
+              alt="Browse" 
+              width={28} 
+              height={28}
+              className="mb-1"
+            />
+            <span className="text-xs font-medium">Browse</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center p-2 text-gray-600"
+            onClick={() => {/* Handle search */}}
+          >
+            <svg className="w-7 h-7 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span className="text-xs font-medium">Search</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center p-2 text-gray-600"
+            onClick={() => {/* Handle recents */}}
+          >
+            <Image 
+              src="/hackphone/apps/files/recents.png" 
+              alt="Recents" 
+              width={28} 
+              height={28}
+              className="mb-1"
+            />
+            <span className="text-xs font-medium">Recents</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center p-2 text-gray-600"
+            onClick={() => {/* Handle shared */}}
+          >
+            <Image 
+              src="/hackphone/apps/files/shared.png" 
+              alt="Shared" 
+              width={28} 
+              height={28}
+              className="mb-1"
+            />
+            <span className="text-xs font-medium">Shared</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- View Components ----------
+function BrowseView({ 
+  onNavigateToLocations, 
+  favoriteItems, 
+  onItemClick 
+}: { 
+  onNavigateToLocations: () => void;
+  favoriteItems: FSItem[];
+  onItemClick: (item: FSItem) => void;
+}) {
+  return (
+    <div className="px-4 space-y-6">
+      {/* Locations Section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Locations</h2>
+          <button 
+            onClick={onNavigateToLocations}
+            className="text-blue-600 text-sm font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+          {locationData.slice(0, 4).map((item, index) => (
+            <div key={item.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
+              <button 
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 active:bg-gray-100"
+                onClick={() => onItemClick(item)}
+              >
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Image 
+                    src={item.icon || "/hackphone/apps/files/app_icon.png"} 
+                    alt={item.name} 
+                    width={32} 
+                    height={32}
+                    className="rounded-lg"
+                  />
                 </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                </div>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                <div className="rounded-2xl overflow-hidden shadow-inner"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.75))",
-                    border: "1px solid rgba(0,0,0,0.08)",
-                  }}
-                >
-                  <ul className="divide-y divide-black/6">
-                    {cwd.map((item) => (
-                      <li key={item.id}>
-                        <button
-                          className="w-full flex items-center gap-3 px-3 py-3 active:bg-black/5"
-                          onClick={() => {
-                            if (item.type === "folder") {
-                              const next = item.children ?? [];
-                              setStack((s) => [...s, next]);
-                            }
-                          }}
-                        >
-                          <div className="shrink-0">
-                            {item.type === "folder" ? (
-                              <div className="w-6 h-6 bg-yellow-400 rounded-sm" />
-                            ) : (
-                              <div className="w-6 h-6 bg-blue-500 rounded-sm" />
-                            )}
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="text-[15px] font-medium text-black/90">{item.name}</div>
-                            <div className="text-[12px] text-black/55">
-                              {item.type === "folder"
-                                ? `${item.children?.length ?? 0} items`
-                                : `${bytes(item.sizeBytes)} • ${item.modifiedAt ? new Date(item.modifiedAt).toLocaleDateString() : "—"}`}
-                            </div>
-                          </div>
-                          {item.type === "folder" ? (
-                            <span className="text-black/35">▶</span>
-                          ) : (
-                            <span className="text-black/35">⋯</span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+      {/* Favorites Section */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Favorites</h2>
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+          {favoriteItems.map((item, index) => (
+            <div key={item.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
+              <button 
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 active:bg-gray-100"
+                onClick={() => onItemClick(item)}
+              >
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Image 
+                    src={item.icon || "/hackphone/apps/files/app_icon.png"} 
+                    alt={item.name} 
+                    width={32} 
+                    height={32}
+                    className="rounded-lg"
+                  />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                  <div className="text-xs text-gray-500">{formatItemCount(item.itemCount)}</div>
+                </div>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tags Section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Tags</h2>
+          <button className="text-blue-600 text-sm font-medium">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LocationsView({ 
+  items, 
+  onBack, 
+  onItemClick 
+}: { 
+  items: FSItem[];
+  onBack: () => void;
+  onItemClick: (item: FSItem) => void;
+}) {
+  return (
+    <div className="px-4">
+      <div className="flex items-center mb-4">
+        <button onClick={onBack} className="mr-3 p-1">
+          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="text-xl font-semibold text-gray-900">Locations</h1>
+      </div>
+      
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+        {items.map((item, index) => (
+          <div key={item.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
+            <button 
+              className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 active:bg-gray-100"
+              onClick={() => onItemClick(item)}
+            >
+              <div className="w-10 h-10 flex items-center justify-center">
+                <Image 
+                  src={item.icon || "/hackphone/apps/files/app_icon.png"} 
+                  alt={item.name} 
+                  width={40} 
+                  height={40}
+                  className="rounded-lg"
+                />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-base font-medium text-gray-900">{item.name}</div>
+                <div className="text-sm text-gray-500">{formatItemCount(item.itemCount)}</div>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FolderView({ 
+  items, 
+  onBack, 
+  onItemClick 
+}: { 
+  items: FSItem[];
+  onBack: () => void;
+  onItemClick: (item: FSItem) => void;
+}) {
+  return (
+    <div className="px-4">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="p-1">
+          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="text-sm text-gray-600">{formatItemCount(items.length)}</div>
+      </div>
+      
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+        {items.map((item, index) => (
+          <div key={item.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
+            <button 
+              className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 active:bg-gray-100"
+              onClick={() => onItemClick(item)}
+            >
+              <div className="w-8 h-8 flex items-center justify-center">
+                {item.type === "folder" ? (
+                  <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 2a1 1 0 000 2h6a1 1 0 100-2H9z"/>
+                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h8a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/>
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                <div className="text-xs text-gray-500">
+                  {item.type === "folder"
+                    ? formatItemCount(item.itemCount || item.children?.length)
+                    : `${bytes(item.sizeBytes)} • ${item.modifiedAt ? new Date(item.modifiedAt).toLocaleDateString() : "—"}`}
                 </div>
               </div>
-
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-10"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.0))",
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {item.type === "folder" && (
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 // ---------- Subcomponents ----------
-function StatusBar({ time }: { time?: string }) {
-  return (
-    <div
-      className="h-10 flex items-center justify-between px-4 text-[12px] text-white"
-      style={{
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.06))",
-      }}
-    >
-      <div className="font-semibold tracking-wide">HackPhone</div>
-      <div className="opacity-90">
-        {time ?? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </div>
-    </div>
-  );
-}
-
-function AppIcon({ label, onClick }: { label: string; onClick?: () => void }) {
-  return (
-    <button onClick={onClick} className="group flex flex-col items-center gap-2">
-      <div className="w-16 h-16 rounded-2xl relative shadow-xl"
-        style={{
-          background:
-            "linear-gradient(180deg, #57a3ff, #3b78ff)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 18px rgba(0,0,0,0.35)",
-        }}
-      >
-        <div className="absolute inset-x-0 top-0 h-1/2 rounded-2xl"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.15))",
-          }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-7 h-7 rounded-lg bg-white/90" />
-        </div>
-      </div>
-      <div className="text-[12px] text-white/90 drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
-        {label}
-      </div>
-    </button>
-  );
-}
-
 function AppHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div className="px-3 pt-2">
@@ -346,14 +604,6 @@ function AppHeader({ title, onClose }: { title: string; onClose: () => void }) {
 }
 
 // ---------- Utilities ----------
-function prettyDuration(ms: number) {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const remS = s % 60;
-  if (m > 0) return `${m}m ${remS}s`;
-  return `${remS}s`;
-}
-
 function findFolderName(root: FSItem[], current: FSItem[]): string | undefined {
   const walk = (arr: FSItem[]): FSItem | undefined => {
     for (const item of arr) {

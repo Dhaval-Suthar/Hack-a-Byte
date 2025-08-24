@@ -60,7 +60,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
       { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
       { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
-      { id: "files", name: "Files", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },// change this image to logo for files
+  { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" }, // ensure correct Files icon image
     ],
     []
   );
@@ -170,12 +170,12 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                       className="flex flex-col items-center group"
                     >
                       {/* App icon */}
-                      <div className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}>
+                      <div className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center ${app.id === "files" ? "mb-0 p-0" : "mb-2"} shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}>
                         <Image
                           src={app.icon}
                           alt={`${app.name} icon`}
                           fill
-                          className="object-cover"
+                          className={app.id === "files" ? "object-contain w-full h-full m-0 p-0" : "object-cover"}
                           sizes="(max-width: 640px) 56px, 64px"
                           priority={false}
                         />
