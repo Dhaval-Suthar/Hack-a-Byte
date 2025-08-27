@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -84,6 +85,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <link rel="canonical" href="https://hackabyte.games" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -121,6 +123,10 @@ export default function RootLayout({
             {children}
           </div>
         </div>
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
         <Analytics />
         <SpeedInsights />
       </body>

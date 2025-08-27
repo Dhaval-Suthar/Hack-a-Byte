@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 
 
 // --- Types ---
@@ -6,7 +7,7 @@ interface Track {
  id: string;
  title: string;
  artist: string;
- album: string;
+album?: string;
  duration: number; // seconds
  src: string; // audio file URL
  cover?: string; // image URL / data URI
@@ -54,105 +55,100 @@ const coverDataURI = (label: string, hue = 30) => {
 // --- Demo library (10 tracks) ---
 const demoTracks: Track[] = [
  {
-   id: "psb-weg",
-   title: "West End Girls",
-   artist: "Pet Shop Boys",
-   album: "Please",
-   duration: 235,
-   src: "/hackphone/music/west-end-girls.mp3",
-   cover: coverDataURI("PSB", 28),
+   id: "allsfair",
+   title: "Alls Fair in Love",
+   artist: "BryanTeoh",
+   //album: "Please",
+   duration: 239,
+   src: "/hackphone/music/musicphone/Alls Fair In LoveBryanTeoh.mp3",
+   cover: coverDataURI("BT", 28),
  },
  {
-   id: "dm-jcge",
-   title: "Just Can't Get Enough",
-   artist: "Depeche Mode",
-   album: "Speak & Spell",
-   duration: 225,
-   src: "/hackphone/music/just-cant-get-enough.mp3",
-   cover: coverDataURI("DM", 12),
+   id: "amazing",
+   title: "Amazing Grace",
+   artist: "Kevin McLeoh",
+   //album: "Speak & Spell",
+   duration: 114,
+   src: "/hackphone/music/musicphone/Amazing GraceKevinMcleod.mp3",
+   cover: coverDataURI("AG", 12),
  },
  {
-   id: "no-blue",
-   title: "Blue Monday",
-   artist: "New Order",
-   album: "Blue Monday",
-   duration: 449,
-   src: "/hackphone/music/blue-monday.mp3",
-   cover: coverDataURI("NO", 200),
+   id: "brother",
+   title: "Brothers Unite",
+   artist: "Alexander Nakarda",
+   //album: "Blue Monday",
+   duration: 234,
+   src: "/hackphone/music/musicphone/BrotherUniteAlexanderNakarada.mp3",
+   cover: coverDataURI("BR", 200),
  },
  {
-   id: "jonasblue-rise",
-   title: "Rise",
-   artist: "Jonas Blue ft. Jack & Jack",
-   album: "Blue",
-   duration: 194, // 3 minutes 14 seconds
-   src: "/hackphone/music/rise.mp3",
-   cover: coverDataURI("JB", 194),
+   id: "Celeb",
+   title: "Celebration",
+   artist: "Alexander Nakarda",
+   //album: "Blue",
+   duration: 143, 
+   src: "/hackphone/music/musicphone/CelebrationAlexndarNakarda.mp3",
+   cover: coverDataURI("CB", 194),
  },
  {
-   id: "lukasgraham-7years",
-   title: "7 Years",
-   artist: "Lukas Graham",
-   album: "Lukas Graham (Blue Album)",
-   duration: 237, // 3:57
-   src: "/hackphone/music/7-years.mp3",
-   cover: coverDataURI("LG", 237),
+   id: "Horizon",
+   title: "Horizon Flare",
+   artist: "Alexander Nakarda",
+   //album: "Lukas Graham (Blue Album)",
+   duration: 102, 
+   src: "/hackphone/music/musicphone/HorizonFlareAlexanderNakarada.mp3",
+   cover: coverDataURI("HZ", 237),
  },
  {
-  id: "onedirection-whatmakesyoubeautiful",
-   title: "What Makes You Beautiful",
-   artist: "One Direction",
-   album: "Up All Night",
-   duration: 198, // 3:18
-   src: "/hackphone/music/what-makes-you-beautiful.mp3",
-   cover: coverDataURI("Od", 198),
+  id: "Tryingtosay",
+   title: "I Guess What I'm Trying to Say",
+   artist: "BryanTeoh",
+   //album: "Up All Night",
+   duration: 153, // 3:18
+   src: "/hackphone/music/musicphone/I Guess What I'm Trying to SayBryanTeoh.mp3",
+   cover: coverDataURI("IG", 198),
  },
  {
-   id: "coldplay-askyfullofstars",
-   title: "A Sky Full of Stars",
-   artist: "Coldplay",
-   album: "Ghost Stories",
-   duration: 268, // 4:28
-   src: "/hackphone/music/a-sky-full-of-stars.mp3",
-   cover: coverDataURI("Cp", 268),
+   id: "Champdetournesol",
+   title: "Champ de tournesol",
+   artist: "Komiku",
+  // album: "Ghost Stories",
+   duration: 118, 
+   src: "/hackphone/music/musicphone/ChampdetournesolKomiku.mp3",
+   cover: coverDataURI("CT", 268),
  },
  {
-   id: "alanwalker-faded",
-   title: "Faded",
-   artist: "Alan Walker",
-   album: "Different World",
-   duration: 212, // 3:32
-   src: "/hackphone/music/faded.mp3",
-   cover: coverDataURI("AW", 212),
+   id: "La Citadelle",
+   title: "La Citadelle",
+   artist: "Komiku",
+   //album: "Different World",
+   duration: 162, 
+   src: "/hackphone/music/musicphone/La CitadellekOMIKU.mp3",
+   cover: coverDataURI("LC", 212),
      },
  {
-   id: "maroon5-memories",
-   title: "Memories",
-   artist: "Maroon 5",
-   album: "Jordi",
-   duration: 189, // 3:09
-   src: "/hackphone/music/memories.mp3",
-   cover: coverDataURI("M5", 189),
+   id: "Page to Practice",
+   title: "From Page to Practice",
+   artist: "BryanTeoh",
+  // album: "Jordi",
+   duration: 137, // 3:09
+   src: "/hackphone/music/musicphone/From Page to PracticeBryanTeoh.mp3",
+   cover: coverDataURI("PP", 189),
  },
  {
-   id: "onedirection-dragmedown",
-   title: "Drag Me Down",
-   artist: "One Direction",
-   album: "Made in the A.M.",
-   duration: 187, // 3:07
-   src: "/hackphone/music/drag-me-down.mp3",
-   cover: coverDataURI("One Direction", 187),
+   id: "Isolation",
+   title: "IsolationWaltz",
+   artist: "BryanTeoh",
+   //album: "Made in the A.M.",
+   duration: 205, 
+   src: "/hackphone/music/musicphone/IsolationWaltxBryanTeoh.mp3",
+   cover: coverDataURI("IW", 187),
  },
 ];
 
 
 // --- Main Component ---
-interface MusicAppProps {
-  onClose: () => void;
-  time: Date;
-}
-
-function MusicApp({ onClose, time }: MusicAppProps) {
+function MusicApp() {
  const [tab, setTab] = useState<Tab>("Songs");
  const [queue, setQueue] = useState<Track[]>(demoTracks);
  const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -182,7 +178,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
        }
      }
    } catch {}
- }, []);
+ }, [queue]);
 
 
  // Persist preferences
@@ -202,6 +198,15 @@ function MusicApp({ onClose, time }: MusicAppProps) {
    audio.volume = volume;
  }, [volume]);
 
+ const playRandomNext = useCallback(() => {
+   if (queue.length <= 1) return;
+   let idx = currentIndex;
+   while (idx === currentIndex) {
+     idx = Math.floor(Math.random() * queue.length);
+   }
+   setCurrentIndex(idx);
+   setIsPlaying(true);
+ }, [queue.length, currentIndex]);
 
  useEffect(() => {
    const audio = audioRef.current;
@@ -243,7 +248,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
      audio.removeEventListener("loadedmetadata", onLoaded);
      audio.removeEventListener("ended", onEnd);
    };
- }, [currentIndex, shuffle, repeat, queue]);
+ }, [currentIndex, shuffle, repeat, queue, playRandomNext]);
 
 
  useEffect(() => {
@@ -255,7 +260,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
    if (isPlaying) {
      audio.play().catch(() => setIsPlaying(false));
    }
- }, [currentIndex, queue]);
+ }, [currentIndex, queue, isPlaying]);
 
 
  useEffect(() => {
@@ -286,16 +291,6 @@ function MusicApp({ onClose, time }: MusicAppProps) {
  const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
 
 
- const playTrackById = (id: string) => {
-   const idx = queue.findIndex(t => t.id === id);
-   if (idx >= 0) {
-     setCurrentIndex(idx);
-     setIsPlaying(true);
-     setTab("Now Playing");
-   }
- };
-
-
  const playFromCollection = (tracks: Track[], start: number) => {
    setQueue(tracks);
    setCurrentIndex(start);
@@ -311,7 +306,7 @@ function MusicApp({ onClose, time }: MusicAppProps) {
      return;
    }
    if (shuffle) {
-     playRandomNext(true);
+     playRandomNext();
      return;
    }
    const prev = currentIndex - 1;
@@ -343,17 +338,6 @@ function MusicApp({ onClose, time }: MusicAppProps) {
  };
 
 
- const playRandomNext = (prev = false) => {
-   if (queue.length <= 1) return;
-   let idx = currentIndex;
-   while (idx === currentIndex) {
-     idx = Math.floor(Math.random() * queue.length);
-   }
-   setCurrentIndex(idx);
-   setIsPlaying(true);
- };
-
-
  const onSeek = (val: number) => {
    const audio = audioRef.current;
    if (!audio || !isFinite(duration) || duration <= 0) return;
@@ -376,8 +360,8 @@ function MusicApp({ onClose, time }: MusicAppProps) {
          <span>Hackphone</span>
          <span>{isPlaying ? "▶︎" : "❚❚"} {fmtTime(progress)} / {fmtTime(duration || current?.duration || 0)}</span>
        </div>
-       <div className="h-10 flex items-center justify-between px-2">
-         <button onClick={onClose} className="text-[#1f5be6] font-bold text-[17px]"> Back </button>
+        <div className="h-10 flex items-center justify-between px-2">
+         {/* Back removed per UX: shouldn't return to home from Music */}
 
          <button className="px-2 py-1 text-sm rounded" style={{ color: "#ff9500" }} onClick={() => setTab("Songs")}>Music</button>
          
@@ -478,11 +462,11 @@ function SongsView({ tracks, onPlay }: { tracks: Track[]; onPlay: (index: number
      <div className="ios-list">
        {tracks.map((t, i) => (
          <button key={t.id} className="ios-row w-full text-left" onClick={() => onPlay(i)}>
-           <img src={t.cover} alt="cover" className="w-10 h-10 rounded mr-3"/>
-           <div>
-             <div className="ios-title">{t.title}</div>
-             <div className="ios-sub">{t.artist} — {t.album}</div>
-           </div>
+           <Image src={t.cover || ""} alt="cover" width={40} height={40} className="rounded mr-3"/>
+            <div>
+              <div className="ios-title">{t.title}</div>
+              <div className="ios-sub">{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
+            </div>
            <div className="ml-auto text-[12px] text-[#6d6d72]">{fmtTime(t.duration)}</div>
          </button>
        ))}
@@ -582,10 +566,10 @@ function NowPlayingView({
 }) {
  return (
    <div className="px-4 py-5 flex flex-col items-center gap-4">
-     <img src={track?.cover} alt="cover" className="now-art"/>
+     <Image src={track?.cover || ""} alt="cover" width={260} height={260} className="now-art"/>
      <div className="text-center">
        <div className="text-[18px] font-semibold text-black">{track?.title || "—"}</div>
-       <div className="text-[13px] text-[#6d6d72] mt-0.5">{track ? `${track.artist} — ${track.album}` : ""}</div>
+  <div className="text-[13px] text-[#6d6d72] mt-0.5">{track ? `${track.artist}${track.album ? ' — ' + track.album : ''}` : ""}</div>
      </div>
 
 

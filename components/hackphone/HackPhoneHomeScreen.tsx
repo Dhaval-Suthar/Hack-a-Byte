@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 interface App {
   id: string;
@@ -25,61 +27,59 @@ interface User {
 interface HackPhoneHomeScreenProps {
   onAppOpen: (appId: string) => void;
   user: User | null;
-  time: Date;
+  time?: Date; // accepted for consistency with Desktop, not shown on UI
 }
 
 const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   onAppOpen,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   time,
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Minimum swipe distance (in px)
-  const minSwipeDistance = 50;
+  // Use the real app icons placed under /public/hackphone/apps/*/app-icon.png
+  const apps: App[] = useMemo(
+    () => [
+      { id: "messages", name: "Messages", icon: "/hackphone/apps/message/app-icon.png", color: "" },
+      { id: "calender", name: "Calendar", icon: "/hackphone/apps/calender/app-icon.png", color: "" },
+      { id: "photos", name: "Photos", icon: "/hackphone/apps/photos/app-icon.png", color: "" },
+      { id: "camera", name: "Camera", icon: "/hackphone/apps/camera/app-icon.png", color: "" },
+      { id: "youtube", name: "YouTube", icon: "/hackphone/apps/youtube/app-icon.png", color: "" },
+      { id: "stocks", name: "Stocks", icon: "/hackphone/apps/stocks/app-icon.png", color: "" },
+      { id: "maps", name: "Maps", icon: "/hackphone/apps/map/app-icon.png", color: "" },
+      { id: "weather", name: "Weather", icon: "/hackphone/apps/weather/app-icon.png", color: "" },
+      { id: "notes", name: "Notes", icon: "/hackphone/apps/notes/app-icon.png", color: "" },
+      { id: "settings", name: "Settings", icon: "/hackphone/apps/setting/app-icon.png", color: "" },
+      { id: "phone", name: "Phone", icon: "/hackphone/apps/phone/app-icon.png", color: "" },
+      { id: "mail", name: "Mail", icon: "/hackphone/apps/mail/app-icon.png", color: "" },
+      { id: "safari", name: "Safari", icon: "/hackphone/apps/safari/app-icon.png", color: "" },
+      { id: "music", name: "iPod", icon: "/hackphone/apps/music/app-icon.png", color: "" },
+      { id: "calculator", name: "Calculator", icon: "/hackphone/apps/calculator/app-icon.png", color: "" },
+      { id: "clock", name: "Clock", icon: "/hackphone/apps/clock/app-icon.png", color: "" },
+      { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
+      { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
+      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
+      { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" },
+      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
+    ],
+    []
+  );
 
-  const apps: App[] = [
-    { id: "terminal", name: "Terminal", icon: "⌨️", color: "bg-black" },
-    { id: "files", name: "Files", icon: "📁", color: "bg-blue-500" },
-    { id: "network", name: "Network", icon: "🌐", color: "bg-green-500" },
-    { id: "code", name: "Code", icon: "�", color: "bg-orange-500" },
-    { id: "settings", name: "Settings", icon: "⚙️", color: "bg-gray-500" },
-    { id: "games", name: "Games", icon: "🎮", color: "bg-indigo-500" },
-    { id: "mail", name: "Mail", icon: "�", color: "bg-blue-600" },
-    { id: "notes", name: "Notes", icon: "📝", color: "bg-yellow-400" },
-    { id: "calculator", name: "Calculator", icon: "🧮", color: "bg-gray-700" },
-    { id: "camera", name: "Camera", icon: "�", color: "bg-gray-600" },
-    { id: "maps", name: "Maps", icon: "�️", color: "bg-green-600" },
-    { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
-    { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
-    { id: "youtube", name: "YouTube", icon: "▶️", color: "bg-red-600", iconImage: "/hackphone/apps/youtube/app_icon.png" },
-    { id: "messages", name: "Messages", icon: "💬", color: "bg-green-500" },
-    { id: "photos", name: "Photos", icon: "🖼️", color: "bg-yellow-600" },
-  ];
-
-  const appsPerPage = 16; // 4x4 grid to better fit iPhone 4 screen
-  const totalPages = Math.ceil(apps.length / appsPerPage);
-  const currentApps = apps.slice(currentPage * appsPerPage, (currentPage + 1) * appsPerPage);
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
+  // Distribute apps across exactly 3 pages in a round-robin fashion to "scatter" them
+  const TOTAL_PAGES = 3;
+  const pages: App[][] = useMemo(() => {
+    const buckets: App[][] = Array.from({ length: TOTAL_PAGES }, () => []);
+    apps.forEach((app, idx) => {
+      buckets[idx % TOTAL_PAGES].push(app);
     });
-  };
+    return buckets;
+  }, [apps]);
+  const totalPages = TOTAL_PAGES;
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString([], { 
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+  // date formatting helper removed — home screen no longer shows a date header
 
   const handleAppClick = (app: App) => {
     if (app.isLocked || isDragging) {
@@ -90,140 +90,105 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-    setIsDragging(false);
+    touchEndX.current = null;
+    touchStartX.current = e.changedTouches[0].clientX;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    const currentTouch = e.targetTouches[0].clientX;
-    if (touchStart !== null) {
-      const diff = touchStart - currentTouch;
-      setDragOffset(-diff);
-      setIsDragging(Math.abs(diff) > 10);
-    }
+    touchEndX.current = e.changedTouches[0].clientX;
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setDragOffset(0);
-      setIsDragging(false);
-      return;
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const delta = touchStartX.current - touchEndX.current;
+    const threshold = 50; // px
+    if (delta > threshold && currentPage < totalPages - 1) {
+      setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
+    } else if (delta < -threshold && currentPage > 0) {
+      setCurrentPage((p) => Math.max(0, p - 1));
     }
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && currentPage < totalPages - 1) {
-      setCurrentPage(currentPage + 1);
-    }
-    if (isRightSwipe && currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
-
-    setDragOffset(0);
-    setIsDragging(false);
   };
 
-  const onTouchEndCapture = (e: React.TouchEvent) => {
-    setTouchEnd(e.changedTouches[0].clientX);
+  // Optional: mouse drag support (desktop)
+  const mouseDownX = useRef<number | null>(null);
+  const mouseUpX = useRef<number | null>(null);
+  const onMouseDown = (e: React.MouseEvent) => {
+    mouseUpX.current = null;
+    mouseDownX.current = e.clientX;
+  };
+  const onMouseUp = (e: React.MouseEvent) => {
+    mouseUpX.current = e.clientX;
+    if (mouseDownX.current === null || mouseUpX.current === null) return;
+    const delta = mouseDownX.current - mouseUpX.current;
+    const threshold = 60;
+    if (delta > threshold && currentPage < totalPages - 1) {
+      setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
+    } else if (delta < -threshold && currentPage > 0) {
+      setCurrentPage((p) => Math.max(0, p - 1));
+    }
   };
 
   return (
     <div className="w-screen h-screen flex flex-col relative overflow-hidden font-[Helvetica,Arial,ui-sans-serif]">
-      {/* iPhone 4 inspired wallpaper */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a2342] via-[#0f2e5e] to-[#091a2e]" />
-      <div className="absolute inset-0 opacity-[0.06]" style={{backgroundImage:"radial-gradient(circle at 20% 10%, rgba(255,255,255,0.25) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 45%)"}} />
+      {/* iPhone 4 background image */}
+      <div className="absolute inset-0 bg-black" />
+      <div
+        className="absolute inset-0 bg-center bg-cover"
+        style={{ backgroundImage: "url(/hackphone/home-screen-bg.png)" }}
+      />
+      {/* Subtle lighting layer for depth, harmless on older browsers */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 20% 10%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 35%), radial-gradient(circle at 50% 80%, rgba(255,255,255,0.10) 0, rgba(255,255,255,0) 45%)",
+        }}
+      />
 
-      {/* Status bar */}
-      <div className="flex justify-between items-center px-4 pt-8 pb-3 text-white text-[11px] tracking-wide relative z-10">
-        <div className="flex items-center space-x-2">
-          {/* Signal bars */}
-          <div className="flex items-end space-x-[2px]">
-            <div className="w-[3px] h-[6px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[10px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-white/60 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-white/40 rounded-[1px]" />
-          </div>
-          <span className="opacity-90">AT&T</span>
-          <span className="opacity-90">3G</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="opacity-90">{formatTime(time)}</span>
-          {/* Battery */}
-          <div className="w-7 h-[14px] border border-white/70 rounded-[2px] relative">
-            <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-white/70 rounded-sm absolute -right-[5px] top-[4px]" />
-          </div>
-        </div>
+      {/* Time */}
+      <div className="text-center text-white relative z-10 pt-2">
+        <div className="text-5xl font-thin mb-1">{/* time removed */}</div>
       </div>
 
-      {/* Time and date */}
-      <div className="text-center text-white mb-8 relative z-10">
-        <div className="text-5xl font-thin mb-1">{formatTime(time)}</div>
-        <div className="text-base text-white/80">{formatDate(time)}</div>
-      </div>
-
-      {/* App grid container with swipe */}
-      <div 
-        className="flex-1 relative z-10 overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchEndCapture={onTouchEndCapture}
-        ref={containerRef}
-      >
-        <div 
-          className="flex transition-transform duration-300 ease-out h-full"
-          style={{ 
-            transform: `translateX(calc(${-currentPage * 100}% + ${dragOffset}px))`,
-          }}
+      {/* App pages (swipeable) */}
+      <div className="flex-1 px-0 sm:px-0 py-4 relative z-10 select-none">
+        <div
+          ref={containerRef}
+          className="h-full w-full overflow-hidden"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
         >
-          {Array.from({ length: totalPages }).map((_, pageIndex) => {
-            const pageApps = apps.slice(pageIndex * appsPerPage, (pageIndex + 1) * appsPerPage);
-            return (
-              <div key={pageIndex} className="w-full flex-shrink-0 px-6 py-4">
-                <div className="grid grid-cols-4 gap-6 h-full content-start">
-                  {pageApps.map((app) => (
+          <div
+            className="h-full flex transition-transform duration-300 ease-out"
+            style={{ transform: `translateX(-${currentPage * 100}%)` }}
+          >
+            {pages.map((appsOnPage, pageIdx) => (
+              <div key={pageIdx} className="min-w-full px-4 sm:px-6">
+                <div className="grid grid-cols-4 gap-4 sm:gap-6 h-full content-start max-w-[420px] mx-auto">
+                  {appsOnPage.map((app) => (
                     <button
                       key={app.id}
                       onClick={() => handleAppClick(app)}
                       className="flex flex-col items-center group"
                     >
                       {/* App icon */}
-                      <div className={`w-[60px] h-[60px] ${app.color} rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden`}>
-                        {/* App icon gradient overlay (skip if using real image icon) */}
-                        {!app.iconImage && (
-                          <>
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                          </>
-                        )}
-
-                        {app.iconImage ? (
-                          <img
-                            src={app.iconImage}
-                            alt={app.name}
-                            className="absolute inset-0 w-full h-full object-cover z-10"
-                          />
-                        ) : (
-                          <span className="text-2xl relative z-10">{app.icon}</span>
-                        )}
-                        
-                        {app.isLocked && (
-                          <div className="absolute top-1 right-1 w-4 h-4 bg-black/50 rounded-full flex items-center justify-center">
-                            <span className="text-xs">🔒</span>
-                          </div>
-                        )}
-
-                        {/* Shine effect (skip if using real image icon) */}
-                        {!app.iconImage && (
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                        )}
+                      <div
+                        className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}
+                      >
+                        <Image
+                          src={app.icon}
+                          alt={`${app.name} icon`}
+                          fill
+                          className={app.id === "files" ? "object-contain w-full h-full m-0 p-0" : "object-cover"}
+                          sizes="(max-width: 640px) 56px, 64px"
+                          priority={false}
+                        />
+                        {/* Optional gloss */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" />
                       </div>
-                      
                       {/* App name */}
                       <span className="text-white text-[11px] font-medium text-center leading-tight max-w-full truncate drop-shadow">
                         {app.name}
@@ -232,8 +197,8 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                   ))}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
 
@@ -253,46 +218,63 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       )}
 
       {/* Dock */}
-      <div className="px-6 pt-2 pb-4 relative z-10">
+      <div className="px-4 sm:px-6 pt-2 pb-20 relative z-10 max-w-[420px] mx-auto w-full">
         {/* Glossy dock */}
-        <div className="mx-auto max-w-[360px] h-[70px] rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.5)] relative overflow-hidden">
+        <div className="mx-auto max-w-[360px] h-[70px] rounded-[18px] bg-white/10 supports-[backdrop-filter]:backdrop-blur-md border border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.5)] relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />
           <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/40" />
           <div className="flex justify-center items-center h-full space-x-8 relative z-10">
-          {/* Dock apps */}
-          <button onClick={() => onAppOpen("phone")} className="w-[56px] h-[56px] bg-green-500 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-            <span className="text-2xl relative z-10">📞</span>
-          </button>
-          
-          <button onClick={() => onAppOpen("messages")} className="w-[56px] h-[56px] bg-blue-500 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-            <span className="text-2xl relative z-10">💬</span>
-          </button>
-          
-          <button onClick={() => onAppOpen("safari")} className="w-[56px] h-[56px] bg-blue-600 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-            <span className="text-2xl relative z-10">🌐</span>
-          </button>
-          
-          <button onClick={() => onAppOpen("ipod")} className="w-[56px] h-[56px] bg-gradient-to-b from-gray-300 to-gray-600 rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-            <span className="text-2xl relative z-10">🎵</span>
-          </button>
+            {/* Dock apps with real icons */}
+            <button
+              onClick={() => onAppOpen("phone")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("messages")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image
+                src="/hackphone/apps/message/app-icon.png"
+                alt="Messages"
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("safari")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image
+                src="/hackphone/apps/safari/app-icon.png"
+                alt="Safari"
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
+
+            <button
+              onClick={() => onAppOpen("music")}
+              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+            >
+              <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Home indicator */}
-      <div className="flex justify-center pb-2 relative z-10">
-        <div className="w-32 h-1 bg-white/30 rounded-full" />
-      </div>
+      {/* Home button bezel and button moved to Desktop overlay to make it persistent across screens */}
     </div>
   );
 };
