@@ -5,6 +5,8 @@ import MessagingApp from "./MessagingApp";
 import MapApp from "./MapApp";
 import MusicApp from "./MusicApp";
 import YouTubeApp from "./YouTubeApp";
+import YouTubeWebView from "./YouTubeWebView";
+import YouTubeExternal from "./YouTubeExternal";
 
 interface User {
   _id: string;
@@ -478,7 +480,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "music":
       return <MusicApp onClose={onClose} time={time} />;
     case "youtube":
-      return <YouTubeApp onClose={onClose} time={time} />;
+      return <YouTubeExternal onClose={onClose} time={time} />;
     default:
       return renderDefaultApp();
   }

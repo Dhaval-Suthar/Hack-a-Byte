@@ -5,9 +5,10 @@ import React, { useState, useRef, useEffect } from "react";
 interface App {
   id: string;
   name: string;
-  icon: string;
+  icon: string; // emoji or fallback glyph
   color: string;
   isLocked?: boolean;
+  iconImage?: string; // optional path for real image icon
 }
 
 interface User {
@@ -55,7 +56,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
     { id: "maps", name: "Maps", icon: "�️", color: "bg-green-600" },
     { id: "weather", name: "Weather", icon: "☀️", color: "bg-blue-400" },
     { id: "music", name: "Music", icon: "🎵", color: "bg-pink-500" },
-    { id: "youtube", name: "YouTube", icon: "▶️", color: "bg-red-600" },
+    { id: "youtube", name: "YouTube", icon: "▶️", color: "bg-red-600", iconImage: "/hackphone/apps/youtube/app_icon.png" },
     { id: "messages", name: "Messages", icon: "💬", color: "bg-green-500" },
     { id: "photos", name: "Photos", icon: "🖼️", color: "bg-yellow-600" },
   ];
@@ -193,11 +194,23 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                     >
                       {/* App icon */}
                       <div className={`w-[60px] h-[60px] ${app.color} rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden`}>
-                        {/* App icon gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                        
-                        <span className="text-2xl relative z-10">{app.icon}</span>
+                        {/* App icon gradient overlay (skip if using real image icon) */}
+                        {!app.iconImage && (
+                          <>
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                          </>
+                        )}
+
+                        {app.iconImage ? (
+                          <img
+                            src={app.iconImage}
+                            alt={app.name}
+                            className="absolute inset-0 w-full h-full object-cover z-10"
+                          />
+                        ) : (
+                          <span className="text-2xl relative z-10">{app.icon}</span>
+                        )}
                         
                         {app.isLocked && (
                           <div className="absolute top-1 right-1 w-4 h-4 bg-black/50 rounded-full flex items-center justify-center">
@@ -205,8 +218,10 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                           </div>
                         )}
 
-                        {/* Shine effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        {/* Shine effect (skip if using real image icon) */}
+                        {!app.iconImage && (
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        )}
                       </div>
                       
                       {/* App name */}
