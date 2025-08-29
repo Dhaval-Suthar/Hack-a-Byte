@@ -4,11 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getDeviceUser } from "@/app/actions/deviceUser";
 import { getPlayspaceId } from "@/lib/playspace-utils";
-import HackPhoneBootScreen from "@/components/hackphone/HackPhoneBootScreen";
-import HackPhoneHomeScreen from "@/components/hackphone/HackPhoneHomeScreen";
-import HackPhoneAppsRouter from "@/components/hackphone/HackPhoneAppsRouter";
-import { useAppNavigation } from "./shared/useAppNavigation";
-import { User } from "./types";
+import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
+import HackPhoneHomeScreen from "@/components/devices/hackphone/core/HackPhoneHomeScreen";
+import HackPhoneAppsRouter from "@/components/devices/hackphone/core/HackPhoneAppsRouter";
+import { useAppNavigation } from "../shared/useAppNavigation";
+import { User } from "@/types/devices";
 
 const HackPhoneDesktop = () => {
   const router = useRouter();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface DeviceInfo {
   id: string;
@@ -412,7 +413,13 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         </button>
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-red-400 to-red-500 rounded-lg flex items-center justify-center shadow-lg shadow-red-500/30">
-            <img src="/hackphone/apps/sentinel/app-icon.png" alt="Sentinel App Icon" className="w-full h-full object-contain" />
+            <Image 
+              src="/hackphone/apps/sentinel/app-icon.png" 
+              alt="Sentinel App Icon" 
+              width={32} 
+              height={32} 
+              className="w-full h-full object-contain" 
+            />
           </div>
           <div className="text-center">
             <div className="font-bold text-red-400 tracking-wider">SENTINEL</div>

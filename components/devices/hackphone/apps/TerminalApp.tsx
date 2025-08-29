@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AppContainer } from "../shared/AppContainer";
-import { User } from "../types";
+import { User } from "@/types/devices";
 
 interface TerminalAppProps {
   user: User | null;

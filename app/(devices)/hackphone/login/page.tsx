@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import HackPhoneBootScreen from "../../../../components/hackphone/HackPhoneBootScreen";
-import HackPhoneLoginScreen from "../../../../components/hackphone/HackPhoneLoginScreen";
+import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
+import HackPhoneLoginScreen from "@/components/devices/hackphone/core/HackPhoneLoginScreen";
 
 const LoginPage = () => {
   const router = useRouter(); // Keep one declaration of router

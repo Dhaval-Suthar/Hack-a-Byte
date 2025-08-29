@@ -1,6 +1,6 @@
 "use client";
 
-import { AppAnalytics } from "../types";
+import { AppAnalytics } from "@/types/devices";
 
 class AppAnalyticsService {
   private events: AppAnalytics[] = [];

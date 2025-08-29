@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppContainer, AppHeader } from "../shared/AppContainer";
-import { NotificationProvider, useNotifications, BankDeviceAlert } from "../../ui/NotificationSystem";
-import { MiniGameStatus } from "../../ui/GameStatus";
-import { Leaderboard } from "../../ui/Leaderboard";
-import BitcoinBalance from "../../ui/BitcoinBalance";
-import RoleBadge from "../../ui/RoleBadge";
+import { NotificationProvider, useNotifications, BankDeviceAlert } from "@/components/ui/NotificationSystem";
+import { MiniGameStatus } from "@/components/ui/GameStatus";
+import { Leaderboard } from "@/components/ui/Leaderboard";
+import BitcoinBalance from "@/components/ui/BitcoinBalance";
+import RoleBadge from "@/components/ui/RoleBadge";
 
 // Mock data for demonstration
 interface Player {

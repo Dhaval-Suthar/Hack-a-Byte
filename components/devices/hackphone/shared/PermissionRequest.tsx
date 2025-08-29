@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { AppContainer, AppHeader } from "./AppContainer";
-import { AppPermission } from "../types";
+import { AppPermission } from "@/types/devices";
 
 interface PermissionRequestProps {
   appName: string;

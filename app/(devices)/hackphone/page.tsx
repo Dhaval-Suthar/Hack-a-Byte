@@ -1,7 +1,7 @@
-import HackPhoneDesktop from "@/components/hackphone/HackPhoneDesktop";
+import HackPhoneDesktop from "@/components/devices/hackphone/core/HackPhoneDesktop";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import HackPhoneBootScreen from "@/components/hackphone/HackPhoneBootScreen";
+import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
 
 export const metadata: Metadata = {
   title: "HackPhone",

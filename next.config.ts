@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable styled-jsx for CSS-in-JS support
+  compiler: {
+    styledComponents: true,
+  },
   // Enable server actions by default
   experimental: {
     serverActions: {

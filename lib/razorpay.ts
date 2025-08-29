@@ -1,5 +1,6 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { logger } from "./logger";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -34,7 +35,7 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
       order,
     };
   } catch (error) {
-    console.error("Error creating Razorpay order:", error);
+    logger.error("Failed to create Razorpay order", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: "Failed to create payment order",
@@ -55,7 +56,7 @@ export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolea
 
     return expectedSignature === razorpay_signature;
   } catch (error) {
-    console.error("Error verifying payment:", error);
+    logger.error("Payment verification failed", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 };

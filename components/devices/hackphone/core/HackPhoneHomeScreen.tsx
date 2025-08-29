@@ -2,8 +2,8 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { APP_REGISTRY, DOCK_APPS, getAppById } from "./shared/AppRegistry";
-import { HomeScreenProps, AppConfig } from "./types";
+import { APP_REGISTRY, DOCK_APPS, getAppById } from "../shared/AppRegistry";
+import { HomeScreenProps, AppConfig } from "@/types/devices";
 
 const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,

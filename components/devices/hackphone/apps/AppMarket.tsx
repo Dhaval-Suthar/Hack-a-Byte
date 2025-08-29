@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Image from "next/image";
-import { AppConfig } from "../types";
+import { AppConfig } from "@/types/devices";
 import { APP_REGISTRY, getAppsByCategory, getAllCategories, checkAppPermissions } from "../shared/AppRegistry";
 import { useAppAnalytics } from "../shared/AppAnalytics";
 import { PermissionRequest } from "../shared/PermissionRequest";

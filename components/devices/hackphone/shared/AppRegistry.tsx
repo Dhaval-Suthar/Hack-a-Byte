@@ -1,6 +1,5 @@
-import { AppConfig } from "../types";
+import { AppConfig } from "@/types/devices";
 
-import { AppConfig } from "../types";
 export const APP_REGISTRY: AppConfig[] = [
   {
     id: "messages",
