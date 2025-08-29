@@ -219,7 +219,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
           className="absolute left-0 right-0 top-0"
           style={{ bottom: 'calc(clamp(58px,10.5vw,76px) + 0.75rem)' }}
         >
-          <Image src="/hackphone/lock-screen.png" alt="lock screen" fill className="object-cover" />
+          <Image src="/hackphone/lock-screen.png" alt="lock screen" fill className="object-cover" priority />
         </div>
 
         <div className="text-center text-white mb-8 relative z-10 pt-20">

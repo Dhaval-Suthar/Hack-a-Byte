@@ -19,6 +19,7 @@ import AppStore from "./apps/AppStore";
 import CalculatorApp from "./CalculatorApp";
 import HackPhoneFiles from "./FileApp";
 import MailApp from "./MailApp";
+import SettingsApp from "./apps/SettingsApp";
 import YouTubeApp from "./YouTubeApp";
 
 interface User {
@@ -56,15 +57,6 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
 
-  // Load saved password on component mount
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedPassword = localStorage.getItem('hackphone_password');
-      if (savedPassword) {
-        setDevicePassword(savedPassword);
-      }
-    }
-  }, []);
 
   // Status bar removed globally (signal/time/battery) per UX request
 
@@ -206,216 +198,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     </div>
   );
 
-  const renderSettingsApp = () => (
-  <div className="w-screen h-screen bg-gray-100 flex flex-col">
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-1">
-          {/* Security Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Security</h2>
-            </div>
-            
-            {/* Passcode */}
-            <button
-              onClick={() => setShowPasswordSetup(!showPasswordSetup)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100"
-            >
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔒</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Passcode</div>
-                  <div className="text-sm text-gray-500">
-                    {devicePassword ? "On" : "Off"}
-                  </div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            {/* Face ID */}
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">👤</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Face ID</div>
-                  <div className="text-sm text-gray-500">Not available</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* General Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">General</h2>
-            </div>
-            
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">ℹ️</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">About</div>
-                  <div className="text-sm text-gray-500">HackPhone OS 1.0</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🎨</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Display & Brightness</div>
-                  <div className="text-sm text-gray-500">Auto</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔊</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Sounds & Haptics</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* Hacker Tools Section */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Hacker Tools</h2>
-            </div>
-            
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🌐</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Network Tools</div>
-                  <div className="text-sm text-gray-500">Scanner, WiFi, VPN</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-
-            <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm">🔐</span>
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Crypto Tools</div>
-                  <div className="text-sm text-gray-500">Encryption, Hashing</div>
-                </div>
-              </div>
-              <span className="text-gray-400">›</span>
-            </button>
-          </div>
-
-          {/* Passcode Setup Modal */}
-          {showPasswordSetup && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl p-6 m-4 w-full max-w-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                  {devicePassword ? "Change Passcode" : "Set Passcode"}
-                </h3>
-                
-                <div className="space-y-4">
-                  {devicePassword && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Passcode
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter current passcode"
-                      />
-                    </div>
-                  )}
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      New Passcode
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter new passcode"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Passcode
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Confirm new passcode"
-                    />
-                  </div>
-                  
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={() => {
-                        setShowPasswordSetup(false);
-                        setNewPassword("");
-                        setConfirmPassword("");
-                      }}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (newPassword === confirmPassword && newPassword.length >= 4) {
-                          setDevicePassword(newPassword);
-                          setShowPasswordSetup(false);
-                          setNewPassword("");
-                          setConfirmPassword("");
-                          // Save to localStorage for persistence
-                          localStorage.setItem('hackphone_password', newPassword);
-                        }
-                      }}
-                      disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
-                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    >
-                      {devicePassword ? "Change" : "Set"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
+  // Settings moved to a separate component: components/hackphone/apps/SettingsApp.tsx
   const renderDefaultApp = () => (
   <div className="w-screen h-screen bg-gray-900 flex flex-col">
       <div className="flex-1 flex items-center justify-center text-white">
@@ -450,7 +233,7 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
     case "crypto":
       return renderCryptoApp();
     case "settings":
-      return renderSettingsApp();
+  return <SettingsApp onClose={onClose} onBack={() => onAppSwitch?.('game')} />;
     case "calendar":
     case "calender":  // Handle typo
       return renderCalendarApp();
