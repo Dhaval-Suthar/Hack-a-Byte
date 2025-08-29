@@ -629,7 +629,7 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
                 <div class="details-grid">
                   <div class="detail-card">
                     <h4>🎮 Gaming Device</h4>
-                    <p>${playingDevice === 'smartphone' ? '📱 HackPhone' : '💻 HackBook W95'}</p>
+                    <p>${playingDevice === 'smartphone' ? '📱 HackPhone' : '💻 HackBook E95'}</p>
                   </div>
                   <div class="detail-card">
                     <h4>👥 Team Size</h4>
@@ -670,7 +670,7 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
                     </li>
                     <li>
                       <span class="step-number">3</span>
-                      <span>Select <strong>${playingDevice === 'smartphone' ? 'HackPhone' : 'HackBook W95'}</strong> as your device</span>
+                      <span>Select <strong>${playingDevice === 'smartphone' ? 'HackPhone' : 'HackBook E95'}</strong> as your device</span>
                     </li>
                     <li>
                       <span class="step-number">4</span>
@@ -699,7 +699,7 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
                     </li>
                     <li>
                       <span class="warning-icon">📱</span>
-                      <span><strong>Device type:</strong> ${playingDevice === 'smartphone' ? 'HackPhone (Mobile Interface)' : 'HackBook W95 (Desktop Interface)'}</span>
+                      <span><strong>Device type:</strong> ${playingDevice === 'smartphone' ? 'HackPhone (Mobile Interface)' : 'HackBook E95 (Desktop Interface)'}</span>
                     </li>
                   </ul>
                 </div>
