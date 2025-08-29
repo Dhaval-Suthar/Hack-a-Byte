@@ -229,7 +229,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
               onClick={() => onAppOpen("phone")}
               className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
             >
-              <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" />
+              <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" priority />
               <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
             </button>
 
@@ -265,7 +265,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
               onClick={() => onAppOpen("music")}
               className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
             >
-              <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" />
+              <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" priority />
               <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
             </button>
           </div>
