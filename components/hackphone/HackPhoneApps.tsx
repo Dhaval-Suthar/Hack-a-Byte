@@ -19,6 +19,7 @@ import AppStore from "./apps/AppStore";
 import CalculatorApp from "./CalculatorApp";
 import HackPhoneFiles from "./FileApp";
 import MailApp from "./MailApp";
+import YouTubeApp from "./YouTubeApp";
 
 interface User {
   _id: string;
@@ -463,6 +464,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
       return <MapApp onClose={onClose} time={time} />;
     case "music":
       return <MusicApp />;
+    case "youtube":
+      return <YouTubeApp onClose={onClose} time={time} />;
     case "camera":
       return <CameraApp 
         onClose={onClose} 
