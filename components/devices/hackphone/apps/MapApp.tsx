@@ -194,23 +194,17 @@ const MapApp: React.FC<MapAppProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="w-screen h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="w-full h-full bg-white flex flex-col relative overflow-hidden">
   {/* status bar removed */}
 
       {/* Header - Silver iOS Maps Style */}
       <div className="bg-gradient-to-b from-[#e6e6e6] via-[#d1d1d1] to-[#b8b8b8] border-b border-[#a0a0a0] px-4 py-3 relative z-20">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={onClose}
-            className="text-[#3c7dc4] font-bold text-[17px] drop-shadow-sm"
-          >
-            ‹ Back
-          </button>
+        <div className="flex items-center justify-center">
           <button 
             onClick={getCurrentLocation}
             className="bg-gradient-to-b from-[#f8f8f8] to-[#d8d8d8] border border-[#a8a8a8] rounded-md px-3 py-1 shadow-sm active:bg-gradient-to-b active:from-[#d8d8d8] active:to-[#c8c8c8]"
           >
-            <span className="text-gray-700 text-[14px] font-medium drop-shadow-sm">{isLocating ? "•••" : "Reset Location"}</span>
+            <span className="text-gray-700 text-[14px] font-medium drop-shadow-sm">{isLocating ? "Locating..." : "Reset Location"}</span>
           </button>
         </div>
       </div>

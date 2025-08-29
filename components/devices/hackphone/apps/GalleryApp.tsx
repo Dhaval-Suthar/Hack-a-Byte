@@ -187,7 +187,7 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
 
   if (selectedPhoto && viewMode === 'fullscreen') {
     return (
-      <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica]">
+      <div className="w-full h-full bg-black flex flex-col font-[Helvetica]">
         
         {/* Photo viewer header - iPhone 4 style */}
         <div className="bg-gradient-to-b from-black/90 via-black/80 to-transparent backdrop-blur-sm">
@@ -282,7 +282,7 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
   }
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col font-[Helvetica]">
+    <div className="w-full h-full bg-black flex flex-col font-[Helvetica]">
       
       {/* Header - iPhone 4 style */}
       <div className="bg-gradient-to-b from-gray-800 via-gray-900 to-black border-b border-gray-600/50 shadow-lg">

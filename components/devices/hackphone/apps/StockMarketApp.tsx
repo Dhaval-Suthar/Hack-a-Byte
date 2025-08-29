@@ -453,7 +453,7 @@ const StockMarketApp: React.FC<StockMarketAppProps> = () => {
   ];
 
   return (
-    <div className="w-screen h-screen bg-gradient-to-b from-[#b4c6d7] to-[#8fa4b8] flex flex-col relative overflow-hidden font-[Helvetica,Arial,ui-sans-serif]">
+    <div className="w-full h-full bg-gradient-to-b from-[#b4c6d7] to-[#8fa4b8] flex flex-col relative overflow-hidden font-[Helvetica,Arial,ui-sans-serif]">
   {/* status bar removed */}
 
       {/* App header */}

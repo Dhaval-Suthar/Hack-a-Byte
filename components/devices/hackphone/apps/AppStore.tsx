@@ -163,7 +163,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
   );
 
   return (
-  <div className="w-screen h-screen bg-[#DCEBFF] flex flex-col">
+  <div className="w-full h-full bg-[#DCEBFF] flex flex-col">
       {/* iOS 4 Navigation Bar */}
       <div className={`${ios4NavBar} px-3 py-2`}> 
         <div className="h-7 flex items-center justify-center relative">

@@ -63,7 +63,9 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   const renderApp = () => {
     const wrapWithErrorBoundary = (app: React.ReactNode, appId: string) => (
       <AppErrorBoundary appId={appId} key={appId}>
-        {app}
+        <div className="w-screen h-screen pb-20 overflow-hidden">
+          {app}
+        </div>
       </AppErrorBoundary>
     );
 

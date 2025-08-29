@@ -305,7 +305,7 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
   };
 
   return (
-    <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
+    <div className="w-full h-full bg-gray-200 flex flex-col text-sm">
       {/* Header */}
       <div className="h-11 bg-gradient-to-b from-gray-400 to-gray-500 text-white flex items-center justify-between px-4 border-b border-gray-600">
         {screen === "main" ? (

@@ -247,7 +247,7 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
 
   if (showDetails && detailItem) {
     return (
-      <div className="w-screen h-screen bg-white flex flex-col">
+      <div className="w-full h-full bg-white flex flex-col">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center">
           <button onClick={() => setShowDetails(false)} className="mr-3 text-blue-500 text-lg">
@@ -484,7 +484,7 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
   }
 
   return (
-    <div className="w-screen h-screen bg-white flex flex-col">
+    <div className="w-full h-full bg-white flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between mb-3">

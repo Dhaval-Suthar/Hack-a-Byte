@@ -349,7 +349,7 @@ function MusicApp() {
 
  // --- UI ---
  return (
-   <div className="w-full h-full max-w-[380px] mx-auto select-none" style={{ fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif", background: "#000" }}>
+   <div className="w-full h-full max-w-full mx-auto select-none" style={{ fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif", background: "#000" }}>
      {/* Hidden audio element */}
      <audio ref={audioRef} preload="auto" />
 
@@ -373,7 +373,7 @@ function MusicApp() {
 
 
      {/* Content */}
-     <div className="h-[560px] overflow-y-auto bg-[#efefef]" style={{ backgroundImage: glossy("#f8f8f8", "#dcdcdc") }}>
+     <div className="h-[75vh] overflow-y-auto bg-[#efefef]" style={{ backgroundImage: glossy("#f8f8f8", "#dcdcdc") }}>
        {tab === "Songs" && (
          <SongsView
            tracks={demoTracks}

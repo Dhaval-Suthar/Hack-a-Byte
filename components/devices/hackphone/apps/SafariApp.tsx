@@ -176,7 +176,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-gradient-to-b from-[#1a1a1a] via-[#0f0f0f] to-black">
+    <div className="w-full h-full flex flex-col bg-gradient-to-b from-[#1a1a1a] via-[#0f0f0f] to-black">
       {iOSBar}
 
       {/* Pull to refresh overlay */}

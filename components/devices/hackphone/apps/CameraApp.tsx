@@ -409,7 +409,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
 
   if (hasPermission === false) {
     return (
-      <div className="w-screen h-screen bg-black flex flex-col">
+      <div className="w-full h-full bg-black flex flex-col">
         
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white p-8">
@@ -440,7 +440,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
   }
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col relative overflow-hidden font-[Helvetica]">
+    <div className="w-full h-full bg-black flex flex-col relative overflow-hidden font-[Helvetica]">
       
       
       {/* Camera viewfinder */}

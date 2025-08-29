@@ -242,7 +242,7 @@ function HackPhoneFiles({
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-b from-[#f7f7f7] to-[#f0f0f0] text-black flex flex-col pb-8"
+    <div className="w-full h-full bg-gradient-to-b from-[#f7f7f7] to-[#f0f0f0] text-black flex flex-col"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
     >
@@ -302,7 +302,7 @@ function HackPhoneFiles({
       </div>
 
       {/* Bottom Taskbar - iOS Files App Style */}
-      <div className="bg-white/95 backdrop-blur-md border-t border-gray-200/50 pb-8">
+      <div className="bg-white/95 backdrop-blur-md border-t border-gray-200/50">
         <div className="flex items-center justify-around py-3">
           <button 
             className={`flex flex-col items-center p-2 ${currentView === "browse" ? "text-blue-600" : "text-gray-600"}`}

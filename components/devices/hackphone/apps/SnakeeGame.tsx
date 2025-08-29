@@ -743,7 +743,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
   );
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col relative overflow-hidden matrix-bg">
+    <div className="w-full h-full bg-black flex flex-col relative overflow-hidden matrix-bg">
       {/* Enhanced retro background with multiple layers */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-green-900/20"></div>

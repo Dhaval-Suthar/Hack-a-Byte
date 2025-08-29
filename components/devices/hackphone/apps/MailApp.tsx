@@ -250,31 +250,10 @@ ${selectedEmail.body}`);
   });
 
   const renderInbox = () => (
-    <div className="w-screen h-screen bg-[#c5ccd4] flex flex-col">
-      {/* Status Bar */}
-      <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] font-medium bg-[#c5ccd4]">
-        <div className="flex items-center space-x-1">
-          <span>••••• AT&T</span>
-          <div className="flex items-end space-x-[1px] ml-2">
-            <div className="w-1 h-1 bg-black rounded-full" />
-            <div className="w-1 h-2 bg-black rounded-full" />
-            <div className="w-1 h-3 bg-black rounded-full" />
-            <div className="w-1 h-4 bg-black rounded-full" />
-            <div className="w-1 h-5 bg-black rounded-full" />
-          </div>
-        </div>
-        <div className="text-center">
-          <span>10:23</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span>🔋</span>
-          <span>100%</span>
-        </div>
-      </div>
-
+    <div className="w-full h-full bg-[#c5ccd4] flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-b from-[#b7c1ce] to-[#9bb0c4] border-b border-[#8a9bb0] shadow-sm">
-        <div className="px-4 py-2">
+        <div className="px-4 py-3 pt-4">
           <div className="flex items-center justify-between">
             <div className="w-16"></div>
             <h1 className="text-[20px] font-bold text-white drop-shadow-sm">Inbox</h1>
@@ -311,7 +290,7 @@ ${selectedEmail.body}`);
       </div>
 
       {/* Email List */}
-      <div className="flex-1 bg-white pb-24 overflow-y-auto">
+      <div className="flex-1 bg-white overflow-y-auto">
         {filteredEmails.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="text-center">
@@ -378,7 +357,7 @@ ${selectedEmail.body}`);
     if (!selectedEmail) return null;
 
     return (
-      <div className="w-screen h-screen bg-white flex flex-col">
+      <div className="w-full h-full bg-white flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-b from-[#b0b8c6] to-[#8e99ab] border-b border-[#6d7584] shadow-sm">
           <div className="px-4 py-3">
@@ -443,7 +422,7 @@ ${selectedEmail.body}`);
         </div>
 
         {/* Email Body */}
-        <div className="flex-1 p-4 bg-white overflow-y-auto pb-20">
+        <div className="flex-1 p-4 bg-white overflow-y-auto">
           <div className="text-[16px] text-black leading-[22px] whitespace-pre-wrap">
             {selectedEmail.body}
           </div>
@@ -477,8 +456,8 @@ ${selectedEmail.body}`);
   };
 
   const renderCompose = () => (
-    <div className="w-screen h-screen bg-[#c5ccd4] flex flex-col overflow-hidden">
-      {/* Status Bar */}
+    <div className="w-full h-full bg-[#c5ccd4] flex flex-col overflow-hidden">
+      {/* Header only - removing status bar */}
       <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] font-medium bg-[#c5ccd4]">
         <div className="flex items-center space-x-1">
           <span>••••• AT&T</span>

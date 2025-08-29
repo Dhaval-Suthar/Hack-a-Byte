@@ -456,7 +456,7 @@ const ContactsApp: React.FC<ContactsAppProps> = ({ onClose, onOpenPhone }) => {
   };
 
   return (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
+    <div className="w-full h-full bg-gray-100 flex flex-col">
       
       {view === "list" && (
         <>

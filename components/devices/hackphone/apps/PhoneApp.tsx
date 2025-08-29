@@ -350,7 +350,7 @@ const PhoneApp: React.FC<PhoneAppProps> = ({ onClose, onOpenContacts, initialPho
   );
 
   const renderCallScreen = () => (
-    <div className="w-screen h-screen bg-white text-black flex flex-col">
+    <div className="w-full h-full bg-white text-black flex flex-col">
       {/* Special call status bar */}
       <div className="flex justify-between items-center px-4 pt-2 pb-1 text-white text-[11px] tracking-wide bg-green-600">
         <div className="flex items-center space-x-1">
@@ -421,7 +421,7 @@ const PhoneApp: React.FC<PhoneAppProps> = ({ onClose, onOpenContacts, initialPho
   }
 
   return (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
+    <div className="w-full h-full bg-gray-100 flex flex-col">
       
       {/* Tab content */}
       {activeTab === "favorites" && renderFavorites()}

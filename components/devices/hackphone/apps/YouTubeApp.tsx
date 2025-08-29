@@ -422,7 +422,7 @@ const YouTubeApp: React.FC<YouTubeAppProps> = () => {
   );
 
   return (
-    <div className="w-screen h-screen bg-gray-100 flex flex-col">
+    <div className="w-full h-full bg-gray-100 flex flex-col">
       {selectedVideo && renderVideoPlayer()}
       
       {/* YouTube Header - iOS 4 Style */}

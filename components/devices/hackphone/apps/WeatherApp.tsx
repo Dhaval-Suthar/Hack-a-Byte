@@ -108,7 +108,7 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose }) => {
   );
 
   return (
-    <div className="w-screen h-screen relative overflow-hidden">
+    <div className="w-full h-full relative overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700"></div>
 
