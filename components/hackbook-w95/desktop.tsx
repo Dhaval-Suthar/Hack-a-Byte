@@ -1449,12 +1449,12 @@ const Desktop = () => {
           return (
             <BruteForceGame 
               onClose={() => handleCloseApp(app)}
-              onSuccess={(password) => {
-                console.log("Password cracked:", password);
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onSuccess={(_password) => {
                 // Check if there's a parent callback function to call
                 if (app.metadata?.parentCallback) {
-                  const callback = app.metadata.parentCallback as unknown as (password: string) => void;
-                  callback(password);
+                  const callback = app.metadata.parentCallback as unknown as () => void;
+                  callback();
                 }
                 handleCloseApp(app);
               }}

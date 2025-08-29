@@ -496,9 +496,8 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
     }
   };
 
-  const handleViewTeamDetails = (teamId: string) => {
+  const handleViewTeamDetails = () => {
     // TODO: Navigate to team details page or open modal
-    console.log("View team details", teamId);
     // In the original, this used router.push(`/admin/teams/${teamId}`)
     // For now, we'll just log it since we don't have that route implemented
   };

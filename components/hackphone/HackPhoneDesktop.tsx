@@ -6,27 +6,20 @@ import { getDeviceUser } from "@/app/actions/deviceUser";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import HackPhoneBootScreen from "@/components/hackphone/HackPhoneBootScreen";
 import HackPhoneHomeScreen from "@/components/hackphone/HackPhoneHomeScreen";
-import HackPhoneApps from "@/components/hackphone/HackPhoneApps";
-
-interface User {
-  _id: string;
-  username: string;
-  sessionId?: string;
-  progress: {
-    unlockedApplications: string[];
-    skills: Record<string, unknown>;
-  };
-  gameState: Record<string, unknown>;
-}
+import HackPhoneAppsRouter from "@/components/hackphone/HackPhoneAppsRouter";
+import { useAppNavigation } from "./shared/useAppNavigation";
+import { User } from "./types";
 
 const HackPhoneDesktop = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [currentApp, setCurrentApp] = useState<string | null>(null);
   const [time, setTime] = useState(new Date());
   const [hasPasscode, setHasPasscode] = useState(false);
+
+  // Use the navigation hook
+  const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
 
   // Update time every second
   useEffect(() => {
@@ -87,15 +80,15 @@ const HackPhoneDesktop = () => {
   }, [searchParams, router, hasPasscode]);
 
   const handleAppOpen = (appId: string) => {
-    setCurrentApp(appId);
+    openApp(appId);
   };
 
   const handleAppClose = () => {
-    setCurrentApp(null);
+    closeApp();
   };
 
   const handleAppSwitch = (appId: string) => {
-    setCurrentApp(appId);
+    switchApp(appId);
   };
 
   if (isLoading) {
@@ -105,7 +98,7 @@ const HackPhoneDesktop = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {currentApp ? (
-        <HackPhoneApps 
+        <HackPhoneAppsRouter
           appId={currentApp}
           onClose={handleAppClose}
           user={user}
@@ -114,10 +107,8 @@ const HackPhoneDesktop = () => {
           onOpenApp={handleAppOpen}
         />
       ) : (
-        <HackPhoneHomeScreen 
+        <HackPhoneHomeScreen
           onAppOpen={handleAppOpen}
-          user={user}
-          time={time}
         />
       )}
 
@@ -133,7 +124,7 @@ const HackPhoneDesktop = () => {
 
       <button
         aria-label="Home"
-        onClick={() => setCurrentApp(null)}
+        onClick={() => closeApp()}
         className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/70 border border-white/10 ring-1 ring-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.65)] active:translate-y-[1px] transition-transform duration-100 supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[30]"
       >
         <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/18 via-transparent to-transparent" />

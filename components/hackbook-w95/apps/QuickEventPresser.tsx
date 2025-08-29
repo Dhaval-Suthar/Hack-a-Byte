@@ -144,8 +144,7 @@ const QuickEventPresser: React.FC<QuickEventPresserProps> = ({
           audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.3);
           break;
       }
-    } catch (error) {
-      console.log("Audio error:", error);
+    } catch {
     }
   }, []);
 

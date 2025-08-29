@@ -572,49 +572,4 @@ function FolderView({
   );
 }
 
-// ---------- Subcomponents ----------
-function AppHeader({ title, onClose }: { title: string; onClose: () => void }) {
-  return (
-    <div className="px-3 pt-2">
-      <div
-        className="h-10 rounded-xl flex items-center justify-between px-2"
-        style={{
-          background:
-            "linear-gradient(180deg, #fefefe, #e9e9e9)",
-          border: "1px solid rgba(0,0,0,0.08)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] bg-white/70 hover:bg-white/90 border border-black/10"
-          >
-            ✕ Close
-          </button>
-          <div className="text-[13px] text-black/60">iOS 4 style</div>
-        </div>
-        <div className="text-[14px] font-semibold text-black/80 truncate max-w-[60%] text-center">
-          {title}
-        </div>
-        <div className="w-[80px]" />
-      </div>
-    </div>
-  );
-}
-
-// ---------- Utilities ----------
-function findFolderName(root: FSItem[], current: FSItem[]): string | undefined {
-  const walk = (arr: FSItem[]): FSItem | undefined => {
-    for (const item of arr) {
-      if (item.type === "folder") {
-        if (item.children === current) return item;
-        const deeper = item.children ? walk(item.children) : undefined;
-        if (deeper) return deeper;
-      }
-    }
-    return undefined;
-  };
-  return walk(root)?.name;
-}
 export default HackPhoneFiles;

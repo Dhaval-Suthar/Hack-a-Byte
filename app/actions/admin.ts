@@ -15,7 +15,7 @@ import { generateMacAddress } from "@/lib/utils";
 async function checkAdminStatus(adminKey?: string) {
   // If admin key is provided, validate it (file upload authentication)
   if (adminKey) {
-    const validKey = "hackabyte-admin-key-2024"; // This should match your admin-key.txt file
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024"; // This should match your admin-key.txt file
     if (adminKey.trim() === validKey) {
       return { isAdmin: true, error: null };
     } else {

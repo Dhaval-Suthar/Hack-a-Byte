@@ -35,15 +35,13 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (sessionTimestamp) {
         const sessionAge = Date.now() - parseInt(sessionTimestamp);
         if (sessionAge > SESSION_DURATION) {
-          console.log("Session expired, clearing authentication");
           clearStoredAuthState();
           localStorage.removeItem("admin-session-timestamp");
           return false;
         }
       }
       return true;
-    } catch (error) {
-      console.error("Error validating session:", error);
+    } catch {
       return false;
     }
   }, []);
@@ -65,8 +63,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         setIsAuthenticated(false);
         setAuthKey("");
       }
-    } catch (error) {
-      console.error("Error initializing admin auth:", error);
+    } catch {
       setAuthError({
         message: "Failed to initialize admin authentication. Please refresh and try again.",
         type: 'storage'
@@ -101,7 +98,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   // Authentication handlers
   const handleAuthSuccess = useCallback((authKey: string) => {
     try {
-      console.log("Authentication successful - setting isAuthenticated to true");
       setIsAuthenticated(true);
       setAuthKey(authKey);
       setAuthError(null);
@@ -111,8 +107,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (typeof window !== "undefined") {
         localStorage.setItem("admin-session-timestamp", Date.now().toString());
       }
-    } catch (error) {
-      console.error("Error during authentication success:", error);
+    } catch {
       setAuthError({
         message: "Authentication succeeded but failed to save session. Please try again.",
         type: 'storage'
@@ -121,7 +116,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   }, []);
 
   const handleAuthFailed = useCallback((error: string) => {
-    console.log("Authentication failed:", error);
     setIsAuthenticated(false);
     setAuthKey("");
     
@@ -135,8 +129,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       message: error || "Authentication failed. Please check your credentials.",
       type: 'auth'
     });
-    
-    console.error("Authentication failed:", error);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -150,8 +142,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (typeof window !== "undefined") {
         localStorage.removeItem("admin-session-timestamp");
       }
-    } catch (error) {
-      console.error("Error during logout:", error);
+    } catch {
     }
   }, []);
 

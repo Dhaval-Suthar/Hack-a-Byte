@@ -137,9 +137,8 @@ Good luck with your assignment.
           return;
       }
       audio.volume = 0.5;
-      audio.play().catch(e => console.log("Audio play failed:", e));
-    } catch (error) {
-      console.error("Sound error:", error);
+      audio.play().catch(() => {});
+    } catch {
     }
   }, []);
 
@@ -167,8 +166,7 @@ Good luck with your assignment.
   }, [passwordInput, password, playSound]);
 
   // Handle brute force success
-  const handleBruteForceSuccess = useCallback((crackedPassword: string) => {
-    console.log('Password cracked:', crackedPassword);
+  const handleBruteForceSuccess = useCallback(() => {
     setIsUnlocked(true);
     playSound('success');
     // Save mission progress - Mark Mission 1 as complete using database-enhanced tracker

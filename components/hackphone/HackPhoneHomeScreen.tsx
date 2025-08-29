@@ -2,75 +2,24 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { APP_REGISTRY, DOCK_APPS, getAppById } from "./shared/AppRegistry";
+import { HomeScreenProps, AppConfig } from "./types";
 
-interface App {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  isLocked?: boolean;
-}
-
-interface User {
-  _id: string;
-  username: string;
-  sessionId?: string;
-  progress: {
-    unlockedApplications: string[];
-    skills: Record<string, unknown>;
-  };
-  gameState: Record<string, unknown>;
-}
-
-interface HackPhoneHomeScreenProps {
-  onAppOpen: (appId: string) => void;
-  user: User | null;
-  time?: Date; // accepted for consistency with Desktop, not shown on UI
-}
-
-const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
+const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  time,
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Use the real app icons placed under /public/hackphone/apps/*/app-icon.png
-  const apps: App[] = useMemo(
-    () => [
-      { id: "messages", name: "Messages", icon: "/hackphone/apps/message/app-icon.png", color: "" },
-      { id: "calender", name: "Calendar", icon: "/hackphone/apps/calender/app-icon.png", color: "" },
-      { id: "photos", name: "Photos", icon: "/hackphone/apps/photos/app-icon.png", color: "" },
-      { id: "camera", name: "Camera", icon: "/hackphone/apps/camera/app-icon.png", color: "" },
-      { id: "youtube", name: "YouTube", icon: "/hackphone/apps/youtube/app-icon.png", color: "" },
-      { id: "stocks", name: "Stocks", icon: "/hackphone/apps/stocks/app-icon.png", color: "" },
-      { id: "maps", name: "Maps", icon: "/hackphone/apps/map/app-icon.png", color: "" },
-      { id: "weather", name: "Weather", icon: "/hackphone/apps/weather/app-icon.png", color: "" },
-      { id: "notes", name: "Notes", icon: "/hackphone/apps/notes/app-icon.png", color: "" },
-      { id: "settings", name: "Settings", icon: "/hackphone/apps/setting/app-icon.png", color: "" },
-      { id: "phone", name: "Phone", icon: "/hackphone/apps/phone/app-icon.png", color: "" },
-      { id: "mail", name: "Mail", icon: "/hackphone/apps/mail/app-icon.png", color: "" },
-      { id: "safari", name: "Safari", icon: "/hackphone/apps/safari/app-icon.png", color: "" },
-      { id: "music", name: "iPod", icon: "/hackphone/apps/music/app-icon.png", color: "" },
-      { id: "calculator", name: "Calculator", icon: "/hackphone/apps/calculator/app-icon.png", color: "" },
-      { id: "clock", name: "Clock", icon: "/hackphone/apps/clock/app-icon.png", color: "" },
-      { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
-      { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
-      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
-      { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" },
-      { id: "sentinel", name: "Sentinel", icon: "/hackphone/apps/sentinel/app-icon.png", color: "" },
-      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
-    ],
-    []
-  );
+  // Use the app registry instead of hardcoded apps
+  const apps = useMemo(() => APP_REGISTRY, []);
 
   // Distribute apps across exactly 3 pages in a round-robin fashion to "scatter" them
   const TOTAL_PAGES = 3;
-  const pages: App[][] = useMemo(() => {
-    const buckets: App[][] = Array.from({ length: TOTAL_PAGES }, () => []);
+  const pages: AppConfig[][] = useMemo(() => {
+    const buckets: AppConfig[][] = Array.from({ length: TOTAL_PAGES }, () => []);
     apps.forEach((app, idx) => {
       buckets[idx % TOTAL_PAGES].push(app);
     });
@@ -80,7 +29,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
 
   // date formatting helper removed — home screen no longer shows a date header
 
-  const handleAppClick = (app: App) => {
+  const handleAppClick = (app: AppConfig) => {
     if (app.isLocked) {
       // Show locked app notification
       return;
@@ -225,50 +174,29 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />
           <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/40" />
           <div className="flex justify-center items-center h-full space-x-8 relative z-10">
-            {/* Dock apps with real icons */}
-            <button
-              onClick={() => onAppOpen("phone")}
-              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
-            >
-              <Image src="/hackphone/apps/phone/app-icon.png" alt="Phone" fill className="object-cover" sizes="56px" priority />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            </button>
-
-            <button
-              onClick={() => onAppOpen("messages")}
-              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
-            >
-              <Image
-                src="/hackphone/apps/message/app-icon.png"
-                alt="Messages"
-                fill
-                className="object-cover"
-                sizes="56px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            </button>
-
-            <button
-              onClick={() => onAppOpen("safari")}
-              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
-            >
-              <Image
-                src="/hackphone/apps/safari/app-icon.png"
-                alt="Safari"
-                fill
-                className="object-cover"
-                sizes="56px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            </button>
-
-            <button
-              onClick={() => onAppOpen("music")}
-              className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
-            >
-              <Image src="/hackphone/apps/music/app-icon.png" alt="iPod" fill className="object-cover" sizes="56px" priority />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
-            </button>
+            {/* Dock apps from registry */}
+            {DOCK_APPS.map((appId) => {
+              const app = getAppById(appId);
+              if (!app) return null;
+              
+              return (
+                <button
+                  key={app.id}
+                  onClick={() => onAppOpen(app.id)}
+                  className="w-[56px] h-[56px] rounded-[14px] flex items-center justify-center shadow-[0_6px_14px_rgba(0,0,0,0.4)] active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5"
+                >
+                  <Image
+                    src={app.icon}
+                    alt={`${app.name} icon`}
+                    fill
+                    className="object-cover"
+                    sizes="56px"
+                    priority={app.id === "phone" || app.id === "music"} // Prioritize main dock apps
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

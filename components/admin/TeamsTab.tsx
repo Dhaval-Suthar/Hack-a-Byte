@@ -15,7 +15,7 @@ interface TeamsTabProps {
   setCurrentPage: (page: number) => void;
   itemsPerPage: number;
   isLoading: boolean;
-  onViewTeamDetails: (teamId: string) => void;
+  onViewTeamDetails: () => void;
 }
 
 export default function TeamsTab({
@@ -69,7 +69,7 @@ export default function TeamsTab({
                 <td className="px-4 py-3">{team.members || 0}</td>
                 <td className="px-4 py-3 flex space-x-2">
                   <button
-                    onClick={() => onViewTeamDetails(team._id)}
+                    onClick={() => onViewTeamDetails()}
                     className="bg-blue-800 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
                   >
                     View Details

@@ -7,7 +7,11 @@ import DeviceUser from "@/models/DeviceUser";
 async function checkAdminStatus(adminKey?: string) {
   // For now, implement a basic admin check
   // In production, this should validate against a proper admin system
-  const validAdminKey = process.env.ADMIN_KEY || "admin123";
+  const validAdminKey = process.env.ADMIN_KEY;
+  
+  if (!validAdminKey) {
+    return { isAdmin: false, error: "Admin system not configured" };
+  }
   
   if (!adminKey || adminKey !== validAdminKey) {
     return { isAdmin: false, error: "Admin authentication required" };

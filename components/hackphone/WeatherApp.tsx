@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 interface WeatherAppProps {
   onClose: () => void;
@@ -28,8 +28,8 @@ interface WeatherData {
   forecastHourly: Record<string, { time: string; temp: number; icon: string }[]>;
 }
 
-const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
-  const [weatherData, setWeatherData] = useState<WeatherData>({
+const WeatherApp: React.FC<WeatherAppProps> = ({ onClose }) => {
+  const [weatherData] = useState<WeatherData>({
     location: "Cupertino",
     currentTemp: 49,
     condition: "Partly Cloudy",
@@ -100,33 +100,12 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
         <span>•••</span>
         <span className="text-xs">📶</span>
       </div>
-      <div className="font-semibold">{time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+      <div className="font-semibold">{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
       <div className="flex items-center space-x-1">
         <span className="text-xs">🔋</span>
       </div>
     </div>
   );
-
-  const getWeatherIcon = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case "sunny":
-      case "clear":
-        return "☀️";
-      case "partly cloudy":
-      case "cloudy":
-        return "☁️";
-      case "rainy":
-      case "rain":
-        return "🌧️";
-      case "stormy":
-        return "⛈️";
-      case "snowy":
-      case "snow":
-        return "❄️";
-      default:
-        return "☁️";
-    }
-  };
 
   return (
     <div className="w-screen h-screen relative overflow-hidden">
@@ -221,8 +200,8 @@ const WeatherApp: React.FC<WeatherAppProps> = ({ onClose, time }) => {
                   <div className="flex items-center space-x-2">
                     <span>🌐</span>
                     <span>
-                      Updated {time.toLocaleDateString()}{" "}
-                      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      Updated {new Date().toLocaleDateString()}{" "}
+                      {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                 </div>

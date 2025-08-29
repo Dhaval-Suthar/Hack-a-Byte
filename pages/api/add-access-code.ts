@@ -29,8 +29,7 @@ export async function POST(request: NextRequest) {
         error: result.error
       }, { status: 400 });
     }
-  } catch (error) {
-    console.error('Error creating access code:', error);
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Failed to create access code'

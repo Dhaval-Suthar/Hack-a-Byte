@@ -254,13 +254,6 @@ export default function HackBookE95DesktopCore() {
     }
   }, [deviceUser, playSound]);
 
-  // Debug log for development
-  useEffect(() => {
-    if (deviceId) {
-      console.log(`HackBook E95 connected to device instance: ${deviceId}`);
-    }
-  }, [deviceId]);
-
   // Handle logout from device
   const handleLogout = async () => {
     // Show logout animation immediately

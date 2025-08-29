@@ -102,7 +102,8 @@ export async function getSponsorContacts(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check (you can enhance this based on your admin auth system)
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",
@@ -150,7 +151,8 @@ export async function updateSponsorContactStatus(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",
@@ -210,7 +212,8 @@ export async function deleteSponsorContact(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",

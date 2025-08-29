@@ -74,10 +74,8 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
     audio.volume = volume / 100;
 
     const handleCanPlay = () => {
-      console.log('Audio file loaded and ready to play:', audio.src);
     };
-    const handleError = (e: Event) => {
-      console.error('Audio loading error:', e);
+    const handleError = () => {
     };
     const updateTime = () => {
       if (!audio) return;

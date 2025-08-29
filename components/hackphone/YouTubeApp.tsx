@@ -26,7 +26,6 @@ const YouTubeApp: React.FC<YouTubeAppProps> = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Video[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Mock video data with hack-a-byte channel
@@ -178,22 +177,6 @@ const YouTubeApp: React.FC<YouTubeAppProps> = () => {
 
   const handleVideoClick = (video: Video) => {
     setSelectedVideo(video);
-    setIsPlaying(false);
-  };
-
-  const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleVideoEnd = () => {
-    setIsPlaying(false);
   };
 
   const renderVideoCard = (video: Video, isShort = false) => (
@@ -268,9 +251,6 @@ const YouTubeApp: React.FC<YouTubeAppProps> = () => {
                 ref={videoRef}
                 className="w-full h-full object-contain"
                 poster="/hackphone/gallery/wallpaper1.jpg"
-                onEnded={handleVideoEnd}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
                 controls
                 playsInline
               >

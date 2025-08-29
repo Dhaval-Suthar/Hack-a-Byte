@@ -16,7 +16,7 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
   const [fileName, setFileName] = useState<string>('');
 
   // Expected authentication key - you can change this to any string
-  const EXPECTED_AUTH_KEY = 'hackabyte-admin-key-2024';
+  const EXPECTED_AUTH_KEY = process.env.NEXT_PUBLIC_ADMIN_AUTH_KEY || 'hackabyte-admin-key-2024';
 
   const validateFile = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -26,10 +26,6 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
         try {
           const content = e.target?.result as string;
           const trimmedContent = content.trim();
-          
-          console.log('File content:', JSON.stringify(trimmedContent));
-          console.log('Expected key:', JSON.stringify(EXPECTED_AUTH_KEY));
-          console.log('Content matches:', trimmedContent === EXPECTED_AUTH_KEY);
           
           // Check if the file content matches the expected key
           if (trimmedContent === EXPECTED_AUTH_KEY) {
@@ -71,18 +67,15 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
       }
 
       const isValid = await validateFile(file);
-      console.log('File validation result:', isValid);
       
       if (isValid) {
         setUploadStatus('success');
-        console.log('Authentication successful, calling onAuthSuccess');
         // Add a brief delay to show success state
         setTimeout(() => {
           onAuthSuccess(EXPECTED_AUTH_KEY);
         }, 1000);
       } else {
         setUploadStatus('error');
-        console.log('Authentication failed - invalid key');
         onAuthFailed('Invalid authentication key. Please verify your file contains the correct key.');
       }
     } catch (error) {
