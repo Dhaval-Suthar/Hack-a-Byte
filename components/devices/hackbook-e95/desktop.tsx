@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import BootAnimation from "@/components/hackbook-w95/boot-animation";
+import BootAnimation from "@/components/devices/hackbook-w95/boot-animation";
 
 // Import the modified desktop for E95
 import HackBookE95DesktopCore from "./desktop-core";

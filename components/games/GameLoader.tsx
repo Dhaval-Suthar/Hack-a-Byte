@@ -9,16 +9,16 @@ function resolveGameComponent(id: string): React.ComponentType<any> | null {
   switch (id) {
     case "minesweeper":
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return dynamic(() => import("@/components/hackbook-w95/apps/Minesweeper") as any, { ssr: false });
+  return dynamic(() => import("@/components/devices/hackbook-w95/apps/Minesweeper") as any, { ssr: false });
     case "number-jump":
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return dynamic(() => import("@/components/hackbook-w95/apps/NumberJumpingGame") as any, { ssr: false });
+  return dynamic(() => import("@/components/devices/hackbook-w95/apps/NumberJumpingGame") as any, { ssr: false });
     case "untangle-net":
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return dynamic(() => import("@/components/hackbook-w95/apps/UntangleNeuralNetwork") as any, { ssr: false });
+  return dynamic(() => import("@/components/devices/hackbook-w95/apps/UntangleNeuralNetwork") as any, { ssr: false });
     case "quick-event":
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return dynamic(() => import("@/components/hackbook-w95/apps/QuickEventPresser") as any, { ssr: false });
+  return dynamic(() => import("@/components/devices/hackbook-w95/apps/QuickEventPresser") as any, { ssr: false });
     default:
       return null;
   }

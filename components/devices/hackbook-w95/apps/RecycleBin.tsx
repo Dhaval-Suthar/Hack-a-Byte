@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import clsx from "clsx";
-import useFileSystem, { FileSystemItem } from "@/components/hackbook-w95/hooks/useFileSystem";
+import useFileSystem, { FileSystemItem } from "@/components/devices/hackbook-w95/hooks/useFileSystem";
 
 interface RecycleBinProps {
   onClose: () => void;

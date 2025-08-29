@@ -1,7 +1,7 @@
-import HackBookE95Desktop from "@/components/hackbook-e95/desktop";
+import HackBookE95Desktop from "@/components/devices/hackbook-e95/desktop";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import BootAnimation from "@/components/hackbook-w95/boot-animation";
+import BootAnimation from "@/components/devices/hackbook-w95/boot-animation";
 
 export const metadata: Metadata = {
   title: "Hackbook E95",

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
-import Win95Alert from "@/components/hackbook-w95/Win95Alert";
+import Win95Alert from "@/components/devices/hackbook-w95/Win95Alert";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createDeviceUser, getDeviceUser, loginDeviceUser } from "@/app/actions/deviceUser";
-import BootAnimation from "@/components/hackbook-w95/boot-animation";
-import LoginAnimation from "@/components/hackbook-w95/login-animation";
+import BootAnimation from "@/components/devices/hackbook-w95/boot-animation";
+import LoginAnimation from "@/components/devices/hackbook-w95/login-animation";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 
 const LoginPage = () => {
@@ -100,7 +100,7 @@ const LoginPage = () => {
         const result = await getDeviceUser(deviceId, "hackbook-w95");
         if (result.isLoggedIn && result.user) {
           // Import dynamically to avoid SSR issues
-          import('@/components/hackbook-w95/hooks/useUserLogs').then(({ UserLogManager }) => {
+          import('@/components/devices/hackbook-w95/hooks/useUserLogs').then(({ UserLogManager }) => {
             // Log the auto-login attempt
             UserLogManager.addLoginLog({
               username: result.user.username,

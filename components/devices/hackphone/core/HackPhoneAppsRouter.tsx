@@ -4,33 +4,31 @@ import React, { Suspense, lazy, useEffect, useRef } from "react";
 import { AppRouterProps } from "@/types/devices";
 import { TerminalApp } from "../apps/TerminalApp";
 import { NetworkScannerApp } from "../apps/NetworkScannerApp";
-import { CryptoToolkitApp } from "../apps/CryptoToolkitApp";
 import { DefaultApp } from "../apps/DefaultApp";
 import { AppErrorBoundary } from "../shared/AppErrorBoundary";
 import { useAppAnalytics } from "../shared/AppAnalytics";
 
 // Lazy load complex app components
-const CalculatorApp = lazy(() => import("./CalculatorApp"));
-const MessagingApp = lazy(() => import("./MessagingApp"));
-const MapApp = lazy(() => import("./MapApp"));
-const MailApp = lazy(() => import("./MailApp"));
-const SafariApp = lazy(() => import("./SafariApp"));
-const YouTubeApp = lazy(() => import("./YouTubeApp"));
-const WeatherApp = lazy(() => import("./WeatherApp"));
-const MusicApp = lazy(() => import("./MusicApp"));
-const PhoneApp = lazy(() => import("./PhoneApp"));
-const ClockApp = lazy(() => import("./ClockApp"));
-const CameraApp = lazy(() => import("./CameraApp"));
-const ContactsApp = lazy(() => import("./ContactsApp"));
-const FileApp = lazy(() => import("./FileApp"));
-const GalleryApp = lazy(() => import("./GalleryApp"));
+const CalculatorApp = lazy(() => import("../apps/CalculatorApp"));
+const MessagingApp = lazy(() => import("../apps/MessagingApp"));
+const MapApp = lazy(() => import("../apps/MapApp"));
+const MailApp = lazy(() => import("../apps/MailApp"));
+const SafariApp = lazy(() => import("../apps/SafariApp"));
+const YouTubeApp = lazy(() => import("../apps/YouTubeApp"));
+const WeatherApp = lazy(() => import("../apps/WeatherApp"));
+const MusicApp = lazy(() => import("../apps/MusicApp"));
+const PhoneApp = lazy(() => import("../apps/PhoneApp"));
+const ClockApp = lazy(() => import("../apps/ClockApp"));
+const CameraApp = lazy(() => import("../apps/CameraApp"));
+const ContactsApp = lazy(() => import("../apps/ContactsApp"));
+const FileApp = lazy(() => import("../apps/FileApp"));
+const GalleryApp = lazy(() => import("../apps/GalleryApp"));
 const StockMarketApp = lazy(() => import("../apps/StockMarketApp"));
 const SnakeeGame = lazy(() => import("../apps/SnakeeGame"));
 const NotesApp = lazy(() => import("../apps/NotesApp"));
 const AppStore = lazy(() => import("../apps/AppStore"));
 const SettingsApp = lazy(() => import("../apps/SettingsApp"));
 const SentinelApp = lazy(() => import("../apps/SentinelApp"));
-const CryptoHeistApp = lazy(() => import("../apps/CryptoHeistApp"));
 const Calendar = lazy(() => import("../apps/Calendar/Calendar"));
 
 const LoadingSpinner = () => (
@@ -75,8 +73,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         return wrapWithErrorBoundary(<TerminalApp user={user} />, appId);
       case "network":
         return wrapWithErrorBoundary(<NetworkScannerApp />, appId);
-      case "crypto":
-        return wrapWithErrorBoundary(<CryptoToolkitApp />, appId);
 
       // Lazy loaded apps
       case "calculator":
@@ -244,14 +240,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
                 <Calendar time={time} />
               </div>
             </div>
-          </Suspense>,
-          appId
-        );
-
-      case "cryptoheist":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}>
-            <CryptoHeistApp />
           </Suspense>,
           appId
         );

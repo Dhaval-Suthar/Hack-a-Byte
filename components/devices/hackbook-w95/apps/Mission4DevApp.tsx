@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
+import UntangleNeuralNetwork from "@/components/devices/hackbook-w95/apps/UntangleNeuralNetwork";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 
 interface Mission4DevAppProps {

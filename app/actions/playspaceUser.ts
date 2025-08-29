@@ -16,8 +16,15 @@ export async function createDeviceUser(
   try {
     await connectDb();
 
-    // Check if the device exists
-    const device = await Device.findById(deviceId);
+    // Check if the device exists - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -233,15 +240,21 @@ export async function getUsersByDeviceId(deviceId: string) {
 
     await connectDb();
 
-    // Check if the device exists
-    const device = await Device.findById(deviceId);
+    // Check if the device exists - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
 
     if (!device) {
       return { error: "Device not found" };
     }
 
-    // Get all users for this device
-    const users = await DeviceUser.find({ deviceId });
+    // Get all users for this device using the device's ObjectId
+    const users = await DeviceUser.find({ deviceId: device._id });
 
     return { 
       success: true, 

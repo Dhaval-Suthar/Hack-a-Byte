@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import React, { useState } from "react";
-import Win95Alert from "@/components/hackbook-w95/Win95Alert";
+import Win95Alert from "@/components/devices/hackbook-w95/Win95Alert";
 import InboxMails from "../Mails/InboxMails";
 import OutboxMails from "../Mails/OutboxMails";
 import Image from "next/image";

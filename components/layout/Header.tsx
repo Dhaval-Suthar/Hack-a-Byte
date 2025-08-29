@@ -53,7 +53,7 @@ export default function Header() {
           <Link href="/">
             <div className="flex items-center gap-4 flex-shrink-0 group">
               <div className="relative w-10 h-10">
-                <Image src="/logo7.png" alt="HackaByte Logo" fill className="object-contain" priority />
+                <Image src="/logo7.png" alt="HackaByte Logo" fill sizes="40px" className="object-contain" priority />
               </div>
               <div className="flex flex-col">
                 <motion.h1

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { TabType } from "@/components/admin/types";
+import { TabType } from "@/components/devices/admin/types";
 import { TAB_LABELS } from "@/lib/admin-utils";
 
 interface AdminHeaderProps {

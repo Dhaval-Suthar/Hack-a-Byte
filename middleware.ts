@@ -95,12 +95,12 @@ function addSecurityHeaders(response: NextResponse) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Permissions Policy
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Permissions-Policy', 'camera=self, microphone=(), geolocation=()');
 
   // Content Security Policy
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://checkout.razorpay.com; connect-src 'self' https://va.vercel-scripts.com https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://nominatim.openstreetmap.org https://server.arcgisonline.com; img-src 'self' data: https: https://api.iconify.design https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://server.arcgisonline.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://checkout.razorpay.com https://api.razorpay.com;"
   );
 }
 

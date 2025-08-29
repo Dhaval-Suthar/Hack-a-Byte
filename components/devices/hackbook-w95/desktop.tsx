@@ -1,45 +1,45 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import Win95Alert from "@/components/hackbook-w95/Win95Alert";
+import Win95Alert from "@/components/devices/hackbook-w95/Win95Alert";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { logoutDeviceUser } from "@/app/actions/deviceUser";
-import audioManager from "@/components/hackbook-w95/hooks/useAudioManager";
+import audioManager from "@/components/devices/hackbook-w95/hooks/useAudioManager";
 
-import Inbox from "@/components/hackbook-w95/apps/Inbox";
-import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
-import RecycleBin from "@/components/hackbook-w95/apps/RecycleBin";
-import MyComputer from "@/components/hackbook-w95/apps/MyComputer";
-import Minesweeper from "@/components/hackbook-w95/apps/Minesweeper";
-import CDPlayer from "@/components/hackbook-w95/apps/CDPlayer";
-import Notepad from "@/components/hackbook-w95/apps/Notepad";
-import Calculator from "@/components/hackbook-w95/apps/Calculator";
-import Paint from "@/components/hackbook-w95/apps/Paint";
+import Inbox from "@/components/devices/hackbook-w95/apps/Inbox";
+import InternetExplorer from "@/components/devices/hackbook-w95/apps/InternetExplorer";
+import RecycleBin from "@/components/devices/hackbook-w95/apps/RecycleBin";
+import MyComputer from "@/components/devices/hackbook-w95/apps/MyComputer";
+import Minesweeper from "@/components/devices/hackbook-w95/apps/Minesweeper";
+import CDPlayer from "@/components/devices/hackbook-w95/apps/CDPlayer";
+import Notepad from "@/components/devices/hackbook-w95/apps/Notepad";
+import Calculator from "@/components/devices/hackbook-w95/apps/Calculator";
+import Paint from "@/components/devices/hackbook-w95/apps/Paint";
 
-import ZipArchive from "@/components/hackbook-w95/apps/ZipArchive";
-import WinTalk95 from "@/components/hackbook-w95/apps/WinTalk95";
-import NetworkNeighborhood from "@/components/hackbook-w95/apps/NetworkNeighborhood";
-import UntangleNeuralNetwork from "@/components/hackbook-w95/apps/UntangleNeuralNetwork";
-import NumberJumpingGame from "@/components/hackbook-w95/apps/NumberJumpingGame";
-import FingerprintHack from "@/components/hackbook-w95/apps/FingerprintHack";
-import BruteForceGame from "@/components/hackbook-w95/apps/BruteForceGame";
-import QuickEventPresser from "@/components/hackbook-w95/apps/QuickEventPresser";
-import DevTools from "@/components/hackbook-w95/apps/DevTools";
-import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
-import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
-import WelcomeDialog from "@/components/hackbook-w95/dialogs/WelcomeDialog";
-import RestartAnimation from "@/components/hackbook-w95/restart-animation";
-import ShutdownAnimation from "@/components/hackbook-w95/shutdown-animation";
-import LogoutAnimation from "@/components/hackbook-w95/logout-animation";
+import ZipArchive from "@/components/devices/hackbook-w95/apps/ZipArchive";
+import WinTalk95 from "@/components/devices/hackbook-w95/apps/WinTalk95";
+import NetworkNeighborhood from "@/components/devices/hackbook-w95/apps/NetworkNeighborhood";
+import UntangleNeuralNetwork from "@/components/devices/hackbook-w95/apps/UntangleNeuralNetwork";
+import NumberJumpingGame from "@/components/devices/hackbook-w95/apps/NumberJumpingGame";
+import FingerprintHack from "@/components/devices/hackbook-w95/apps/FingerprintHack";
+import BruteForceGame from "@/components/devices/hackbook-w95/apps/BruteForceGame";
+import QuickEventPresser from "@/components/devices/hackbook-w95/apps/QuickEventPresser";
+import DevTools from "@/components/devices/hackbook-w95/apps/DevTools";
+import ProgramsMenu from "@/components/devices/hackbook-w95/menus/ProgramsMenu";
+import ShutdownDialog from "@/components/devices/hackbook-w95/dialogs/ShutdownDialog";
+import WelcomeDialog from "@/components/devices/hackbook-w95/dialogs/WelcomeDialog";
+import RestartAnimation from "@/components/devices/hackbook-w95/restart-animation";
+import ShutdownAnimation from "@/components/devices/hackbook-w95/shutdown-animation";
+import LogoutAnimation from "@/components/devices/hackbook-w95/logout-animation";
 
-import SystemSounds from "@/components/hackbook-w95/SystemSounds";
-import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
-import useWindowManager from "@/components/hackbook-w95/hooks/useWindowManager";
-import Win95Window from "@/components/hackbook-w95/Win95Window";
-import NotificationBadge from "../ui/notification_badge";
-import { useGameFailureHandler } from "@/components/hackbook-w95/hooks/useGameFailureHandler";
+import SystemSounds from "@/components/devices/hackbook-w95/SystemSounds";
+import ScreenSaver from "@/components/devices/hackbook-w95/ScreenSaver";
+import useWindowManager from "@/components/devices/hackbook-w95/hooks/useWindowManager";
+import Win95Window from "@/components/devices/hackbook-w95/Win95Window";
+import NotificationBadge from "@/components/devices/hackbook-w95/ui/notification_badge";
+import { useGameFailureHandler } from "@/components/devices/hackbook-w95/hooks/useGameFailureHandler";
 class App {
   name: string;
   icon: string;
@@ -1963,7 +1963,7 @@ const Desktop = () => {
 
 // --- TerminalComponent: Functional Win95 Terminal ---
 // (No import needed here, already imported at top)
-import useFileSystem from "@/components/hackbook-w95/hooks/useFileSystem";
+import useFileSystem from "@/components/devices/hackbook-w95/hooks/useFileSystem";
 
 const TerminalComponent: React.FC = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);

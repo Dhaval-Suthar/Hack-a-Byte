@@ -11,7 +11,7 @@ import {
   AdminDevice,
   GeneralAccessCodeModal,
   EditAccessCodeModal,
-} from "@/components/admin/types";
+} from "@/components/devices/admin/types";
 import { getStoredAuthState, setStoredAuthState, clearStoredAuthState } from "@/lib/admin-utils";
 import {
   getUsers,

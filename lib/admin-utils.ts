@@ -11,7 +11,7 @@ import {
   TransformedPlayspace,
   TransformedEvent,
   TransformedDevice,
-} from "@/components/admin/types";
+} from "@/components/devices/admin/types";
 
 // Data transformation functions
 export const transformTeamForComponent = (team: AdminTeam): TransformedTeam => ({

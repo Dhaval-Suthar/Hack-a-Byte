@@ -1261,7 +1261,7 @@ export async function createDevice(
 
 /**
  * Assign a device to a playspace
- * @param deviceId The ID of the device to assign
+ * @param deviceId The ID of the device to assign (can be ObjectId or MAC address)
  * @param playspaceId The ID of the playspace
  * @param adminKey Optional admin key for authentication
  * @returns Success response or error
@@ -1280,8 +1280,15 @@ export async function assignDeviceToPlayspace(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1325,7 +1332,7 @@ export async function assignDeviceToPlayspace(
 
 /**
  * Unassign a device from its current playspace
- * @param deviceId The ID of the device to unassign
+ * @param deviceId The ID of the device to unassign (can be ObjectId or MAC address)
  * @param adminKey Optional admin key for authentication
  * @returns Success response or error
  */
@@ -1342,8 +1349,15 @@ export async function unassignDeviceFromPlayspace(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1432,8 +1446,15 @@ export async function deleteDevice(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1443,8 +1464,13 @@ export async function deleteDevice(
       return { error: "Cannot delete device that is assigned to a playspace. Unassign it first." };
     }
 
-    // Delete device
-    await Device.findByIdAndDelete(deviceId);
+    // Delete device - try ObjectId first, then MAC address
+    try {
+      await Device.findByIdAndDelete(deviceId);
+    } catch {
+      // If ObjectId delete fails, try MAC address delete
+      await Device.findOneAndDelete({ deviceMacAddress: deviceId });
+    }
 
     revalidatePath("/admin");
 
@@ -1485,8 +1511,15 @@ export async function updateDeviceStatus(
       return { error: "Invalid status. Must be one of: online, offline, maintenance" };
     }
 
-    // Find and update device
-    const device = await Device.findById(deviceId);
+    // Find and update device - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }

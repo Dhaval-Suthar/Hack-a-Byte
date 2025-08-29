@@ -6,34 +6,34 @@ import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { logoutDeviceUser } from "@/app/actions/deviceUser";
-import audioManager from "@/components/hackbook-w95/hooks/useAudioManager";
+import audioManager from "@/components/devices/hackbook-w95/hooks/useAudioManager";
 
 // Essential apps only - includes classic Minesweeper
-import Inbox from "@/components/hackbook-w95/apps/Inbox";
-import InternetExplorer from "@/components/hackbook-w95/apps/InternetExplorer";
-import RecycleBin from "@/components/hackbook-w95/apps/RecycleBin";
-import MyComputer from "@/components/hackbook-w95/apps/MyComputer";
-import Minesweeper from "@/components/hackbook-w95/apps/Minesweeper";
-import CDPlayer from "@/components/hackbook-w95/apps/CDPlayer";
-import Notepad from "@/components/hackbook-w95/apps/Notepad";
-import Calculator from "@/components/hackbook-w95/apps/Calculator";
-import Paint from "@/components/hackbook-w95/apps/Paint";
+import Inbox from "@/components/devices/hackbook-w95/apps/Inbox";
+import InternetExplorer from "@/components/devices/hackbook-w95/apps/InternetExplorer";
+import RecycleBin from "@/components/devices/hackbook-w95/apps/RecycleBin";
+import MyComputer from "@/components/devices/hackbook-w95/apps/MyComputer";
+import Minesweeper from "@/components/devices/hackbook-w95/apps/Minesweeper";
+import CDPlayer from "@/components/devices/hackbook-w95/apps/CDPlayer";
+import Notepad from "@/components/devices/hackbook-w95/apps/Notepad";
+import Calculator from "@/components/devices/hackbook-w95/apps/Calculator";
+import Paint from "@/components/devices/hackbook-w95/apps/Paint";
 
 // E95 Exclusive Apps
-import BlackMart from "@/components/hackbook-e95/apps/BlackMart";
+import BlackMart from "@/components/devices/hackbook-e95/apps/BlackMart";
 
-import ProgramsMenu from "@/components/hackbook-w95/menus/ProgramsMenu";
-import ShutdownDialog from "@/components/hackbook-w95/dialogs/ShutdownDialog";
-import WelcomeDialog from "@/components/hackbook-w95/dialogs/WelcomeDialog";
-import RestartAnimation from "@/components/hackbook-w95/restart-animation";
-import ShutdownAnimation from "@/components/hackbook-w95/shutdown-animation";
-import LogoutAnimation from "@/components/hackbook-w95/logout-animation";
+import ProgramsMenu from "@/components/devices/hackbook-w95/menus/ProgramsMenu";
+import ShutdownDialog from "@/components/devices/hackbook-w95/dialogs/ShutdownDialog";
+import WelcomeDialog from "@/components/devices/hackbook-w95/dialogs/WelcomeDialog";
+import RestartAnimation from "@/components/devices/hackbook-w95/restart-animation";
+import ShutdownAnimation from "@/components/devices/hackbook-w95/shutdown-animation";
+import LogoutAnimation from "@/components/devices/hackbook-w95/logout-animation";
 
-import SystemSounds from "@/components/hackbook-w95/SystemSounds";
-import ScreenSaver from "@/components/hackbook-w95/ScreenSaver";
-import useWindowManager from "@/components/hackbook-w95/hooks/useWindowManager";
-import Win95Window from "@/components/hackbook-w95/Win95Window";
-import NotificationBadge from "../ui/notification_badge";
+import SystemSounds from "@/components/devices/hackbook-w95/SystemSounds";
+import ScreenSaver from "@/components/devices/hackbook-w95/ScreenSaver";
+import useWindowManager from "@/components/devices/hackbook-w95/hooks/useWindowManager";
+import Win95Window from "@/components/devices/hackbook-w95/Win95Window";
+import NotificationBadge from "@/components/devices/hackbook-e95/ui/notification_badge";
 
 class App {
   name: string;
@@ -200,7 +200,7 @@ export default function HackBookE95DesktopCore() {
           });
 
           // Log device connection
-          import('@/components/hackbook-w95/hooks/useUserLogs').then(({ UserLogManager }) => {
+          import('@/components/devices/hackbook-w95/hooks/useUserLogs').then(({ UserLogManager }) => {
             UserLogManager.addSystemLog(
               'system',
               `Connected to HackBook E95 device instance: ${devId}`,

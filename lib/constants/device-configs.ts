@@ -23,8 +23,6 @@ export const DEVICE_CONFIGS = {
       'YouTube',
       'AppMarket',
       'BlackMart',
-      'CryptoHeist',
-      'CryptoToolkit',
       'NetworkScanner',
       'Sentinel',
       'Settings',

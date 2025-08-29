@@ -1,23 +1,45 @@
-# CryptoHeist: Digital Warfare 🏆
+# Hack-A-Byte
 
-A competitive team-based digital heist game where players battle to accumulate the highest bitcoin balance while defending their cryptocurrency wallets. Teams of 1-6 players take on specialized roles in intense PvP combat across mobile and desktop platforms.
+A comprehensive cybersecurity education platform with interactive devices and challenges.
 
 ![Hack-A-Byte Banner](public/banner.png)
 
 ## Table of Contents
-1. [Introduction to CryptoHeist](#1-introduction-to-cryptoheist)
-2. [Gameplay Overview](#2-gameplay-overview)
-3. [Team Roles & Responsibilities](#3-team-roles--responsibilities)
-4. [Special Game Elements](#4-special-game-elements)
-5. [Game Features & Mechanics](#5-game-features--mechanics)
-6. [Why Play CryptoHeist?](#6-why-play-cryptoheist)
-7. [Tournament Structure](#7-tournament-structure)
-8. [Technical Details & Setup](#8-technical-details--setup)
+1. [Introduction](#1-introduction)
+2. [Features](#2-features)
+3. [Technical Details & Setup](#3-technical-details--setup)
 
-## 1. Introduction to CryptoHeist
+## 1. Introduction
 
-### What is CryptoHeist: Digital Warfare?
-- A competitive PvP team-based digital heist game
+Hack-A-Byte is an interactive cybersecurity education platform that provides hands-on experience with various digital devices and security challenges.
+
+## 2. Features
+
+- Interactive device simulations
+- Security challenges and games
+- Educational content on cybersecurity
+- Multi-platform support
+
+## 3. Technical Details & Setup
+
+### Prerequisites
+- Node.js
+- npm or pnpm
+
+### Installation
+```bash
+pnpm install
+```
+
+### Development
+```bash
+pnpm dev
+```
+
+### Build
+```bash
+pnpm build
+```
 - Teams battle to accumulate the highest bitcoin balance
 - Features specialized roles inspired by Money Heist characters
 - Combines retro aesthetics with modern cybersecurity concepts

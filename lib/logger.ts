@@ -1,5 +1,3 @@
-import { env, log } from '@/lib/env';
-
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 interface LogEntry {
@@ -103,11 +101,11 @@ class Logger {
       error,
     };
 
-    // Use the environment logging function
-    log(level, message, logEntry);
+    // Log to console directly
+    console[level](message, logEntry);
 
     // In development, also log to console with colors
-    if (env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
       const colors = {
         error: '\x1b[31m', // Red
         warn: '\x1b[33m',  // Yellow

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { logger } from './logger';
 
 // Environment variables schema
 const envSchema = z.object({
@@ -35,16 +34,16 @@ type EnvSchema = z.infer<typeof envSchema>;
 function validateEnvironment(): EnvSchema {
   try {
     const env = envSchema.parse(process.env);
-    logger.info('Environment variables validated successfully');
+    console.info('Environment variables validated successfully');
     return env;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error('Environment validation failed', { errors: error.errors.map(err => ({ path: err.path.join('.'), message: err.message })) });
+      console.error('Environment validation failed', { errors: error.errors.map(err => ({ path: err.path.join('.'), message: err.message })) });
       error.errors.forEach((err) => {
-        logger.error(`Environment validation error: ${err.path.join('.')}: ${err.message}`);
+        console.error(`Environment validation error: ${err.path.join('.')}: ${err.message}`);
       });
     } else {
-      logger.error('Unexpected error during environment validation', { error: error instanceof Error ? error.message : String(error) });
+      console.error('Unexpected error during environment validation', { error: error instanceof Error ? error.message : String(error) });
     }
     process.exit(1);
   }
@@ -73,6 +72,6 @@ export function log(level: 'error' | 'warn' | 'info' | 'debug', message: string,
   const currentLevel = levels[env.LOG_LEVEL];
 
   if (levels[level] <= currentLevel) {
-    logger[level](message, { args });
+    console[level](message, { args });
   }
 }

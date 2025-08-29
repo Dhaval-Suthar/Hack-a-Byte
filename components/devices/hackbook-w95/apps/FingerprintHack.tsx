@@ -7,7 +7,7 @@ import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
 import Win95Alert from "../Win95Alert";
-import { getMainImagePath, getRightPatternPath, getWrongPatternPath, testImageLoad } from "../../../lib/fingerprint-images";
+import { getMainImagePath, getRightPatternPath, getWrongPatternPath, testImageLoad } from "../../../../lib/fingerprint-images";
 import FingerprintImage from "../components/FingerprintImage";
 
 interface FingerprintHackProps {

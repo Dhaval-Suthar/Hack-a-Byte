@@ -1,9 +1,9 @@
 "use client";
 
-import FileUploadAuth from "@/components/admin/FileUploadAuth";
-import AdminDashboard from "@/components/admin/AdminDashboard";
-import { LoadingSpinner } from "@/components/admin/AdminComponents";
-import ErrorBoundary from "@/components/admin/ErrorBoundary";
+import FileUploadAuth from "@/components/devices/admin/FileUploadAuth";
+import AdminDashboard from "@/components/devices/admin/AdminDashboard";
+import { LoadingSpinner } from "@/components/devices/admin/AdminComponents";
+import ErrorBoundary from "@/components/devices/admin/ErrorBoundary";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 export default function AdminPage() {

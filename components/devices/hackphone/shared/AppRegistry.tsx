@@ -216,18 +216,7 @@ export const APP_REGISTRY: AppConfig[] = [
       { type: 'network', required: true, description: 'Security scanning' },
       { type: 'storage', required: true, description: 'Log security events' }
     ]
-  },
-  {
-    id: "cryptoheist",
-    name: "CryptoHeist",
-    icon: "/hackphone/apps/cryptoheist/app-icon.svg",
-    category: "games",
-    description: "Strategic bitcoin heist game with AI bots",
-    permissions: [
-      { type: 'network', required: true, description: 'Multiplayer connectivity' },
-      { type: 'storage', required: false, description: 'Save game progress' }
-    ]
-  },
+  }
 ];
 
 // Dock apps (always visible)

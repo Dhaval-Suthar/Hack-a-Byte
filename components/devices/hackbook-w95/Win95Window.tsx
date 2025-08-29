@@ -5,8 +5,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Rnd } from "react-rnd";
 import clsx from "clsx";
 import Image from "next/image";
-import type { WindowPosition } from '@/components/hackbook-w95/hooks/useWindowManager';
-import { SoundEvent } from '@/components/hackbook-w95/SystemSounds';
+import type { WindowPosition } from '@/components/devices/hackbook-w95/hooks/useWindowManager';
+import { SoundEvent } from '@/components/devices/hackbook-w95/SystemSounds';
 
 interface WindowProps {
   id?: string; // Optional as it's not actually used in the component

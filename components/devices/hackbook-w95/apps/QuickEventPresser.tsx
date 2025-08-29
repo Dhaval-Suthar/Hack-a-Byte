@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Button from "../../ui/Button";
+import Button from "@/components/ui/Button";
 import ScoreScreen from "../components/ScoreScreen";
 import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";

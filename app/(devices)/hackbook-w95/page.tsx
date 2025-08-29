@@ -1,7 +1,7 @@
-import DesktopWithDevTools from "@/components/hackbook-w95/DesktopWithDevTools";
+import DesktopWithDevTools from "@/components/devices/hackbook-w95/DesktopWithDevTools";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import BootAnimation from "@/components/hackbook-w95/boot-animation";
+import BootAnimation from "@/components/devices/hackbook-w95/boot-animation";
 
 export const metadata: Metadata = {
   title: "Hackbook W95",

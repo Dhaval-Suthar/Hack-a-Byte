@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import clsx from "clsx";
-import useFileSystem, { FileSystemItem } from "@/components/hackbook-w95/hooks/useFileSystem";
+import useFileSystem, { FileSystemItem } from "@/components/devices/hackbook-w95/hooks/useFileSystem";
 
 interface MyComputerProps {
   onClose: () => void;
@@ -36,7 +36,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose, isE95 = false }) => {
   useEffect(() => {
     const loadHiddenFilesSetting = async () => {
       try {
-        const { userStorage } = await import('@/components/hackbook-w95/hooks/useUserStorage');
+        const { userStorage } = await import('@/components/devices/hackbook-w95/hooks/useUserStorage');
         const showHidden = userStorage.getItem('showHiddenFiles', false) as boolean;
         setShowHiddenFiles(showHidden === true);
       } catch (error) {
@@ -668,7 +668,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose, isE95 = false }) => {
                   setShowHiddenFiles(newValue);
                   
                   // Save to user-specific storage
-                  import('@/components/hackbook-w95/hooks/useUserStorage').then(({ userStorage }) => {
+                  import('@/components/devices/hackbook-w95/hooks/useUserStorage').then(({ userStorage }) => {
                     userStorage.setItem('showHiddenFiles', newValue);
                   });
                   
