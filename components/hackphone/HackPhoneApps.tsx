@@ -21,6 +21,7 @@ import HackPhoneFiles from "./FileApp";
 import MailApp from "./MailApp";
 import SettingsApp from "./apps/SettingsApp";
 import YouTubeApp from "./YouTubeApp";
+import SentinelApp from "./apps/SentinelApp";
 
 interface User {
   _id: string;
@@ -285,6 +286,8 @@ const HackPhoneApps: React.FC<HackPhoneAppsProps> = ({
        return < HackPhoneFiles onClose={onClose} time={time.toLocaleTimeString()} />;
     case "mail":
       return <MailApp onClose={onClose} time={time} />;
+    case "sentinel":
+      return <SentinelApp onClose={onClose} time={time.toLocaleTimeString()} />;
     default:
       return renderDefaultApp();
   }
