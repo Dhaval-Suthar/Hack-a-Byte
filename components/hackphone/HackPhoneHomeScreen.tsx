@@ -60,6 +60,8 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
       { id: "contacts", name: "Contacts", icon: "/hackphone/apps/contact/app-icon.png", color: "" },
       { id: "game", name: "Games", icon: "/hackphone/apps/game/app-icon.png", color: "" },
       { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
+      { id: "files", name: "Files", icon: "/hackphone/apps/files/app_icon.png", color: "" },
+      { id: "appStore", name: "App Store", icon: "/hackphone/apps/appStore/app-icon.png", color: "" },
     ],
     []
   );
@@ -178,7 +180,7 @@ const HackPhoneHomeScreen: React.FC<HackPhoneHomeScreenProps> = ({
                           src={app.icon}
                           alt={`${app.name} icon`}
                           fill
-                          className="object-cover"
+                          className={app.id === "files" ? "object-contain w-full h-full m-0 p-0" : "object-cover"}
                           sizes="(max-width: 640px) 56px, 64px"
                           priority={false}
                         />
