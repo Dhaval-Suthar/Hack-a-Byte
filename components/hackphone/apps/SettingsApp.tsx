@@ -1,17 +1,29 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 
-// Import setting icons
-import airplaneIcon from "../airplane.png";
-import wifiIcon from "../wifi.png";
-import vpnIcon from "../vpn.png";
-import personalHotspotIcon from "../personalhotspot.png";
-import notificationsIcon from "../notifications.png";
-import locServicesIcon from "../locservices.png";
-import soundsIcon from "../sounds.png";
-import brightnessIcon from "../brightness.png";
+// iOS 4-style slider CSS
+const sliderStyles = `
+  .ios-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+    border: 1px solid #b3b3b3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.8);
+    cursor: pointer;
+  }
+  .ios-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+    border: 1px solid #b3b3b3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.8);
+    cursor: pointer;
+  }
+`;
 
 interface SettingsAppProps {
   onClose?: () => void;
@@ -29,11 +41,30 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: "hp_notifications",
   LOCATION: "hp_location",
   DEVICE_LOCK: "hp_device_lock",
+  BRIGHTNESS: "hp_brightness",
+  RINGER_VOLUME: "hp_ringer_volume",
+  VIBRATE_ENABLED: "hp_vibrate_enabled",
+  RINGTONE: "hp_ringtone",
 };
 
-const availableNetworks = ["Home WiFi", "Office WiFi", "Guest Network", "Mobile Data"];
+const availableNetworks = [
+  { name: "Home WiFi", strength: 3, secured: true, connected: true },
+  { name: "Office WiFi", strength: 2, secured: true, connected: false },
+  { name: "Guest Network", strength: 1, secured: false, connected: false },
+  { name: "Neighbor WiFi", strength: 2, secured: true, connected: false },
+  { name: "Starbucks WiFi", strength: 1, secured: false, connected: false },
+];
 
-const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
+const SettingsApp: React.FC<SettingsAppProps> = () => {
+  // Inject slider styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = sliderStyles;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   const [vpnEnabled, setVpnEnabled] = useState(false);
   const [network, setNetwork] = useState<string | null>(null);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
@@ -45,14 +76,18 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [deviceLockEnabled, setDeviceLockEnabled] = useState(false);
 
-  // simple screen routing: 'main' | 'wifi' | 'vpn' | 'passcode' | 'pin' | 'encryption' | 'lock'
+  // simple screen routing: 'main' | 'wifi' | 'vpn' | 'passcode' | 'pin' | 'encryption' | 'sounds' | 'brightness' | 'general' | 'about'
   const [screen, setScreen] = useState<string>("main");
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
+  const [brightness, setBrightness] = useState<number>(50);
+  const [ringerVolume, setRingerVolume] = useState<number>(70);
+  const [vibrateEnabled, setVibrateEnabled] = useState<boolean>(true);
+  const [ringtone, setRingtone] = useState<string>("Marimba");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setVpnEnabled(localStorage.getItem(STORAGE_KEYS.VPN) === "1");
-    setNetwork(localStorage.getItem(STORAGE_KEYS.NETWORK) || availableNetworks[0]);
+    setNetwork(localStorage.getItem(STORAGE_KEYS.NETWORK) || availableNetworks[0].name);
     setEncryptionEnabled(localStorage.getItem(STORAGE_KEYS.ENCRYPTION) === "1");
     setPasscode(localStorage.getItem(STORAGE_KEYS.PASSCODE));
     setPin(localStorage.getItem(STORAGE_KEYS.PIN));
@@ -61,6 +96,10 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
     setNotificationsEnabled(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) !== "0");
     setLocationEnabled(localStorage.getItem(STORAGE_KEYS.LOCATION) !== "0");
     setDeviceLockEnabled(localStorage.getItem(STORAGE_KEYS.DEVICE_LOCK) === "1");
+    setBrightness(parseInt(localStorage.getItem(STORAGE_KEYS.BRIGHTNESS) || "50"));
+    setRingerVolume(parseInt(localStorage.getItem(STORAGE_KEYS.RINGER_VOLUME) || "70"));
+    setVibrateEnabled(localStorage.getItem(STORAGE_KEYS.VIBRATE_ENABLED) !== "0");
+    setRingtone(localStorage.getItem(STORAGE_KEYS.RINGTONE) || "Marimba");
   }, []);
 
   const setVpn = (v: boolean) => {
@@ -99,11 +138,31 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
     localStorage.setItem(STORAGE_KEYS.DEVICE_LOCK, v ? "1" : "0");
   };
 
-  const setNetworkAndNavigate = (n: string) => {
-    setNetwork(n);
-    localStorage.setItem(STORAGE_KEYS.NETWORK, n);
+  const setBrightnessValue = (v: number) => {
+    setBrightness(v);
+    localStorage.setItem(STORAGE_KEYS.BRIGHTNESS, v.toString());
+  };
+
+  const setRingerVolumeValue = (v: number) => {
+    setRingerVolume(v);
+    localStorage.setItem(STORAGE_KEYS.RINGER_VOLUME, v.toString());
+  };
+
+  const setVibrate = (v: boolean) => {
+    setVibrateEnabled(v);
+    localStorage.setItem(STORAGE_KEYS.VIBRATE_ENABLED, v ? "1" : "0");
+  };
+
+  const setRingtoneValue = (v: string) => {
+    setRingtone(v);
+    localStorage.setItem(STORAGE_KEYS.RINGTONE, v);
+  };
+
+  const setNetworkAndNavigate = (networkName: string) => {
+    setNetwork(networkName);
+    localStorage.setItem(STORAGE_KEYS.NETWORK, networkName);
     // open Wi‑Fi detail screen
-    setSelectedNetwork(n);
+    setSelectedNetwork(networkName);
     setScreen("wifi");
   };
 
@@ -222,21 +281,21 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
   /* Screens */
   const MainScreen = () => (
     <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
-      {/* Header */}
-      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-center border-b border-slate-600">
-        <h1 className="text-lg font-bold text-center text-white drop-shadow-sm">Settings</h1>
+      {/* Header with iOS 4 style */}
+      <div className="h-11 bg-gradient-to-b from-gray-400 to-gray-500 text-white flex items-center justify-center border-b border-gray-600">
+        <h1 className="text-lg font-bold text-center text-white" style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}>Settings</h1>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto bg-gray-200" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="space-y-0 pb-4">
+      <div className="flex-1 overflow-y-auto bg-gray-200">
+        <div className="pb-8">
           
-          {/* First Group */}
+          {/* First Group - Connectivity */}
           <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
             {/* Airplane Mode */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200">
-              <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center mr-3">
-                <Image src={airplaneIcon} alt="Airplane Mode" width={18} height={16} className="filter brightness-0 invert" />
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">✈️</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Airplane Mode</span>
@@ -249,13 +308,13 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             {/* Wi-Fi */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setScreen('wifi')}>
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <Image src={wifiIcon} alt="Wi-Fi" width={18} height={16} className="filter brightness-0 invert" />
+                <span className="text-white text-lg">📶</span>
               </div>
               <div className="flex-1">
                 <div className="text-base text-black">Wi-Fi</div>
               </div>
               <div className="flex items-center">
-                <span className="text-blue-600 text-sm mr-2">{wifiEnabled && !airplaneModeEnabled ? (network || 'On') : 'Off'}</span>
+                <span className="text-blue-600 text-sm mr-2">{wifiEnabled && !airplaneModeEnabled ? (network || 'Home WiFi') : 'Off'}</span>
                 <span className="text-gray-400 text-lg">›</span>
               </div>
             </div>
@@ -263,7 +322,7 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             {/* VPN */}
             <div className="flex items-center px-4 py-3">
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <Image src={vpnIcon} alt="VPN" width={18} height={16} className="filter brightness-0 invert" />
+                <span className="text-white text-lg">🔒</span>
               </div>
               <div className="flex-1 cursor-pointer" onClick={() => setScreen('vpn')}>
                 <span className="text-base text-black">VPN</span>
@@ -274,12 +333,12 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             </div>
           </div>
 
-          {/* Second Group */}
+          {/* Second Group - Services */}
           <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
             {/* Personal Hotspot */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200">
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <Image src={personalHotspotIcon} alt="Personal Hotspot" width={18} height={16} className="filter brightness-0 invert" />
+                <span className="text-white text-lg">📡</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Personal Hotspot</span>
@@ -291,9 +350,9 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             </div>
 
             {/* Notifications */}
-            <div className="flex items-center px-4 py-3 border-b border-gray-200">
-              <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center mr-3">
-                <Image src={notificationsIcon} alt="Notifications" width={18} height={16} className="filter brightness-0 invert" />
+            <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setNotifications(!notificationsEnabled)}>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🔔</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Notifications</span>
@@ -305,9 +364,9 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             </div>
 
             {/* Location Services */}
-            <div className="flex items-center px-4 py-3 border-b border-gray-200">
+            <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setLocation(!locationEnabled)}>
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <Image src={locServicesIcon} alt="Location Services" width={18} height={16} className="filter brightness-0 invert" />
+                <span className="text-white text-lg">📍</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Location Services</span>
@@ -321,27 +380,28 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             {/* Carrier */}
             <div className="flex items-center px-4 py-3">
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white text-sm">📱</span>
+                <span className="text-white text-lg">📱</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Carrier</span>
               </div>
               <div className="flex items-center">
-                <span className="text-blue-600 text-sm mr-2">ROGERS</span>
+                <span className="text-blue-600 text-sm mr-2">Verizon</span>
                 <span className="text-gray-400 text-lg">›</span>
               </div>
             </div>
           </div>
 
-          {/* Third Group */}
+          {/* Third Group - Sounds & Display */}
           <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
             {/* Sounds */}
-            <div className="flex items-center px-4 py-3 border-b border-gray-200">
-              <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                <Image src={soundsIcon} alt="Sounds" width={18} height={16} className="filter brightness-0 invert" />
+            <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setScreen('sounds')}>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🔊</span>
               </div>
               <div className="flex-1">
-                <span className="text-base text-black">Sounds</span>
+                <div className="text-base text-black">Sounds</div>
+                <div className="text-sm text-gray-500">{ringtone}</div>
               </div>
               <div className="flex items-center">
                 <span className="text-gray-400 text-lg">›</span>
@@ -349,12 +409,13 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             </div>
 
             {/* Brightness */}
-            <div className="flex items-center px-4 py-3">
+            <div className="flex items-center px-4 py-3 cursor-pointer" onClick={() => setScreen('brightness')}>
               <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                <Image src={brightnessIcon} alt="Brightness" width={18} height={16} className="filter brightness-0 invert" />
+                <span className="text-white text-lg">☀️</span>
               </div>
               <div className="flex-1">
-                <span className="text-base text-black">Brightness</span>
+                <div className="text-base text-black">Brightness</div>
+                <div className="text-sm text-gray-500">{brightness}%</div>
               </div>
               <div className="flex items-center">
                 <span className="text-gray-400 text-lg">›</span>
@@ -362,12 +423,80 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             </div>
           </div>
 
-          {/* Security Group */}
+          {/* Fourth Group - General & System */}
+          <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+            {/* General */}
+            <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setScreen('general')}>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">⚙️</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-base text-black">General</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-400 text-lg">›</span>
+              </div>
+            </div>
+
+            {/* Date & Time */}
+            <div className="flex items-center px-4 py-3 border-b border-gray-200">
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🕐</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-base text-black">Date & Time</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-400 text-lg">›</span>
+              </div>
+            </div>
+
+            {/* Keyboard */}
+            <div className="flex items-center px-4 py-3 border-b border-gray-200">
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">⌨️</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-base text-black">Keyboard</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-400 text-lg">›</span>
+              </div>
+            </div>
+
+            {/* iTunes & App Stores */}
+            <div className="flex items-center px-4 py-3 border-b border-gray-200">
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🎵</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-base text-black">iTunes & App Stores</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-400 text-lg">›</span>
+              </div>
+            </div>
+
+            {/* About */}
+            <div className="flex items-center px-4 py-3 cursor-pointer" onClick={() => setScreen('about')}>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">ℹ️</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-base text-black">About</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-400 text-lg">›</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Fifth Group - Security */}
           <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
             {/* Device Lock */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200">
-              <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white text-sm">🔐</span>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🔐</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Device Lock</span>
@@ -379,8 +508,8 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
 
             {/* Encryption */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200">
-              <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white text-sm">🔒</span>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🔒</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Encryption</span>
@@ -392,8 +521,8 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
 
             {/* Passcode */}
             <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setScreen('passcode')}>
-              <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white text-sm">🔑</span>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">🔑</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">Passcode Lock</span>
@@ -406,8 +535,8 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
 
             {/* PIN */}
             <div className="flex items-center px-4 py-3 cursor-pointer" onClick={() => setScreen('pin')}>
-              <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white text-sm">#</span>
+              <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
+                <span className="text-white text-lg">#️⃣</span>
               </div>
               <div className="flex-1">
                 <span className="text-base text-black">PIN Lock</span>
@@ -427,9 +556,9 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
   const WifiScreen = () => (
     <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
       {/* Header with Back Button */}
-      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+      <div className="h-11 bg-gradient-to-b from-gray-400 to-gray-500 text-white flex items-center justify-between px-4 border-b border-gray-600">
         <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
-        <h1 className="text-lg font-bold text-white drop-shadow-sm">Wi-Fi</h1>
+        <h1 className="text-lg font-bold text-white" style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}>Wi-Fi</h1>
         <div className="w-20"></div>
       </div>
 
@@ -473,12 +602,29 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
             <div className="px-4 py-3 border-b border-gray-200">
               <div className="text-sm text-gray-500 uppercase">Choose a Network...</div>
             </div>
-            {availableNetworks.map((n) => (
-              <div key={n} className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 last:border-b-0 ${n === network ? 'bg-blue-50' : ''}`} onClick={() => setNetworkAndNavigate(n)}>
-                <div className="text-base text-black">{n}</div>
-                {n === network && <div className="text-blue-600">✓</div>}
-              </div>
-            ))}
+            {availableNetworks.map((net) => {
+              const strengthIcons = ['📶', '📶', '📶', '📶'];
+              const strengthIcon = strengthIcons[net.strength - 1] || '📶';
+              
+              return (
+                <div 
+                  key={net.name} 
+                  className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 last:border-b-0 cursor-pointer ${
+                    net.name === network ? 'bg-blue-50' : ''
+                  }`} 
+                  onClick={() => setNetworkAndNavigate(net.name)}
+                >
+                  <div className="flex items-center flex-1">
+                    <div className="text-base text-black mr-2">{net.name}</div>
+                    {net.secured && <span className="text-gray-500 text-sm">🔒</span>}
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm mr-2">{strengthIcon}</span>
+                    {net.name === network && <div className="text-blue-600 text-lg">✓</div>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -488,9 +634,9 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
   const VpnScreen = () => (
     <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
       {/* Header with Back Button */}
-      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+      <div className="h-11 bg-gradient-to-b from-gray-400 to-gray-500 text-white flex items-center justify-between px-4 border-b border-gray-600">
         <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
-        <h1 className="text-lg font-bold text-white drop-shadow-sm">VPN</h1>
+        <h1 className="text-lg font-bold text-white" style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}>VPN</h1>
         <div className="w-20"></div>
       </div>
 
@@ -578,12 +724,12 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
 
     return (
       <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
-        {/* Header with Back Button */}
-        <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
-          <button onClick={() => { setScreen('main'); resetForm(); }} className="text-white text-base">‹ Settings</button>
-          <h1 className="text-lg font-bold text-white drop-shadow-sm">Passcode Lock</h1>
-          <div className="w-20"></div>
-        </div>
+      {/* Header with Back Button */}
+      <div className="h-11 bg-gradient-to-b from-gray-400 to-gray-500 text-white flex items-center justify-between px-4 border-b border-gray-600">
+        <button onClick={() => { setScreen('main'); resetForm(); }} className="text-white text-base">‹ Settings</button>
+        <h1 className="text-lg font-bold text-white" style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.5)' }}>Passcode Lock</h1>
+        <div className="w-20"></div>
+      </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto bg-gray-200">
@@ -907,6 +1053,207 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
     );
   };
 
+  const BrightnessScreen = () => (
+    <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
+      {/* Header with Back Button */}
+      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+        <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
+        <h1 className="text-lg font-bold text-white drop-shadow-sm">Brightness</h1>
+        <div className="w-20"></div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto bg-gray-200">
+        <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+          <div className="px-4 py-6">
+            <div className="text-base text-black mb-4">Screen Brightness</div>
+            <div className="flex items-center space-x-4">
+              <span className="text-2xl">☀️</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={brightness}
+                onChange={(e) => setBrightnessValue(parseInt(e.target.value))}
+                className="ios-slider flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #4cd964 0%, #4cd964 ${brightness}%, #e5e5ea ${brightness}%, #e5e5ea 100%)`
+                }}
+              />
+              <span className="text-2xl">🔆</span>
+            </div>
+            <div className="text-center text-sm text-gray-500 mt-2">{brightness}%</div>
+          </div>
+        </div>
+
+        <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+          <div className="px-4 py-3">
+            <div className="text-sm text-gray-500">Auto-Brightness adjusts brightness based on ambient light.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const SoundsScreen = () => {
+    const ringtones = ["Marimba", "Opening", "Presto", "Sonata", "Symphony", "Tri-Tone"];
+
+    return (
+      <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
+        {/* Header with Back Button */}
+        <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+          <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
+          <h1 className="text-lg font-bold text-white drop-shadow-sm">Sounds</h1>
+          <div className="w-20"></div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto bg-gray-200">
+          <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <span className="text-base text-black">Vibrate</span>
+                <ClassicSwitch checked={vibrateEnabled} onChange={setVibrate} />
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className="text-base text-black mb-2">Ringer and Alerts</div>
+              <div className="flex items-center space-x-4">
+                <span className="text-lg">🔊</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={ringerVolume}
+                  onChange={(e) => setRingerVolumeValue(parseInt(e.target.value))}
+                  className="ios-slider flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #4cd964 0%, #4cd964 ${ringerVolume}%, #e5e5ea ${ringerVolume}%, #e5e5ea 100%)`
+                  }}
+                />
+                <span className="text-lg">🔇</span>
+              </div>
+              <div className="text-center text-sm text-gray-500 mt-1">{ringerVolume}%</div>
+            </div>
+
+            <div className="px-4 py-3">
+              <div className="text-base text-black mb-2">Ringtone</div>
+              <div className="text-sm text-blue-600">{ringtone}</div>
+            </div>
+          </div>
+
+          <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className="text-sm text-gray-500 uppercase">Ringtones</div>
+            </div>
+            {ringtones.map((tone) => (
+              <div
+                key={tone}
+                className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 last:border-b-0 cursor-pointer ${
+                  tone === ringtone ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => setRingtoneValue(tone)}
+              >
+                <div className="text-base text-black">{tone}</div>
+                {tone === ringtone && <div className="text-blue-600">✓</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const GeneralScreen = () => (
+    <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
+      {/* Header with Back Button */}
+      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+        <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
+        <h1 className="text-lg font-bold text-white drop-shadow-sm">General</h1>
+        <div className="w-20"></div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto bg-gray-200">
+        <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">About</div>
+            <div className="text-sm text-gray-500">Device information and version</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Software Update</div>
+            <div className="text-sm text-gray-500">Check for updates</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Reset</div>
+            <div className="text-sm text-gray-500">Reset all settings</div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-base text-black">Usage</div>
+            <div className="text-sm text-gray-500">Battery usage and storage</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const AboutScreen = () => (
+    <div className="w-screen h-screen bg-gray-200 flex flex-col text-sm">
+      {/* Header with Back Button */}
+      <div className="h-11 bg-gradient-to-b from-slate-400 to-slate-500 text-white flex items-center justify-between px-4 border-b border-slate-600">
+        <button onClick={() => setScreen('main')} className="text-white text-base">‹ Settings</button>
+        <h1 className="text-lg font-bold text-white drop-shadow-sm">About</h1>
+        <div className="w-20"></div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto bg-gray-200">
+        <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Name</div>
+            <div className="text-sm text-gray-500">HackPhone</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Version</div>
+            <div className="text-sm text-gray-500">4.0 (8A293)</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Model</div>
+            <div className="text-sm text-gray-500">MC318LL</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Serial Number</div>
+            <div className="text-sm text-gray-500">HT1234567890</div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-base text-black">Wi-Fi Address</div>
+            <div className="text-sm text-gray-500">00:11:22:33:44:55</div>
+          </div>
+        </div>
+
+        <div className="bg-white border-t border-gray-300 border-b border-gray-300 mt-4">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Songs</div>
+            <div className="text-sm text-gray-500">42</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Videos</div>
+            <div className="text-sm text-gray-500">3</div>
+          </div>
+          <div className="px-4 py-3 border-b border-gray-200">
+            <div className="text-base text-black">Photos</div>
+            <div className="text-sm text-gray-500">127</div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-base text-black">Applications</div>
+            <div className="text-sm text-gray-500">18</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   switch (screen) {
     case 'wifi':
       return <WifiScreen />;
@@ -916,6 +1263,14 @@ const SettingsApp: React.FC<SettingsAppProps> = ({ onClose, onBack }) => {
       return <PasscodeScreen />;
     case 'pin':
       return <PinScreen />;
+    case 'brightness':
+      return <BrightnessScreen />;
+    case 'sounds':
+      return <SoundsScreen />;
+    case 'general':
+      return <GeneralScreen />;
+    case 'about':
+      return <AboutScreen />;
     default:
       return <MainScreen />;
   }
