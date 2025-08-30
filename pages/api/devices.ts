@@ -1,6 +1,8 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next/types";
 import connectDb from "@/db/connectDb";
 import Device from "@/models/Device";
+import { logger } from "@/lib/logger";
+import { checkFormSubmissionRate } from "@/lib/validation";
 
 interface DeviceResponse {
   id: string;
@@ -18,7 +20,15 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== "GET") {
+    logger.warn('Invalid method attempted on devices API', { method: req.method, ip: req.socket.remoteAddress });
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Rate limiting check
+  const clientIP = req.socket.remoteAddress || req.headers['x-forwarded-for'] as string || 'unknown';
+  if (!checkFormSubmissionRate(clientIP)) {
+    logger.warn('Rate limit exceeded for devices API', { ip: clientIP });
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
   }
 
   try {
@@ -44,12 +54,16 @@ export default async function handler(
       lastSeen: device.createdAt,
     }));
 
+    logger.info('Devices fetched successfully', { count: transformedDevices.length, ip: clientIP });
     res.status(200).json({
       success: true,
       devices: transformedDevices,
     });
   } catch (error) {
-    console.error("Error fetching devices:", error);
+    logger.error("Failed to fetch devices", { 
+      error: error instanceof Error ? error.message : String(error),
+      ip: clientIP
+    });
     res.status(500).json({
       success: false,
       error: "Failed to fetch devices",

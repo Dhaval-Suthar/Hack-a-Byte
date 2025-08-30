@@ -1,5 +1,6 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { logger } from "./logger";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -34,7 +35,7 @@ export const createRazorpayOrder = async (params: CreateOrderParams) => {
       order,
     };
   } catch (error) {
-    console.error("Error creating Razorpay order:", error);
+    logger.error("Failed to create Razorpay order", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: "Failed to create payment order",
@@ -55,20 +56,20 @@ export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolea
 
     return expectedSignature === razorpay_signature;
   } catch (error) {
-    console.error("Error verifying payment:", error);
+    logger.error("Payment verification failed", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 };
 
 // Get payment fee per person for event
-export const getEventRegistrationFeePerPerson = (eventId: number): number => {
+export const getEventRegistrationFeePerPerson = (eventId: number, pricingType: "normal" | "extended" = "normal"): number => {
   // Event ID 100 is Mosaic 2025
   if (eventId === 100) {
-    return 10000; // ₹100 per person
+    return pricingType === "extended" ? 15000 : 10000; // ₹150 for extended, ₹100 for normal per person
   }
 
   // Default fee for other events
-  return 5000; // ₹50 per person
+  return pricingType === "extended" ? 7500 : 5000; // ₹75 for extended, ₹50 for normal per person
 };
 
 export default razorpay;

@@ -1,5 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getStoredAuthState, setStoredAuthState, clearStoredAuthState } from '@/lib/admin-utils';
+
+// Local storage utilities
+const getStoredAuthState = () => {
+  if (typeof window === "undefined") return { isAuthenticated: false, authKey: "" };
+
+  return {
+    isAuthenticated: localStorage.getItem("admin-authenticated") === "true",
+    authKey: localStorage.getItem("admin-auth-key") || "",
+  };
+};
+
+const setStoredAuthState = (isAuthenticated: boolean, authKey?: string) => {
+  if (typeof window === "undefined") return;
+
+  if (isAuthenticated && authKey) {
+    localStorage.setItem("admin-authenticated", "true");
+    localStorage.setItem("admin-auth-key", authKey);
+  } else {
+    localStorage.removeItem("admin-authenticated");
+    localStorage.removeItem("admin-auth-key");
+  }
+};
+
+const clearStoredAuthState = () => {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("admin-authenticated");
+  localStorage.removeItem("admin-auth-key");
+};
 
 // Session expiration time (1 hour)
 const SESSION_DURATION = 60 * 60 * 1000;
@@ -35,15 +63,13 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (sessionTimestamp) {
         const sessionAge = Date.now() - parseInt(sessionTimestamp);
         if (sessionAge > SESSION_DURATION) {
-          console.log("Session expired, clearing authentication");
           clearStoredAuthState();
           localStorage.removeItem("admin-session-timestamp");
           return false;
         }
       }
       return true;
-    } catch (error) {
-      console.error("Error validating session:", error);
+    } catch {
       return false;
     }
   }, []);
@@ -65,8 +91,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         setIsAuthenticated(false);
         setAuthKey("");
       }
-    } catch (error) {
-      console.error("Error initializing admin auth:", error);
+    } catch {
       setAuthError({
         message: "Failed to initialize admin authentication. Please refresh and try again.",
         type: 'storage'
@@ -101,7 +126,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   // Authentication handlers
   const handleAuthSuccess = useCallback((authKey: string) => {
     try {
-      console.log("Authentication successful - setting isAuthenticated to true");
       setIsAuthenticated(true);
       setAuthKey(authKey);
       setAuthError(null);
@@ -111,8 +135,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (typeof window !== "undefined") {
         localStorage.setItem("admin-session-timestamp", Date.now().toString());
       }
-    } catch (error) {
-      console.error("Error during authentication success:", error);
+    } catch {
       setAuthError({
         message: "Authentication succeeded but failed to save session. Please try again.",
         type: 'storage'
@@ -121,7 +144,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   }, []);
 
   const handleAuthFailed = useCallback((error: string) => {
-    console.log("Authentication failed:", error);
     setIsAuthenticated(false);
     setAuthKey("");
     
@@ -135,8 +157,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       message: error || "Authentication failed. Please check your credentials.",
       type: 'auth'
     });
-    
-    console.error("Authentication failed:", error);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -150,8 +170,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (typeof window !== "undefined") {
         localStorage.removeItem("admin-session-timestamp");
       }
-    } catch (error) {
-      console.error("Error during logout:", error);
+    } catch {
     }
   }, []);
 

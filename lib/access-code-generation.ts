@@ -5,6 +5,7 @@ import AccessCodeModel from "@/models/AccessCode";
 import Playspace from "@/models/Playspace";
 import Device from "@/models/Device";
 import mongoose from "mongoose";
+import { logger } from "./logger";
 
 export interface CreateAccessCodeAndPlayspaceOptions {
   numberOfPlayers: number;
@@ -103,7 +104,7 @@ async function createPlayspaceWithDevices(
       deviceIds
     };
   } catch (error) {
-    console.error("Error creating playspace with devices:", error);
+    logger.error("Failed to create playspace with devices", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: "Failed to create playspace and devices"
@@ -204,7 +205,7 @@ export async function createAccessCodeAndPlayspace(
     };
 
   } catch (error) {
-    console.error("Error creating access code and playspace:", error);
+    logger.error("Failed to create access code and playspace", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: "Failed to create access code and playspace"
@@ -262,7 +263,7 @@ export async function validateAccessCodeUsage(accessCode: string): Promise<{
     };
 
   } catch (error) {
-    console.error("Error validating access code usage:", error);
+    logger.error("Failed to validate access code usage", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: "Failed to validate access code"

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { registerForEvent, getAllEventsWithRegistrationCounts } from "@/app/actions/eventRegistration";
 import { createEventPaymentOrder, verifyEventPayment } from "@/app/actions/payment";
-import { useRouter } from "next/navigation";
+import { getPublicEvents } from "@/app/actions/admin";
 
 // Razorpay type declarations
 interface RazorpayResponse {
@@ -41,6 +41,7 @@ declare global {
 
 interface Event {
   id: number;
+  objectId?: string; // real Mongo ObjectId
   title: string;
   date: string;
   time: string;
@@ -65,6 +66,22 @@ interface Event {
     time: string;
     activity: string;
   }[];
+  pricing?: {
+    normal: number;
+    extended?: number;
+  };
+  deviceRequirements?: {
+    types: {
+      mobile: boolean;
+      desktop: boolean;
+    };
+    devices: {
+      mobile: string[];
+      desktop: string[];
+    };
+  };
+  minTeamMembers?: number;
+  maxTeamMembers?: number;
 }
 
 // Terminal typing effect component
@@ -187,30 +204,56 @@ interface RegistrationModalProps {
 }
 
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("pc_laptop");
   const [numberOfPlayers, setNumberOfPlayers] = useState(1);
+  const [selectedPricing, setSelectedPricing] = useState<"normal" | "extended">("normal");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Reset form when event changes
+  useEffect(() => {
+    if (event) {
+      // Set numberOfPlayers to minimum valid value for the event
+      const minPlayers = event.minTeamMembers || 1;
+      setNumberOfPlayers(minPlayers);
+      
+      setSelectedPricing("normal");
+      setPlayingDevice("pc_laptop");
+      setEmail("");
+      setError("");
+    }
+  }, [event]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!event) return;
     
+    // Validate number of players
+    const minPlayers = event.minTeamMembers || 1;
+    const maxPlayers = event.maxTeamMembers || 4;
+    
+    if (numberOfPlayers < minPlayers || numberOfPlayers > maxPlayers) {
+      setError(`Number of players must be between ${minPlayers} and ${maxPlayers}`);
+      return;
+    }
+    
     setIsLoading(true);
     setError("");
     
     try {
-      // For Mosaic event (ID 100), use payment flow
-      if (event.id === 100) {
+  // If event has pricing (paid event), use payment flow
+  const isPaidEvent = !!(event.pricing && event.pricing.normal && event.pricing.normal > 0);
+  if (isPaidEvent) {
         // Create payment order
         const orderResult = await createEventPaymentOrder({
           eventId: event.id,
+          eventObjectId: event.objectId,
           email: email.trim(),
           playingDevice,
-          numberOfPlayers
+          numberOfPlayers,
+          pricingType: selectedPricing
         });
 
         if (!orderResult.success) {
@@ -254,7 +297,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 setPlayingDevice("pc_laptop");
                 setNumberOfPlayers(1);
                 // Redirect user to home page to enter access code
-                router.push("/");
+                window.location.href = "/";
               } else {
                 setError(verifyResult.error || "Payment verification failed");
               }
@@ -283,9 +326,11 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         // For other events, use the original flow
         const result = await registerForEvent({
           eventId: event.id,
+          eventObjectId: event.objectId,
           email: email.trim(),
           playingDevice,
-          numberOfPlayers
+          numberOfPlayers,
+          pricingType: selectedPricing
         });
         
         if (result.success) {
@@ -296,7 +341,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
           setPlayingDevice("pc_laptop");
           setNumberOfPlayers(1);
           // Redirect user to home page to enter access code
-          router.push("/");
+          window.location.href = "/";
         } else {
           setError(result.error || "Registration failed");
         }
@@ -313,6 +358,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
     setEmail("");
     setPlayingDevice("pc_laptop");
     setNumberOfPlayers(1);
+    setSelectedPricing("normal");
     setError("");
     onClose();
   };
@@ -399,38 +445,45 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 Playing Device
               </label>
               <div className="flex space-x-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="smartphone"
-                    checked={playingDevice === "smartphone"}
-                    onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
-                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
-                    disabled={isLoading}
-                  />
-                  <span className="text-white text-sm">
-                    <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zM6 4a1 1 0 011-1h6a1 1 0 011 1v10H6V4z" clipRule="evenodd" />
-                    </svg>
-                    Smartphone
-                  </span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="pc_laptop"
-                    checked={playingDevice === "pc_laptop"}
-                    onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
-                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
-                    disabled={isLoading}
-                  />
-                  <span className="text-white text-sm">
-                    <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1h-5l1.5 2H14a1 1 0 110 2H6a1 1 0 110-2h1.5L9 13H4a1 1 0 01-1-1V4zm1 1v6h12V5H4z" clipRule="evenodd" />
-                    </svg>
-                    PC/Laptop
-                  </span>
-                </label>
+                {event.deviceRequirements?.types.mobile && (
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="smartphone"
+                      checked={playingDevice === "smartphone"}
+                      onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
+                      className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                      disabled={isLoading}
+                    />
+                    <span className="text-white text-sm">
+                      <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zM6 4a1 1 0 011-1h6a1 1 0 011 1v10H6V4z" clipRule="evenodd" />
+                      </svg>
+                      Mobile Device
+                    </span>
+                  </label>
+                )}
+                {event.deviceRequirements?.types.desktop && (
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="pc_laptop"
+                      checked={playingDevice === "pc_laptop"}
+                      onChange={(e) => setPlayingDevice(e.target.value as "smartphone" | "pc_laptop")}
+                      className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                      disabled={isLoading}
+                    />
+                    <span className="text-white text-sm">
+                      <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1h-5l1.5 2H14a1 1 0 110 2H6a1 1 0 110-2h1.5L9 13H4a1 1 0 01-1-1V4zm1 1v6h12V5H4z" clipRule="evenodd" />
+                      </svg>
+                      PC/Laptop
+                    </span>
+                  </label>
+                )}
+                {!event.deviceRequirements?.types.mobile && !event.deviceRequirements?.types.desktop && (
+                  <div className="text-gray-400 text-sm">No specific device requirements</div>
+                )}
               </div>
             </div>
 
@@ -439,40 +492,93 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                 </svg>
-                Number of Players (1-4)
+                Number of Players ({event.minTeamMembers || 1}-{event.maxTeamMembers || 4})
               </label>
               <select
                 value={numberOfPlayers}
-                onChange={(e) => setNumberOfPlayers(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  const minPlayers = event.minTeamMembers || 1;
+                  const maxPlayers = event.maxTeamMembers || 4;
+                  
+                  // Ensure value is within valid range
+                  if (value >= minPlayers && value <= maxPlayers) {
+                    setNumberOfPlayers(value);
+                  }
+                }}
                 className="w-full bg-black/70 border border-cyber-primary/40 rounded-md px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
                 required
                 disabled={isLoading}
               >
-                <option value={1}>1 Player</option>
-                <option value={2}>2 Players</option>
-                <option value={3}>3 Players</option>
-                <option value={4}>4 Players</option>
+                {Array.from({ length: (event.maxTeamMembers || 4) - (event.minTeamMembers || 1) + 1 }, (_, i) => (event.minTeamMembers || 1) + i).map(num => (
+                  <option key={num} value={num}>{num} Player{num > 1 ? 's' : ''}</option>
+                ))}
               </select>
             </div>
 
-            {/* Fee Display for Mosaic Event */}
-            {event.id === 100 && (
+            {/* Fee Display */}
+            {event.pricing && (
               <div className="mb-6 p-4 bg-cyber-primary/10 border border-cyber-primary/40 rounded-md">
-                <h4 className="text-cyber-primary font-bold mb-2 flex items-center">
+                <h4 className="text-cyber-primary font-bold mb-3 flex items-center">
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
                     <path fillRule="evenodd" d="M15 7a1 1 0 011 1v5a1 1 0 01-1 1H6a1 1 0 01-1-1V8a1 1 0 011-1h9zM6 8v5h9V8H6z" clipRule="evenodd" />
                   </svg>
                   Registration Fee
                 </h4>
+                
+                {/* Pricing Type Selection */}
+                {event.pricing.extended && (
+                  <div className="mb-4">
+                    <label className="flex items-center text-cyber-secondary text-sm font-bold mb-2">
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      Gameplay Duration
+                    </label>
+                    <div className="flex space-x-4">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="normal"
+                          checked={selectedPricing === "normal"}
+                          onChange={(e) => setSelectedPricing(e.target.value as "normal" | "extended")}
+                          className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                          disabled={isLoading}
+                        />
+                        <span className="text-white text-sm">
+                          Normal Gameplay - ₹{event.pricing.normal} per person
+                        </span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="extended"
+                          checked={selectedPricing === "extended"}
+                          onChange={(e) => setSelectedPricing(e.target.value as "normal" | "extended")}
+                          className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
+                          disabled={isLoading}
+                        />
+                        <span className="text-white text-sm">
+                          Extended Gameplay - ₹{event.pricing.extended} per person
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="text-white text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-cyber-secondary">Per Person: </span>
-                    <span className="text-cyber-primary font-bold">₹100</span>
+                    <span className="text-cyber-primary font-bold">
+                      ₹{selectedPricing === "extended" && event.pricing.extended ? event.pricing.extended : event.pricing.normal}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-cyber-secondary">Total ({numberOfPlayers} player{numberOfPlayers > 1 ? 's' : ''}): </span>
-                    <span className="text-cyber-primary font-bold text-lg">₹{numberOfPlayers * 100}</span>
+                    <span className="text-cyber-primary font-bold text-lg">
+                      ₹{numberOfPlayers * (selectedPricing === "extended" && event.pricing.extended ? event.pricing.extended : event.pricing.normal)}
+                    </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-2 flex items-center">
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -504,7 +610,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 className="flex-1 cyber-button py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
-                {isLoading ? "Processing..." : (event.id === 100 ? "Pay & Register" : "Register")}
+                {isLoading ? "Processing..." : ((event.pricing && event.pricing.normal && event.pricing.normal > 0) ? "Pay & Register" : "Register")}
               </button>
             </div>
           </form>
@@ -527,192 +633,41 @@ export default function Page() {
     isOpen: boolean;
     event: Event | null;
   }>({ isOpen: false, event: null });
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const today = new Date();
   const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
-  // Sample event data
-  // Note: Using future dates since the context mentioned the current date is May 10, 2025
-  const events: Event[] = [
-    {
-      id: 100,
-      title: "Mosaic 2025",
-      date: "2025-09-19",
-      time: "09:00 - 17:00 (19th & 20th September)",
-      location: "Offline (ST. FRANCIS INSTITUTE OF TECHNOLOGY (ENGG. COLLEGE), Mount Poinsur, S.V.P. Road, Borivali (West), Mumbai 400 103)",
-      description:
-        "Mosaic is a two-day cybersecurity competition open to all online, with an exclusive offline experience for SFIT college students. Prize pool for top performers! Offline participants (SFIT only) need just their mobile; online participants need a computer.",
-      type: "Competition",
-      capacity: 500,
-      registered: 0,
-      difficulty: "Intermediate",
-      tags: ["Cybersecurity", "Competition", "Hybrid", "SFIT", "Prize Pool"],
-      prizes: [
-        { position: "Prize Pool", reward: "Exciting rewards for top performers (details announced at event)" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Opening Ceremony & Welcome (Day 1)" },
-        { time: "09:30", activity: "Competition Kickoff (Online & Offline)" },
-        { time: "13:00", activity: "Lunch Break (Offline)" },
-        { time: "14:00", activity: "Competition Continues" },
-        { time: "17:00", activity: "Day End & Announcements" },
-        { time: "09:00 (20th)", activity: "Day 2 Kickoff & Competition" },
-        { time: "13:00 (20th)", activity: "Lunch Break (Offline)" },
-        { time: "14:00 (20th)", activity: "Final Rounds & Judging" },
-        { time: "17:00 (20th)", activity: "Prize Distribution & Closing" }
-      ],
-      speakers: [
-        { name: "Prof. A. Fernandes", role: "Event Chair", company: "SFIT", avatar: 1 },
-        { name: "Industry Expert", role: "Guest Speaker", company: "TBA", avatar: 2 }
-      ]
-    },
-    {
-      id: 1,
-      title: "Crypto Challenge 2025",
-      date: "2025-05-25",
-      time: "10:00 - 18:00",
-      location: "Online | Global",
-      description: "Test your cryptography skills in this intensive challenge covering classical and modern encryption techniques. Compete against the best code-breakers in the world in a series of timed challenges.",
-      type: "Competition",
-      capacity: 500,
-      registered: 347,
-      difficulty: "Advanced",
-      tags: ["Cryptography", "Security", "Algorithms"],
-      prizes: [
-        { position: "1st Place", reward: "$5,000 + Job Interview with NexusTech" },
-        { position: "2nd Place", reward: "$2,500 + Security Certification Voucher" },
-        { position: "3rd Place", reward: "$1,000 + Premium Security Tools Bundle" }
-      ],
-      schedule: [
-        { time: "10:00", activity: "Welcome & Introduction" },
-        { time: "10:30", activity: "Challenge Release: Classical Ciphers" },
-        { time: "12:30", activity: "Break" },
-        { time: "13:30", activity: "Challenge Release: Modern Encryption" },
-        { time: "16:30", activity: "Final Challenge: Quantum Resistant Algorithms" },
-        { time: "17:45", activity: "Winners Announcement" }
-      ],
-      speakers: [
-        { name: "Dr. Elena Rossi", role: "Lead Cryptographer", company: "QuantumBit", avatar: 2 },
-        { name: "Marcus Chen", role: "Security Researcher", company: "NexusTech", avatar: 3 }
-      ]
-    },
-    {
-      id: 2,
-      title: "Network Security Hackathon",
-      date: "2025-06-02",
-      time: "09:00 - 20:00",
-      location: "Hybrid | San Francisco & Online",
-      description: "Build and defend network infrastructure against real-time attacks. Teams will construct secure environments and then attempt to breach other teams' defenses while maintaining their own.",
-      type: "Team Hackathon",
-      capacity: 200,
-      registered: 172,
-      difficulty: "Expert",
-      tags: ["Network", "Defense", "Penetration Testing"],
-      prizes: [
-        { position: "Winning Team", reward: "$10,000 + Security Conference VIP Passes" },
-        { position: "Best Defense", reward: "$3,000 + Security Hardware Package" },
-        { position: "Best Offense", reward: "$3,000 + Advanced Training Course Access" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Team Check-in & Setup" },
-        { time: "10:00", activity: "Network Building Phase" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Attack & Defense Phase Begins" },
-        { time: "19:00", activity: "Attack & Defense Phase Ends" },
-        { time: "19:30", activity: "Results & Awards Ceremony" }
-      ],
-      speakers: [
-        { name: "Alexandra Kim", role: "Network Security Lead", company: "CyberShield", avatar: 4 },
-        { name: "James Rodriguez", role: "Ethical Hacker", company: "ByteDefender", avatar: 3 }
-      ]
-    },
-    {
-      id: 3,
-      title: "AI Defense Workshop",
-      date: "2025-06-12",
-      time: "13:00 - 17:00",
-      location: "Online | Global",
-      description: "Learn how to protect systems from AI-powered attacks and implement defensive AI algorithms. This hands-on workshop will cover the latest techniques in AI security.",
-      type: "Workshop",
-      capacity: 150,
-      registered: 89,
-      difficulty: "Intermediate",
-      tags: ["Artificial Intelligence", "Machine Learning", "Defense"],
-      schedule: [
-        { time: "13:00", activity: "Introduction to AI Security Challenges" },
-        { time: "13:45", activity: "Identifying AI-based Attacks" },
-        { time: "14:30", activity: "Break" },
-        { time: "15:00", activity: "Defensive AI Implementation Lab" },
-        { time: "16:30", activity: "Q&A Session" }
-      ],
-      speakers: [
-        { name: "Dr. Sarah Johnson", role: "AI Research Director", company: "SecureNode", avatar: 2 }
-      ]
-    },
-    {
-      id: 4,
-      title: "Blockchain Security Summit",
-      date: "2025-06-28",
-      time: "10:00 - 18:00",
-      location: "Tokyo & Online",
-      description: "Explore blockchain vulnerabilities and security measures. From smart contract auditing to decentralized security architectures, this summit covers the latest in blockchain protection.",
-      type: "Conference",
-      capacity: 300,
-      registered: 185,
-      difficulty: "Intermediate",
-      tags: ["Blockchain", "Smart Contracts", "DeFi"],
-      schedule: [
-        { time: "10:00", activity: "Keynote: The Future of Blockchain Security" },
-        { time: "11:00", activity: "Smart Contract Vulnerability Panel" },
-        { time: "12:30", activity: "Networking Lunch" },
-        { time: "14:00", activity: "Workshop: Auditing Techniques" },
-        { time: "16:00", activity: "Case Studies: Major Blockchain Breaches" },
-        { time: "17:30", activity: "Closing Remarks & Networking" }
-      ],
-      speakers: [
-        { name: "Hiroshi Tanaka", role: "Blockchain Security Expert", company: "CryptoGuard", avatar: 3 },
-        { name: "Anika Patel", role: "Smart Contract Auditor", company: "DataFortress", avatar: 2 }
-      ]
-    },
-    {
-      id: 5,
-      title: "IoT Security Challenge",
-      date: "2025-07-15",
-      time: "11:00 - 19:00",
-      location: "Online | Global",
-      description: "Identify and exploit vulnerabilities in simulated Internet of Things environments. This challenge tests your ability to secure interconnected devices and sensors.",
-      type: "Competition",
-      capacity: 250,
-      registered: 98,
-      difficulty: "Advanced",
-      tags: ["IoT", "Embedded Systems", "Hardware"],
-      prizes: [
-        { position: "1st Place", reward: "$3,000 + IoT Security Kit" },
-        { position: "2nd Place", reward: "$1,500 + Smart Home Security Package" },
-        { position: "3rd Place", reward: "$750 + IoT Development Board Bundle" }
-      ]
-    },
-    {
-      id: 6,
-      title: "Threat Intelligence Masterclass",
-      date: "2025-04-05",
-      time: "09:00 - 16:00",
-      location: "Berlin & Online",
-      description: "Enhance your ability to collect, analyze and utilize threat intelligence. This masterclass teaches advanced techniques for identifying and responding to emerging threats.",
-      type: "Training",
-      capacity: 100,
-      registered: 100,
-      difficulty: "Expert",
-      tags: ["Threat Intel", "Analysis", "Response"],
-      schedule: [
-        { time: "09:00", activity: "Intelligence Collection Methodologies" },
-        { time: "11:00", activity: "Data Analysis Techniques" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Practical Application Workshop" },
-        { time: "15:30", activity: "Integration with Security Operations" }
-      ]
-    }
-  ];
+  // Fetch events from database on component mount
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const result = await getPublicEvents();
+        if (result.events) {
+          setEvents(result.events);
+        }
+        
+        // Also fetch registration counts
+        const countsResult = await getAllEventsWithRegistrationCounts();
+        if (countsResult.success && countsResult.registrationCounts) {
+          // Transform the counts to match expected format
+          const transformedCounts: Record<number, number> = {};
+          Object.entries(countsResult.registrationCounts).forEach(([id, data]) => {
+            transformedCounts[parseInt(id)] = data.total;
+          });
+          setRegistrationCounts(transformedCounts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchEvents();
+  }, []);
   
   // Create events with real registration counts
   const eventsWithCounts = events.map(event => ({
@@ -859,6 +814,44 @@ export default function Page() {
           
           <DifficultyMeter level={event.difficulty} />
           
+          {/* Event Requirements */}
+          <div className="mt-4 space-y-2">
+            {/* Team Size */}
+            {event.minTeamMembers && event.maxTeamMembers && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">👥</span>
+                <span>Team: {event.minTeamMembers}-{event.maxTeamMembers} members</span>
+              </div>
+            )}
+            
+            {/* Device Requirements */}
+            {event.deviceRequirements && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">📱</span>
+                <span>
+                  {event.deviceRequirements.types.mobile && event.deviceRequirements.types.desktop 
+                    ? "Mobile & Desktop" 
+                    : event.deviceRequirements.types.mobile 
+                      ? "Mobile Only" 
+                      : event.deviceRequirements.types.desktop 
+                        ? "Desktop Only" 
+                        : "No Device Required"}
+                </span>
+              </div>
+            )}
+            
+            {/* Pricing */}
+            {event.pricing && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">💰</span>
+                <span>
+                  ₹{event.pricing.normal}
+                  {event.pricing.extended && ` (Extended: ₹${event.pricing.extended})`}
+                </span>
+              </div>
+            )}
+          </div>
+          
           <div className="flex justify-between items-center mt-4">
             <div className="text-sm text-gray-400">
               <span className="text-cyber-secondary">{event.registered}</span>/{event.capacity} registered
@@ -1001,6 +994,41 @@ export default function Page() {
                           <span className="text-cyber-secondary">{selectedEvent.registered} participants</span>
                         </div>
                         
+                        {/* Team Size */}
+                        {selectedEvent.minTeamMembers && selectedEvent.maxTeamMembers && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Team Size</span>
+                            <span className="text-white">{selectedEvent.minTeamMembers}-{selectedEvent.maxTeamMembers} members</span>
+                          </div>
+                        )}
+                        
+                        {/* Device Requirements */}
+                        {selectedEvent.deviceRequirements && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Devices</span>
+                            <span className="text-white">
+                              {selectedEvent.deviceRequirements.types.mobile && selectedEvent.deviceRequirements.types.desktop 
+                                ? "Mobile & Desktop" 
+                                : selectedEvent.deviceRequirements.types.mobile 
+                                  ? "Mobile Only" 
+                                  : selectedEvent.deviceRequirements.types.desktop 
+                                    ? "Desktop Only" 
+                                    : "No Device Required"}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Pricing */}
+                        {selectedEvent.pricing && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Pricing</span>
+                            <span className="text-cyber-secondary">
+                              ₹{selectedEvent.pricing.normal}
+                              {selectedEvent.pricing.extended && ` (Extended: ₹${selectedEvent.pricing.extended})`}
+                            </span>
+                          </div>
+                        )}
+                        
                         <div className="pt-2">
                           <div className="text-xs text-gray-400 flex justify-between mb-1">
                             <span>Registration Status</span>
@@ -1038,10 +1066,31 @@ export default function Page() {
                       <div className="border-t border-cyber-primary/20 pt-4 mt-4">
                         <h4 className="text-white text-sm font-bold mb-2">Equipment Needed</h4>
                         <ul className="text-gray-300 text-sm space-y-1 list-disc pl-5">
-                          <li>Personal computer with secure internet connection</li>
-                          <li>Required software (provided upon registration)</li>
-                          {selectedEvent.type.includes("Hackathon") && (
-                            <li>Team collaboration tools</li>
+                          {selectedEvent.deviceRequirements ? (
+                            <>
+                              {selectedEvent.deviceRequirements.types.mobile && (
+                                <li>Mobile device required</li>
+                              )}
+                              {selectedEvent.deviceRequirements.types.desktop && (
+                                <li>Desktop/Laptop required</li>
+                              )}
+                              {selectedEvent.deviceRequirements.devices.mobile.length > 0 && (
+                                <li>Mobile: {selectedEvent.deviceRequirements.devices.mobile.join(", ")}</li>
+                              )}
+                              {selectedEvent.deviceRequirements.devices.desktop.length > 0 && (
+                                <li>Desktop: {selectedEvent.deviceRequirements.devices.desktop.join(", ")}</li>
+                              )}
+                              <li>Secure internet connection</li>
+                              <li>Required software (provided upon registration)</li>
+                            </>
+                          ) : (
+                            <>
+                              <li>Personal computer with secure internet connection</li>
+                              <li>Required software (provided upon registration)</li>
+                              {selectedEvent.type.includes("Hackathon") && (
+                                <li>Team collaboration tools</li>
+                              )}
+                            </>
                           )}
                         </ul>
                       </div>
@@ -1198,6 +1247,16 @@ export default function Page() {
 
   return (
     <div className="min-h-screen w-full pt-20 relative">
+      {/* Loading state */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-primary mx-auto mb-4"></div>
+            <p className="text-cyber-primary text-lg">Loading events...</p>
+          </div>
+        </div>
+      )}
+
       {/* Background elements */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-black opacity-95" />

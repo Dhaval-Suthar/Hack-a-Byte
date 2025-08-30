@@ -12,7 +12,7 @@ const games: GameDefinition[] = [
     tags: ["classic", "puzzle"],
     defaultDifficulty: "normal",
     difficulties: ["easy", "normal", "hard"],
-    componentPath: "@/components/hackbook-w95/apps/Minesweeper",
+    componentPath: "@/components/devices/hackbook-w95/apps/Minesweeper",
     window: { width: 350, height: 450 },
   },
   {
@@ -23,7 +23,7 @@ const games: GameDefinition[] = [
     tags: ["math", "puzzle"],
     defaultDifficulty: "normal",
     difficulties: ["easy", "normal", "hard", "nightmare"],
-    componentPath: "@/components/hackbook-w95/apps/NumberJumpingGame",
+    componentPath: "@/components/devices/hackbook-w95/apps/NumberJumpingGame",
     window: { width: 600, height: 500 },
   },
   {
@@ -34,7 +34,7 @@ const games: GameDefinition[] = [
     tags: ["logic"],
     defaultDifficulty: "normal",
     difficulties: ["easy", "normal", "hard"],
-    componentPath: "@/components/hackbook-w95/apps/UntangleNeuralNetwork",
+    componentPath: "@/components/devices/hackbook-w95/apps/UntangleNeuralNetwork",
     window: { width: "80vw", height: "80vh" },
   },
   {
@@ -45,7 +45,7 @@ const games: GameDefinition[] = [
     tags: ["reflex"],
     defaultDifficulty: "normal",
     difficulties: ["easy", "normal", "hard"],
-    componentPath: "@/components/hackbook-w95/apps/QuickEventPresser",
+    componentPath: "@/components/devices/hackbook-w95/apps/QuickEventPresser",
     window: { width: 600, height: 500 },
   },
 ];

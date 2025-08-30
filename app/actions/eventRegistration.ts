@@ -1,6 +1,7 @@
 "use server";
 
 import connectDb from "@/db/connectDb";
+import Event from "@/models/Event";
 import EventRegistration from "@/models/EventRegistration";
 import { AccessCode } from "@/models/AccessCode";
 import { completeRegistrationPipeline } from "@/lib/event-registration";
@@ -8,9 +9,11 @@ import { sendAccessCodeEmail } from "@/lib/nodemailer";
 
 export interface EventRegistrationData {
   eventId: number;
+  eventObjectId?: string;
   email: string;
   playingDevice: "smartphone" | "pc_laptop";
   numberOfPlayers: number;
+  pricingType?: "normal" | "extended";
 }
 
 export interface EventRegistrationResult {
@@ -24,7 +27,7 @@ export interface EventRegistrationResult {
 
 export async function registerForEvent(data: EventRegistrationData): Promise<EventRegistrationResult> {
   try {
-    const { eventId, email, playingDevice, numberOfPlayers } = data;
+  const { eventId, eventObjectId, email, playingDevice, numberOfPlayers, pricingType = "normal" } = data;
     
     // Validate inputs
     if (!eventId || !email || !playingDevice || !numberOfPlayers) {
@@ -34,24 +37,41 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
       };
     }
 
-    // Validate number of players
-    if (numberOfPlayers < 1 || numberOfPlayers > 4) {
-      return { 
-        success: false, 
-        error: "Number of players must be between 1 and 4" 
-      };
-    }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return { 
-        success: false, 
-        error: "Please enter a valid email address" 
-      };
-    }
-    
     await connectDb();
+    
+    // Fetch event data to get team size limits
+    let event;
+    if (eventObjectId) {
+      try {
+        event = await Event.findById(eventObjectId);
+      } catch {
+        return { success: false, error: "Invalid event id" };
+      }
+    } else {
+      // Fallback: derive by scanning events and matching transformed numeric id logic
+      const all = await Event.find({});
+      event = all.find(e => {
+        const derived = parseInt(e._id.toString().slice(-6), 16);
+        return derived === eventId;
+      });
+    }
+    if (!event) {
+      return { 
+        success: false, 
+        error: "Event not found" 
+      };
+    }
+
+    const minPlayers = event.minTeamMembers || 1;
+    const maxPlayers = event.maxTeamMembers || 4;
+
+    // Validate number of players based on event limits
+    if (numberOfPlayers < minPlayers || numberOfPlayers > maxPlayers) {
+      return { 
+        success: false, 
+        error: `Number of players must be between ${minPlayers} and ${maxPlayers}` 
+      };
+    }
     
     // Create registration (allowing multiple registrations per email)
     const registration = new EventRegistration({
@@ -59,6 +79,7 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
       email: email.toLowerCase(),
       playingDevice,
       numberOfPlayers,
+      pricingType,
       paymentStatus: "paid", // For free events or non-Mosaic events
       registrationDate: new Date(),
       accessCodeSent: false

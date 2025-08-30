@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
 import { sendAccessCodeEmail } from "@/lib/nodemailer";
+import { logger } from "./logger";
 
 export interface CompleteRegistrationArgs {
   registrationId: string;
@@ -167,7 +168,7 @@ export async function completeRegistrationPipeline(
 
     return { success: true, accessCode, playspaceName };
   } catch (err) {
-    console.error("completeRegistrationPipeline error:", err);
+    logger.error("Registration pipeline failed", { error: err instanceof Error ? err.message : String(err) });
     return { success: false, error: "Failed to complete registration" };
   }
 }

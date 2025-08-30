@@ -163,14 +163,12 @@ export const sendRegistrationConfirmationEmail = async (params: RegistrationEmai
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', result.messageId);
     
     return {
       success: true,
       messageId: result.messageId,
     };
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch {
     return {
       success: false,
       error: 'Failed to send confirmation email',
@@ -736,14 +734,12 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('Access code email sent successfully:', result.messageId);
     
     return {
       success: true,
       messageId: result.messageId,
     };
-  } catch (error) {
-    console.error('Error sending access code email:', error);
+  } catch {
     return {
       success: false,
       error: 'Failed to send access code email',

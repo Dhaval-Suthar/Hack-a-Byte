@@ -132,7 +132,7 @@ export default function Navbar() {
                         pathname === `/${(item !== "Home" ? item : "").toLowerCase()}`
                           ? "text-cyber-primary shadow-cyber"
                           : "text-gray-300"
-                      } hover:text-cyber-primary block px-3 py-2 text-base font-terminal flex items-center`}
+                      } hover:text-cyber-primary px-3 py-2 text-base font-terminal flex items-center`}
                     >
                       <span className="text-cyber-primary opacity-60 mr-2">{">"}</span>
                       {item}

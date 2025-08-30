@@ -1,4 +1,6 @@
 // Security Key Authentication using WebAuthn API
+import { logger } from "./logger";
+
 export interface SecurityKeyAuthResult {
   success: boolean;
   error?: string;
@@ -35,7 +37,7 @@ export class SecurityKeyAuth {
       
       const credentialCreationOptions: CredentialCreationOptions = {
         publicKey: {
-          challenge,
+          challenge: challenge as BufferSource,
           rp: {
             name: this.RP_NAME,
             id: this.RP_ID,
@@ -70,7 +72,7 @@ export class SecurityKeyAuth {
 
       return { success: true, credential };
     } catch (error: unknown) {
-      console.error('Security key registration failed:', error);
+      logger.error("Security key registration failed", { error: this.getErrorMessage(error) });
       return { 
         success: false, 
         error: this.getErrorMessage(error) 
@@ -96,7 +98,7 @@ export class SecurityKeyAuth {
       
       const credentialRequestOptions: CredentialRequestOptions = {
         publicKey: {
-          challenge,
+          challenge: challenge as BufferSource,
           allowCredentials: storedCredentials.map(id => ({
             id: this.base64UrlToBuffer(id),
             type: "public-key" as const,
@@ -116,7 +118,7 @@ export class SecurityKeyAuth {
 
       return { success: true, credential: assertion };
     } catch (error: unknown) {
-      console.error('Security key authentication failed:', error);
+      logger.error("Security key authentication failed", { error: this.getErrorMessage(error) });
       return { 
         success: false, 
         error: this.getErrorMessage(error) 

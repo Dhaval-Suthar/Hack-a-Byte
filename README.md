@@ -1,52 +1,864 @@
-# Hack A Byte - Game Introduction 🖥️
+# Hack-A-Byte
 
-A modern, interactive cybersecurity simulation game where players engage in hacking activities in a realistic yet gamified environment. Hack A Byte combines retro aesthetics with modern web technologies to create an immersive hacking experience.
+A comprehensive cybersecurity education platform with interactive devices and challenges.
 
 ![Hack-A-Byte Banner](public/banner.png)
 
 ## Table of Contents
-1. [Introduction to Hack A Byte](#1-introduction-to-hack-a-byte)
-2. [Gameplay Overview](#2-gameplay-overview)
-3. [Hacking Activities in the Game](#3-hacking-activities-in-the-game)
-4. [Game Features & Mechanics](#4-game-features--mechanics)
-5. [Why Play Hack A Byte?](#5-why-play-hack-a-byte)
-6. [Screenshots & Visuals](#6-screenshots--visuals)
-7. [Technical Details & Setup](#7-technical-details--setup)
-8. [Admin Authentication](#admin-authentication)
+1. [Introduction](#1-introduction)
+2. [Features](#2-features)
+3. [Technical Details & Setup](#3-technical-details--setup)
 
-## 1. Introduction to Hack A Byte
+## 1. Introduction
 
-### What is Hack A Byte?
-- A cybersecurity simulation game where players engage in hacking activities
-- Offers a realistic yet gamified hacking experience
-- Designed to be educational and entertaining
+Hack-A-Byte is an interactive cybersecurity education platform that provides hands-on experience with various digital devices and security challenges.
+
+## 2. Features
+
+- Interactive device simulations
+- Security challenges and games
+- Educational content on cybersecurity
+- Multi-platform support
+
+## 3. Technical Details & Setup
+
+### Prerequisites
+- Node.js
+- npm or pnpm
+
+### Installation
+```bash
+pnpm install
+```
+
+### Development
+```bash
+pnpm dev
+```
+
+### Build
+```bash
+pnpm build
+```
+- Teams battle to accumulate the highest bitcoin balance
+- Features specialized roles inspired by Money Heist characters
+- Combines retro aesthetics with modern cybersecurity concepts
 
 ### Game Theme & Setting
-- Set in a futuristic, cyberpunk world
-- Players act as ethical (or unethical) hackers
-- Missions involve hacking, cybersecurity defense, and digital espionage
+- Set in a high-stakes cyberpunk world
+- Players act as digital heist teams
+- Missions involve cryptocurrency theft, defense, and strategic warfare
+- Real-time PvP combat between competing teams
 
 ## 2. Gameplay Overview
 
 ### How does the game work?
-- Players choose their hacking method
-- Target systems, organizations, or individuals
-- Earn points and rank up by completing hacking challenges
+- Teams register and receive unique wallet addresses and access codes
+- Players enter shared devices and assign specialized roles
+- Teams attack opponents while defending their own cryptocurrency
+- Special "Bank Device" appears randomly for massive rewards
+- Winner is the team with the highest bitcoin balance
 
 ### Game Modes
-- **Story Mode:** Follow a hacker's journey, taking on dangerous cyber missions
-- **Sandbox Mode:** Experiment with various hacking techniques freely
-- **Multiplayer Challenges:** Compete against other hackers online
+- **Team Battle:** 1-6 player teams with specialized roles
+- **Solo Challenge:** Single player takes on all roles simultaneously
+- **Tournament Mode:** Competitive brackets with multiple rounds
+- **Quick Match:** Fast-paced 10-15 minute games
+
+### Match Pricing & Bot System
+- **Standard Match:** ₹60 per member (20-25 minutes)
+- **Extended Match:** ₹100 per member (30-45 minutes)
+- **AI Bot System:** Automatic opponents when player count is insufficient
+- **Flexible Teams:** 1-6 players with bots filling remaining slots
 
 ### Example Gameplay Flow
 
-#### 🔐 Playspace Access & Setup
-1. **Initial Entry**
-  - Navigate to the game website and explore the cyberpunk interface
-  - Obtain or generate a unique numeric access code
-  - Enter the access code for system verification
-  - Gain authorized access to your personal hacking playspace
-  - Select and configure your preferred virtual device (desktop, laptop, or mobile)
+#### 🔐 Team Registration & Setup
+1. **Event Entry**
+  - Teams scan QR code and register for the event
+  - Choose platform (mobile HackDroid or desktop Windows 95/XP)
+  - Pay entrance fee and receive team credentials
+  - Get unique wallet address and private key via email
+
+2. **Device Access**
+  - Use access code to enter shared team device
+  - Device starts in vulnerable "secureless" state
+  - Assign team roles based on team size and strategy
+  - Begin immediate defensive setup
+
+3. **Role Assignment**
+  - **Professor (Planner):** Strategic commander and coordinator
+  - **Tokyo/Rio (Attacker):** Cyber warfare operative (2 in 6-player teams)
+  - **Berlin (Defender):** System security specialist
+  - **Nairobi/Denver (Extractor):** Resource acquisition specialist (2 in 6-player teams)
+
+## 3. Team Roles & Responsibilities
+
+### ðŸŽ¯ Professor (Planner) - Strategic Commander
+**Primary Mission:** Coordinate overall team strategy and resource management
+
+**Key Responsibilities:**
+- Monitor all team members and current activities
+- Select target devices for Attacker operations
+- Communicate threats to Defender for preparation
+- Manage and instruct team members with real-time guidance
+- Approve all purchases (malware, backup devices, mining software)
+- Monitor team's cryptocurrency balance and game status
+- Stop any ongoing attacks or extractions if situations become risky
+- Make critical decision to end game early if team has sufficient currency
+- Coordinate timing of all team operations for maximum efficiency
+
+### âš”ï¸ Attacker (Tokyo/Rio) - Cyber Warfare Operative
+**Primary Mission:** Breach enemy defenses and gain control of opponent devices
+
+**Key Responsibilities:**
+- Launch various malware attacks (viruses, trojans, ransomware)
+- Purchase and deploy specialized attack tools
+- Attempt to destroy enemy devices or gain temporary control
+- Extract data and resources during brief control windows
+- Coordinate attack timing with team strategy
+
+**Team Scaling:** 2 Attackers allowed in 5-6 player teams
+
+### ðŸ›¡ï¸ Defender (Berlin) - System Security Specialist
+**Primary Mission:** Protect team's cryptocurrency wallet and infrastructure
+
+**Key Responsibilities:**
+- Set and manage strong passwords for device and wallet access
+- Remove unauthorized or suspicious connected users
+- Configure and maintain firewalls and encryption protocols
+- Connect to secure networks and maintain safe connections
+- Securely store the wallet's private key in the file system
+- Purchase backup devices for redundancy
+- Manage device states: shutdown, restart, repair, disconnect as needed
+- Actively counter malware attacks and intrusions
+- Monitor system health and respond to security alerts
+
+### 💰 Extractor (Nairobi/Denver) - Resource Acquisition Specialist
+**Primary Mission:** Generate bitcoin through mining and opportunistic extraction
+
+**Key Responsibilities:**
+- Browse the internet searching for legitimate bitcoin faucets and opportunities
+- Purchase and operate bitcoin mining programs and software
+- Extract private keys from devices compromised by the Attacker
+- Balance risk vs reward when accessing suspicious sites
+- Optimize mining efficiency and resource allocation
+- Coordinate with Attacker during device control windows
+
+**Team Scaling:** 2 Extractors allowed in 5-6 player teams
+
+## 4. Special Game Elements
+
+### ðŸ¦ Bank Device - High-Value Target
+**The Game-Changer:** A special "Bank Device" that appears randomly during matches
+
+**Key Features:**
+- **Random Timing:** Comes online every 3-8 minutes unpredictably
+- **Massive Rewards:** Contains 500-2000 bitcoin (vs 10-100 from regular targets)
+- **Extreme Security:** Requires coordinated team effort to breach
+- **Time Pressure:** Only available for 30-60 seconds
+- **High Risk:** Failed attempts may trigger countermeasures
+
+**Strategic Impact:**
+- Teams must balance regular gameplay with bank monitoring
+- Successful heists can instantly change match momentum
+- Creates exciting high-stakes moments
+
+### 🤖 AI Bot System
+**Smart Opponent Matching:** When there aren't enough human players, AI bots automatically fill team slots.
+
+**Bot Intelligence Levels:**
+- **Beginner Bots:** Basic strategy, predictable patterns, good for learning
+- **Intermediate Bots:** Balanced gameplay, moderate coordination, fair challenge
+- **Advanced Bots:** Complex strategies, strong coordination, competitive gameplay
+
+**Bot Integration:**
+- **Seamless Experience:** Bots behave like human players with realistic decision-making
+- **Role Assignment:** Bots automatically take appropriate roles based on team needs
+- **Dynamic Difficulty:** Bot behavior adapts to human player skill levels
+- **Fair Competition:** Bots maintain competitive balance without being unbeatable
+
+## 5. Game Features & Mechanics
+
+### Core Game Environment
+- **Retro Operating System:** Authentic Windows 95-style desktop with nostalgic UI
+- **Multi-Device Simulation:** Desktop, laptop, and mobile device interfaces
+- **Advanced File System:** Complex directory structures with security protocols
+- **Mission Communication Hub:** Email system for team coordination
+- **Professional Terminal:** Full command-line interface with hacking tools
+
+### Competitive Features
+
+#### ⚔️ Real-Time PvP Combat
+- **Live Attacks:** Teams actively hack each other's devices
+- **Dynamic Defense:** Counter incoming threats in real-time
+- **Resource Management:** Balance spending on attacks vs defense
+- **Team Coordination:** Shared device forces authentic collaboration
+
+#### ðŸ’° Cryptocurrency System
+- **Wallet Management:** Secure storage of bitcoin and private keys
+- **Mining Operations:** Generate bitcoin through computational resources
+- **Trading & Extraction:** Transfer crypto between teams
+- **Economic Strategy:** Invest in tools, upgrades, and opportunities
+
+#### ðŸŽ¯ Tournament Integration
+- **Flexible Formats:** Round robin, single elimination, Swiss system
+- **Real-Time Scoring:** Live balance tracking and leaderboards
+- **Spectator Mode:** Audience can watch live matches
+- **Admin Controls:** Event organizers manage monitoring
+
+### Match Structure
+- **Quick Match:** 10-15 minutes for fast-paced action
+- **Standard Match:** 20-25 minutes for balanced gameplay
+- **Extended Match:** 30-45 minutes for strategic depth
+- **Setup Phase:** 2 minutes for role assignment and planning
+- **Active Phase:** Main PvP combat and resource generation
+- **Resolution Phase:** 3 minutes for final scoring
+
+## 6. Why Play CryptoHeist?
+
+### Strategic Depth
+- Multiple specialized roles with unique responsibilities
+- Complex team coordination and communication challenges
+- High-stakes decision making under pressure
+
+### Competitive Excitement
+- Real-time PvP combat between teams
+- Random bank device creates unpredictable moments
+- Tournament-style competition with meaningful stakes
+
+### Educational Value
+- Learn cybersecurity concepts through gameplay
+- Understand cryptocurrency and digital security
+- Practice team coordination and strategic thinking
+
+### Flexible Gameplay
+- Supports 1-6 players with balanced role distribution
+- Multiple match durations for different play styles
+- Cross-platform support (mobile and desktop)
+- AI bot system ensures matches are always available
+
+## 7. Tournament Structure
+
+### Event Formats
+- **Duration:** 1-2 day competitive tournaments
+- **Bracket Systems:** Single elimination, double elimination, round robin
+- **Match Types:** Best of 1, Best of 3, Best of 5 for finals
+
+### Prizes & Recognition
+- **Champions:** Trophy + premium cosmetics
+- **Runners-up:** Trophy + exclusive skins
+- **Third Place:** Bronze trophy + achievement badges
+- **Special Awards:** Best Bank Heist, Most Secure Defense, Highest Score
+
+### Tournament Features
+- **Real-Time Dashboards:** Live balance tracking for all teams
+- **Spectator Mode:** Audience watches team progress on big screens
+- **Automated Scoring:** Transparent, real-time balance calculations
+- **Team Communication:** Secure channels for strategy coordination
+- **Bracket Systems:** Single elimination, double elimination, round robin
+- **Match Types:** Best of 1, Best of 3, Best of 5 for finals
+
+### Prizes & Recognition
+- **Champions:** Trophy + premium cosmetics
+- **Runners-up:** Trophy + exclusive skins
+- **Third Place:** Bronze trophy + achievement badges
+- **Special Awards:** Best Bank Heist, Most Secure Defense, Highest Score
+
+### Tournament Features
+- **Real-Time Dashboards:** Live balance tracking for all teams
+- **Spectator Mode:** Audience watches team progress on big screens
+- **Automated Scoring:** Transparent, real-time balance calculations
+- **Team Communication:** Secure channels for strategy coordination
+
+## 8. Technical Details & Setup
+
+### System Requirements
+**Minimum Requirements:**
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Stable internet connection
+- 2GB RAM
+- 1GB storage space
+
+**Recommended Requirements:**
+- Latest browser version
+- High-speed internet (10+ Mbps)
+- 4GB+ RAM
+- Modern device with touchscreen (for mobile play)
+
+### Technology Stack
+- **Frontend:** Next.js 15, React 19, TypeScript
+- **Styling:** Tailwind CSS for responsive design
+- **3D Graphics:** Three.js, React Three Fiber
+- **Database:** MongoDB with Mongoose
+- **Authentication:** JWT, bcrypt for security
+- **Real-time Features:** WebSocket integration
+- **Payment:** Razorpay for tournament fees
+
+### Installation & Development
+
+#### Prerequisites
+```bash
+Node.js 18+
+pnpm package manager
+Git
+```
+
+#### Local Development Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd hack-a-byte
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+#### Environment Variables
+```env
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+MONGODB_URI=mongodb://localhost:27017/hackabyte
+JWT_SECRET=your-jwt-secret
+RAZORPAY_KEY_ID=your-razorpay-key
+RAZORPAY_KEY_SECRET=your-razorpay-secret
+```
+
+### Project Structure
+```
+hack-a-byte/
+├── app/                    # Next.js app router
+├── components/            # React components
+│   ├── hackbook-w95/     # Desktop device components
+│   ├── hackphone/        # Mobile device components
+│   └── games/            # Game-specific components
+├── lib/                   # Utility functions and configurations
+├── models/               # Database models
+├── public/               # Static assets
+└── event_game.md         # Complete game rules and mechanics
+```
+
+### Development Commands
+```bash
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm start        # Start production server
+pnpm lint         # Run ESLint
+pnpm type-check   # Run TypeScript type checking
+```
+
+### Deployment
+The application is optimized for deployment on Vercel with:
+- Automatic scaling
+- Edge network distribution
+- Real-time analytics integration
+- Secure environment variable management
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Support
+For technical support or questions:
+- Check the event_game.md for complete game rules
+- Review the component documentation
+- Open an issue on GitHub
+
+---
+
+**CryptoHeist: Digital Warfare** delivers intense competitive gameplay with flexible team configurations, high-stakes bank heists, and authentic cybersecurity education. The random bank device mechanic adds unpredictability while maintaining strategic depth for players of all skill levels. cryptocurrency wallets. Teams of 1-6 players take on specialized roles in intense PvP combat across mobile and desktop platforms.
+
+![Hack-A-Byte Banner](public/banner.png)
+
+## Table of Contents
+1. [Introduction to CryptoHeist](#1-introduction-to-cryptoheist)
+2. [Gameplay Overview](#2-gameplay-overview)
+3. [Team Roles & Responsibilities](#3-team-roles--responsibilities)
+4. [Special Game Elements](#4-special-game-elements)
+5. [Game Features & Mechanics](#5-game-features--mechanics)
+6. [Why Play CryptoHeist?](#6-why-play-cryptoheist)
+7. [Tournament Structure](#7-tournament-structure)
+8. [Technical Details & Setup](#8-technical-details--setup)
+
+## 1. Introduction to CryptoHeist
+
+### What is CryptoHeist: Digital Warfare?
+- A competitive PvP team-based digital heist game
+- Teams battle to accumulate the highest bitcoin balance
+- Features specialized roles inspired by Money Heist characters
+- Combines retro aesthetics with modern cybersecurity concepts
+
+### Game Theme & Setting
+- Set in a high-stakes cyberpunk world
+- Players act as digital heist teams
+- Missions involve cryptocurrency theft, defense, and strategic warfare
+- Real-time PvP combat between competing teams
+
+## 2. Gameplay Overview
+
+### How does the game work?
+- Teams register and receive unique wallet addresses and access codes
+- Players enter shared devices and assign specialized roles
+- Teams attack opponents while defending their own cryptocurrency
+- Special "Bank Device" appears randomly for massive rewards
+- Winner is the team with the highest bitcoin balance
+
+### Game Modes
+- **Team Battle:** 1-6 player teams with specialized roles
+- **Solo Challenge:** Single player takes on all roles simultaneously
+- **Tournament Mode:** Competitive brackets with multiple rounds
+- **Quick Match:** Fast-paced 10-15 minute games
+
+### Example Gameplay Flow
+
+#### 🔐 Team Registration & Setup
+1. **Event Entry**
+  - Teams scan QR code and register for the event
+  - Choose platform (mobile HackDroid or desktop Windows 95/XP)
+  - Pay entrance fee and receive team credentials
+  - Get unique wallet address and private key via email
+
+2. **Device Access**
+  - Use access code to enter shared team device
+  - Device starts in vulnerable "secureless" state
+  - Assign team roles based on team size and strategy
+  - Begin immediate defensive setup
+
+3. **Role Assignment**
+  - **Professor (Planner):** Strategic commander and coordinator
+  - **Tokyo/Rio (Attacker):** Cyber warfare operative (2 in 6-player teams)
+  - **Berlin (Defender):** System security specialist
+  - **Nairobi/Denver (Extractor):** Resource acquisition specialist (2 in 6-player teams)
+
+## 3. Team Roles & Responsibilities
+
+### ðŸŽ¯ Professor (Planner) - Strategic Commander
+**Primary Mission:** Coordinate overall team strategy and resource management
+
+**Key Responsibilities:**
+- Monitor all team members and current activities
+- Get details of target devices for Attacker operations
+- Checks balances of wallet addressses and also transfer bitcoins.
+- Can check top wallet addresses.
+- info attacker when bank device is available to attack.
+- invest in the stock market.
+- Communicate threats to Defender for preparation
+- Make critical calls to end game early if profitable
+
+### âš”ï¸ Attacker (Tokyo/Rio) - Cyber Warfare Operative
+**Primary Mission:** Breach enemy defenses and gain control of opponent devices
+
+**Key Responsibilities:**
+- Launch malware attacks (viruses, trojans, ransomware)
+- Purchase and deploy specialized attack tools
+- Attempt to destroy enemy devices or gain control or get wallet address or private keys
+- Extract data during control windows
+- Coordinate attack timing with team strategy
+
+**Team Scaling:** 2 Attackers allowed in 5-6 player teams
+
+### ðŸ›¡ï¸ Defender (Berlin) - System Security Specialist
+**Primary Mission:** Protect team's cryptocurrency wallet and infrastructure
+
+**Key Responsibilities:**
+- Set and manage strong passwords and encryption
+- Remove unauthorized users and suspicious connections
+- Configure firewalls and security protocols
+- Securely store wallet private key
+- Monitor system health and counter intrusions
+- scan for malwares and tackle attacks
+
+### 💰 Extractor (Nairobi/Denver) - Resource Acquisition Specialist
+**Primary Mission:** Generate bitcoin through mining and extraction
+
+**Key Responsibilities:**
+- Browse internet for bitcoin faucets and opportunities
+- Purchase and operate mining software
+- Extract private keys from compromised devices
+- Optimize mining efficiency and resource allocation
+- Balance risk vs reward in suspicious sites
+
+**Team Scaling:** 2 Extractors allowed in 5-6 player teams
+
+## 4. Special Game Elements
+
+### ðŸ¦ Bank Device - High-Value Target
+**The Game-Changer:** A special "Bank Device" that appears randomly during matches
+
+**Key Features:**
+- **Random Timing:** Comes online every 3-8 minutes unpredictably
+- **Massive Rewards:** Contains 500-2000 bitcoin (vs 10-100 from regular targets)
+- **Extreme Security:** Requires coordinated team effort to breach
+- **Time Pressure:** Only available for 30-60 seconds
+- **High Risk:** Failed attempts may trigger countermeasures
+
+**Strategic Impact:**
+- Teams must balance regular gameplay with bank monitoring
+- Successful heists can instantly change match momentum
+- Creates exciting high-stakes moments
+
+## 5. Game Features & Mechanics
+
+### Core Game Environment
+- **Retro Operating System:** Authentic Windows 95-style desktop with nostalgic UI
+- **Multi-Device Simulation:** Desktop, laptop, and mobile device interfaces
+- **Advanced File System:** Complex directory structures with security protocols
+- **Mission Communication Hub:** Email system for team coordination
+- **Professional Terminal:** Full command-line interface with hacking tools
+
+### Competitive Features
+
+#### ⚔️ Real-Time PvP Combat
+- **Live Attacks:** Teams actively hack each other's devices
+- **Dynamic Defense:** Counter incoming threats in real-time
+- **Resource Management:** Balance spending on attacks vs defense
+- **Team Coordination:** Shared device forces authentic collaboration
+
+#### ðŸ’° Cryptocurrency System
+- **Wallet Management:** Secure storage of bitcoin and private keys
+- **Mining Operations:** Generate bitcoin through computational resources
+- **Trading & Extraction:** Transfer crypto between teams
+- **Economic Strategy:** Invest in tools, upgrades, and opportunities
+
+#### ðŸŽ¯ Tournament Integration
+- **Flexible Formats:** Round robin, single elimination, Swiss system
+- **Real-Time Scoring:** Live balance tracking and leaderboards
+- **Spectator Mode:** Audience can watch live matches
+- **Admin Controls:** Event organizers manage difficulty and monitoring
+
+### Economic Strategy
+- **Investment Decisions:** Choose between offensive tools and defensive upgrades
+- **Risk Assessment:** Balance high-risk, high-reward opportunities
+- **Resource Allocation:** Distribute bitcoin across team priorities
+
+### Match Structure
+- **Quick Match:** 10-15 minutes for fast-paced action
+- **Standard Match:** 20-25 minutes for balanced gameplay
+- **Extended Match:** 30-45 minutes for strategic depth 
+- **Setup Phase:** 2 minutes for role assignment and planning
+- **Active Phase:** Main PvP combat and resource generation
+- **Resolution Phase:** 3 minutes for final scoring
+
+## 6. Why Play CryptoHeist?
+
+### Strategic Depth
+- Multiple specialized roles with unique responsibilities
+- Complex team coordination and communication challenges
+- High-stakes decision making under pressure
+
+### Competitive Excitement
+- Real-time PvP combat between teams
+- Random bank device creates unpredictable moments
+- Tournament-style competition with meaningful stakes
+
+### Educational Value
+- Learn cybersecurity concepts through gameplay
+- Understand cryptocurrency and digital security
+- Practice team coordination and strategic thinking
+
+### Flexible Gameplay
+- Supports 1-6 players with balanced role distribution
+- Multiple match durations for different play styles
+- Cross-platform support (mobile and desktop)
+
+## 7. Tournament Structure
+
+### Event Formats
+- **Duration:** 1-2 day competitive tournaments
+- **Bracket Systems:** Single elimination, double elimination, round robin
+- **Match Types:** Best of 1, Best of 3, Best of 5 for finals
+
+### Prizes & Recognition
+- **Champions:** Trophy + premium cosmetics
+- **Runners-up:** Trophy + exclusive skins
+- **Third Place:** Bronze trophy + achievement badges
+- **Special Awards:** Best Bank Heist, Most Secure Defense, Highest Score
+
+### Tournament Features
+- **Real-Time Dashboards:** Live balance tracking for all teams
+- **Spectator Mode:** Audience watches team progress on big screens
+- **Automated Scoring:** Transparent, real-time balance calculations
+- **Team Communication:** Secure channels for strategy coordination
+
+## 8. Technical Details & Setup
+
+### System Requirements
+**Minimum Requirements:**
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Stable internet connection
+- 2GB RAM
+- 1GB storage space
+
+**Recommended Requirements:**
+- Latest browser version
+- High-speed internet (10+ Mbps)
+- 4GB+ RAM
+- Modern device with touchscreen (for mobile play)
+
+### Technology Stack
+- **Frontend:** Next.js 15, React 19, TypeScript
+- **Styling:** Tailwind CSS for responsive design
+- **3D Graphics:** Three.js, React Three Fiber
+- **Database:** MongoDB with Mongoose
+- **Authentication:** JWT, bcrypt for security
+- **Real-time Features:** WebSocket integration
+- **Payment:** Razorpay for tournament fees
+
+### Installation & Development
+
+#### Prerequisites
+```bash
+Node.js 18+
+pnpm package manager
+Git
+```
+
+#### Local Development Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd hack-a-byte
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+#### Environment Variables
+```env
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+MONGODB_URI=mongodb://localhost:27017/hackabyte
+JWT_SECRET=your-jwt-secret
+RAZORPAY_KEY_ID=your-razorpay-key
+RAZORPAY_KEY_SECRET=your-razorpay-secret
+```
+
+### Project Structure
+```
+hack-a-byte/
+├── app/                    # Next.js app router
+├── components/            # React components
+│   ├── hackbook-w95/     # Desktop device components
+│   ├── hackphone/        # Mobile device components
+│   └── games/            # Game-specific components
+├── lib/                   # Utility functions and configurations
+├── models/               # Database models
+├── public/               # Static assets
+└── event_game.md         # Complete game rules and mechanics
+```
+
+### Development Commands
+```bash
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm start        # Start production server
+pnpm lint         # Run ESLint
+pnpm type-check   # Run TypeScript type checking
+```
+
+### Deployment
+The application is optimized for deployment on Vercel with:
+- Automatic scaling
+- Edge network distribution
+- Real-time analytics integration
+- Secure environment variable management
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Support
+For technical support or questions:
+- Check the event_game.md for complete game rules
+- Review the component documentation
+- Open an issue on GitHub
+
+---
+
+**CryptoHeist: Digital Warfare** delivers intense competitive gameplay with flexible team configurations, high-stakes bank heists, and authentic cybersecurity education. The random bank device mechanic adds unpredictability while maintaining strategic depth for players of all skill levels.
+
+## 6. Why Play CryptoHeist?
+
+### Strategic Depth
+- Multiple specialized roles with unique responsibilities
+- Complex team coordination and communication challenges
+- High-stakes decision making under pressure
+
+### Competitive Excitement
+- Real-time PvP combat between teams
+- Random bank device creates unpredictable moments
+- Tournament-style competition with meaningful stakes
+
+### Educational Value
+- Learn cybersecurity concepts through gameplay
+- Understand cryptocurrency and digital security
+- Practice team coordination and strategic thinking
+
+### Flexible Gameplay
+- Supports 1-6 players with balanced role distribution
+- Multiple match durations for different play styles
+- Cross-platform support (mobile and desktop)
+
+## 7. Tournament Structure
+
+### Event Formats
+- **Duration:** 1-2 day competitive tournaments
+- **Bracket Systems:** Single elimination, double elimination, round robin
+- **Match Types:** Best of 1, Best of 3, Best of 5 for finals
+
+### Prizes & Recognition
+- **Champions:** Trophy + premium cosmetics
+- **Runners-up:** Trophy + exclusive skins
+- **Third Place:** Bronze trophy + achievement badges
+- **Special Awards:** Best Bank Heist, Most Secure Defense, Highest Score
+
+### Tournament Features
+- **Real-Time Dashboards:** Live balance tracking for all teams
+- **Spectator Mode:** Audience watches team progress on big screens
+- **Automated Scoring:** Transparent, real-time balance calculations
+- **Team Communication:** Secure channels for strategy coordination
+
+## 8. Technical Details & Setup
+
+### System Requirements
+**Minimum Requirements:**
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Stable internet connection
+- 2GB RAM
+- 1GB storage space
+
+**Recommended Requirements:**
+- Latest browser version
+- High-speed internet (10+ Mbps)
+- 4GB+ RAM
+- Modern device with touchscreen (for mobile play)
+
+### Technology Stack
+- **Frontend:** Next.js 15, React 19, TypeScript
+- **Styling:** Tailwind CSS for responsive design
+- **3D Graphics:** Three.js, React Three Fiber
+- **Database:** MongoDB with Mongoose
+- **Authentication:** JWT, bcrypt for security
+- **Real-time Features:** WebSocket integration
+- **Payment:** Razorpay for tournament fees
+
+### Installation & Development
+
+#### Prerequisites
+```bash
+Node.js 18+
+pnpm package manager
+Git
+```
+
+#### Local Development Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd hack-a-byte
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+#### Environment Variables
+```env
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+MONGODB_URI=mongodb://localhost:27017/hackabyte
+JWT_SECRET=your-jwt-secret
+RAZORPAY_KEY_ID=your-razorpay-key
+RAZORPAY_KEY_SECRET=your-razorpay-secret
+```
+
+### Project Structure
+```
+hack-a-byte/
+├── app/                    # Next.js app router
+├── components/            # React components
+│   ├── hackbook-w95/     # Desktop device components
+│   ├── hackphone/        # Mobile device components
+│   └── games/            # Game-specific components
+├── lib/                   # Utility functions and configurations
+├── models/               # Database models
+├── public/               # Static assets
+└── event_game.md         # Complete game rules and mechanics
+```
+
+### Development Commands
+```bash
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm start        # Start production server
+pnpm lint         # Run ESLint
+pnpm type-check   # Run TypeScript type checking
+```
+
+### Deployment
+The application is optimized for deployment on Vercel with:
+- Automatic scaling
+- Edge network distribution
+- Real-time analytics integration
+- Secure environment variable management
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Support
+For technical support or questions:
+- Check the event_game.md for complete game rules
+- Review the component documentation
+- Open an issue on GitHub
+
+---
+
+**CryptoHeist: Digital Warfare** delivers intense competitive gameplay with flexible team configurations, high-stakes bank heists, and authentic cybersecurity education. The random bank device mechanic adds unpredictability while maintaining strategic depth for players of all skill levels.
 
 2. **Environment Initialization**
   - Customize your hacker alias and profile
@@ -126,48 +938,6 @@ A modern, interactive cybersecurity simulation game where players engage in hack
 - **Advanced File System**: Navigate complex directory structures with hidden files, encrypted data, and security protocols
 - **Mission Communication Hub**: Integrated email system for receiving briefings, intel, and coordinating operations
 - **Professional Terminal**: Full-featured command-line interface with authentic hacking tools and utilities
-
-### Competitive PVP Battle Modes
-
-#### 🏔️ King of the Hill
-- **Objective**: Secure and maintain control of a central high-value server
-- **Strategy**: Deploy defensive measures while repelling continuous attacker waves
-- **Victory Condition**: Longest control duration or successful defense for set time period
-- **Team Dynamics**: Coordinate defense strategies and counter-attack formations
-
-#### 🚩 Capture the Flag
-- **Mission**: Infiltrate enemy systems to steal their digital flag while protecting your own
-- **Defense Elements**: Implement custom security measures, firewalls, and intrusion detection
-- **Attack Vectors**: Exploit vulnerabilities, bypass security, and extract sensitive data
-- **Tactical Gameplay**: Balance offensive operations with defensive preparations
-
-#### 🔜 Coming Soon - Advanced Challenges
-- **Stealth Operations**: Covert infiltration missions requiring undetected system access
-- **Social Engineering**: Email fraud and phishing campaign simulations
-- **Malware Warfare**: Deploy and counter sophisticated malicious software attacks
-- **Ransomware Crisis**: High-stakes scenarios involving data encryption and recovery
-
-### Character Progression & Advancement
-
-#### 🌳 Specialized Skill Trees
-- **Network Penetration**: Advanced intrusion techniques and exploit development
-- **Cryptography**: Encryption/decryption mastery and secure communication protocols
-- **Social Engineering**: Psychology-based attack methods and human manipulation
-- **Digital Forensics**: Evidence analysis and system investigation capabilities
-- **Defensive Security**: Firewall configuration and intrusion prevention systems
-
-#### 🔧 Equipment & Tool Progression
-- **Unlockable Applications**: Gain access to professional-grade hacking software
-- **Hardware Upgrades**: Enhanced processing power and specialized equipment
-- **Custom Scripts**: Develop personalized automation tools and exploits
-- **Network Resources**: Access to botnets, proxy networks, and distributed systems
-
-#### 💎 Achievement & Reward System
-- **Mission Mastery**: Complete objectives with varying difficulty levels
-- **Competitive Rankings**: Leaderboard positions and tournament victories
-- **Discovery Rewards**: Find hidden easter eggs and secret system vulnerabilities
-- **Collaboration Achievements**: Team-based accomplishments and successful partnerships
-- **Virtual Economy**: Earn and spend cryptocurrency on upgrades and premium content
 
 ## 5. Why Play Hack A Byte?
 
