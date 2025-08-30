@@ -109,21 +109,6 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
     e.target.value = '';
   };
 
-  const getStatusIcon = () => {
-    if (isUploading) {
-      return <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />;
-    }
-    
-    switch (uploadStatus) {
-      case 'success':
-        return <div className="w-6 h-6 text-green-500 text-xl">✓</div>;
-      case 'error':
-        return <div className="w-6 h-6 text-red-500 text-xl">✗</div>;
-      default:
-        return <div className="w-6 h-6 text-gray-400 text-xl">⬆</div>;
-    }
-  };
-
   const getStatusText = () => {
     if (isUploading) return 'Validating authentication key...';
     
@@ -134,19 +119,6 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
         return `Authentication failed! File: ${fileName}`;
       default:
         return 'Drop your authentication key file here or click to browse';
-    }
-  };
-
-  const getStatusColor = () => {
-    if (isUploading) return 'text-blue-600';
-    
-    switch (uploadStatus) {
-      case 'success':
-        return 'text-green-600';
-      case 'error':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
     }
   };
 

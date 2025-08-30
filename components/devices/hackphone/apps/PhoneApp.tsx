@@ -13,12 +13,11 @@ interface Contact {
 }
 
 interface PhoneAppProps {
-  onClose: () => void;
   onOpenContacts?: () => void;
   initialPhoneNumber?: string;
   time?: Date;
 }
-const PhoneApp: React.FC<PhoneAppProps> = ({ onClose, onOpenContacts, initialPhoneNumber }) => {
+const PhoneApp: React.FC<PhoneAppProps> = ({ onOpenContacts, initialPhoneNumber }) => {
   const [dialedNumber, setDialedNumber] = useState(initialPhoneNumber || "");
   const [activeTab, setActiveTab] = useState<"favorites" | "recents" | "contacts" | "keypad" | "voicemail">(initialPhoneNumber ? "keypad" : "keypad");
   const [callState, setCallState] = useState<"idle" | "dialing" | "ringing" | "connected" | "ended">("idle");

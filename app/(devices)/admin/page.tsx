@@ -1,7 +1,7 @@
 "use client";
 
 import FileUploadAuth from "@/components/devices/admin/FileUploadAuth";
-import EnhancedAdminDashboard from "@/components/devices/admin/EnhancedAdminDashboard";
+import MiniAdminDashboard from "@/components/devices/admin/MiniAdminDashboard";
 import { LoadingSpinner } from "@/components/devices/admin/AdminComponents";
 import ErrorBoundary from "@/components/devices/admin/ErrorBoundary";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -102,7 +102,7 @@ export default function AdminPage() {
         className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900"
       >
         <ErrorBoundary>
-          <EnhancedAdminDashboard />
+          <MiniAdminDashboard />
         </ErrorBoundary>
       </motion.div>
     </AnimatePresence>

@@ -14,7 +14,6 @@ export * from './logger';
 
 // Domain-specific utilities
 export * from './access-code';
-export * from './admin-utils';
 export * from './playspace-utils';
 export * from './security-key-auth';
 

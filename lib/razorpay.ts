@@ -62,14 +62,14 @@ export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolea
 };
 
 // Get payment fee per person for event
-export const getEventRegistrationFeePerPerson = (eventId: number): number => {
+export const getEventRegistrationFeePerPerson = (eventId: number, pricingType: "normal" | "extended" = "normal"): number => {
   // Event ID 100 is Mosaic 2025
   if (eventId === 100) {
-    return 10000; // ₹100 per person
+    return pricingType === "extended" ? 15000 : 10000; // ₹150 for extended, ₹100 for normal per person
   }
 
   // Default fee for other events
-  return 5000; // ₹50 per person
+  return pricingType === "extended" ? 7500 : 5000; // ₹75 for extended, ₹50 for normal per person
 };
 
 export default razorpay;

@@ -1,5 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getStoredAuthState, setStoredAuthState, clearStoredAuthState } from '@/lib/admin-utils';
+
+// Local storage utilities
+const getStoredAuthState = () => {
+  if (typeof window === "undefined") return { isAuthenticated: false, authKey: "" };
+
+  return {
+    isAuthenticated: localStorage.getItem("admin-authenticated") === "true",
+    authKey: localStorage.getItem("admin-auth-key") || "",
+  };
+};
+
+const setStoredAuthState = (isAuthenticated: boolean, authKey?: string) => {
+  if (typeof window === "undefined") return;
+
+  if (isAuthenticated && authKey) {
+    localStorage.setItem("admin-authenticated", "true");
+    localStorage.setItem("admin-auth-key", authKey);
+  } else {
+    localStorage.removeItem("admin-authenticated");
+    localStorage.removeItem("admin-auth-key");
+  }
+};
+
+const clearStoredAuthState = () => {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("admin-authenticated");
+  localStorage.removeItem("admin-auth-key");
+};
 
 // Session expiration time (1 hour)
 const SESSION_DURATION = 60 * 60 * 1000;

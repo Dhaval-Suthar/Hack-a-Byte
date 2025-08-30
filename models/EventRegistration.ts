@@ -5,6 +5,7 @@ export interface IEventRegistration extends Document {
     email: string;
     playingDevice: "smartphone" | "pc_laptop";
     numberOfPlayers: number;
+    pricingType?: "normal" | "extended";
     paymentStatus: "pending" | "paid" | "failed";
     razorpayPaymentId?: string;
     razorpayOrderId?: string;
@@ -34,8 +35,12 @@ const EventRegistrationSchema: Schema = new Schema(
         numberOfPlayers: {
             type: Number,
             required: true,
-            min: 1,
-            max: 4
+            min: 1 // no fixed max; validate per-event in actions
+        },
+        pricingType: {
+            type: String,
+            enum: ["normal", "extended"],
+            default: "normal"
         },
         paymentStatus: {
             type: String,

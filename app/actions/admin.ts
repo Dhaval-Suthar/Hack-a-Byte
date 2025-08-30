@@ -10,6 +10,7 @@ import Event from "@/models/Event";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { generateMacAddress } from "@/lib/utils";
+import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -385,6 +386,34 @@ export async function toggleAccessCodeStatus(codeId: string, isActive: boolean, 
   }
 }
 
+export async function deleteAccessCode(codeId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const accessCode = await AccessCode.findById(codeId);
+
+    if (!accessCode) {
+      return { error: "Access code not found" };
+    }
+
+    await AccessCode.findByIdAndDelete(codeId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Access code deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting access code:", error);
+    return { error: "Failed to delete access code" };
+  }
+}
+
 // Team Actions
 export async function getTeams(adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
@@ -395,21 +424,239 @@ export async function getTeams(adminKey?: string) {
 
   try {
     await connectDb();
-    const teams = await Team.find({}).select("_id name description leaderUserId members").lean().sort({ createdAt: -1 });
+    const teams = await Team.find({}).select("_id name description leaderUserId members numberOfPlayers playingDevice").lean().sort({ createdAt: -1 });
 
     // Transform the data to include member count and ensure all fields exist
     const teamsWithMemberCount = teams.map((team) => ({
-      _id: team._id || "",
+      _id: team._id ? team._id.toString() : "",
       name: team.name || "Unknown Team",
       description: team.description || "No description",
       leaderUserId: team.leaderUserId || "",
       members: Array.isArray(team.members) ? team.members.length : 0,
+      numberOfPlayers: team.numberOfPlayers || 1,
+      playingDevice: team.playingDevice || "smartphone", // Default to smartphone if not set
     }));
 
     return { teams: teamsWithMemberCount };
   } catch (error) {
     console.error("Error fetching teams:", error);
     return { error: "Failed to fetch teams" };
+  }
+}
+
+export async function createTeam(name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderUserId?: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return { error: "Team name is required" };
+    }
+
+    if (!numberOfPlayers || numberOfPlayers < 1 || numberOfPlayers > 10) {
+      return { error: "Number of players must be between 1 and 10" };
+    }
+
+    // Check if team name already exists
+    const existingTeam = await Team.findOne({ name: name.trim() });
+    if (existingTeam) {
+      return { error: "Team name already exists" };
+    }
+
+    // If leader is specified, verify the user exists
+    if (leaderUserId) {
+      const leader = await User.findById(leaderUserId);
+      if (!leader) {
+        return { error: "Specified leader user does not exist" };
+      }
+    }
+
+    // Generate wallet credentials
+    const crypto = await import("crypto");
+    const walletAddress = crypto
+      .createHash("sha256")
+      .update(`${name}:${Date.now()}`)
+      .digest("hex")
+      .slice(0, 42);
+    const privateKey = crypto.randomBytes(32).toString("hex");
+    const publicKey = crypto.createHash("sha256").update(privateKey).digest("hex").slice(0, 66);
+
+    // Initialize member slots
+    const teamMembers = Array.from({ length: numberOfPlayers }, () => ({ accessCodeUsed: false }));
+
+    // Create new team
+    const newTeam = new Team({
+      name: name.trim(),
+      description: description?.trim() || "",
+      leaderUserId: leaderUserId || null,
+      members: leaderUserId ? [leaderUserId] : [],
+      numberOfPlayers,
+      wallet: {
+        walletAddress,
+        privateKey,
+        publicKey,
+        bitcoinBalance: 100,
+      },
+      teamMembers,
+      timer: {
+        isActive: false,
+        elapsedTime: 0,
+        totalPausedTime: 0,
+      },
+    });
+
+    await newTeam.save();
+
+    // Create playspace and device for the team
+    try {
+      const playspaceResult = await createAccessCodeAndPlayspace({
+        numberOfPlayers,
+        playingDevice,
+        eventTitle: name.trim(),
+        registrationId: newTeam._id.toString(),
+        codePrefix: '9', // Admin-created teams use '9' prefix
+      });
+
+      if (playspaceResult.success) {
+        // Update team with playspace and device references
+        newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
+        newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+        await newTeam.save();
+      } else {
+        console.warn("Failed to create playspace and device for team:", playspaceResult.error);
+        // Don't fail the team creation, just log the warning
+      }
+    } catch (error) {
+      console.error("Error creating playspace and device for team:", error);
+      // Don't fail the team creation, just log the error
+    }
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team created successfully",
+      team: {
+        _id: newTeam._id.toString(),
+        name: newTeam.name,
+        description: newTeam.description,
+        leaderUserId: newTeam.leaderUserId,
+        members: newTeam.members.length,
+        numberOfPlayers: newTeam.numberOfPlayers,
+        walletAddress: newTeam.wallet.walletAddress,
+      },
+    };
+  } catch (error) {
+    console.error("Error creating team:", error);
+    return { error: "Failed to create team" };
+  }
+}
+
+export async function updateTeam(teamId: string, updates: { name?: string; description?: string; leaderUserId?: string }, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the team
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Validate name uniqueness if being updated
+    if (updates.name && updates.name.trim() !== team.name) {
+      const existingTeam = await Team.findOne({ name: updates.name.trim() });
+      if (existingTeam && existingTeam._id.toString() !== teamId) {
+        return { error: "Team name already exists" };
+      }
+      team.name = updates.name.trim();
+    }
+
+    // Update description
+    if (updates.description !== undefined) {
+      team.description = updates.description.trim();
+    }
+
+    // Update leader
+    if (updates.leaderUserId !== undefined) {
+      if (updates.leaderUserId) {
+        // Verify the new leader exists
+        const leader = await User.findById(updates.leaderUserId);
+        if (!leader) {
+          return { error: "Specified leader user does not exist" };
+        }
+        team.leaderUserId = updates.leaderUserId;
+        // Add leader to members if not already there
+        if (!team.members.includes(updates.leaderUserId)) {
+          team.members.push(updates.leaderUserId);
+        }
+      } else {
+        team.leaderUserId = null;
+      }
+    }
+
+    await team.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team updated successfully",
+      team: {
+        _id: team._id.toString(),
+        name: team.name,
+        description: team.description,
+        leaderUserId: team.leaderUserId,
+        members: team.members.length,
+      },
+    };
+  } catch (error) {
+    console.error("Error updating team:", error);
+    return { error: "Failed to update team" };
+  }
+}
+
+export async function deleteTeam(teamId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the team
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Check if team has members
+    if (team.members && team.members.length > 0) {
+      return { error: "Cannot delete team with active members. Please remove all members first." };
+    }
+
+    await Team.findByIdAndDelete(teamId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting team:", error);
+    return { error: "Failed to delete team" };
   }
 }
 
@@ -900,6 +1147,63 @@ export async function updateAccessCode(
   }
 }
 
+export async function linkAccessCodeToPlayspace(codeId: string, playspaceId: string | null, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const accessCode = await AccessCode.findById(codeId);
+
+    if (!accessCode) {
+      return { error: "Access code not found" };
+    }
+
+    if (playspaceId) {
+      // Check if playspace already has an access code
+      const existingCode = await AccessCode.findOne({ assignedPlayspace: playspaceId });
+      if (existingCode && existingCode._id.toString() !== codeId) {
+        return { error: "This playspace already has an access code assigned. Each playspace can only have one access code." };
+      }
+
+      // Verify playspace exists
+      const playspace = await Playspace.findById(playspaceId);
+      if (!playspace) {
+        return { error: "Playspace not found" };
+      }
+
+      accessCode.assignedPlayspace = new mongoose.Types.ObjectId(playspaceId);
+    } else {
+      // Unlink from current playspace
+      accessCode.assignedPlayspace = undefined;
+    }
+
+    await accessCode.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: playspaceId ? "Access code linked to playspace successfully" : "Access code unlinked from playspace successfully",
+      accessCode: {
+        _id: accessCode._id.toString(),
+        code: accessCode.code,
+        assignedPlayspace: accessCode.assignedPlayspace ? {
+          _id: accessCode.assignedPlayspace._id ? accessCode.assignedPlayspace._id.toString() : "",
+          name: accessCode.assignedPlayspace.name || "",
+          description: accessCode.assignedPlayspace.description || "",
+        } : null,
+      },
+    };
+  } catch (error) {
+    console.error("Error linking access code to playspace:", error);
+    return { error: "Failed to link access code to playspace" };
+  }
+}
+
 // Event Actions
 export async function getEvents(adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
@@ -912,7 +1216,7 @@ export async function getEvents(adminKey?: string) {
     await connectDb();
     const events = await Event.find({})
       .select(
-        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt"
+        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing"
       )
       .lean() // Use lean() to get plain objects
       .sort({ startDate: 1, createdAt: -1 });
@@ -931,6 +1235,20 @@ export async function getEvents(adminKey?: string) {
       isPublic: typeof event.isPublic === "boolean" ? event.isPublic : true,
       capacity: typeof event.capacity === "number" ? event.capacity : 0,
       imageUrl: event.imageUrl || "",
+      requiredDeviceTypes: event.requiredDeviceTypes ? {
+        mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+        desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+      } : { mobile: false, desktop: false },
+      requiredDevices: event.requiredDevices ? {
+        mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+        desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+      } : { mobile: [], desktop: [] },
+      minTeamMembers: typeof event.minTeamMembers === "number" ? event.minTeamMembers : 1,
+      maxTeamMembers: typeof event.maxTeamMembers === "number" ? event.maxTeamMembers : 4,
+      pricing: event.pricing ? {
+        normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+        extended: typeof event.pricing.extended === "number" ? event.pricing.extended : 0,
+      } : { normal: 0, extended: 0 },
       createdAt: event.createdAt ? new Date(event.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: event.updatedAt ? new Date(event.updatedAt).toISOString() : new Date().toISOString(),
     }));
@@ -951,6 +1269,12 @@ export async function createEvent(
   category: string,
   isPublic: boolean = true,
   capacity: number = 0,
+  requiredDeviceTypes: { mobile: boolean; desktop: boolean },
+  requiredDevices: { mobile: string[]; desktop: string[] },
+  minTeamMembers: number,
+  maxTeamMembers: number,
+  pricingNormal: number,
+  pricingExtended?: number,
   adminKey?: string
 ) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
@@ -962,6 +1286,15 @@ export async function createEvent(
   try {
     await connectDb();
 
+    // Validate team member range
+    if (minTeamMembers > maxTeamMembers) {
+      return { error: "Minimum team members cannot be greater than maximum team members" };
+    }
+
+    if (minTeamMembers < 1) {
+      return { error: "Minimum team members must be at least 1" };
+    }
+
     // Create the event
     const newEvent = new Event({
       title,
@@ -972,6 +1305,14 @@ export async function createEvent(
       category,
       isPublic,
       capacity,
+      requiredDeviceTypes,
+      requiredDevices,
+      minTeamMembers,
+      maxTeamMembers,
+      pricing: {
+        normal: pricingNormal,
+        ...(pricingExtended !== undefined && { extended: pricingExtended }),
+      },
     });
 
     await newEvent.save();
@@ -989,6 +1330,11 @@ export async function createEvent(
         category: newEvent.category,
         isPublic: newEvent.isPublic,
         capacity: newEvent.capacity,
+        requiredDeviceTypes: newEvent.requiredDeviceTypes,
+        requiredDevices: newEvent.requiredDevices,
+        minTeamMembers: newEvent.minTeamMembers,
+        maxTeamMembers: newEvent.maxTeamMembers,
+        pricing: newEvent.pricing,
         createdAt: newEvent.createdAt.toISOString(),
       },
     };
@@ -1009,9 +1355,16 @@ export async function updateEvent(
     category?: string;
     isPublic?: boolean;
     capacity?: number;
-  }
+    requiredDeviceTypes?: { mobile: boolean; desktop: boolean };
+    requiredDevices?: { mobile: string[]; desktop: string[] };
+    minTeamMembers?: number;
+    maxTeamMembers?: number;
+    pricingNormal?: number;
+    pricingExtended?: number;
+  },
+  adminKey?: string
 ) {
-  const { isAdmin, error } = await checkAdminStatus();
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
 
   if (!isAdmin) {
     return { error };
@@ -1051,6 +1404,24 @@ export async function updateEvent(
     if (updates.capacity !== undefined) {
       event.capacity = updates.capacity;
     }
+    if (updates.requiredDeviceTypes !== undefined) {
+      event.requiredDeviceTypes = updates.requiredDeviceTypes;
+    }
+    if (updates.requiredDevices !== undefined) {
+      event.requiredDevices = updates.requiredDevices;
+    }
+    if (updates.minTeamMembers !== undefined) {
+      event.minTeamMembers = updates.minTeamMembers;
+    }
+    if (updates.maxTeamMembers !== undefined) {
+      event.maxTeamMembers = updates.maxTeamMembers;
+    }
+    if (updates.pricingNormal !== undefined || updates.pricingExtended !== undefined) {
+      event.pricing = {
+        normal: updates.pricingNormal !== undefined ? updates.pricingNormal : event.pricing?.normal || 0,
+        ...(updates.pricingExtended !== undefined && { extended: updates.pricingExtended }),
+      };
+    }
 
     await event.save();
     revalidatePath("/admin");
@@ -1068,6 +1439,11 @@ export async function updateEvent(
         category: event.category,
         isPublic: event.isPublic,
         capacity: event.capacity,
+        requiredDeviceTypes: event.requiredDeviceTypes,
+        requiredDevices: event.requiredDevices,
+        minTeamMembers: event.minTeamMembers,
+        maxTeamMembers: event.maxTeamMembers,
+        pricing: event.pricing,
       },
     };
   } catch (error) {
@@ -1390,6 +1766,101 @@ export async function unassignDeviceFromPlayspace(
 }
 
 /**
+ * Update device details
+ * @param deviceId The ID of the device to update (can be ObjectId or MAC address)
+ * @param updates The fields to update
+ * @param adminKey Optional admin key for authentication
+ * @returns Success response or error
+ */
+export async function updateDevice(
+  deviceId: string,
+  updates: { deviceType?: string; status?: string; playspaceId?: string },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
+    if (!device) {
+      return { error: "Device not found" };
+    }
+
+    // Validate device type if being updated
+    if (updates.deviceType) {
+      const validDeviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+      if (!validDeviceTypes.includes(updates.deviceType)) {
+        return { error: "Invalid device type" };
+      }
+      device.deviceType = updates.deviceType;
+    }
+
+    // Update status if provided
+    if (updates.status) {
+      const validStatuses = ["online", "offline", "maintenance"];
+      if (!validStatuses.includes(updates.status)) {
+        return { error: "Invalid device status" };
+      }
+      device.status = updates.status;
+    }
+
+    // Update playspace assignment if provided
+    if (updates.playspaceId !== undefined) {
+      if (updates.playspaceId) {
+        // Assign to new playspace
+        const playspace = await Playspace.findById(updates.playspaceId);
+        if (!playspace) {
+          return { error: "Playspace not found" };
+        }
+        device.playspace = new mongoose.Types.ObjectId(updates.playspaceId);
+      } else {
+        // Unassign from current playspace
+        device.playspace = undefined;
+      }
+    }
+
+    await device.save();
+
+    // Populate playspace info for response
+    await device.populate("playspace", "name description");
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Device updated successfully",
+      device: {
+        _id: device._id.toString(),
+        deviceMacAddress: device.deviceMacAddress,
+        deviceType: device.deviceType,
+        status: device.status,
+        playspace: device.playspace ? {
+          _id: device.playspace._id.toString(),
+          name: device.playspace.name,
+          description: device.playspace.description
+        } : null,
+      },
+    };
+  } catch (error) {
+    console.error("Error updating device:", error);
+    return { error: "Failed to update device" };
+  }
+}
+
+/**
  * Get devices assigned to a specific playspace
  * @param playspaceId The ID of the playspace
  * @param adminKey Optional admin key for authentication
@@ -1656,35 +2127,6 @@ export async function getAvailablePlayspaces(adminKey?: string) {
   } catch (error) {
     console.error("Error fetching available playspaces:", error);
     return { error: "Failed to fetch available playspaces" };
-  }
-}
-
-export async function deleteAccessCode(codeId: string, adminKey?: string) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    await connectDb();
-
-    const accessCode = await AccessCode.findById(codeId);
-
-    if (!accessCode) {
-      return { error: "Access code not found" };
-    }
-
-    await AccessCode.findByIdAndDelete(codeId);
-    revalidatePath("/admin");
-
-    return {
-      success: true,
-      message: "Access code deleted successfully",
-    };
-  } catch (error) {
-    console.error("Error deleting access code:", error);
-    return { error: "Failed to delete access code" };
   }
 }
 
@@ -2194,38 +2636,10 @@ export async function getGameSessions(adminKey?: string) {
   try {
     await connectDb();
 
-    // For now, we'll return mock game session data
-    // In a real implementation, you'd query the GameSession collection
-    const mockSessions = [
-      {
-        _id: "session-1",
-        tournamentId: "tournament-2",
-        team1Id: "team-1",
-        team2Id: "team-2",
-        team1Name: "CryptoKings",
-        team2Name: "DigitalThieves",
-        status: "active" as const,
-        startTime: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-        team1Score: 1250,
-        team2Score: 980,
-        duration: 900, // 15 minutes in seconds
-      },
-      {
-        _id: "session-2",
-        tournamentId: "tournament-2",
-        team1Id: "team-3",
-        team2Id: "team-4",
-        team1Name: "HackMasters",
-        team2Name: "CodeBreakers",
-        status: "waiting" as const,
-        startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-        team1Score: 0,
-        team2Score: 0,
-        duration: 300, // 5 minutes in seconds
-      }
-    ];
+    const GameSession = (await import('@/models/GameSession')).default;
+    const sessions = await GameSession.find({}).sort({ startTime: -1 }).limit(50);
 
-    return { sessions: mockSessions };
+    return { sessions };
   } catch (error) {
     console.error("Error fetching game sessions:", error);
     return { error: "Failed to fetch game sessions" };
@@ -2249,21 +2663,21 @@ export async function createGameSession(
   try {
     await connectDb();
 
-    // In a real implementation, you'd create a GameSession document
-    const newSession = {
-      _id: `session-${Date.now()}`,
+    const GameSession = (await import('@/models/GameSession')).default;
+    const newSession = new GameSession({
       tournamentId,
       team1Id,
       team2Id,
       team1Name,
       team2Name,
-      status: "waiting" as const,
-      startTime: new Date().toISOString(),
+      status: "waiting",
+      startTime: new Date(),
       team1Score: 0,
       team2Score: 0,
       duration: 0
-    };
+    });
 
+    await newSession.save();
     revalidatePath("/admin");
 
     return {
@@ -2292,20 +2706,23 @@ export async function updateGameSessionScore(
   try {
     await connectDb();
 
-    // In a real implementation, you'd update the GameSession document
-    const updatedSession = {
-      _id: sessionId,
-      team1Score,
-      team2Score,
-      updatedAt: new Date().toISOString()
-    };
+    const GameSession = (await import('@/models/GameSession')).default;
+    const session = await GameSession.findById(sessionId);
+
+    if (!session) {
+      return { error: "Game session not found" };
+    }
+
+    session.team1Score = team1Score;
+    session.team2Score = team2Score;
+    await session.save();
 
     revalidatePath("/admin");
 
     return {
       success: true,
       message: "Game session scores updated successfully",
-      session: updatedSession
+      session
     };
   } catch (error) {
     console.error("Error updating game session:", error);
@@ -2328,20 +2745,25 @@ export async function endGameSession(
     await connectDb();
 
     // In a real implementation, you'd update the GameSession document
-    const endedSession = {
-      _id: sessionId,
-      status: "completed" as const,
-      winner: winnerId,
-      endTime: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const GameSession = (await import('@/models/GameSession')).default;
+    const session = await GameSession.findById(sessionId);
+
+    if (!session) {
+      return { error: "Game session not found" };
+    }
+
+    session.status = "completed";
+    session.winner = winnerId;
+    session.endTime = new Date();
+    session.duration = Math.floor((new Date().getTime() - session.startTime.getTime()) / 1000);
+    await session.save();
 
     revalidatePath("/admin");
 
     return {
       success: true,
       message: "Game session ended successfully",
-      session: endedSession
+      session
     };
   } catch (error) {
     console.error("Error ending game session:", error);
@@ -2350,7 +2772,7 @@ export async function endGameSession(
 }
 
 // Team Management Actions
-export async function getTournamentTeams(tournamentId: string, adminKey?: string) {
+export async function getTournamentTeams(adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
 
   if (!isAdmin) {
@@ -2368,7 +2790,6 @@ export async function getTournamentTeams(tournamentId: string, adminKey?: string
         name: "CryptoKings",
         captain: "user-1",
         members: ["user-1", "user-2", "user-3"],
-        tournamentId,
         status: "active" as const,
         walletAddress: "1A2B3C4D5E6F",
         currentBalance: 1250,
@@ -2379,7 +2800,6 @@ export async function getTournamentTeams(tournamentId: string, adminKey?: string
         name: "DigitalThieves",
         captain: "user-4",
         members: ["user-4", "user-5", "user-6"],
-        tournamentId,
         status: "active" as const,
         walletAddress: "2B3C4D5E6F7G",
         currentBalance: 980,
@@ -2479,5 +2899,48 @@ export async function getWalletStats(adminKey?: string) {
   } catch (error) {
     console.error("Error fetching wallet stats:", error);
     return { error: "Failed to fetch wallet stats" };
+  }
+}
+
+// Function to get events for public events page
+export async function getPublicEvents() {
+  try {
+    await connectDb();
+
+    const events = await Event.find({ isPublic: true }).sort({ startDate: 1 });
+
+    // Transform database events to match frontend Event interface
+    const transformedEvents = events.map((event, index) => ({
+      // Keep a stable numeric id for UI (fallback index) but also expose real objectId for actions
+      id: parseInt(event._id.toString().slice(-6), 16) || index + 1, // pseudo numeric id for legacy usage
+      objectId: event._id.toString(),
+      title: event.title,
+      date: event.startDate ? event.startDate.toISOString() : new Date().toISOString(),
+      time: event.startDate && event.endDate
+        ? `${event.startDate.toTimeString().slice(0, 5)} - ${event.endDate.toTimeString().slice(0, 5)}`
+        : "TBD",
+      location: event.location || "TBD",
+      description: event.description || "",
+      type: event.category || "Event",
+      capacity: event.capacity || 0,
+      registered: 0, // This will be updated with registration counts
+      difficulty: "Intermediate" as const,
+      tags: event.category ? [event.category] : ["Event"],
+      speakers: [],
+      prizes: [],
+      schedule: [],
+      pricing: event.pricing ? { normal: event.pricing.normal, extended: event.pricing.extended } : undefined,
+      deviceRequirements: {
+        types: event.requiredDeviceTypes || { mobile: false, desktop: false },
+        devices: event.requiredDevices || { mobile: [], desktop: [] },
+      },
+      minTeamMembers: event.minTeamMembers || 1,
+      maxTeamMembers: event.maxTeamMembers || 4,
+    }));
+
+    return { events: transformedEvents };
+  } catch (error) {
+    console.error("Error fetching public events:", error);
+    return { error: "Failed to fetch events" };
   }
 }

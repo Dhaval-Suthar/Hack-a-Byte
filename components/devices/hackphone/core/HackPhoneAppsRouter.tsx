@@ -49,7 +49,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   const sessionStartTime = useRef<number>(Date.now());
   
   // Phone number state for PhoneApp integration
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [phoneNumber] = useState<string>('');
 
   // Track app open
   useEffect(() => {
@@ -112,7 +112,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "maps":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <MapApp onClose={onClose} time={time} />
+            <MapApp time={time} />
           </Suspense>,
           appId
         );
@@ -171,14 +171,14 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "contacts":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
+            <PhoneApp time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
           </Suspense>,
           appId
         );
       case "phone":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
+            <PhoneApp time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
           </Suspense>,
           appId
         );

@@ -20,11 +20,10 @@ const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), {
 });
 
 interface MapAppProps {
-  onClose: () => void;
   time?: Date;
 }
 
-const MapApp: React.FC<MapAppProps> = ({ onClose }) => {
+const MapApp: React.FC<MapAppProps> = ({}) => {
   const [userLocation, setUserLocation] = useState({ lat: 19.2307, lng: 72.8567 }); // Borivali West, Mumbai
   const [mapCenter, setMapCenter] = useState({ lat: 19.2307, lng: 72.8567 });
   const [zoomLevel, setZoomLevel] = useState(13);

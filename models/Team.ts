@@ -55,7 +55,7 @@ const TeamSchema = new Schema<EventTeam>(
     // Event linkage
     registrationId: { type: String },
     eventId: { type: Schema.Types.Mixed },
-    numberOfPlayers: { type: Number, required: true, min: 1, max: 4 },
+  numberOfPlayers: { type: Number, required: true, min: 1 },
     accessCodeId: { type: mongoose.Schema.Types.ObjectId, ref: 'AccessCode' },
     playspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Playspace' },
     deviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Device' },
