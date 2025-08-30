@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, lazy, useEffect, useRef } from "react";
+import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { AppRouterProps } from "@/types/devices";
 import { TerminalApp } from "../apps/TerminalApp";
 import { NetworkScannerApp } from "../apps/NetworkScannerApp";
@@ -20,7 +20,6 @@ const MusicApp = lazy(() => import("../apps/MusicApp"));
 const PhoneApp = lazy(() => import("../apps/PhoneApp"));
 const ClockApp = lazy(() => import("../apps/ClockApp"));
 const CameraApp = lazy(() => import("../apps/CameraApp"));
-const ContactsApp = lazy(() => import("../apps/ContactsApp"));
 const FileApp = lazy(() => import("../apps/FileApp"));
 const GalleryApp = lazy(() => import("../apps/GalleryApp"));
 const StockMarketApp = lazy(() => import("../apps/StockMarketApp"));
@@ -48,6 +47,9 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
 }) => {
   const analytics = useAppAnalytics();
   const sessionStartTime = useRef<number>(Date.now());
+  
+  // Phone number state for PhoneApp integration
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
 
   // Track app open
   useEffect(() => {
@@ -60,14 +62,16 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       analytics.trackAppClose(appId, user?._id, sessionDuration);
     };
   }, [appId, user?._id, analytics]);
+
+  const wrapWithErrorBoundary = (app: React.ReactNode, appId: string) => (
+    <AppErrorBoundary appId={appId} key={appId}>
+      <div className="w-screen h-screen pb-20 overflow-hidden">
+        {app}
+      </div>
+    </AppErrorBoundary>
+  );
+
   const renderApp = () => {
-    const wrapWithErrorBoundary = (app: React.ReactNode, appId: string) => (
-      <AppErrorBoundary appId={appId} key={appId}>
-        <div className="w-screen h-screen pb-20 overflow-hidden">
-          {app}
-        </div>
-      </AppErrorBoundary>
-    );
 
     switch (appId) {
       // Inline apps (simple, no lazy loading needed)
@@ -167,14 +171,14 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "contacts":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <ContactsApp onClose={onClose} time={time} onOpenPhone={() => onOpenApp?.("phone")} />
+            <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
           </Suspense>,
           appId
         );
       case "phone":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={initialPhoneNumber} />
+            <PhoneApp onClose={onClose} time={time} onOpenContacts={() => onOpenApp?.("contacts")} initialPhoneNumber={phoneNumber || initialPhoneNumber} />
           </Suspense>,
           appId
         );

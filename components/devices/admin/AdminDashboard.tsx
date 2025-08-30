@@ -16,6 +16,8 @@ import PlayspacesTab from "./PlayspacesTab";
 import DevicesTab from "./DevicesTab";
 import EventsTab from "./EventsTab";
 import SponsorsTab from "./SponsorsTab";
+import AnalyticsDashboard from "./AnalyticsDashboard";
+import QuickActions from "./QuickActions";
 
 // Import server actions
 import {
@@ -58,7 +60,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProps) {
   // Tab and data state
-  const [activeTab, setActiveTab] = useState<TabType>("users");
+  const [activeTab, setActiveTab] = useState<TabType>("analytics");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [teams, setTeams] = useState<AdminTeam[]>([]);
   const [accessCodes, setAccessCodes] = useState<AdminAccessCode[]>([]);
@@ -93,6 +95,10 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
       try {
         // Use the appropriate server action based on the tab
         switch (tab) {
+          case "analytics": {
+            // Analytics data is loaded in the AnalyticsDashboard component
+            break;
+          }
           case "users": {
             const result = await getUsers(authKey);
             if (result.error) {
@@ -179,6 +185,10 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
       try {
         const promises = tabs.map(async (tab) => {
           switch (tab) {
+            case "analytics": {
+              // Analytics doesn't need server data
+              return { tab, data: null };
+            }
             case "users": {
               const result = await getUsers(authKey);
               if (result.error) throw new Error(result.error);
@@ -380,6 +390,32 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
       setTimeout(() => loadData("devices"), 0);
     }
   };
+
+  // Handle quick actions
+  const handleQuickAction = useCallback((action: string) => {
+    switch (action) {
+      case "generate-code":
+        setShowAccessCodeModal(true);
+        break;
+      case "create-user":
+        setActiveTab("users");
+        break;
+      case "create-team":
+        setActiveTab("teams");
+        break;
+      case "add-device":
+        setShowDeviceManagementModal(true);
+        break;
+      case "create-event":
+        setActiveTab("events");
+        break;
+      case "system-health":
+        setActiveTab("analytics");
+        break;
+      default:
+        break;
+    }
+  }, []);
 
   // Placeholder handlers for tab-specific actions
   const handleGenerateAccessCode = async (modalData?: {
@@ -865,6 +901,10 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
         <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
         
         <TabContentWrapper>
+          {activeTab === "analytics" && (
+            <AnalyticsDashboard authKey={authKey} onLogout={onLogout} />
+          )}
+
           {activeTab === "users" && (
             <UsersTab
               users={transformedUsers}
@@ -1027,6 +1067,7 @@ export default function AdminDashboard({ authKey, onLogout }: AdminDashboardProp
           description: selectedPlayspace.description
         } : null}
       />
+      <QuickActions onAction={handleQuickAction} />
     </div>
   );
 }

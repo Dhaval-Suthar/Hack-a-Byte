@@ -88,7 +88,7 @@ export interface AdminSponsorContact {
   updatedAt?: string;
 }
 
-export type TabType = "users" | "teams" | "accessCodes" | "playspaces" | "devices" | "events" | "sponsors";
+export type TabType = "analytics" | "users" | "teams" | "accessCodes" | "playspaces" | "devices" | "events" | "sponsors";
 
 // Transformed types for components
 export interface TransformedTeam extends AdminTeam {

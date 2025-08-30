@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
 interface FileUploadAuthProps {
@@ -151,75 +151,207 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
-      <motion.div 
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-900 border border-gray-700 rounded-xl p-8 max-w-md w-full"
+        transition={{ duration: 0.6 }}
+        className="max-w-md w-full"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 text-blue-500 mx-auto mb-4 text-6xl">🛡️</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Admin Authentication</h1>
-          <p className="text-gray-400">Upload your authentication key file to access the admin panel</p>
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="w-20 h-20 bg-gradient-to-br from-cyber-primary to-cyber-secondary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
+          >
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold text-white mb-2"
+          >
+            Admin Access
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-gray-400"
+          >
+            Upload your authentication key to access the admin panel
+          </motion.p>
         </div>
 
         <motion.div
-          className={`
-            border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer
-            ${isDragOver 
-              ? 'border-blue-500 bg-blue-500/10' 
-              : uploadStatus === 'success'
-              ? 'border-green-500 bg-green-500/10'
-              : uploadStatus === 'error'
-              ? 'border-red-500 bg-red-500/10'
-              : 'border-gray-600 hover:border-gray-500 hover:bg-gray-800/50'
-            }
-          `}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragOver(true);
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => document.getElementById('fileInput')?.click()}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 shadow-2xl"
         >
-          <input
-            id="fileInput"
-            type="file"
-            accept=".txt,.key,text/*"
-            onChange={handleFileSelect}
-            className="hidden"
-            disabled={isUploading}
-          />
-          
-          <div className="flex flex-col items-center space-y-4">
-            {getStatusIcon()}
-            <p className={`text-sm ${getStatusColor()}`}>
-              {getStatusText()}
-            </p>
-          </div>
-        </motion.div>
-
-        <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-sm font-medium text-white mb-2">Instructions:</h3>
-          <ul className="text-xs text-gray-400 space-y-1">
-            <li>&bull; Upload a text file (.txt or .key) containing your authentication key</li>
-            <li>&bull; File should contain only the authentication key string</li>
-            <li>&bull; Maximum file size: 1KB</li>
-            <li>&bull; Contact administrator if you don&apos;t have the key file</li>
-          </ul>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Link 
-            href="/device-selection" 
-            className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+          <motion.div
+            animate={isDragOver ? { scale: 1.02 } : { scale: 1 }}
+            className={`
+              border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer
+              ${isDragOver
+                ? 'border-cyber-primary bg-cyber-primary/10'
+                : uploadStatus === 'success'
+                ? 'border-green-500 bg-green-500/10'
+                : uploadStatus === 'error'
+                ? 'border-red-500 bg-red-500/10'
+                : 'border-gray-600 hover:border-gray-500'
+              }
+            `}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('fileInput')?.click()}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            ← Back to Home
-          </Link>
-        </div>
+            <input
+              id="fileInput"
+              type="file"
+              accept=".txt,.key,text/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isUploading}
+            />
+
+            <div className="flex flex-col items-center space-y-4">
+              <AnimatePresence mode="wait">
+                {isUploading && (
+                  <motion.div
+                    key="uploading"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="w-16 h-16 border-4 border-cyber-primary/30 border-t-cyber-primary rounded-full"
+                    transition={{ rotate: { duration: 2, repeat: Infinity, ease: "linear" } }}
+                  />
+                )}
+
+                {uploadStatus === 'success' && (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center"
+                  >
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </motion.div>
+                )}
+
+                {uploadStatus === 'error' && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center"
+                  >
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </motion.div>
+                )}
+
+                {!isUploading && uploadStatus === 'idle' && (
+                  <motion.div
+                    key="idle"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center"
+                  >
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={uploadStatus + isUploading}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`text-sm font-medium ${
+                    isUploading
+                      ? 'text-cyber-primary'
+                      : uploadStatus === 'success'
+                      ? 'text-green-400'
+                      : uploadStatus === 'error'
+                      ? 'text-red-400'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  {getStatusText()}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-6 p-4 bg-gray-800/50 rounded-xl border border-gray-700/30"
+          >
+            <h3 className="text-sm font-medium text-white mb-3 flex items-center">
+              <svg className="w-4 h-4 mr-2 text-cyber-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Instructions
+            </h3>
+            <ul className="text-xs text-gray-400 space-y-2">
+              <li className="flex items-start">
+                <span className="text-cyber-primary mr-2">•</span>
+                Upload a text file (.txt or .key) containing your authentication key
+              </li>
+              <li className="flex items-start">
+                <span className="text-cyber-primary mr-2">•</span>
+                File should contain only the authentication key string
+              </li>
+              <li className="flex items-start">
+                <span className="text-cyber-primary mr-2">•</span>
+                Maximum file size: 1KB
+              </li>
+              <li className="flex items-start">
+                <span className="text-cyber-primary mr-2">•</span>
+                Contact administrator if you don&apos;t have the key file
+              </li>
+            </ul>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="mt-6 text-center"
+          >
+            <Link
+              href="/"
+              className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Home
+            </Link>
+          </motion.div>
+        </motion.div>
       </motion.div>
     </div>
   );

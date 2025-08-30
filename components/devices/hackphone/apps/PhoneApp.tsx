@@ -351,29 +351,9 @@ const PhoneApp: React.FC<PhoneAppProps> = ({ onClose, onOpenContacts, initialPho
 
   const renderCallScreen = () => (
     <div className="w-full h-full bg-white text-black flex flex-col">
-      {/* Special call status bar */}
-      <div className="flex justify-between items-center px-4 pt-2 pb-1 text-white text-[11px] tracking-wide bg-green-600">
-        <div className="flex items-center space-x-1">
-          <div className="flex items-end space-x-[2px]">
-            <div className="w-[3px] h-[6px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[10px] bg-white rounded-[1px]" />
-            <div className="w-[3px] h-[8px] bg-white/60 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-white/40 rounded-[1px]" />
-          </div>
-          <span className="opacity-90">Verizon</span>
-          <span className="opacity-90">📶</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          {/* time removed */}
-          <div className="w-7 h-[14px] border border-white/70 rounded-[2px] relative">
-            <div className="absolute inset-[2px] w-[16px] bg-green-500 rounded-[1px]" />
-            <div className="w-[3px] h-[6px] bg-white/70 rounded-sm absolute -right-[5px] top-[4px]" />
-          </div>
-        </div>
-      </div>
+      {/* Header removed - no status bar */}
       
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center pt-8">
         {/* Contact info */}
         <div className="text-center mb-8">
           <div className="w-32 h-32 bg-gray-300 rounded-full flex items-center justify-center mb-4 mx-auto">
@@ -485,29 +465,6 @@ const PhoneApp: React.FC<PhoneAppProps> = ({ onClose, onOpenContacts, initialPho
         </div>
       </div>
       
-      {/* Home button */}
-      <div className="bg-gray-800 h-16 flex items-center justify-around">
-        <button
-          onClick={onClose}
-          className="text-blue-400 text-sm font-medium flex flex-col items-center"
-        >
-          <span className="text-lg mb-1">⌂</span>
-          <span className="text-xs">Home</span>
-        </button>
-        
-        <div className="text-white text-sm font-medium flex flex-col items-center">
-          <span className="text-lg mb-1">📞</span>
-          <span className="text-xs">Phone</span>
-        </div>
-        
-        <button
-          onClick={onOpenContacts}
-          className="text-green-400 text-sm font-medium flex flex-col items-center"
-        >
-          <span className="text-lg mb-1">👤</span>
-          <span className="text-xs">Contacts</span>
-        </button>
-      </div>
     </div>
   );
 };

@@ -1687,3 +1687,797 @@ export async function deleteAccessCode(codeId: string, adminKey?: string) {
     return { error: "Failed to delete access code" };
   }
 }
+
+// Analytics Actions
+export async function getAnalyticsData(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Get counts for all entities
+    const [
+      totalUsers,
+      totalTeams,
+      totalAccessCodes,
+      totalPlayspaces,
+      totalDevices,
+      totalEvents,
+      activeUsers
+    ] = await Promise.all([
+      User.countDocuments({}),
+      Team.countDocuments({}),
+      AccessCode.countDocuments({}),
+      Playspace.countDocuments({}),
+      Device.countDocuments({}),
+      Event.countDocuments({}),
+      // Active users (users who have been active in the last 24 hours)
+      User.countDocuments({
+        updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      })
+    ]);
+
+    // Get sponsor count safely
+    let totalSponsors = 0;
+    try {
+      if (mongoose.connection.db) {
+        totalSponsors = await mongoose.connection.db.collection('sponsorcontacts').countDocuments({});
+      }
+    } catch (error) {
+      console.warn("Could not fetch sponsor count:", error);
+    }
+
+    // Get recent activity (last 10 activities across all collections)
+    const recentActivities: Array<{
+      id: string;
+      type: string;
+      description: string;
+      timestamp: string;
+    }> = [];
+
+    // Get recent user registrations
+    const recentUsers = await User.find({})
+      .select("username email createdAt")
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .lean();
+
+    recentUsers.forEach(user => {
+      recentActivities.push({
+        id: `user-${user._id}`,
+        type: "user",
+        description: `New user registered: ${user.username}`,
+        timestamp: user.createdAt.toISOString()
+      });
+    });
+
+    // Get recent teams
+    const recentTeams = await Team.find({})
+      .select("name createdAt")
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .lean();
+
+    recentTeams.forEach(team => {
+      recentActivities.push({
+        id: `team-${team._id}`,
+        type: "team",
+        description: `Team '${team.name}' created`,
+        timestamp: team.createdAt.toISOString()
+      });
+    });
+
+    // Get recent devices
+    const recentDevices = await Device.find({})
+      .select("deviceMacAddress deviceType createdAt")
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .lean();
+
+    recentDevices.forEach(device => {
+      recentActivities.push({
+        id: `device-${device._id}`,
+        type: "device",
+        description: `New ${device.deviceType} device registered: ${device.deviceMacAddress}`,
+        timestamp: device.createdAt.toISOString()
+      });
+    });
+
+    // Sort activities by timestamp (most recent first)
+    recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const recentActivity = recentActivities.slice(0, 10);
+
+    // Get system health data (mock for now, can be enhanced with real system monitoring)
+    const systemHealth = {
+      status: 'healthy' as const,
+      uptime: await getSystemUptime(),
+      memoryUsage: await getMemoryUsage(),
+      cpuUsage: await getCpuUsage()
+    };
+
+    return {
+      totalUsers,
+      totalTeams,
+      totalAccessCodes,
+      totalPlayspaces,
+      totalDevices,
+      totalEvents,
+      totalSponsors,
+      activeUsers,
+      recentActivity,
+      systemHealth
+    };
+  } catch (error) {
+    console.error("Error fetching analytics data:", error);
+    return { error: "Failed to fetch analytics data" };
+  }
+}
+
+export async function getUserGrowthData(adminKey?: string, days: number = 30) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // Get user growth data
+    const userGrowth = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id": 1 }
+      }
+    ]);
+
+    // Get team growth data
+    const teamGrowth = await Team.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id": 1 }
+      }
+    ]);
+
+    return {
+      userGrowth,
+      teamGrowth,
+      period: { startDate, endDate, days }
+    };
+  } catch (error) {
+    console.error("Error fetching growth data:", error);
+    return { error: "Failed to fetch growth data" };
+  }
+}
+
+export async function getDeviceStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Get device statistics by type
+    const deviceStats = await Device.aggregate([
+      {
+        $group: {
+          _id: "$deviceType",
+          count: { $sum: 1 },
+          activeCount: {
+            $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+          }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    // Get device status distribution
+    const statusStats = await Device.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return {
+      deviceStats,
+      statusStats
+    };
+  } catch (error) {
+    console.error("Error fetching device stats:", error);
+    return { error: "Failed to fetch device stats" };
+  }
+}
+
+export async function getAccessCodeStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Get access code statistics
+    const totalCodes = await AccessCode.countDocuments({});
+    const activeCodes = await AccessCode.countDocuments({ isActive: true });
+    const usedCodes = await AccessCode.countDocuments({ usageCount: { $gt: 0 } });
+
+    // Get usage statistics
+    const usageStats = await AccessCode.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUsage: { $sum: "$usageCount" },
+          avgUsage: { $avg: "$usageCount" },
+          maxUsage: { $max: "$usageCount" }
+        }
+      }
+    ]);
+
+    return {
+      totalCodes,
+      activeCodes,
+      usedCodes,
+      usageStats: usageStats[0] || { totalUsage: 0, avgUsage: 0, maxUsage: 0 }
+    };
+  } catch (error) {
+    console.error("Error fetching access code stats:", error);
+    return { error: "Failed to fetch access code stats" };
+  }
+}
+
+// System monitoring functions (basic implementations)
+async function getSystemUptime(): Promise<string> {
+  try {
+    // In a real application, you might use process.uptime() or external monitoring
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+
+    return `${days}d ${hours}h ${minutes}m`;
+  } catch {
+    return "Unknown";
+  }
+}
+
+async function getMemoryUsage(): Promise<number> {
+  try {
+    const memUsage = process.memoryUsage();
+    const used = memUsage.heapUsed;
+    const total = memUsage.heapTotal;
+    return Math.round((used / total) * 100);
+  } catch {
+    return 0;
+  }
+}
+
+async function getCpuUsage(): Promise<number> {
+  try {
+    // Basic CPU usage estimation
+    const startUsage = process.cpuUsage();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const endUsage = process.cpuUsage(startUsage);
+
+    const totalUsage = endUsage.user + endUsage.system;
+    const usagePercent = (totalUsage / 1000000) * 100; // Convert to percentage
+
+    return Math.min(Math.round(usagePercent), 100);
+  } catch {
+    return 0;
+  }
+}
+
+// Tournament Management Actions
+export async function getTournaments(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock tournament data since we don't have a Tournament model
+    // In a real implementation, you'd query the Tournament collection
+    const mockTournaments = [
+      {
+        _id: "tournament-1",
+        name: "CryptoHeist Championship 2025",
+        description: "The ultimate PvP cryptocurrency tournament",
+        startDate: new Date("2025-09-01T10:00:00Z").toISOString(),
+        endDate: new Date("2025-09-02T18:00:00Z").toISOString(),
+        status: "upcoming" as const,
+        maxTeams: 32,
+        registeredTeams: 24,
+        prizePool: 50000,
+        gameMode: "tournament",
+        createdAt: new Date("2025-08-01T00:00:00Z").toISOString()
+      },
+      {
+        _id: "tournament-2",
+        name: "Quick Heist Challenge",
+        description: "Fast-paced 30-minute matches",
+        startDate: new Date("2025-08-30T14:00:00Z").toISOString(),
+        endDate: new Date("2025-08-30T16:00:00Z").toISOString(),
+        status: "active" as const,
+        maxTeams: 16,
+        registeredTeams: 12,
+        prizePool: 10000,
+        gameMode: "quick",
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      }
+    ];
+
+    return { tournaments: mockTournaments };
+  } catch (error) {
+    console.error("Error fetching tournaments:", error);
+    return { error: "Failed to fetch tournaments" };
+  }
+}
+
+export async function createTournament(
+  name: string,
+  description: string,
+  startDate: string,
+  endDate: string,
+  maxTeams: number,
+  prizePool: number,
+  gameMode: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate input
+    if (!name || !startDate || !endDate) {
+      return { error: "Missing required fields" };
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      return { error: "End date must be after start date" };
+    }
+
+    // In a real implementation, you'd create a Tournament document
+    // For now, we'll return a mock success response
+    const newTournament = {
+      _id: `tournament-${Date.now()}`,
+      name,
+      description,
+      startDate,
+      endDate,
+      status: "upcoming" as const,
+      maxTeams: maxTeams || 16,
+      registeredTeams: 0,
+      prizePool: prizePool || 0,
+      gameMode: gameMode || "standard",
+      createdAt: new Date().toISOString()
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Tournament created successfully",
+      tournament: newTournament
+    };
+  } catch (error) {
+    console.error("Error creating tournament:", error);
+    return { error: "Failed to create tournament" };
+  }
+}
+
+export async function updateTournament(
+  tournamentId: string,
+  updates: {
+    name?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    maxTeams?: number;
+    prizePool?: number;
+    gameMode?: string;
+    status?: string;
+  },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd update the Tournament document
+    // For now, we'll return a mock success response
+    const updatedTournament = {
+      _id: tournamentId,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Tournament updated successfully",
+      tournament: updatedTournament
+    };
+  } catch (error) {
+    console.error("Error updating tournament:", error);
+    return { error: "Failed to update tournament" };
+  }
+}
+
+export async function deleteTournament(tournamentId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd delete the Tournament document
+    // For now, we'll return a mock success response
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Tournament deleted successfully"
+    };
+  } catch (error) {
+    console.error("Error deleting tournament:", error);
+    return { error: "Failed to delete tournament" };
+  }
+}
+
+// Game Session Management Actions
+export async function getGameSessions(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock game session data
+    // In a real implementation, you'd query the GameSession collection
+    const mockSessions = [
+      {
+        _id: "session-1",
+        tournamentId: "tournament-2",
+        team1Id: "team-1",
+        team2Id: "team-2",
+        team1Name: "CryptoKings",
+        team2Name: "DigitalThieves",
+        status: "active" as const,
+        startTime: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+        team1Score: 1250,
+        team2Score: 980,
+        duration: 900, // 15 minutes in seconds
+      },
+      {
+        _id: "session-2",
+        tournamentId: "tournament-2",
+        team1Id: "team-3",
+        team2Id: "team-4",
+        team1Name: "HackMasters",
+        team2Name: "CodeBreakers",
+        status: "waiting" as const,
+        startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+        team1Score: 0,
+        team2Score: 0,
+        duration: 300, // 5 minutes in seconds
+      }
+    ];
+
+    return { sessions: mockSessions };
+  } catch (error) {
+    console.error("Error fetching game sessions:", error);
+    return { error: "Failed to fetch game sessions" };
+  }
+}
+
+export async function createGameSession(
+  tournamentId: string,
+  team1Id: string,
+  team2Id: string,
+  team1Name: string,
+  team2Name: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd create a GameSession document
+    const newSession = {
+      _id: `session-${Date.now()}`,
+      tournamentId,
+      team1Id,
+      team2Id,
+      team1Name,
+      team2Name,
+      status: "waiting" as const,
+      startTime: new Date().toISOString(),
+      team1Score: 0,
+      team2Score: 0,
+      duration: 0
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session created successfully",
+      session: newSession
+    };
+  } catch (error) {
+    console.error("Error creating game session:", error);
+    return { error: "Failed to create game session" };
+  }
+}
+
+export async function updateGameSessionScore(
+  sessionId: string,
+  team1Score: number,
+  team2Score: number,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd update the GameSession document
+    const updatedSession = {
+      _id: sessionId,
+      team1Score,
+      team2Score,
+      updatedAt: new Date().toISOString()
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session scores updated successfully",
+      session: updatedSession
+    };
+  } catch (error) {
+    console.error("Error updating game session:", error);
+    return { error: "Failed to update game session" };
+  }
+}
+
+export async function endGameSession(
+  sessionId: string,
+  winnerId: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd update the GameSession document
+    const endedSession = {
+      _id: sessionId,
+      status: "completed" as const,
+      winner: winnerId,
+      endTime: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session ended successfully",
+      session: endedSession
+    };
+  } catch (error) {
+    console.error("Error ending game session:", error);
+    return { error: "Failed to end game session" };
+  }
+}
+
+// Team Management Actions
+export async function getTournamentTeams(tournamentId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock team data
+    // In a real implementation, you'd query teams by tournament
+    const mockTeams = [
+      {
+        _id: "team-1",
+        name: "CryptoKings",
+        captain: "user-1",
+        members: ["user-1", "user-2", "user-3"],
+        tournamentId,
+        status: "active" as const,
+        walletAddress: "1A2B3C4D5E6F",
+        currentBalance: 1250,
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      },
+      {
+        _id: "team-2",
+        name: "DigitalThieves",
+        captain: "user-4",
+        members: ["user-4", "user-5", "user-6"],
+        tournamentId,
+        status: "active" as const,
+        walletAddress: "2B3C4D5E6F7G",
+        currentBalance: 980,
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      }
+    ];
+
+    return { teams: mockTeams };
+  } catch (error) {
+    console.error("Error fetching tournament teams:", error);
+    return { error: "Failed to fetch tournament teams" };
+  }
+}
+
+// Leaderboard Actions
+export async function getLeaderboards(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock leaderboard data
+    // In a real implementation, you'd aggregate data from games and tournaments
+    const globalLeaderboard = [
+      { rank: 1, teamName: "CryptoKings", totalEarnings: 15420, wins: 12, losses: 2 },
+      { rank: 2, teamName: "DigitalThieves", totalEarnings: 12890, wins: 10, losses: 4 },
+      { rank: 3, teamName: "HackMasters", totalEarnings: 11250, wins: 9, losses: 5 },
+      { rank: 4, teamName: "CodeBreakers", totalEarnings: 9870, wins: 8, losses: 6 },
+      { rank: 5, teamName: "CyberNinjas", totalEarnings: 8760, wins: 7, losses: 7 }
+    ];
+
+    const currentTournamentLeaderboard = [
+      { rank: 1, teamName: "CryptoKings", score: 1250, status: "active" },
+      { rank: 2, teamName: "DigitalThieves", score: 980, status: "active" },
+      { rank: 3, teamName: "HackMasters", score: 750, status: "eliminated" },
+      { rank: 4, teamName: "CodeBreakers", score: 620, status: "waiting" }
+    ];
+
+    return {
+      globalLeaderboard,
+      currentTournamentLeaderboard
+    };
+  } catch (error) {
+    console.error("Error fetching leaderboards:", error);
+    return { error: "Failed to fetch leaderboards" };
+  }
+}
+
+// Wallet/Crypto Management Actions
+export async function getWalletStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock wallet statistics
+    // In a real implementation, you'd aggregate wallet data
+    const walletStats = {
+      totalWallets: 156,
+      activeWallets: 89,
+      totalBalance: 456780, // Total crypto across all wallets
+      averageBalance: 2920,
+      topWallets: [
+        { address: "1A2B3C4D5E6F", balance: 15420, owner: "CryptoKings" },
+        { address: "2B3C4D5E6F7G", balance: 12890, owner: "DigitalThieves" },
+        { address: "3C4D5E6F7G8H", balance: 11250, owner: "HackMasters" }
+      ],
+      recentTransactions: [
+        {
+          id: "tx-1",
+          from: "1A2B3C4D5E6F",
+          to: "2B3C4D5E6F7G",
+          amount: 500,
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          type: "transfer"
+        },
+        {
+          id: "tx-2",
+          from: "system",
+          to: "3C4D5E6F7G8H",
+          amount: 1000,
+          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+          type: "mining"
+        }
+      ]
+    };
+
+    return { walletStats };
+  } catch (error) {
+    console.error("Error fetching wallet stats:", error);
+    return { error: "Failed to fetch wallet stats" };
+  }
+}

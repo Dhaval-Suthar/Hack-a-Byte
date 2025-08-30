@@ -93,6 +93,7 @@ export const clearStoredAuthState = () => {
 export const ITEMS_PER_PAGE = 10;
 
 export const TAB_LABELS: Record<string, string> = {
+  analytics: "Analytics",
   users: "Users",
   teams: "Teams",
   accessCodes: "Access Codes",
