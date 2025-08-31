@@ -31,11 +31,11 @@ export const API_ENDPOINTS = {
 // Team roles based on team size
 export const TEAM_ROLES = {
   // For 1-2 players
-  SMALL_TEAM: ['professor', 'tokyo'],
-  // For 3-4 players
-  MEDIUM_TEAM: ['professor', 'tokyo', 'berlin', 'nairobi'],
-  // For 5-6 players
-  LARGE_TEAM: ['professor', 'tokyo', 'rio', 'berlin', 'nairobi', 'denver'],
+  SMALL_TEAM: ['professor', 'berlin'],
+  // For 3 players
+  MEDIUM_TEAM: ['professor', 'berlin', 'tokyo', 'rio'],
+  // For 4-6 players
+  LARGE_TEAM: ['professor', 'berlin', 'tokyo', 'rio', 'nairobi', 'denver'],
 } as const;
 
 // Role limits per team size
