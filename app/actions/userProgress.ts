@@ -8,6 +8,7 @@ import Device from "@/models/Device";
 import DeviceUser, { MissionProgress, UserGameState } from "@/models/DeviceUser";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { ROLE_LIMITS } from "@/lib/constants/app-constants";
 
 export async function getAvailableRoles(accessCode: string) {
   try {
@@ -23,15 +24,28 @@ export async function getAvailableRoles(accessCode: string) {
       return { success: false, error: "No team found for this code" };
     }
 
-    const members = team.teamMembers as unknown as TeamMemberType[];
-    const takenRoles = new Set(
-      members.filter((m: TeamMemberType) => !!m.role).map((m: TeamMemberType) => String(m.role))
-    );
-    // Static roles for now; can be made dynamic per event
-    const roles = ["Leader", "Hacker", "Analyst", "Defender"];
-    const available = roles.filter(r => !takenRoles.has(r));
+  const members = team.teamMembers as unknown as TeamMemberType[];
+    const teamSize = team.numberOfPlayers;
+    const roleLimits = ROLE_LIMITS[teamSize as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
 
-    return { success: true, teamId: team._id.toString(), availableRoles: available, totalSlots: team.numberOfPlayers };
+    // Count current role assignments
+    const roleCounts: Record<string, number> = {};
+    members.forEach((member: TeamMemberType) => {
+      if (member.role) {
+        const normalized = member.role.toLowerCase();
+        roleCounts[normalized] = (roleCounts[normalized] || 0) + 1;
+      }
+    });
+
+    // Get available roles based on limits
+    const availableRoles: string[] = [];
+    Object.entries(roleLimits).forEach(([role, limit]) => {
+      const currentCount = roleCounts[role] || 0;
+      if (currentCount < limit) {
+        availableRoles.push(role);
+      }
+    });
+    return { success: true, teamId: team._id.toString(), availableRoles, totalSlots: team.numberOfPlayers };
   } catch (error) {
     console.error("Error getting available roles:", error);
     return { success: false, error: "Failed to fetch roles" };
@@ -59,10 +73,15 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     }
   const members: TeamMemberType[] = (team.teamMembers as unknown as TeamMemberType[]) || [];
 
-    // Prevent duplicate roles in the same team
-  const roleExists = members.some((m: TeamMemberType) => m.role === role);
-    if (roleExists) {
-      return { success: false, error: `Role "${role}" is already taken by another team member` };
+    // Check if role is available based on team size limits
+    const teamSize = team.numberOfPlayers;
+    const roleLimits = ROLE_LIMITS[teamSize as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
+  const normalizedRole = role.toLowerCase();
+  const currentRoleCount = members.filter((m: TeamMemberType) => m.role && m.role.toLowerCase() === normalizedRole).length;
+  const maxAllowed = roleLimits[normalizedRole as keyof typeof roleLimits] || 0;
+
+    if (currentRoleCount >= maxAllowed) {
+      return { success: false, error: `Role "${role}" limit reached for this team size` };
     }
 
     // Find first available member slot
@@ -72,7 +91,7 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     }
 
     team.teamMembers[memberIndex].username = username;
-    team.teamMembers[memberIndex].role = role;
+  team.teamMembers[memberIndex].role = normalizedRole;
     team.teamMembers[memberIndex].accessCodeUsed = true;
     team.teamMembers[memberIndex].accessCodeUsedAt = new Date();
 

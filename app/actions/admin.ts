@@ -490,7 +490,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
     // Initialize member slots
     const teamMembers = Array.from({ length: numberOfPlayers }, () => ({ accessCodeUsed: false }));
 
-    // Create new team
+  // Create new team (playspace & access code will be generated just after and then linked back)
     const newTeam = new Team({
       name: name.trim(),
       description: description?.trim() || "",
@@ -514,7 +514,8 @@ export async function createTeam(name: string, description: string, numberOfPlay
     await newTeam.save();
 
     // Create playspace and device for the team
-    try {
+  let generatedAccessCode: string | undefined;
+  try {
       const playspaceResult = await createAccessCodeAndPlayspace({
         numberOfPlayers,
         playingDevice,
@@ -524,9 +525,17 @@ export async function createTeam(name: string, description: string, numberOfPlay
       });
 
       if (playspaceResult.success) {
-        // Update team with playspace and device references
-        newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
-        newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+    generatedAccessCode = playspaceResult.accessCode;
+        // Update team with playspace, device & access code references
+        if (playspaceResult.playspaceId) {
+          newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
+        }
+        if (playspaceResult.deviceId) {
+          newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+        }
+        if (playspaceResult.accessCodeId) {
+          newTeam.accessCodeId = new mongoose.Types.ObjectId(playspaceResult.accessCodeId);
+        }
         await newTeam.save();
       } else {
         console.warn("Failed to create playspace and device for team:", playspaceResult.error);
@@ -550,6 +559,10 @@ export async function createTeam(name: string, description: string, numberOfPlay
         members: newTeam.members.length,
         numberOfPlayers: newTeam.numberOfPlayers,
         walletAddress: newTeam.wallet.walletAddress,
+        accessCodeId: newTeam.accessCodeId ? newTeam.accessCodeId.toString() : undefined,
+        playspaceId: newTeam.playspaceId ? newTeam.playspaceId.toString() : undefined,
+        deviceId: newTeam.deviceId ? newTeam.deviceId.toString() : undefined,
+        accessCode: generatedAccessCode,
       },
     };
   } catch (error) {
