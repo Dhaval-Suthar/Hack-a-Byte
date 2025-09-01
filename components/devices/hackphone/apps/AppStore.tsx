@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
+import { User } from "@/types/devices";
+import { getPlayspaceId } from "@/lib/playspace-utils";
 
 interface AppStoreProps {
   onClose?: () => void;
   time: Date;
+  user?: User | null;
 }
 
 type Category = "virus" | "worm" | "ransomware";
@@ -33,15 +36,15 @@ interface DeploymentData {
 
 // Reuse the BlackMart catalog data (duplicated here for isolation and to avoid a breaking refactor)
 const CATALOG: StoreItem[] = [
-  { id: 'virus-001', name: 'SysTrojan Pro', category: 'virus', description: 'Advanced system infiltrator that embeds deep into the target OS. Provides persistent backdoor access with military-grade stealth capabilities.', price: 299, icon: '🦠', requirements: ['Target MAC Address', 'Network Access'], rating: 4.8, downloadCount: '15.2K', version: '3.2.1', developer: 'Dark Systems Inc.', size: '12.5 MB', isPopular: true },
-  { id: 'virus-002', name: 'StealthViral', category: 'virus', description: 'Polymorphic virus that mutates to avoid detection. Self-replicating with advanced rootkit capabilities and signature evasion.', price: 450, icon: '🔍', requirements: ['Target MAC Address', 'Admin Privileges'], rating: 4.6, downloadCount: '8.7K', version: '2.1.4', developer: 'Phantom Labs', size: '8.9 MB' },
-  { id: 'virus-003', name: 'DataMiner X', category: 'virus', description: 'Harvests credentials, browser data, and system information. Silent operation with encrypted exfiltration protocols.', price: 199, icon: '⛏️', requirements: ['Target MAC Address'], rating: 4.4, downloadCount: '22.1K', version: '1.8.3', developer: 'DeepVault Corp', size: '5.2 MB' },
-  { id: 'worm-001', name: 'EmailSpread Pro', category: 'worm', description: 'Self-propagating email worm. Harvests contact lists and spreads sophisticated phishing campaigns automatically across networks.', price: 350, icon: '📧', requirements: ['Target IP Address', 'SMTP Server'], rating: 4.7, downloadCount: '12.5K', version: '4.0.2', developer: 'NetCrawl Solutions', size: '15.8 MB', isPopular: true },
-  { id: 'worm-002', name: 'NetCrawler', category: 'worm', description: 'Network-spreading worm that exploits vulnerabilities. Creates distributed botnet infrastructure for large-scale operations.', price: 520, icon: '🕷️', requirements: ['Target IP Range', 'Port Scanner'], rating: 4.9, downloadCount: '9.3K', version: '5.1.0', developer: 'Web Syndicate', size: '28.4 MB' },
-  { id: 'worm-003', name: 'SocialHook', category: 'worm', description: 'Social media worm that spreads through messaging platforms. Advanced social engineering with contact harvesting.', price: 275, icon: '🪝', requirements: ['Target IP Address', 'Social Platform Access'], rating: 4.2, downloadCount: '18.9K', version: '2.7.1', developer: 'Social Breach LLC', size: '7.3 MB' },
-  { id: 'ransom-001', name: 'CryptoLocker Elite', category: 'ransomware', description: 'Military-grade file encryption ransomware. Deploys professional fake recovery sites with integrated payment systems.', price: 899, icon: '🔒', requirements: ['Domain Name', 'Web Hosting', 'Crypto Wallet'], rating: 4.9, downloadCount: '3.2K', version: '6.0.1', developer: 'Cipher Works', size: '45.2 MB', isPopular: true },
-  { id: 'ransom-002', name: 'FakeBank Portal', category: 'ransomware', description: 'Creates convincing banking site replicas. Advanced phishing with real-time credential capture and payment processing.', price: 650, icon: '🏦', requirements: ['Domain Name', 'SSL Certificate'], rating: 4.5, downloadCount: '7.8K', version: '1.9.8', developer: 'Financial Phantoms', size: '32.1 MB' },
-  { id: 'ransom-003', name: 'SystemLock Pro', category: 'ransomware', description: 'System-wide encryption with custom payment portal. Includes psychological pressure tactics and deadline enforcement.', price: 750, icon: '🚫', requirements: ['Domain Name', 'Payment Gateway'], rating: 4.6, downloadCount: '5.1K', version: '3.4.5', developer: 'Lock & Key Systems', size: '38.7 MB' },
+  { id: 'virus-001', name: 'SysTrojan Pro', category: 'virus', description: 'Advanced system infiltrator that embeds deep into the target OS. Provides persistent backdoor access with military-grade stealth capabilities.', price: 150, icon: '🦠', requirements: ['Target MAC Address', 'Network Access'], rating: 4.8, downloadCount: '15.2K', version: '3.2.1', developer: 'Dark Systems Inc.', size: '12.5 MB', isPopular: true },
+  { id: 'virus-002', name: 'StealthViral', category: 'virus', description: 'Polymorphic virus that mutates to avoid detection. Self-replicating with advanced rootkit capabilities and signature evasion.', price: 225, icon: '🔍', requirements: ['Target MAC Address', 'Admin Privileges'], rating: 4.6, downloadCount: '8.7K', version: '2.1.4', developer: 'Phantom Labs', size: '8.9 MB' },
+  { id: 'virus-003', name: 'DataMiner X', category: 'virus', description: 'Harvests credentials, browser data, and system information. Silent operation with encrypted exfiltration protocols.', price: 120, icon: '⛏️', requirements: ['Target MAC Address'], rating: 4.4, downloadCount: '22.1K', version: '1.8.3', developer: 'DeepVault Corp', size: '5.2 MB' },
+  { id: 'worm-001', name: 'EmailSpread Pro', category: 'worm', description: 'Self-propagating email worm. Harvests contact lists and spreads sophisticated phishing campaigns automatically across networks.', price: 200, icon: '📧', requirements: ['Target IP Address', 'SMTP Server'], rating: 4.7, downloadCount: '12.5K', version: '4.0.2', developer: 'NetCrawl Solutions', size: '15.8 MB', isPopular: true },
+  { id: 'worm-002', name: 'NetCrawler', category: 'worm', description: 'Network-spreading worm that exploits vulnerabilities. Creates distributed botnet infrastructure for large-scale operations.', price: 300, icon: '🕷️', requirements: ['Target IP Range', 'Port Scanner'], rating: 4.9, downloadCount: '9.3K', version: '5.1.0', developer: 'Web Syndicate', size: '28.4 MB' },
+  { id: 'worm-003', name: 'SocialHook', category: 'worm', description: 'Social media worm that spreads through messaging platforms. Advanced social engineering with contact harvesting.', price: 175, icon: '🪝', requirements: ['Target IP Address', 'Social Platform Access'], rating: 4.2, downloadCount: '18.9K', version: '2.7.1', developer: 'Social Breach LLC', size: '7.3 MB' },
+  { id: 'ransom-001', name: 'CryptoLocker Elite', category: 'ransomware', description: 'Military-grade file encryption ransomware. Deploys professional fake recovery sites with integrated payment systems.', price: 500, icon: '🔒', requirements: ['Domain Name', 'Web Hosting', 'Crypto Wallet'], rating: 4.9, downloadCount: '3.2K', version: '6.0.1', developer: 'Cipher Works', size: '45.2 MB', isPopular: true },
+  { id: 'ransom-002', name: 'FakeBank Portal', category: 'ransomware', description: 'Creates convincing banking site replicas. Advanced phishing with real-time credential capture and payment processing.', price: 350, icon: '🏦', requirements: ['Domain Name', 'SSL Certificate'], rating: 4.5, downloadCount: '7.8K', version: '1.9.8', developer: 'Financial Phantoms', size: '32.1 MB' },
+  { id: 'ransom-003', name: 'SystemLock Pro', category: 'ransomware', description: 'System-wide encryption with custom payment portal. Includes psychological pressure tactics and deadline enforcement.', price: 400, icon: '🚫', requirements: ['Domain Name', 'Payment Gateway'], rating: 4.6, downloadCount: '5.1K', version: '3.4.5', developer: 'Lock & Key Systems', size: '38.7 MB' },
 ];
 
 type TabKey = "featured" | "categories" | "top" | "search" | "updates";
@@ -60,7 +63,7 @@ function parseDownloads(d: string): number {
   return isNaN(n) ? 0 : n;
 }
 
-const AppStore: React.FC<AppStoreProps> = ({ time }) => {
+const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
   const [tab, setTab] = useState<TabKey>("featured");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"all" | Category>("all");
@@ -70,6 +73,43 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
   const [purchaseItem, setPurchaseItem] = useState<StoreItem | null>(null);
   const [deployItem, setDeployItem] = useState<StoreItem | null>(null);
   const [deployData, setDeployData] = useState<DeploymentData>({});
+  const [teamBalance, setTeamBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch team balance and devices on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const playspaceId = getPlayspaceId();
+
+        // Fetch team balance
+        const teamResponse = await fetch('/api/team', {
+          headers: {
+            'x-playspace-id': playspaceId || '',
+          },
+        });
+        if (teamResponse.ok) {
+          const teamData = await teamResponse.json();
+          if (teamData.success) {
+            const balance = Number(teamData.bitcoinBalance) || 0;
+            console.log('Fetched team balance:', balance);
+            setTeamBalance(balance);
+            
+            // Load purchased malware from database
+            const purchasedMalware = teamData.purchasedMalware || [];
+            console.log('Fetched purchased malware:', purchasedMalware);
+            setPurchased(new Set(purchasedMalware));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const featured = useMemo(() => CATALOG.filter(i => i.isPopular), []);
   const top = useMemo(() => {
@@ -96,25 +136,219 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
     setShowPurchase(true);
   }, []);
 
-  const confirmPurchase = useCallback(() => {
+  const confirmPurchase = useCallback(async () => {
     if (!purchaseItem) return;
-    setPurchased(prev => new Set(prev).add(purchaseItem.id));
-    setShowPurchase(false);
-    setPurchaseItem(null);
-  }, [purchaseItem]);
+
+    // Refresh balance before checking
+    let currentBalance = teamBalance;
+    try {
+      const playspaceId = getPlayspaceId();
+      const teamResponse = await fetch('/api/team', {
+        headers: {
+          'x-playspace-id': playspaceId || '',
+        },
+      });
+      if (teamResponse.ok) {
+        const teamData = await teamResponse.json();
+        if (teamData.success) {
+          currentBalance = Number(teamData.bitcoinBalance) || 0;
+          setTeamBalance(currentBalance);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
+
+    const itemPrice = Number(purchaseItem.price);
+
+    console.log('Purchase attempt:', {
+      currentBalance,
+      itemPrice,
+      itemName: purchaseItem.name,
+      hasEnough: currentBalance >= itemPrice
+    });
+
+    // Check if team has enough bitcoins
+    if (currentBalance < itemPrice) {
+      alert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`);
+      return;
+    }
+
+    try {
+      // Deduct bitcoins from team wallet
+      const playspaceId = getPlayspaceId();
+      const response = await fetch('/api/team', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-playspace-id': playspaceId || '',
+        },
+        body: JSON.stringify({
+          operation: 'subtract',
+          amount: itemPrice,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const newBalance = Number(data.bitcoinBalance) || 0;
+          console.log('Purchase successful, new balance:', newBalance);
+          setTeamBalance(newBalance);
+          
+          // Save purchased malware to database
+          const malwarePlayspaceId = getPlayspaceId();
+          console.log('Saving malware purchase:', {
+            malwareId: purchaseItem.id,
+            playspaceId: malwarePlayspaceId
+          });
+          
+          const malwareResponse = await fetch('/api/team', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-playspace-id': malwarePlayspaceId || '',
+            },
+            body: JSON.stringify({
+              operation: 'purchaseMalware',
+              malwareId: purchaseItem.id,
+            }),
+          });
+          
+          if (malwareResponse.ok) {
+            const malwareData = await malwareResponse.json();
+            if (malwareData.success) {
+              console.log('Malware purchase saved to database:', malwareData.purchasedMalware);
+              setPurchased(prev => new Set(prev).add(purchaseItem.id));
+              setShowPurchase(false);
+              setPurchaseItem(null);
+              alert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`);
+            } else {
+              console.error('Failed to save malware purchase:', malwareData);
+              alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+              setShowPurchase(false);
+              setPurchaseItem(null);
+            }
+          } else {
+            const errorText = await malwareResponse.text();
+            console.error('Malware purchase API failed:', malwareResponse.status, errorText);
+            alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+            setShowPurchase(false);
+            setPurchaseItem(null);
+          }
+        } else {
+          alert('Failed to process purchase: ' + (data.error || 'Unknown error'));
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Purchase failed:', response.status, errorText);
+        alert('Failed to process purchase. Please try again.');
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      alert('Failed to process purchase. Please try again.');
+    }
+  }, [purchaseItem, teamBalance]);
 
   const onDeploy = useCallback((item: StoreItem) => {
     setDeployItem(item);
     setDeployData({});
   }, []);
 
-  const executeDeploy = useCallback(() => {
+  const executeDeploy = useCallback(async () => {
     if (!deployItem) return;
-    // Simulation only
-    alert(`${deployItem.name} deployed successfully!`);
-    setDeployItem(null);
-    setDeployData({});
-  }, [deployItem]);
+
+    // Validate deployment data based on malware type
+    let isValidTarget = false;
+    let targetInfo = '';
+
+    if (deployItem.category === 'virus' && deployData.macAddress) {
+      // Basic MAC address validation
+      const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+      isValidTarget = macRegex.test(deployData.macAddress.trim());
+      targetInfo = deployData.macAddress.trim();
+    } else if (deployItem.category === 'worm' && deployData.ipAddress) {
+      // Basic IP address validation
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      isValidTarget = ipRegex.test(deployData.ipAddress.trim());
+      targetInfo = deployData.ipAddress.trim();
+    } else if (deployItem.category === 'ransomware' && deployData.domainName) {
+      // Basic domain validation
+      const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+      isValidTarget = domainRegex.test(deployData.domainName.trim()) && deployData.domainName.trim().length > 0;
+      targetInfo = deployData.domainName.trim();
+    }
+
+    if (!isValidTarget) {
+      alert('Please enter a valid target address in the correct format.');
+      return;
+    }
+
+    try {
+      // Simulate deployment with manual address entry
+      const deploymentMessage = `${deployItem.name} deployed successfully!`;
+      let effectMessage = '';
+
+      if (deployItem.category === 'virus') {
+        effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
+      } else if (deployItem.category === 'worm') {
+        effectMessage = `🕷️ Worm spreading from ${targetInfo}. Network propagation initiated.`;
+      } else if (deployItem.category === 'ransomware') {
+        effectMessage = `🔒 Ransomware deployed. Target systems encrypted. Payment portal active at ${targetInfo}.`;
+      }
+
+      // Remove the deployed malware from purchased list
+      const deployPlayspaceId = getPlayspaceId();
+      console.log('Removing deployed malware from purchased list:', {
+        malwareId: deployItem.id,
+        playspaceId: deployPlayspaceId
+      });
+
+      const deployResponse = await fetch('/api/team', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-playspace-id': deployPlayspaceId || '',
+        },
+        body: JSON.stringify({
+          operation: 'deployMalware',
+          malwareId: deployItem.id,
+        }),
+      });
+
+      if (deployResponse.ok) {
+        const deployData = await deployResponse.json();
+        if (deployData.success) {
+          console.log('Malware removed from purchased list:', deployData.purchasedMalware);
+          // Update local state to remove the deployed malware
+          setPurchased(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(deployItem.id);
+            return newSet;
+          });
+
+          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`);
+
+          setDeployItem(null);
+          setDeployData({});
+        } else {
+          console.error('Failed to remove malware from purchased list:', deployData);
+          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+          setDeployItem(null);
+          setDeployData({});
+        }
+      } else {
+        const errorText = await deployResponse.text();
+        console.error('Deploy API failed:', deployResponse.status, errorText);
+        alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+        setDeployItem(null);
+        setDeployData({});
+      }
+    } catch (error) {
+      console.error('Deployment error:', error);
+      alert('Deployment failed. Please try again.');
+    }
+  }, [deployItem, deployData]);
 
   const getCategoryBadge = (cat: Category) => ({
     virus: "bg-red-500",
@@ -145,7 +379,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
                   onClick={(e) => { e.stopPropagation(); onPurchase(item); }}
                   className="text-white text-[12px] font-semibold px-2 py-1 rounded bg-gradient-to-b from-[#67B1FF] to-[#2B7BE8] border border-[#1C5DBA] shadow"
                 >
-                  {(item.price && item.price > 0 ? `$${item.price}` : 'GET')} ›
+                  ₿{item.price}
                 </button>
               )}
             </div>
@@ -171,10 +405,48 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
             <span className="text-white/90 text-xs">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
           <div className="text-[15px] font-bold tracking-wide">App Store</div>
+          <div className="absolute right-0 top-0 bottom-0 flex items-center space-x-2">
+            <button
+              onClick={async () => {
+                try {
+                  const playspaceId = getPlayspaceId();
+                  const teamResponse = await fetch('/api/team', {
+                    headers: {
+                      'x-playspace-id': playspaceId || '',
+                    },
+                  });
+                  if (teamResponse.ok) {
+                    const teamData = await teamResponse.json();
+                    if (teamData.success) {
+                      const balance = Number(teamData.bitcoinBalance) || 0;
+                      const purchasedMalware = teamData.purchasedMalware || [];
+                      setTeamBalance(balance);
+                      setPurchased(new Set(purchasedMalware));
+                      alert(`Data refreshed!\nBalance: ₿${balance.toFixed(2)}\nPurchased items: ${purchasedMalware.length}`);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Failed to refresh data:', error);
+                }
+              }}
+              className="text-white/70 text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20"
+            >
+              ↻
+            </button>
+            <span className="text-white/90 text-xs">₿{loading ? '...' : teamBalance.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⏳</div>
+            <div className="text-[15px] text-[#245a9e]">Loading App Store...</div>
+          </div>
+        </div>
+      ) : (
   <div className="flex-1 overflow-y-auto relative">
         {/* Featured */}
         {tab === "featured" && (
@@ -293,6 +565,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
         <div className="h-12" />
         <div className="h-[clamp(74px,12vw,92px)]" />
       </div>
+      )}
 
   {/* iOS 4 Tab Bar (dark glossy) fixed near home button, slightly overlapped to remove gap */}
   <div className="h-12 bg-gradient-to-b from-[#3F3F3F] to-[#1F1F1F] border-t border-black/40 flex items-stretch text-[10px] text-white fixed left-0 right-0 z-40 bottom-[calc(clamp(74px,12vw,92px)-6px)]">
@@ -339,7 +612,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
                 </div>
                 <div className="ml-2">
                   {!purchased.has(detail.id) ? (
-                    <button onClick={() => onPurchase(detail)} className="text-white text-[12px] font-semibold px-3 py-1 rounded bg-gradient-to-b from-[#67B1FF] to-[#2B7BE8] border border-[#1C5DBA] shadow">Buy ${detail.price}</button>
+                    <button onClick={() => onPurchase(detail)} className="text-white text-[12px] font-semibold px-3 py-1 rounded bg-gradient-to-b from-[#67B1FF] to-[#2B7BE8] border border-[#1C5DBA] shadow">Buy ₿{detail.price}</button>
                   ) : (
                     <button onClick={() => onDeploy(detail)} className="text-white text-[12px] font-semibold px-3 py-1 rounded bg-gradient-to-b from-[#4CD964] to-[#2BB84A] border border-[#19943A] shadow">Deploy</button>
                   )}
@@ -377,7 +650,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
                 <div className="text-[14px] font-semibold">{purchaseItem.name}</div>
                 <div className="text-[12px] text-[#666]">{purchaseItem.developer}</div>
               </div>
-              <div className="ml-auto text-[16px] font-bold text-green-700">${purchaseItem.price}</div>
+              <div className="ml-auto text-[16px] font-bold text-green-700">₿{purchaseItem.price}</div>
             </div>
             <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-[12px] text-yellow-800 mb-3">For educational and authorized testing purposes only.</div>
             <div className="flex gap-2">
@@ -397,26 +670,57 @@ const AppStore: React.FC<AppStoreProps> = ({ time }) => {
               {deployItem.category === 'virus' && (
                 <div>
                   <label className="block text-[12px] text-[#666] mb-1">Target MAC Address</label>
-                  <input value={deployData.macAddress || ''} onChange={e => setDeployData({ ...deployData, macAddress: e.target.value })} placeholder="00:1B:44:11:3A:B7" className="w-full border border-[#C8C7CC] rounded px-2 py-2" />
+                  <input
+                    value={deployData.macAddress || ''}
+                    onChange={e => setDeployData({ ...deployData, macAddress: e.target.value })}
+                    placeholder="00:1B:44:11:3A:B7"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">Enter the target&apos;s MAC address (e.g., 00:1B:44:11:3A:B7)</div>
                 </div>
               )}
               {deployItem.category === 'worm' && (
                 <div>
-                  <label className="block text:[12px] text-[#666] mb-1">Target IP Address</label>
-                  <input value={deployData.ipAddress || ''} onChange={e => setDeployData({ ...deployData, ipAddress: e.target.value })} placeholder="192.168.1.100" className="w-full border border-[#C8C7CC] rounded px-2 py-2" />
+                  <label className="block text-[12px] text-[#666] mb-1">Target IP Address</label>
+                  <input
+                    value={deployData.ipAddress || ''}
+                    onChange={e => setDeployData({ ...deployData, ipAddress: e.target.value })}
+                    placeholder="192.168.1.100"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">Enter the target&apos;s IP address (e.g., 192.168.1.100)</div>
                 </div>
               )}
               {deployItem.category === 'ransomware' && (
                 <div>
-                  <label className="block text:[12px] text-[#666] mb-1">Domain Name</label>
-                  <input value={deployData.domainName || ''} onChange={e => setDeployData({ ...deployData, domainName: e.target.value })} placeholder="fake-bank-portal.com" className="w-full border border-[#C8C7CC] rounded px-2 py-2" />
+                  <label className="block text-[12px] text-[#666] mb-1">Domain Name</label>
+                  <input
+                    value={deployData.domainName || ''}
+                    onChange={e => setDeployData({ ...deployData, domainName: e.target.value })}
+                    placeholder="fake-bank-portal.com"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">Enter the domain for the fake payment portal</div>
                 </div>
               )}
               <div className="bg-red-50 border border-red-200 rounded p-2 text-[12px] text-red-700">Deploying malware without authorization is illegal. This is a simulation.</div>
+              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-[12px] text-blue-700">
+                Team Bitcoin Balance: ₿{teamBalance.toFixed(2)}
+              </div>
             </div>
             <div className="flex gap-2 mt-3">
               <button onClick={() => setDeployItem(null)} className="flex-1 py-2 rounded border border-[#C8C7CC] text-[13px]">Cancel</button>
-              <button onClick={executeDeploy} disabled={(deployItem.category === 'virus' && !deployData.macAddress) || (deployItem.category === 'worm' && !deployData.ipAddress) || (deployItem.category === 'ransomware' && !deployData.domainName)} className="flex-1 py-2 rounded text-white text-[13px] font-semibold bg-gradient-to-b from-[#4CD964] to-[#2BB84A] border border-[#19943A] disabled:opacity-50">Deploy</button>
+              <button
+                onClick={executeDeploy}
+                disabled={
+                  (deployItem.category === 'virus' && !deployData.macAddress) ||
+                  (deployItem.category === 'worm' && !deployData.ipAddress) ||
+                  (deployItem.category === 'ransomware' && !deployData.domainName)
+                }
+                className="flex-1 py-2 rounded text-white text-[13px] font-semibold bg-gradient-to-b from-[#4CD964] to-[#2B7BE8] border border-[#19943A] disabled:opacity-50"
+              >
+                Deploy Attack
+              </button>
             </div>
           </div>
         </div>

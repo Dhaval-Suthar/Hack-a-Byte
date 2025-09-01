@@ -3,12 +3,14 @@
 import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
 import Device from "@/models/Device";
+import Team, { TeamMember } from "@/models/Team";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
 // Shared plain user type for safe serialization
 type PlainUser = {
   _id: unknown;
   username: string;
+  role?: string;
   sessionId?: string;
   gameState?: {
     unlockedApplications?: string[];
@@ -205,6 +207,27 @@ export async function loginDeviceUser(
 
     await user.save();
 
+    // Get user's role from team data
+    let userRole: string | undefined;
+    try {
+      const team = await Team.findOne({
+        'teamMembers.username': user.username,
+        'teamMembers.accessCodeUsed': true
+      });
+
+      if (team) {
+        const member = team.teamMembers.find((m: TeamMember) => 
+          m.username === user.username && m.accessCodeUsed
+        );
+        if (member && member.role) {
+          userRole = member.role;
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      // Continue without role if there's an error
+    }
+
     // Set a cookie to remember this user for this device
     const cookieValue = JSON.stringify({
       deviceId,
@@ -233,6 +256,7 @@ export async function loginDeviceUser(
       user: {
         _id: String(plain._id),
         username: plain.username,
+        role: userRole,
         sessionId: plain.sessionId,
         progress: {
           unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
@@ -295,13 +319,35 @@ export async function getDeviceUser(
     user.lastActiveTime = new Date();
     await user.save();
 
-  const plain = user.toObject({ flattenMaps: true }) as PlainUser;
+    // Get user's role from team data
+    let userRole: string | undefined;
+    try {
+      const team = await Team.findOne({
+        'teamMembers.username': user.username,
+        'teamMembers.accessCodeUsed': true
+      });
+
+      if (team) {
+        const member = team.teamMembers.find((m: TeamMember) => 
+          m.username === user.username && m.accessCodeUsed
+        );
+        if (member && member.role) {
+          userRole = member.role;
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      // Continue without role if there's an error
+    }
+
+    const plain = user.toObject({ flattenMaps: true }) as PlainUser;
     const settings = plain.gameState?.settings || {};
     return {
       isLoggedIn: true,
       user: {
         _id: String(plain._id),
         username: plain.username,
+        role: userRole,
         sessionId: plain.sessionId,
         progress: {
           unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],

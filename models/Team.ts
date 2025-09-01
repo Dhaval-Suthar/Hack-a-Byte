@@ -14,6 +14,12 @@ export interface TeamTimer {
   totalPausedTime: number; // ms
 }
 
+export interface StockPortfolio {
+  symbol: string;
+  shares: number;
+  avgPrice: number;
+}
+
 export interface EventTeam extends Document {
   name: string;
   description: string;
@@ -33,6 +39,10 @@ export interface EventTeam extends Document {
     publicKey?: string;
     bitcoinBalance: number;
   };
+  // Stock portfolio
+  stockPortfolio: StockPortfolio[];
+  // Purchased malware from App Store
+  purchasedMalware: string[];
   // Members joining progress and roles
   teamMembers: TeamMember[];
   // Timer starts when all members join
@@ -44,6 +54,12 @@ const TeamMemberSchema = new Schema<TeamMember>({
   role: { type: String, default: null },
   accessCodeUsed: { type: Boolean, default: false },
   accessCodeUsedAt: { type: Date },
+});
+
+const StockPortfolioSchema = new Schema<StockPortfolio>({
+  symbol: { type: String, required: true },
+  shares: { type: Number, required: true },
+  avgPrice: { type: Number, required: true },
 });
 
 const TeamSchema = new Schema<EventTeam>(
@@ -64,8 +80,12 @@ const TeamSchema = new Schema<EventTeam>(
       walletAddress: { type: String, required: true },
       privateKey: { type: String, required: true },
       publicKey: { type: String },
-      bitcoinBalance: { type: Number, default: 100 },
+      bitcoinBalance: { type: Number, default: 10000 }, // Increased default balance for new price scale
     },
+    // Stock portfolio
+    stockPortfolio: { type: [StockPortfolioSchema], default: [] },
+    // Purchased malware from App Store
+    purchasedMalware: { type: [String], default: [] },
     // Members state
     teamMembers: { type: [TeamMemberSchema], default: [] },
     // Timer

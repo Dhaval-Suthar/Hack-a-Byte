@@ -2,6 +2,7 @@
 export interface User {
   _id: string;
   username: string;
+  role?: string;
   sessionId?: string;
   progress: {
     unlockedApplications: string[];

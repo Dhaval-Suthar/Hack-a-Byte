@@ -47,7 +47,16 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
 }) => {
   const analytics = useAppAnalytics();
   const sessionStartTime = useRef<number>(Date.now());
-  
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Check localStorage for selected role on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const selectedRole = localStorage.getItem('selectedRole');
+      setUserRole(selectedRole);
+    }
+  }, []);
+
   // Phone number state for PhoneApp integration
   const [phoneNumber] = useState<string>('');
 
@@ -72,6 +81,19 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   );
 
   const renderApp = () => {
+    // Show loading while checking role for stocks app
+    if (appId === 'stocks' && userRole === null) {
+      return wrapWithErrorBoundary(
+        <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
+          <div className="text-center px-4">
+            <div className="text-2xl mb-4">⏳</div>
+            <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+            <p className="text-gray-400 text-sm">Checking access permissions</p>
+          </div>
+        </div>,
+        appId
+      );
+    }
 
     switch (appId) {
       // Inline apps (simple, no lazy loading needed)
@@ -153,9 +175,23 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
           appId
         );
       case "stocks":
+        // Check if user is professor - only professor can access stock market
+        if (userRole && userRole.toLowerCase() !== 'professor') {
+          return wrapWithErrorBoundary(
+            <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
+              <div className="text-center px-4">
+                <div className="text-4xl mb-4">🔒</div>
+                <h3 className="text-lg font-medium text-white mb-2">Access Restricted</h3>
+                <p className="text-gray-400 text-sm">Only the Professor can access the Stock Market</p>
+                <p className="text-gray-500 text-xs mt-2">Your role: {userRole}</p>
+              </div>
+            </div>,
+            appId
+          );
+        }
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <StockMarketApp time={time} />
+            <StockMarketApp />
           </Suspense>,
           appId
         );
@@ -197,9 +233,31 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
           appId
         );
       case "appStore":
+        // Check if user is rio or tokyo - only attackers can access app store
+        if (userRole && userRole.toLowerCase() !== 'rio' && userRole.toLowerCase() !== 'tokyo') {
+          return wrapWithErrorBoundary(
+            <div className="w-screen h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-red-900/30 flex flex-col font-sans text-white overflow-hidden relative">
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <div className="text-6xl mb-4">🔒</div>
+                  <h3 className="text-xl font-bold text-red-400 mb-2">ACCESS DENIED</h3>
+                  <p className="text-gray-400 text-sm">App Store is restricted to Attacker roles only</p>
+                  <p className="text-gray-500 text-xs mt-2">Current role: {userRole}</p>
+                  <button 
+                    onClick={onClose}
+                    className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 rounded t ext-white text-sm transition-colors"
+                  >
+                    Return to Desktop
+                  </button>
+                </div>
+              </div>
+            </div>,
+            appId
+          );
+        }
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <AppStore onClose={onClose} time={time} />
+            <AppStore onClose={onClose} time={time} user={user} />
           </Suspense>,
           appId
         );
