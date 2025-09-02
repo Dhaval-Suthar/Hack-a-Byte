@@ -9,11 +9,12 @@ import DevicesSection from "./DevicesSection";
 import EventsSection from "./EventsSection";
 import SessionsSection from "./SessionsSection";
 import TeamsSection from "./TeamsSection";
+import SponsorsSection from "./SponsorsSection";
 import Notifications from "./Notifications";
 import BulkDeleteModal from "./BulkDeleteModal";
 
 // Import types
-import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team } from "./shared-types";
+import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team, Sponsor } from "./shared-types";
 
 // Server actions
 import { getAccessCodes, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
@@ -23,8 +24,9 @@ import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 
-const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions"];
+const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors"];
 
 const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
 
@@ -38,6 +40,7 @@ export default function MiniAdminDashboard() {
   const [evts, setEvts] = useState<EventItem[]>([]);
   const [sess, setSess] = useState<GameSession[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [q, setQ] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [bulk, setBulk] = useState<string[] | null>(null);
@@ -53,13 +56,14 @@ export default function MiniAdminDashboard() {
     setErr(null);
     try {
       const key = authKey();
-      const [ac, pl, dv, ev, gs, tm] = await Promise.all([
+      const [ac, pl, dv, ev, gs, tm, sp] = await Promise.all([
         getAccessCodes(key),
         getPlayspaces(key),
         getAllDevices(key),
         getEvents(key),
         getGameSessions(key),
         getTeams(key),
+        getSponsors(key),
       ]);
 
       // Transform access codes to match expected type
@@ -135,6 +139,21 @@ export default function MiniAdminDashboard() {
         members: team.members,
       }));
       setTeams(transformedTeams);
+
+      // Transform sponsors to match expected type
+      const transformedSponsors = (sp?.sponsors || []).map(sponsor => ({
+        _id: sponsor._id,
+        name: sponsor.name,
+        tier: sponsor.tier,
+        logo: sponsor.logo,
+        description: sponsor.description,
+        benefits: sponsor.benefits,
+        websiteUrl: sponsor.websiteUrl,
+        isActive: sponsor.isActive,
+        createdAt: sponsor.createdAt,
+        updatedAt: sponsor.updatedAt,
+      }));
+      setSponsors(transformedSponsors);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : "Load failed";
       setErr(errorMessage);
@@ -258,6 +277,56 @@ export default function MiniAdminDashboard() {
       load();
     } catch {
       note({ kind: "err", msg: "Delete team failed" });
+    }
+  };
+
+  // Sponsor management functions
+  const handleCreateSponsor = async (
+    name: string,
+    tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
+    logo: string,
+    description: string,
+    benefits: string[],
+    websiteUrl: string
+  ) => {
+    try {
+      await createSponsor(name, tier, logo, description, benefits, websiteUrl, authKey());
+      note({ kind: "ok", msg: "Sponsor created" });
+      load();
+    } catch (error) {
+      console.error("Error creating sponsor:", error);
+      note({ kind: "err", msg: "Create sponsor failed" });
+    }
+  };
+
+  const handleUpdateSponsor = async (
+    id: string,
+    updates: {
+      name?: string;
+      tier?: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+      logo?: string;
+      description?: string;
+      benefits?: string[];
+      websiteUrl?: string;
+      isActive?: boolean;
+    }
+  ) => {
+    try {
+      await updateSponsor(id, updates, authKey());
+      note({ kind: "ok", msg: "Sponsor updated" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Update sponsor failed" });
+    }
+  };
+
+  const handleDeleteSponsor = async (id: string) => {
+    try {
+      await deleteSponsor(id, authKey());
+      note({ kind: "ok", msg: "Sponsor deleted" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Delete sponsor failed" });
     }
   };
 
@@ -476,7 +545,7 @@ export default function MiniAdminDashboard() {
   const body = () => {
     switch (tab) {
       case "dashboard":
-        return <DashboardOverview codes={codes} plays={plays} devs={devs} evts={evts} sess={sess} teams={teams} />;
+        return <DashboardOverview codes={codes} plays={plays} devs={devs} evts={evts} sess={sess} teams={teams} sponsors={sponsors} />;
       case "teams":
         return (
           <TeamsSection
@@ -535,6 +604,15 @@ export default function MiniAdminDashboard() {
         />;
       case "sessions":
         return <SessionsSection sess={sess} q={q} setQ={setQ} onAdjust={adjust} onEnd={end} />;
+      case "sponsors":
+        return <SponsorsSection 
+          sponsors={sponsors} 
+          q={q} 
+          setQ={setQ}
+          onCreateSponsor={handleCreateSponsor}
+          onUpdateSponsor={handleUpdateSponsor}
+          onDeleteSponsor={handleDeleteSponsor}
+        />;
     }
   };
 

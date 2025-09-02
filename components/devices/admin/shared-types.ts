@@ -76,10 +76,23 @@ export interface GameSession {
   deviceId?: string;
 }
 
+export interface Sponsor {
+  _id: string;
+  name: string;
+  tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+  logo: string;
+  description: string;
+  benefits?: string[];
+  websiteUrl: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Note {
   id: string;
   msg: string;
   kind: "ok" | "err" | "info";
 }
 
-export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions";
+export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions" | "sponsors";

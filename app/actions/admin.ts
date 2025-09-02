@@ -6,6 +6,7 @@ import Team from "@/models/Team";
 import Playspace from "@/models/Playspace";
 import Device from "@/models/Device";
 import Event from "@/models/Event";
+import Sponsor from "@/models/Sponsor";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { generateMacAddress } from "@/lib/utils";
@@ -569,6 +570,210 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
   } catch (error) {
     console.error("Error deleting team:", error);
     return { error: "Failed to delete team" };
+  }
+}
+
+// Sponsor Actions
+export async function getSponsors(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const sponsors = await Sponsor.find({}).lean().sort({ createdAt: -1 });
+
+    // Transform the data to ensure all fields exist
+    const sponsorsWithFormattedData = sponsors.map((sponsor) => ({
+      _id: sponsor._id ? sponsor._id.toString() : "",
+      name: sponsor.name || "Unknown Sponsor",
+      tier: sponsor.tier || "binary-titans",
+      logo: sponsor.logo || "",
+      description: sponsor.description || "No description",
+      benefits: Array.isArray(sponsor.benefits) ? sponsor.benefits : [],
+      websiteUrl: sponsor.websiteUrl || "",
+      isActive: typeof sponsor.isActive === "boolean" ? sponsor.isActive : true,
+      createdAt: sponsor.createdAt ? new Date(sponsor.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: sponsor.updatedAt ? new Date(sponsor.updatedAt).toISOString() : new Date().toISOString(),
+    }));
+
+    return { sponsors: sponsorsWithFormattedData };
+  } catch (error) {
+    console.error("Error fetching sponsors:", error);
+    return { error: "Failed to fetch sponsors" };
+  }
+}
+
+export async function createSponsor(
+  name: string,
+  tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
+  logo: string,
+  description: string,
+  benefits: string[],
+  websiteUrl: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return { error: "Sponsor name is required" };
+    }
+
+    if (!logo || logo.trim().length === 0) {
+      return { error: "Sponsor logo URL is required" };
+    }
+
+    if (!websiteUrl || websiteUrl.trim().length === 0) {
+      return { error: "Sponsor website URL is required" };
+    }
+
+    // Check if sponsor name already exists
+    const existingSponsor = await Sponsor.findOne({ name: name.trim() });
+    if (existingSponsor) {
+      return { error: "Sponsor name already exists" };
+    }
+
+    const newSponsor = new Sponsor({
+      name: name.trim(),
+      tier,
+      logo: logo.trim(),
+      description: description?.trim() || "",
+      benefits: benefits || [],
+      websiteUrl: websiteUrl.trim(),
+      isActive: true,
+    });
+
+    await newSponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor created successfully",
+      sponsor: {
+        _id: newSponsor._id.toString(),
+        name: newSponsor.name,
+        tier: newSponsor.tier,
+        logo: newSponsor.logo,
+        description: newSponsor.description,
+        benefits: newSponsor.benefits,
+        websiteUrl: newSponsor.websiteUrl,
+        isActive: newSponsor.isActive,
+        createdAt: newSponsor.createdAt.toISOString(),
+        updatedAt: newSponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("Error creating sponsor:", error);
+    return { error: "Failed to create sponsor" };
+  }
+}
+
+export async function updateSponsor(
+  sponsorId: string,
+  updates: {
+    name?: string;
+    tier?: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+    logo?: string;
+    description?: string;
+    benefits?: string[];
+    websiteUrl?: string;
+    isActive?: boolean;
+  },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    // Validate name uniqueness if being updated
+    if (updates.name && updates.name.trim() !== sponsor.name) {
+      const existingSponsor = await Sponsor.findOne({ name: updates.name.trim() });
+      if (existingSponsor && existingSponsor._id.toString() !== sponsorId) {
+        return { error: "Sponsor name already exists" };
+      }
+      sponsor.name = updates.name.trim();
+    }
+
+    // Update other fields
+    if (updates.tier !== undefined) sponsor.tier = updates.tier;
+    if (updates.logo !== undefined) sponsor.logo = updates.logo.trim();
+    if (updates.description !== undefined) sponsor.description = updates.description.trim();
+    if (updates.benefits !== undefined) sponsor.benefits = updates.benefits;
+    if (updates.websiteUrl !== undefined) sponsor.websiteUrl = updates.websiteUrl.trim();
+    if (updates.isActive !== undefined) sponsor.isActive = updates.isActive;
+
+    await sponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor updated successfully",
+      sponsor: {
+        _id: sponsor._id.toString(),
+        name: sponsor.name,
+        tier: sponsor.tier,
+        logo: sponsor.logo,
+        description: sponsor.description,
+        benefits: sponsor.benefits,
+        websiteUrl: sponsor.websiteUrl,
+        isActive: sponsor.isActive,
+        createdAt: sponsor.createdAt.toISOString(),
+        updatedAt: sponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("Error updating sponsor:", error);
+    return { error: "Failed to update sponsor" };
+  }
+}
+
+export async function deleteSponsor(sponsorId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    await Sponsor.findByIdAndDelete(sponsorId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting sponsor:", error);
+    return { error: "Failed to delete sponsor" };
   }
 }
 
@@ -1995,9 +2200,7 @@ export async function getAnalyticsData(adminKey?: string) {
     // Get sponsor count safely
     let totalSponsors = 0;
     try {
-      if (mongoose.connection.db) {
-        totalSponsors = await mongoose.connection.db.collection('sponsorcontacts').countDocuments({});
-      }
+      totalSponsors = await Sponsor.countDocuments({});
     } catch (error) {
       console.warn("Could not fetch sponsor count:", error);
     }
