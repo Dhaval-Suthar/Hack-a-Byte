@@ -32,7 +32,7 @@ export interface TournamentUpdate {
 export interface ChatMessage {
   teamId: string;
   message: string;
-  senderId: string;
+  senderId?: string; // Made optional
   senderName: string;
   type?: string;
   timestamp: number;
@@ -96,7 +96,7 @@ export const useSocket = () => {
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
-          console.log('Connected to Socket.IO server');
+          console.log('✅ Connected to Socket.IO server');
           setIsConnected(true);
 
           // Join playspace room
@@ -111,7 +111,7 @@ export const useSocket = () => {
         });
 
         newSocket.on('disconnect', () => {
-          console.log('Disconnected from Socket.IO server');
+          console.log('❌ Disconnected from Socket.IO server');
           setIsConnected(false);
         });
 

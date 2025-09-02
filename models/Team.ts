@@ -100,7 +100,6 @@ const TeamSchema = new Schema<EventTeam>(
 );
 
 // Create indexes for better query performance
-TeamSchema.index({ name: 1 }, { unique: true });
 TeamSchema.index({ leaderUserId: 1 });
 TeamSchema.index({ accessCodeId: 1 });
 TeamSchema.index({ playspaceId: 1 });

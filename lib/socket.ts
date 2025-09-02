@@ -12,6 +12,7 @@ export type NextApiResponseServerIo = NextApiResponse & {
 };
 
 export const initSocket = (httpServer: NetServer) => {
+  console.log('🔌 Initializing Socket.IO server...');
   const io = new ServerIO(httpServer, {
     path: '/api/socketio',
     cors: {
@@ -19,6 +20,8 @@ export const initSocket = (httpServer: NetServer) => {
       methods: ['GET', 'POST'],
     },
   });
+
+  console.log('🔌 Socket.IO server created with path: /api/socketio');
 
   // Store connected clients by playspaceId
   const clientsByPlayspace = new Map<string, Set<string>>();
@@ -28,8 +31,8 @@ export const initSocket = (httpServer: NetServer) => {
   const clientsByUser = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-    console.log('Total connected clients:', io.sockets.sockets.size);
+    console.log('🔌 Client connected:', socket.id);
+    console.log('🔌 Total connected clients:', io.sockets.sockets.size);
 
     // Join playspace room
     socket.on('join-playspace', (playspaceId: string) => {
@@ -47,7 +50,8 @@ export const initSocket = (httpServer: NetServer) => {
     // Join team room for team-based features
     socket.on('join-team', (teamId: string) => {
       socket.join(`team-${teamId}`);
-      console.log(`Client ${socket.id} joined team: ${teamId}`);
+      console.log(`🔌 Client ${socket.id} joined team: ${teamId}`);
+      console.log(`🔌 Clients in team-${teamId}:`, io.sockets.adapter.rooms.get(`team-${teamId}`)?.size || 0);
 
       // Track clients by team
       if (!clientsByTeam.has(teamId)) {
@@ -137,17 +141,20 @@ export const initSocket = (httpServer: NetServer) => {
     socket.on('send-message', (data: {
       teamId: string;
       message: string;
-      senderId: string;
+      senderId?: string; // Made optional
       senderName: string;
       type?: string;
     }) => {
-      console.log('Team message received:', data);
+      console.log('📨 Team message received:', data);
+      console.log('📨 Broadcasting to room:', `team-${data.teamId}`);
 
       // Broadcast to all clients in team room (except sender)
       socket.to(`team-${data.teamId}`).emit('new-message', {
         ...data,
         timestamp: Date.now(),
       });
+
+      console.log('📨 Message broadcast complete');
     });
 
     // Handle achievement unlocks

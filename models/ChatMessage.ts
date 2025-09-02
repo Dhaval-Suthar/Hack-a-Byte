@@ -10,8 +10,8 @@ export interface ChatMessage extends Document {
   type: MessageType;
   priority: MessagePriority;
 
-  // Sender information
-  senderId: mongoose.Schema.Types.ObjectId;
+  // Sender information - simplified to just use senderName
+  senderId?: mongoose.Schema.Types.ObjectId; // Made optional
   senderName: string;
   senderRole?: string;
 
@@ -93,8 +93,8 @@ const ChatMessageSchema = new Schema<ChatMessage>(
     // Sender information
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'DeviceUser',
-      required: true
+      ref: 'DeviceUser'
+      // Made optional - we primarily use senderName for identification
     },
     senderName: {
       type: String,

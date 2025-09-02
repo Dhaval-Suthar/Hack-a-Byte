@@ -6,7 +6,7 @@ const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-const { initSocket } = require('./lib/socket');
+const { initSocket } = require('./lib/socket.js');
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
