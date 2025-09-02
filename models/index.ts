@@ -1,5 +1,4 @@
 // Model exports for easy importing
-export { default as User } from './User';
 export { default as AccessCode } from './AccessCode';
 export { default as Device } from './Device';
 export { default as DeviceUser } from './DeviceUser';

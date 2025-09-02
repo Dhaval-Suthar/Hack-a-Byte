@@ -1,13 +1,4 @@
 // Global type definitions
-export interface User {
-  _id: string;
-  username: string;
-  email?: string;
-  role?: 'user' | 'admin';
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
 export interface Device {
   id: string;
   deviceMacAddress: string;

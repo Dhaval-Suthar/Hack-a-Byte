@@ -93,7 +93,7 @@ function parseDownloads(d: string): number {
 
 const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
   // Initialize Socket.IO connection
-  const { sendMalwareAttack, triggerAttackEffect, isConnected, incomingAttacks } = useSocket();
+  const { sendMalwareAttack, triggerAttackEffect, isConnected } = useSocket();
   // Inject custom styles for running malware animation
   useEffect(() => {
     const style = document.createElement("style");
