@@ -3,6 +3,34 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { User } from "@/types/devices";
 import { getPlayspaceId } from "@/lib/playspace-utils";
+import { useSocket } from "@/hooks/useSocket";
+
+// Add custom styles for running malware animation
+const runningMalwareStyles = `
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+  }
+  @keyframes progress-shine {
+    0% { background-position: -100% 0; }
+    100% { background-position: 100% 0; }
+  }
+  @keyframes complete-flash {
+    0%, 100% { background-color: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); }
+    50% { background-color: rgba(34, 197, 94, 0.4); border-color: rgba(34, 197, 94, 0.8); }
+  }
+  .malware-pulse {
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+  .progress-shine {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: progress-shine 2s ease-in-out infinite;
+  }
+  .complete-flash {
+    animation: complete-flash 1s ease-in-out;
+  }
+`;
 
 interface AppStoreProps {
   onClose?: () => void;
@@ -64,6 +92,17 @@ function parseDownloads(d: string): number {
 }
 
 const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
+  // Initialize Socket.IO connection
+  const { sendMalwareAttack, triggerAttackEffect, isConnected, incomingAttacks } = useSocket();
+  // Inject custom styles for running malware animation
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = runningMalwareStyles;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   const [tab, setTab] = useState<TabKey>("featured");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"all" | Category>("all");
@@ -75,6 +114,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
   const [deployData, setDeployData] = useState<DeploymentData>({});
   const [teamBalance, setTeamBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [runningMalware, setRunningMalware] = useState<Map<string, { progress: number; target: string; startTime: number }>>(new Map());
 
   // Fetch team balance and devices on component mount
   useEffect(() => {
@@ -110,6 +150,91 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
 
     fetchData();
   }, []);
+
+  // Live malware execution animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRunningMalware(prev => {
+        const updated = new Map(prev);
+        updated.forEach((data, malwareId) => {
+          if (data.progress < 100) {
+            const malware = CATALOG.find(item => item.id === malwareId);
+            // Different malware types have different execution speeds
+            let speedMultiplier = 1;
+            if (malware) {
+              switch (malware.category) {
+                case 'virus': speedMultiplier = 1.2; break; // Faster
+                case 'worm': speedMultiplier = 0.8; break; // Slower
+                case 'ransomware': speedMultiplier = 0.6; break; // Slowest
+              }
+            }
+            const progressIncrement = (Math.random() * 8 + 3) * speedMultiplier;
+            updated.set(malwareId, {
+              ...data,
+              progress: Math.min(100, data.progress + progressIncrement)
+            });
+          } else {
+            // Remove completed malware after a delay
+            setTimeout(() => {
+              setRunningMalware(current => {
+                const newMap = new Map(current);
+                newMap.delete(malwareId);
+                return newMap;
+              });
+            }, 3000);
+          }
+        });
+        return updated;
+      });
+    }, 400); // Slightly faster updates
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Component for live running malware indicator
+  const RunningMalwareIndicator: React.FC<{ malwareId: string; data: { progress: number; target: string; startTime: number } }> = ({ malwareId, data }) => {
+    const malware = CATALOG.find(item => item.id === malwareId);
+    if (!malware) return null;
+
+    return (
+      <div className={`fixed left-4 right-4 z-[80] bg-black/90 backdrop-blur-sm rounded-lg p-3 border shadow-2xl transition-all duration-300 ${
+        data.progress >= 100 ? 'border-green-500/50 complete-flash' : 'border-red-500/50'
+      }`}>
+        <div className="flex items-center space-x-3">
+          <div className={`text-2xl ${data.progress >= 100 ? 'animate-bounce' : 'malware-pulse'}`}>{malware.icon}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-sm font-semibold truncate">{malware.name}</div>
+            <div className="text-red-400 text-xs truncate">Target: {data.target}</div>
+            <div className="mt-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ease-out relative ${
+                  data.progress >= 100 ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-red-500 to-red-400'
+                }`}
+                style={{ width: `${data.progress}%` }}
+              >
+                {data.progress < 100 && <div className="progress-shine absolute inset-0"></div>}
+              </div>
+            </div>
+            <div className="text-gray-400 text-xs mt-1">
+              {data.progress < 30 && "🔍 Scanning target..."}
+              {data.progress >= 30 && data.progress < 60 && "⚡ Injecting payload..."}
+              {data.progress >= 60 && data.progress < 90 && "🔄 Executing malware..."}
+              {data.progress >= 90 && data.progress < 100 && "🔄 Finalizing attack..."}
+              {data.progress >= 100 && "✅ Operation complete - Malware consumed"}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className={`text-lg font-mono ${data.progress >= 100 ? 'text-green-400' : 'text-white'}`}>
+              {Math.round(data.progress)}%
+            </div>
+            <div className="text-gray-400 text-xs">
+              {data.progress >= 100 ? 'Complete' : 'Active'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const featured = useMemo(() => CATALOG.filter(i => i.isPopular), []);
   const top = useMemo(() => {
@@ -327,6 +452,50 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
             return newSet;
           });
 
+          // Send real-time attack via Socket.IO
+          const attackerPlayspaceId = getPlayspaceId();
+          console.log('Attacker playspace ID:', attackerPlayspaceId);
+          console.log('Socket connected:', isConnected);
+          if (attackerPlayspaceId && isConnected) {
+            sendMalwareAttack({
+              attackerPlayspaceId,
+              targetInfo,
+              malwareType: deployItem.category,
+              malwareId: deployItem.id,
+              attackerName: user?.username || 'Unknown Attacker',
+            });
+            console.log('Real-time attack sent via Socket.IO');
+
+            // Trigger attack effect based on malware type
+            const effectSeverity = deployItem.category === 'ransomware' ? 'critical' :
+                                 deployItem.category === 'worm' ? 'high' :
+                                 deployItem.category === 'virus' ? 'medium' : 'low';
+
+            const effectMessage = deployItem.category === 'ransomware' ? 'RANSOMWARE DETECTED - SYSTEM LOCKED' :
+                                 deployItem.category === 'worm' ? 'NETWORK INTRUSION DETECTED' :
+                                 deployItem.category === 'virus' ? 'MALWARE INFECTION DETECTED' : 'SECURITY ALERT';
+
+            triggerAttackEffect({
+              playspaceId: attackerPlayspaceId,
+              effect: effectMessage,
+              severity: effectSeverity,
+              duration: deployItem.category === 'ransomware' ? 15000 : 10000,
+            });
+          } else {
+            console.warn('Cannot send attack: playspaceId =', attackerPlayspaceId, 'isConnected =', isConnected);
+          }
+
+          // Add to running malware for live visualization
+          setRunningMalware(prev => {
+            const newMap = new Map(prev);
+            newMap.set(deployItem.id, {
+              progress: 0,
+              target: targetInfo,
+              startTime: Date.now()
+            });
+            return newMap;
+          });
+
           alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`);
 
           setDeployItem(null);
@@ -348,7 +517,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
       console.error('Deployment error:', error);
       alert('Deployment failed. Please try again.');
     }
-  }, [deployItem, deployData]);
+  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username]);
 
   const getCategoryBadge = (cat: Category) => ({
     virus: "bg-red-500",
@@ -725,6 +894,13 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
           </div>
         </div>
       )}
+
+      {/* Live Running Malware Indicators */}
+      {Array.from(runningMalware.entries()).map(([malwareId, data], index) => (
+        <div key={malwareId} style={{ bottom: `${80 + index * 80}px` }}>
+          <RunningMalwareIndicator malwareId={malwareId} data={data} />
+        </div>
+      ))}
     </div>
   );
 };

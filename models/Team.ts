@@ -66,8 +66,8 @@ const TeamSchema = new Schema<EventTeam>(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    leaderUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    leaderUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'DeviceUser', default: null },
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DeviceUser' }],
     // Event linkage
     registrationId: { type: String },
     eventId: { type: Schema.Types.Mixed },
@@ -98,5 +98,154 @@ const TeamSchema = new Schema<EventTeam>(
   },
   { timestamps: true }
 );
+
+// Create indexes for better query performance
+TeamSchema.index({ name: 1 }, { unique: true });
+TeamSchema.index({ leaderUserId: 1 });
+TeamSchema.index({ accessCodeId: 1 });
+TeamSchema.index({ playspaceId: 1 });
+TeamSchema.index({ deviceId: 1 });
+TeamSchema.index({ 'wallet.walletAddress': 1 });
+
+// Instance methods
+TeamSchema.methods.addMember = function(username: string, role?: string) {
+  // Find first available slot
+  const availableSlot = this.teamMembers.find((member: TeamMember) => !member.username);
+  if (availableSlot) {
+    availableSlot.username = username;
+    if (role) availableSlot.role = role;
+    availableSlot.accessCodeUsed = true;
+    availableSlot.accessCodeUsedAt = new Date();
+  }
+  return this.save();
+};
+
+TeamSchema.methods.removeMember = function(username: string) {
+  const memberIndex = this.teamMembers.findIndex((member: TeamMember) => member.username === username);
+  if (memberIndex > -1) {
+    this.teamMembers[memberIndex].username = null;
+    this.teamMembers[memberIndex].role = null;
+    this.teamMembers[memberIndex].accessCodeUsed = false;
+    this.teamMembers[memberIndex].accessCodeUsedAt = undefined;
+  }
+  return this.save();
+};
+
+TeamSchema.methods.updateWalletBalance = function(amount: number) {
+  this.wallet.bitcoinBalance += amount;
+  // Ensure balance doesn't go below 0
+  if (this.wallet.bitcoinBalance < 0) {
+    this.wallet.bitcoinBalance = 0;
+  }
+  return this.save();
+};
+
+TeamSchema.methods.startTimer = function() {
+  this.timer.isActive = true;
+  this.timer.startTime = new Date();
+  this.timer.elapsedTime = 0;
+  this.timer.totalPausedTime = 0;
+  return this.save();
+};
+
+TeamSchema.methods.pauseTimer = function() {
+  if (this.timer.isActive && this.timer.startTime) {
+    const now = new Date();
+    const elapsed = now.getTime() - this.timer.startTime.getTime();
+    this.timer.elapsedTime += elapsed;
+    this.timer.isActive = false;
+  }
+  return this.save();
+};
+
+TeamSchema.methods.resumeTimer = function() {
+  if (!this.timer.isActive && this.timer.startTime) {
+    this.timer.startTime = new Date();
+    this.timer.isActive = true;
+  }
+  return this.save();
+};
+
+TeamSchema.methods.getTotalTime = function() {
+  let total = this.timer.elapsedTime;
+  if (this.timer.isActive && this.timer.startTime) {
+    const now = new Date();
+    total += now.getTime() - this.timer.startTime.getTime();
+  }
+  return total;
+};
+
+TeamSchema.methods.addStock = function(symbol: string, shares: number, price: number) {
+  const existingStock = this.stockPortfolio.find((stock: StockPortfolio) => stock.symbol === symbol);
+  if (existingStock) {
+    const totalShares = existingStock.shares + shares;
+    const totalCost = (existingStock.shares * existingStock.avgPrice) + (shares * price);
+    existingStock.avgPrice = totalCost / totalShares;
+    existingStock.shares = totalShares;
+  } else {
+    this.stockPortfolio.push({ symbol, shares, avgPrice: price });
+  }
+  return this.save();
+};
+
+TeamSchema.methods.removeStock = function(symbol: string, shares: number) {
+  const stockIndex = this.stockPortfolio.findIndex((stock: StockPortfolio) => stock.symbol === symbol);
+  if (stockIndex > -1) {
+    if (this.stockPortfolio[stockIndex].shares <= shares) {
+      this.stockPortfolio.splice(stockIndex, 1);
+    } else {
+      this.stockPortfolio[stockIndex].shares -= shares;
+    }
+  }
+  return this.save();
+};
+
+TeamSchema.methods.getStockValue = function(symbol: string, currentPrice: number) {
+  const stock = this.stockPortfolio.find((s: StockPortfolio) => s.symbol === symbol);
+  return stock ? stock.shares * currentPrice : 0;
+};
+
+TeamSchema.methods.getPortfolioValue = function(currentPrices: Record<string, number>) {
+  return this.stockPortfolio.reduce((total: number, stock: StockPortfolio) => {
+    const currentPrice = currentPrices[stock.symbol] || stock.avgPrice;
+    return total + (stock.shares * currentPrice);
+  }, 0);
+};
+
+TeamSchema.methods.addMalware = function(malwareId: string) {
+  if (!this.purchasedMalware.includes(malwareId)) {
+    this.purchasedMalware.push(malwareId);
+  }
+  return this.save();
+};
+
+TeamSchema.methods.hasMalware = function(malwareId: string) {
+  return this.purchasedMalware.includes(malwareId);
+};
+
+// Static methods
+TeamSchema.statics.findByAccessCode = function(accessCodeId: mongoose.Types.ObjectId) {
+  return this.findOne({ accessCodeId });
+};
+
+TeamSchema.statics.findByWalletAddress = function(walletAddress: string) {
+  return this.findOne({ 'wallet.walletAddress': walletAddress });
+};
+
+TeamSchema.statics.getLeaderboard = function(options: {
+  limit?: number;
+  sortBy?: 'bitcoinBalance' | 'totalTime';
+} = {}) {
+  const sortField = options.sortBy === 'totalTime' ? 'timer.elapsedTime' : 'wallet.bitcoinBalance';
+  const sortOrder = options.sortBy === 'totalTime' ? 1 : -1;
+
+  return this.find({ 'timer.elapsedTime': { $gt: 0 } })
+    .sort({ [sortField]: sortOrder })
+    .limit(options.limit || 10);
+};
+
+TeamSchema.statics.getActiveTeams = function() {
+  return this.find({ 'timer.isActive': true });
+};
 
 export default mongoose.models.Team || mongoose.model<EventTeam>("Team", TeamSchema);

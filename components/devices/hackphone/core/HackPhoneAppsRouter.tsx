@@ -7,6 +7,9 @@ import { NetworkScannerApp } from "../apps/NetworkScannerApp";
 import { DefaultApp } from "../apps/DefaultApp";
 import { AppErrorBoundary } from "../shared/AppErrorBoundary";
 import { useAppAnalytics } from "../shared/AppAnalytics";
+import { AttackReceiver } from "../shared/AttackReceiver";
+import { AttackEffects } from "../shared/AttackEffects";
+import { AttackData } from "@/hooks/useSocket";
 
 // Lazy load complex app components
 const CalculatorApp = lazy(() => import("../apps/CalculatorApp"));
@@ -284,7 +287,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "settings":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <SettingsApp onClose={onClose} onBack={() => onAppSwitch?.('game')} />
+            <SettingsApp onClose={onClose} onBack={() => onAppSwitch?.('game')} user={user} />
           </Suspense>,
           appId
         );
@@ -313,7 +316,21 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
     }
   };
 
-  return renderApp();
+  return (
+    <>
+      <AttackReceiver onAttackReceived={(attack: AttackData) => {
+        console.log('HackPhoneAppsRouter: Attack received:', attack);
+        // Here you could add additional attack handling logic
+        // like triggering device-wide effects, notifications, etc.
+      }} />
+      <AttackEffects onEffectTriggered={(effect) => {
+        console.log('HackPhoneAppsRouter: Attack effect triggered:', effect);
+        // Here you could add device-wide responses to effects
+        // like screen shake, sound alerts, etc.
+      }} />
+      {renderApp()}
+    </>
+  );
 };
 
 export default HackPhoneAppsRouter;

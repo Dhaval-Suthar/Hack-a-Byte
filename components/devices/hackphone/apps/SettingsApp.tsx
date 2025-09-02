@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { User } from "@/types/devices";
+import { AttackSimulator } from "../shared/AttackSimulator";
 
 // iOS 4-style slider CSS
 const sliderStyles = `
@@ -28,6 +30,7 @@ const sliderStyles = `
 interface SettingsAppProps {
   onClose?: () => void;
   onBack?: () => void;
+  user?: User | null;
 }
 
 const STORAGE_KEYS = {
@@ -55,7 +58,7 @@ const availableNetworks = [
   { name: "Starbucks WiFi", strength: 1, secured: false, connected: false },
 ];
 
-const SettingsApp: React.FC<SettingsAppProps> = () => {
+const SettingsApp: React.FC<SettingsAppProps> = ({ user }) => {
   // Inject slider styles
   useEffect(() => {
     const style = document.createElement("style");
@@ -76,7 +79,7 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [deviceLockEnabled, setDeviceLockEnabled] = useState(false);
 
-  // simple screen routing: 'main' | 'wifi' | 'vpn' | 'passcode' | 'pin' | 'encryption' | 'sounds' | 'brightness' | 'general' | 'about'
+  // simple screen routing: 'main' | 'wifi' | 'vpn' | 'passcode' | 'pin' | 'encryption' | 'sounds' | 'brightness' | 'general' | 'about' | 'attacks'
   const [screen, setScreen] = useState<string>("main");
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
   const [brightness, setBrightness] = useState<number>(50);
@@ -324,7 +327,8 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
            screen === "brightness" ? "Brightness" :
            screen === "sounds" ? "Sounds" :
            screen === "general" ? "General" :
-           screen === "about" ? "About" : "Settings"}
+           screen === "about" ? "About" :
+           screen === "attacks" ? "Attack Simulator" : "Settings"}
         </h1>
         <div className="w-20"></div>
       </div>
@@ -611,7 +615,7 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
               </div>
 
               {/* PIN */}
-              <div className="flex items-center px-4 py-3 cursor-pointer" onClick={() => setScreen("pin")}>
+              <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer" onClick={() => setScreen("pin")}>
                 <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
                   <span className="text-white text-lg">#️⃣</span>
                 </div>
@@ -620,6 +624,20 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
                 </div>
                 <div className="flex items-center">
                   <span className="text-blue-600 text-sm mr-2">{pin ? "On" : "Off"}</span>
+                  <span className="text-gray-400 text-lg">›</span>
+                </div>
+              </div>
+
+              {/* Attack Simulator */}
+              <div className="flex items-center px-4 py-3 cursor-pointer" onClick={() => setScreen("attacks")}>
+                <div className="w-8 h-8 bg-red-600 rounded-md flex items-center justify-center mr-3">
+                  <span className="text-white text-lg">🚀</span>
+                </div>
+                <div className="flex-1">
+                  <span className="text-base text-black">Attack Simulator</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-red-600 text-sm mr-2">TEST</span>
                   <span className="text-gray-400 text-lg">›</span>
                 </div>
               </div>
@@ -864,6 +882,12 @@ const SettingsApp: React.FC<SettingsAppProps> = () => {
               <div className="text-base text-black">Wi-Fi Address</div>
               <div className="text-sm text-gray-500">00:11:22:33:44:55</div>
             </div>
+          </div>
+        )}
+
+        {screen === "attacks" && (
+          <div className="mt-4">
+            <AttackSimulator user={user} />
           </div>
         )}
       </div>
