@@ -1,5 +1,20 @@
 import '@testing-library/jest-dom';
 
+// Simple polyfill for TextEncoder/TextDecoder
+// @ts-expect-error - Polyfill for Jest environment
+global.TextEncoder = class {
+  encode(input: string): Uint8Array {
+    return new Uint8Array(Buffer.from(input, 'utf-8'));
+  }
+};
+
+// @ts-expect-error - Polyfill for Jest environment
+global.TextDecoder = class {
+  decode(input: Uint8Array): string {
+    return Buffer.from(input).toString('utf-8');
+  }
+};
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -25,10 +40,16 @@ jest.mock('next/navigation', () => ({
 
 // Mock environment variables
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
-process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long-for-testing';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
 process.env.RAZORPAY_KEY_ID = 'test-key-id';
 process.env.RAZORPAY_KEY_SECRET = 'test-key-secret';
+process.env.EMAIL_FROM = 'test@example.com';
+process.env.SMTP_HOST = 'smtp.test.com';
+process.env.SMTP_PORT = '587';
+process.env.SMTP_USER = 'test-user';
+process.env.SMTP_PASS = 'test-password';
+process.env.LOG_LEVEL = 'error';
 
 // Global test setup
 beforeAll(() => {

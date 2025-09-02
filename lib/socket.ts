@@ -22,6 +22,10 @@ export const initSocket = (httpServer: NetServer) => {
 
   // Store connected clients by playspaceId
   const clientsByPlayspace = new Map<string, Set<string>>();
+  // Store connected clients by teamId for team-based features
+  const clientsByTeam = new Map<string, Set<string>>();
+  // Store connected clients by userId for personal notifications
+  const clientsByUser = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
@@ -38,6 +42,36 @@ export const initSocket = (httpServer: NetServer) => {
         clientsByPlayspace.set(playspaceId, new Set());
       }
       clientsByPlayspace.get(playspaceId)?.add(socket.id);
+    });
+
+    // Join team room for team-based features
+    socket.on('join-team', (teamId: string) => {
+      socket.join(`team-${teamId}`);
+      console.log(`Client ${socket.id} joined team: ${teamId}`);
+
+      // Track clients by team
+      if (!clientsByTeam.has(teamId)) {
+        clientsByTeam.set(teamId, new Set());
+      }
+      clientsByTeam.get(teamId)?.add(socket.id);
+    });
+
+    // Join user room for personal notifications
+    socket.on('join-user', (userId: string) => {
+      socket.join(`user-${userId}`);
+      console.log(`Client ${socket.id} joined user: ${userId}`);
+
+      // Track clients by user
+      if (!clientsByUser.has(userId)) {
+        clientsByUser.set(userId, new Set());
+      }
+      clientsByUser.get(userId)?.add(socket.id);
+    });
+
+    // Join tournament room
+    socket.on('join-tournament', (tournamentId: string) => {
+      socket.join(`tournament-${tournamentId}`);
+      console.log(`Client ${socket.id} joined tournament: ${tournamentId}`);
     });
 
     // Handle malware attacks
@@ -83,6 +117,90 @@ export const initSocket = (httpServer: NetServer) => {
       });
     });
 
+    // Handle tournament updates
+    socket.on('tournament-update', (data: {
+      tournamentId: string;
+      type: 'registration' | 'start' | 'match_update' | 'end';
+      message: string;
+      data?: Record<string, unknown>;
+    }) => {
+      console.log('Tournament update:', data);
+
+      // Broadcast to all clients in tournament room
+      io.to(`tournament-${data.tournamentId}`).emit('tournament-notification', {
+        ...data,
+        timestamp: Date.now(),
+      });
+    });
+
+    // Handle team chat messages
+    socket.on('send-message', (data: {
+      teamId: string;
+      message: string;
+      senderId: string;
+      senderName: string;
+      type?: string;
+    }) => {
+      console.log('Team message received:', data);
+
+      // Broadcast to all clients in team room (except sender)
+      socket.to(`team-${data.teamId}`).emit('new-message', {
+        ...data,
+        timestamp: Date.now(),
+      });
+    });
+
+    // Handle achievement unlocks
+    socket.on('achievement-unlocked', (data: {
+      userId: string;
+      achievementId: string;
+      achievementName: string;
+      points: number;
+    }) => {
+      console.log('Achievement unlocked:', data);
+
+      // Broadcast to user's personal room
+      io.to(`user-${data.userId}`).emit('achievement-notification', {
+        ...data,
+        timestamp: Date.now(),
+      });
+
+      // Also broadcast to team if user is in a team
+      // This would require additional team lookup logic
+    });
+
+    // Handle wallet transactions
+    socket.on('wallet-transaction', (data: {
+      teamId: string;
+      type: 'credit' | 'debit';
+      amount: number;
+      description: string;
+    }) => {
+      console.log('Wallet transaction:', data);
+
+      // Broadcast to all clients in team room
+      io.to(`team-${data.teamId}`).emit('wallet-update', {
+        ...data,
+        timestamp: Date.now(),
+      });
+    });
+
+    // Handle notifications
+    socket.on('send-notification', (data: {
+      userId: string;
+      title: string;
+      message: string;
+      type: string;
+    }) => {
+      console.log('Notification sent:', data);
+
+      // Send to user's personal room
+      io.to(`user-${data.userId}`).emit('new-notification', {
+        ...data,
+        timestamp: Date.now(),
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
 
@@ -91,6 +209,22 @@ export const initSocket = (httpServer: NetServer) => {
         clients.delete(socket.id);
         if (clients.size === 0) {
           clientsByPlayspace.delete(playspaceId);
+        }
+      });
+
+      // Remove from all team tracking
+      clientsByTeam.forEach((clients, teamId) => {
+        clients.delete(socket.id);
+        if (clients.size === 0) {
+          clientsByTeam.delete(teamId);
+        }
+      });
+
+      // Remove from all user tracking
+      clientsByUser.forEach((clients, userId) => {
+        clients.delete(socket.id);
+        if (clients.size === 0) {
+          clientsByUser.delete(userId);
         }
       });
     });
