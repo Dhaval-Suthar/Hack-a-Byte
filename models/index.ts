@@ -8,6 +8,7 @@ export { default as GameSession, type IGameSession } from './GameSession';
 export { default as LeaderboardEntry, type LeaderboardEntryDocument } from './LeaderboardEntry';
 export { default as MissionModel, type Mission } from './Mission';
 export { default as PlayspaceModel, type Playspace } from './Playspace';
+export { default as Sponsor, type ISponsor } from './Sponsor';
 export { default as SponsorContact, type ISponsorContact } from './SponsorContact';
 export { default as Team, type EventTeam } from './Team';
 export { default as TournamentModel, type Tournament } from './Tournament';

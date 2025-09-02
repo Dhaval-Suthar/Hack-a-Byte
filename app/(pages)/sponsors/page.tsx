@@ -4,13 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { submitSponsorContact, type SponsorContactFormData } from "@/app/actions/sponsor";
 
 interface Sponsor {
-  id: number;
+  _id: string;
   name: string;
-  tier: 'platinum' | 'gold' | 'silver' | 'bronze';
+  tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
   logo: string;
   description: string;
   benefits?: string[];
   websiteUrl: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Hexagon {
@@ -52,7 +55,7 @@ const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }:
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState('sponsors');
-  const [activeTier, setActiveTier] = useState('all');
+  const [activeTier, setActiveTier] = useState<'all' | 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions'>('all');
   const [showIntro, setShowIntro] = useState(true);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [scanlines, setScanlines] = useState(true);
@@ -71,81 +74,10 @@ export default function Page() {
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  // Sponsor data - COMMENTED OUT FOR DEVELOPMENT
-  const sponsors: Sponsor[] = [
-    // {
-    //   id: 1,
-    //   name: "NexusTech",
-    //   tier: 'platinum',
-    //   logo: "/logo.png",
-    //   description: "Leading innovator in cybersecurity solutions with advanced threat detection systems.",
-    //   benefits: ["Premium booth at event", "Main stage presentation", "VIP networking access", "First choice for mentoring opportunities"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 2,
-    //   name: "CyberShield",
-    //   tier: 'gold',
-    //   logo: "/logo.png", 
-    //   description: "Enterprise-level security infrastructure provider specializing in zero-day vulnerability protection.",
-    //   benefits: ["Featured booth", "Workshop session", "Talent recruitment access"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 3,
-    //   name: "QuantumBit",
-    //   tier: 'gold',
-    //   logo: "/logo.png",
-    //   description: "Quantum computing research organization focused on encryption technologies.",
-    //   benefits: ["Featured booth", "Panel discussion", "Networking event"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 4,
-    //   name: "SecureNode",
-    //   tier: 'silver',
-    //   logo: "/logo.png",
-    //   description: "Network security solutions for mid-size businesses and educational institutions.",
-    //   benefits: ["Standard booth", "Logo on materials", "Participant data access"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 5,
-    //   name: "CryptoGuard",
-    //   tier: 'silver',
-    //   logo: "/logo.png",
-    //   description: "Blockchain security auditing and cryptocurrency protection services.",
-    //   benefits: ["Standard booth", "Logo on materials", "Participant data access"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 6,
-    //   name: "DataFortress",
-    //   tier: 'silver',
-    //   logo: "/logo.png",
-    //   description: "Cloud storage security and data encryption solutions.",
-    //   benefits: ["Standard booth", "Logo on materials"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 7,
-    //   name: "ByteDefender",
-    //   tier: 'bronze',
-    //   logo: "/logo.png",
-    //   description: "Malware detection tools and anti-phishing solutions.",
-    //   benefits: ["Logo on materials", "Digital presence"],
-    //   websiteUrl: "#"
-    // },
-    // {
-    //   id: 8,
-    //   name: "CodeLock",
-    //   tier: 'bronze',
-    //   logo: "/logo.png",
-    //   description: "Source code security analysis and protection services.",
-    //   benefits: ["Logo on materials", "Digital presence"],
-    //   websiteUrl: "#"
-    // }
-  ];
+  // Sponsor data - now fetched from API
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Hide intro after 3 seconds
@@ -190,6 +122,28 @@ export default function Page() {
       generateHexagons();
       window.addEventListener('resize', generateHexagons);
     }
+
+    // Fetch sponsors from API
+    const fetchSponsors = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/sponsors');
+        const data = await response.json();
+        
+        if (data.success) {
+          setSponsors(data.data);
+        } else {
+          setError(data.message || 'Failed to fetch sponsors');
+        }
+      } catch (err) {
+        setError('Network error while fetching sponsors');
+        console.error('Error fetching sponsors:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSponsors();
 
     return () => {
       clearTimeout(introTimer);
@@ -245,29 +199,33 @@ export default function Page() {
 
   const renderSponsorTierInfo = (tier: string) => {
     switch (tier) {
-      case 'platinum':
+      case 'quantum-guardians':
+        return {
+          color: 'from-purple-400 to-purple-600',
+          label: 'QUANTUM GUARDIANS',
+          border: 'border-purple-500',
+          description: 'Elite cybersecurity pioneers'
+        };
+      case 'cyber-sentinels':
         return {
           color: 'from-cyber-primary to-cyber-secondary',
-          label: 'PLATINUM SPONSOR',
-          border: 'border-cyber-primary'
+          label: 'CYBER SENTINELS',
+          border: 'border-cyber-primary',
+          description: 'Advanced threat protectors'
         };
-      case 'gold':
+      case 'binary-titans':
         return {
-          color: 'from-yellow-400 to-yellow-600',
-          label: 'GOLD SPONSOR',
-          border: 'border-yellow-500'
-        };
-      case 'silver':
-        return {
-          color: 'from-gray-300 to-gray-500',
-          label: 'SILVER SPONSOR',
-          border: 'border-gray-400'
+          color: 'from-blue-400 to-blue-600',
+          label: 'BINARY TITANS',
+          border: 'border-blue-500',
+          description: 'Digital security champions'
         };
       default:
         return {
-          color: 'from-amber-700 to-amber-900',
-          label: 'BRONZE SPONSOR',
-          border: 'border-amber-800'
+          color: 'from-green-400 to-green-600',
+          label: 'FIREWALL CHAMPIONS',
+          border: 'border-green-500',
+          description: 'Network defense specialists'
         };
     }
   };
@@ -307,30 +265,52 @@ export default function Page() {
       <div>
         {/* Tier filter */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {['all', 'platinum', 'gold', 'silver', 'bronze'].map((tier) => (
+          {[
+            { key: 'all' as const, label: 'ALL' },
+            { key: 'quantum-guardians' as const, label: 'QUANTUM' },
+            { key: 'cyber-sentinels' as const, label: 'CYBER' },
+            { key: 'binary-titans' as const, label: 'BINARY' },
+            { key: 'firewall-champions' as const, label: 'FIREWALL' }
+          ].map((tier) => (
             <button
-              key={tier}
-              onClick={() => setActiveTier(tier)}
+              key={tier.key}
+              onClick={() => setActiveTier(tier.key)}
               className={`px-3 py-1 text-xs rounded-md transition-all uppercase ${
-                activeTier === tier
+                activeTier === tier.key
                   ? "bg-cyber-primary text-black font-bold"
                   : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70"
               }`}
             >
-              {tier}
+              {tier.label}
             </button>
           ))}
         </div>
 
-        {/* Sponsors grid - COMMENTED OUT SINCE NO SPONSORS DATA */}
-        {filteredSponsors.length > 0 ? (
+        {/* Sponsors grid */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-cyber-primary text-2xl font-bold mb-4">LOADING SPONSORS...</div>
+            <div className="text-gray-400">Establishing secure connection...</div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-red-400 text-2xl font-bold mb-4">CONNECTION FAILED</div>
+            <div className="text-gray-400 mb-4">{error}</div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="cyber-button"
+            >
+              RETRY CONNECTION
+            </button>
+          </div>
+        ) : filteredSponsors.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredSponsors.map((sponsor) => {
               const tierInfo = renderSponsorTierInfo(sponsor.tier);
               
               return (
                 <motion.div
-                  key={sponsor.id}
+                  key={sponsor._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
@@ -383,81 +363,77 @@ export default function Page() {
           <h2 className="text-2xl text-cyber-primary font-bold mb-2">Sponsorship Tiers</h2>
           <p className="text-gray-300">Support the hacker community and gain exposure for your brand</p>
         </div>
-        
-        {/* PACKAGES - COMMENTED OUT FOR DEVELOPMENT */}
-        {/*
+
+        {/* PACKAGES - UPDATED WITH CREATIVE TIERS */}
         {[
-          { 
-            tier: 'Platinum Partner', 
-            price: '$15,000', 
-            color: 'from-cyber-primary to-cyber-secondary',
-            borderColor: 'cyber-primary',
-            features: [
-              'Premium booth in hacking arena',
-              'Main stage keynote opportunity (30 min)',
-              'Logo on all event materials (premium placement)',
-              'Social media promotion package',
-              'Access to participant resume database',
-              '8 VIP passes for team members',
-              'First choice for workshop sessions',
-              'Exclusive recruitment opportunities'
-            ]
-          },
-          { 
-            tier: 'Gold Sponsor', 
-            price: '$10,000', 
-            color: 'from-yellow-400 to-yellow-600',
-            borderColor: 'yellow-500',
-            features: [
-              'Large booth in main exhibition area',
-              'Workshop session opportunity (45 min)',
-              'Logo on event website and materials',
-              'Social media mentions',
-              '5 VIP passes for team members',
-              'Access to participant resume database',
-              'Participation in panel discussions'
-            ]
-          },
-          { 
-            tier: 'Silver Sponsor', 
-            price: '$5,000', 
-            color: 'from-gray-300 to-gray-500',
-            borderColor: 'gray-400',
-            features: [
-              'Standard booth in exhibition area',
-              'Logo on event website',
-              'Social media announcement',
-              '3 VIP passes for team members',
-              'Company description in event program'
-            ]
-          },
-          { 
-            tier: 'Bronze Supporter', 
-            price: '$2,500', 
-            color: 'from-amber-700 to-amber-900',
-            borderColor: 'amber-800',
-            features: [
-              'Small table in community area',
-              'Logo on event website',
-              'Company name in event program',
-              '2 VIP passes for team members'
-            ]
-          }
+          // {
+          //   tier: "Quantum Guardians",
+          //   price: "₹15,000",
+          //   color: "from-purple-400 to-purple-600",
+          //   borderColor: "purple-500",
+          //   description: "Elite cybersecurity pioneers leading the quantum revolution",
+          //   features: [
+          //     "Social media promotion in quantum communities",
+          //     "Access to quantum researcher database",
+          //     "8 VIP passes for quantum experts",
+          //     "First choice for quantum workshop sessions",
+          //     "Exclusive quantum talent recruitment",
+          //   ],
+          // },
+          // {
+          //   tier: "Cyber Sentinels",
+          //   price: "$10,000",
+          //   color: "from-cyber-primary to-cyber-secondary",
+          //   borderColor: "cyber-primary",
+          //   description: "Advanced threat protectors guarding digital frontiers",
+          //   features: [
+          //     "Large booth in cybersecurity pavilion",
+          //     "Workshop session on threat detection (45 min)",
+          //     "Logo on event website and security materials",
+          //     "Social media mentions in security channels",
+          //     "5 VIP passes for security professionals",
+          //     "Access to cybersecurity talent database",
+          //     "Participation in security panel discussions",
+          //     "Exclusive security recruitment opportunities",
+          //   ],
+          // },
+          // {
+          //   tier: "Binary Titans",
+          //   price: "₹5,000",
+          //   color: "from-blue-400 to-blue-600",
+          //   borderColor: "blue-500",
+          //   description: "Digital security champions mastering binary warfare",
+          //   features: [
+          //     "Logo on event website and digital materials",
+          //     "Social media announcement in tech channels",
+          //     "3 VIP passes for development team",
+          //     "Company description in event program",
+          //     "Logo on event website",
+          //     "Company name in event program",
+          //   ],
+          // },
+          // {
+          //   tier: "Firewall Champions",
+          //   price: "₹2,500",
+          //   color: "from-green-400 to-green-600",
+          //   borderColor: "green-500",
+          //   description: "Network defense specialists protecting digital realms",
+          //   features: ["Logo on event website"],
+          // },
         ].map((package_, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
             className={`bg-black/60 border border-${package_.borderColor}/40 rounded-lg overflow-hidden`}
           >
-            <div className={`bg-gradient-to-r ${package_.color} px-4 py-2 text-black font-bold`}>
-              {package_.tier}
-            </div>
-            
+            <div className={`bg-gradient-to-r ${package_.color} px-4 py-2 text-black font-bold`}>{package_.tier}</div>
+
             <div className="p-5">
+              <div className="text-sm text-gray-400 mb-2">{package_.description}</div>
               <div className="text-3xl font-bold text-cyber-primary mb-4">{package_.price}</div>
-              
+
               <div className="space-y-2 mb-6">
                 {package_.features.map((feature, idx) => (
                   <div key={idx} className="flex items-start">
@@ -466,13 +442,12 @@ export default function Page() {
                   </div>
                 ))}
               </div>
-              
+
               <button className="cyber-button w-full py-2 rounded-md">BECOME SPONSOR</button>
             </div>
           </motion.div>
         ))}
-        */}
-        
+
         {/* PLACEHOLDER MESSAGE FOR DEVELOPMENT */}
         <div className="text-center py-12">
           <div className="text-2xl text-cyber-primary font-bold mb-4">SPONSORSHIP PACKAGES</div>
