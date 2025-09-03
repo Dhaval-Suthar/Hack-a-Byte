@@ -26,7 +26,7 @@ function RoleSelectionClient() {
       return;
     }
     (async () => {
-      const res = await getAvailableRoles(code);
+    const res = await getAvailableRoles(code);
       if (res.success) {
         const available = (res.availableRoles || []).map(r => r.toLowerCase());
         setAvailableRoles(available);
@@ -34,6 +34,8 @@ function RoleSelectionClient() {
         if (res.totalSlots) {
           const limits = ROLE_LIMITS[res.totalSlots as keyof typeof ROLE_LIMITS];
           if (limits) setAllRoles(Object.keys(limits));
+      // Persist team size for later client-side role gating (hackphone apps)
+      try { localStorage.setItem('teamSize', String(res.totalSlots)); } catch {}
         }
       } else {
         setError(res.error || "Failed to load roles");
@@ -57,6 +59,12 @@ function RoleSelectionClient() {
     }
     // Store the selected role in localStorage
     localStorage.setItem('selectedRole', selectedRole);
+    if (res.playspaceId) {
+      try {
+        document.cookie = `playspaceId=${res.playspaceId}; path=/; SameSite=Lax`;
+        localStorage.setItem('playspaceId', res.playspaceId);
+      } catch {}
+    }
     // When all joined or not, continue to device selection (device will be online only after all joined)
     router.push("/device-selection");
   };

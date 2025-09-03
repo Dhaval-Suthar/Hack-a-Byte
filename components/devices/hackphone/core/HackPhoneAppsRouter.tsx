@@ -60,12 +60,29 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   const analytics = useAppAnalytics();
   const sessionStartTime = useRef<number>(Date.now());
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [teamSize, setTeamSize] = useState<number | null>(null);
 
   // Check localStorage for selected role on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const selectedRole = localStorage.getItem('selectedRole');
       setUserRole(selectedRole);
+      // Attempt to read cached team info (if stored) else fetch minimal
+      const cachedSize = localStorage.getItem('teamSize');
+      if (cachedSize) {
+        setTeamSize(Number(cachedSize));
+      } else {
+        // Lightweight fetch to infer size (ignoring errors silently)
+        fetch('/api/team', { method: 'GET' })
+          .then(async r=>({ ok: r.ok, status: r.status, json: r.ok ? await r.json(): null }))
+          .then(({ ok, json }) => {
+            if (!ok) return; // silently ignore 400 (no playspace yet)
+            if (json && Array.isArray(json.teamMembers)) {
+              setTeamSize(json.teamMembers.length);
+              localStorage.setItem('teamSize', String(json.teamMembers.length));
+            }
+          }).catch(()=>{});
+      }
     }
   }, []);
 
@@ -94,13 +111,30 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
 
   const renderApp = () => {
     // Centralized role gating
-    const requiredRoles = APP_ROLE_ACCESS[appId];
+    let requiredRoles = APP_ROLE_ACCESS[appId];
     const normalizedRole = userRole?.toLowerCase() || null;
+    // Client-side mirror of small-team fallback; keep in sync with server logic
+    if (requiredRoles && teamSize) {
+      if (teamSize === 1) {
+        requiredRoles = []; // unrestricted
+      } else if (teamSize === 2) {
+        const onlyAttack = requiredRoles.every(r=>['rio','tokyo'].includes(r));
+        const onlyExtract = requiredRoles.every(r=>['nairobi','denver'].includes(r));
+        if (onlyAttack || onlyExtract) {
+          requiredRoles = [...requiredRoles, 'professor','berlin'];
+        }
+      } else if (teamSize === 3) {
+        const onlyExtract = requiredRoles.every(r=>['nairobi','denver'].includes(r));
+        if (onlyExtract) {
+          requiredRoles = [...requiredRoles, 'professor','rio','tokyo'];
+        }
+      }
+    }
     const isRestricted = Array.isArray(requiredRoles);
 
     if (isRestricted) {
       // Still loading role from localStorage
-      if (normalizedRole === null) {
+      if (normalizedRole === null || (requiredRoles && teamSize === null)) {
         return wrapWithErrorBoundary(
           <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
             <div className="text-center px-4">
@@ -113,7 +147,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         );
       }
       // Deny if user's role not allowed
-      if (!requiredRoles.includes(normalizedRole)) {
+      if (requiredRoles.length && !requiredRoles.includes(normalizedRole)) {
         // Special styling for appStore denial to retain prior UX flair
         if (appId === 'appStore') {
           return wrapWithErrorBoundary(
