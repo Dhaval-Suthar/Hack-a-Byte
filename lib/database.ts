@@ -15,8 +15,8 @@ class DatabaseConnection {
   private static instance: DatabaseConnection;
   private isConnected: boolean = false;
   private connectionAttempts: number = 0;
-  private maxRetries: number = 5;
-  private retryDelay: number = 1000; // 1 second
+  private maxRetries: number = process.env.NODE_ENV === 'test' ? 1 : 5;
+  private retryDelay: number = process.env.NODE_ENV === 'test' ? 100 : 1000; // shorter in tests
 
   private constructor() {}
 
@@ -43,13 +43,16 @@ class DatabaseConnection {
       ...options,
     };
 
+    // Determine URI at connection time so tests can override via process.env before connectDb() runs
+    const mongoUri = process.env.MONGODB_URI || env.MONGODB_URI;
+
     try {
       logger.info('Attempting to connect to MongoDB...', {
-        uri: env.MONGODB_URI.replace(/\/\/.*@/, '//***:***@'), // Hide credentials in logs
+        uri: mongoUri.replace(/\/\/.*@/, '//***:***@'), // Hide credentials in logs
         options: defaultOptions,
       });
 
-      await mongoose.connect(env.MONGODB_URI, defaultOptions);
+      await mongoose.connect(mongoUri, defaultOptions);
 
       this.isConnected = true;
       this.connectionAttempts = 0;

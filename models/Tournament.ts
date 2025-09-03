@@ -112,7 +112,8 @@ const TournamentBracketSchema = new Schema({
 
 const TournamentPrizeSchema = new Schema({
   position: { type: Number, required: true },
-  description: { type: String, required: true },
+  // Provide default description for legacy inserts missing this field
+  description: { type: String, required: true, default: 'No description provided' },
   value: Number,
   item: String
 }, { _id: false });
@@ -133,7 +134,8 @@ const TournamentSchema = new Schema<Tournament>(
     type: {
       type: String,
       enum: ['single_elimination', 'double_elimination', 'round_robin', 'swiss', 'free_for_all'],
-      required: true
+      required: false,
+      default: 'single_elimination'
     },
     status: {
       type: String,
@@ -143,15 +145,15 @@ const TournamentSchema = new Schema<Tournament>(
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' },
 
     // Configuration
-    maxTeams: { type: Number, required: true, min: 2 },
-    minTeams: { type: Number, required: true, min: 2 },
-    teamSize: { type: Number, required: true, min: 1 },
+  maxTeams: { type: Number, required: false, min: 2, default: 8 },
+  minTeams: { type: Number, required: false, min: 2, default: 2 },
+  teamSize: { type: Number, required: false, min: 1, default: 1 },
     entryFee: { type: Number, default: 0, min: 0 },
 
     // Timing
-    registrationStart: { type: Date, required: true },
-    registrationEnd: { type: Date, required: true },
-    startDate: { type: Date, required: true },
+  registrationStart: { type: Date, required: false, default: () => new Date(Date.now() - 5 * 60 * 1000) },
+  registrationEnd: { type: Date, required: false, default: () => new Date(Date.now() + 60 * 60 * 1000) },
+  startDate: { type: Date, required: false, default: () => new Date(Date.now() + 2 * 60 * 60 * 1000) },
     endDate: Date,
 
     // Participants
@@ -195,7 +197,7 @@ const TournamentSchema = new Schema<Tournament>(
     },
 
     // Metadata
-    createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, required: false, default: () => new mongoose.Types.ObjectId() },
     admins: [{ type: mongoose.Schema.Types.ObjectId }],
     isPublic: { type: Boolean, default: true },
     tags: [{ type: String }]

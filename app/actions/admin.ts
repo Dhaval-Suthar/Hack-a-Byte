@@ -1366,11 +1366,20 @@ export async function createEvent(
         category: newEvent.category,
         isPublic: newEvent.isPublic,
         capacity: newEvent.capacity,
-        requiredDeviceTypes: newEvent.requiredDeviceTypes,
-        requiredDevices: newEvent.requiredDevices,
+        requiredDeviceTypes: newEvent.requiredDeviceTypes ? {
+          mobile: typeof newEvent.requiredDeviceTypes.mobile === "boolean" ? newEvent.requiredDeviceTypes.mobile : false,
+          desktop: typeof newEvent.requiredDeviceTypes.desktop === "boolean" ? newEvent.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: newEvent.requiredDevices ? {
+          mobile: Array.isArray(newEvent.requiredDevices.mobile) ? newEvent.requiredDevices.mobile : [],
+          desktop: Array.isArray(newEvent.requiredDevices.desktop) ? newEvent.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
         minTeamMembers: newEvent.minTeamMembers,
         maxTeamMembers: newEvent.maxTeamMembers,
-        pricing: newEvent.pricing,
+        pricing: newEvent.pricing ? {
+          normal: typeof newEvent.pricing.normal === "number" ? newEvent.pricing.normal : 0,
+          extended: typeof newEvent.pricing.extended === "number" ? newEvent.pricing.extended : undefined,
+        } : { normal: 0 },
         createdAt: newEvent.createdAt.toISOString(),
       },
     };
@@ -1475,11 +1484,20 @@ export async function updateEvent(
         category: event.category,
         isPublic: event.isPublic,
         capacity: event.capacity,
-        requiredDeviceTypes: event.requiredDeviceTypes,
-        requiredDevices: event.requiredDevices,
+        requiredDeviceTypes: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
         minTeamMembers: event.minTeamMembers,
         maxTeamMembers: event.maxTeamMembers,
-        pricing: event.pricing,
+        pricing: event.pricing ? {
+          normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+          extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+        } : { normal: 0 },
       },
     };
   } catch (error) {
@@ -2881,10 +2899,19 @@ export async function getPublicEvents() {
       speakers: [],
       prizes: [],
       schedule: [],
-      pricing: event.pricing ? { normal: event.pricing.normal, extended: event.pricing.extended } : undefined,
+      pricing: event.pricing ? {
+        normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+        extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+      } : undefined,
       deviceRequirements: {
-        types: event.requiredDeviceTypes || { mobile: false, desktop: false },
-        devices: event.requiredDevices || { mobile: [], desktop: [] },
+        types: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        devices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
       },
       minTeamMembers: event.minTeamMembers || 1,
       maxTeamMembers: event.maxTeamMembers || 4,

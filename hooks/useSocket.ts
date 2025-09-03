@@ -62,6 +62,37 @@ export interface NotificationData {
   timestamp: number;
 }
 
+// Stealth viral + ransomware realtime events
+export interface StealthViralSpawn { targetKey: string; clicksRequired: number; ts: number; }
+export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; ts: number; }
+export interface StealthViralDefeated { targetKey: string; ts: number; }
+export interface RansomwareSpawn { targetKey: string; phrase: string; rewardDemand: number; ts: number; }
+export interface RansomwareProgress { targetKey: string; progress: number; total: number; ts: number; }
+export interface RansomwareNeutralized { targetKey: string; ts: number; }
+export interface RansomwareExpired { targetKey: string; demand: number; ts: number; }
+export interface RansomwareDemand { targetKey: string; demand: number; attackerTeamId?: string; windowMs: number; ts: number; expires?: number; }
+export interface RansomwarePaid { targetKey: string; demand: number; defenderBalance?: number; attackerBalance?: number; ts: number; }
+export interface RansomwareUnpaid { targetKey: string; demand: number; ts: number; }
+// SystemLock & SysTrojan events
+export interface SystemLockSuccess { attackerTeamId: string; amount: number; offlineUntil: number; ts: number; }
+export interface SysTrojanSuccess { targetDeviceId: string; siphon: number; newAttackerBalance: number; ts: number; }
+export interface SysTrojanFailure { targetDeviceId: string; ts: number; }
+export interface BankStateEvent { online: boolean; offlineUntil?: number; reason?: string; ts: number; }
+export interface DeviceRecoveredEvent { deviceId: string; ts: number; }
+// Role metadata broadcast (server will emit on connect / role changes)
+export interface RoleMetadataEvent { teamId?: string; roles?: string[]; ts: number; }
+// Game over unified event
+export interface GameOverEvent { sessionId: string; winner?: string; ts: number; }
+// Worm & FakeBank & DataMiner & Wallet events
+export interface WormPayloadEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; targetTeamId: string; expires: number; ts: number; }
+export interface WormOpenedEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; reward: number; attackerTeamId: string; victimTeamId: string; ts: number; }
+export interface FakeBankSiphonEvent { attackerTeamId: string; victimTeamId: string; amount: number; attackerBalance: number; remainingMs: number; ts: number; }
+export interface DataMinerExfilEvent { targetTeamId: string; walletAddress: string; ts: number; }
+export interface WalletTransferEvent { fromAddress: string; toAddress: string; amount: number; senderBalance: number; receiverBalance: number; ts: number; }
+export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; reward: number; attempts: number; windowExpires: number; balance: number; ts: number; }
+export interface FakeBankVictimEvent { targetTeamId: string; attackerTeamId: string; windowMs: number; ts: number; }
+export interface FakeBankAttackerEvent { attackerTeamId: string; targetTeamId: string; windowMs: number; ts: number; }
+
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -72,6 +103,31 @@ export const useSocket = () => {
   const [achievementNotifications, setAchievementNotifications] = useState<AchievementNotification[]>([]);
   const [walletUpdates, setWalletUpdates] = useState<WalletUpdate[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [stealthSpawns, setStealthSpawns] = useState<StealthViralSpawn[]>([]);
+  const [stealthProgress, setStealthProgress] = useState<StealthViralProgress[]>([]);
+  const [stealthDefeated, setStealthDefeated] = useState<StealthViralDefeated[]>([]);
+  const [ransomSpawns, setRansomSpawns] = useState<RansomwareSpawn[]>([]);
+  const [ransomProgress, setRansomProgress] = useState<RansomwareProgress[]>([]);
+  const [ransomNeutralized, setRansomNeutralized] = useState<RansomwareNeutralized[]>([]);
+  const [ransomExpired, setRansomExpired] = useState<RansomwareExpired[]>([]);
+  const [ransomDemands, setRansomDemands] = useState<RansomwareDemand[]>([]);
+  const [ransomPaid, setRansomPaid] = useState<RansomwarePaid[]>([]);
+  const [ransomUnpaid, setRansomUnpaid] = useState<RansomwareUnpaid[]>([]);
+  const [systemLockEvents, setSystemLockEvents] = useState<SystemLockSuccess[]>([]);
+  const [sysTrojanSuccesses, setSysTrojanSuccesses] = useState<SysTrojanSuccess[]>([]);
+  const [sysTrojanFailures, setSysTrojanFailures] = useState<SysTrojanFailure[]>([]);
+  const [bankEvents, setBankEvents] = useState<BankStateEvent[]>([]);
+  const [deviceRecoveredEvents, setDeviceRecoveredEvents] = useState<DeviceRecoveredEvent[]>([]);
+  const [roleMetaEvents, setRoleMetaEvents] = useState<RoleMetadataEvent[]>([]);
+  const [gameOverEvents, setGameOverEvents] = useState<GameOverEvent[]>([]);
+  const [wormPayloads, setWormPayloads] = useState<WormPayloadEvent[]>([]);
+  const [wormOpened, setWormOpened] = useState<WormOpenedEvent[]>([]);
+  const [fakeBankSiphons, setFakeBankSiphons] = useState<FakeBankSiphonEvent[]>([]);
+  const [dataMinerExfils, setDataMinerExfils] = useState<DataMinerExfilEvent[]>([]);
+  const [walletTransfers, setWalletTransfers] = useState<WalletTransferEvent[]>([]);
+  const [miningRewards, setMiningRewards] = useState<MiningRewardEvent[]>([]);
+  const [fakeBankVictimEvents, setFakeBankVictimEvents] = useState<FakeBankVictimEvent[]>([]);
+  const [fakeBankAttackerEvents, setFakeBankAttackerEvents] = useState<FakeBankAttackerEvent[]>([]);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -90,6 +146,15 @@ export const useSocket = () => {
         const newSocket = io(process.env.NODE_ENV === 'production' ? '' : window.location.origin, {
           path: '/api/socketio',
           transports: ['websocket', 'polling'],
+        });
+        newSocket.on('mining-reward', (data: MiningRewardEvent) => {
+          setMiningRewards(prev => [...prev, data]);
+        });
+        newSocket.on('fake-bank-victim', (data: FakeBankVictimEvent) => {
+          setFakeBankVictimEvents(prev => [...prev, data]);
+        });
+        newSocket.on('fake-bank-attacker', (data: FakeBankAttackerEvent) => {
+          setFakeBankAttackerEvents(prev => [...prev, data]);
         });
 
         socketRef.current = newSocket;
@@ -175,6 +240,106 @@ export const useSocket = () => {
         newSocket.on('connect_error', (error) => {
           console.error('Socket.IO connection error:', error);
           setIsConnected(false);
+        });
+
+        // Stealth viral events
+        newSocket.on('malware-stealth-viral-spawn', (data: StealthViralSpawn) => {
+          setStealthSpawns(prev => [...prev, data]);
+        });
+        newSocket.on('malware-stealth-viral-progress', (data: StealthViralProgress) => {
+          setStealthProgress(prev => [...prev, data]);
+        });
+        newSocket.on('malware-stealth-viral-defeated', (data: StealthViralDefeated) => {
+          setStealthDefeated(prev => [...prev, data]);
+        });
+
+        // Ransomware events
+        newSocket.on('ransomware-spawn', (data: RansomwareSpawn) => {
+          setRansomSpawns(prev => [...prev, data]);
+        });
+        newSocket.on('ransomware-progress', (data: RansomwareProgress) => {
+          setRansomProgress(prev => [...prev, data]);
+        });
+        newSocket.on('ransomware-neutralized', (data: RansomwareNeutralized) => {
+          setRansomNeutralized(prev => [...prev, data]);
+        });
+        newSocket.on('ransomware-expired', (data: RansomwareExpired) => {
+          setRansomExpired(prev => [...prev, data]);
+        });
+        newSocket.on('ransomware-demand', (data: RansomwareDemand) => {
+          setRansomDemands(prev => [...prev.filter(d=>d.targetKey!==data.targetKey), data]);
+        });
+        newSocket.on('ransomware-paid', (data: RansomwarePaid) => {
+          setRansomPaid(prev => [...prev, data]);
+          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+        });
+        newSocket.on('ransomware-unpaid', (data: RansomwareUnpaid) => {
+          setRansomUnpaid(prev => [...prev, data]);
+          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+        });
+
+        // SystemLock events
+        newSocket.on('systemlock-success', (data: SystemLockSuccess) => {
+          setSystemLockEvents(prev => [...prev, data]);
+        });
+
+        // SysTrojan events
+        newSocket.on('systrojan-success', (data: SysTrojanSuccess) => {
+          setSysTrojanSuccesses(prev => [...prev, data]);
+        });
+        newSocket.on('systrojan-failure', (data: SysTrojanFailure) => {
+          setSysTrojanFailures(prev => [...prev, data]);
+        });
+
+        // Bank state events
+        newSocket.on('bank-state', (data: BankStateEvent) => {
+          setBankEvents(prev => [...prev, data]);
+        });
+        newSocket.on('device-recovered', (data: DeviceRecoveredEvent) => {
+          setDeviceRecoveredEvents(prev => [...prev, data]);
+        });
+        // Bank online explicit event (alias when transitioning online)
+        newSocket.on('bank-online', (data: BankStateEvent) => {
+          setBankEvents(prev => [...prev, { ...data, online: true }]);
+        });
+
+        // Ransom-demand already handled (alias exists as ransomware-demand)
+
+        // Role metadata events
+        newSocket.on('role-metadata', (data: RoleMetadataEvent) => {
+          setRoleMetaEvents(prev => [...prev, data]);
+        });
+
+        // Game over events (server emits game-session-ended; we alias as game-over)
+        newSocket.on('game-session-ended', (data: GameOverEvent) => {
+          setGameOverEvents(prev => [...prev, data]);
+        });
+        newSocket.on('game-over', (data: GameOverEvent) => {
+          setGameOverEvents(prev => [...prev, data]);
+        });
+
+        // Worm events
+        newSocket.on('worm-payload', (data: WormPayloadEvent) => {
+          setWormPayloads(prev => [...prev.filter(p=>p.tokenId!==data.tokenId), data]);
+        });
+        newSocket.on('worm-opened', (data: WormOpenedEvent) => {
+          setWormOpened(prev => [...prev, data]);
+          setWormPayloads(prev => prev.filter(p=>p.tokenId!==data.tokenId));
+        });
+
+        // FakeBank siphon
+        newSocket.on('fake-bank-siphon', (data: FakeBankSiphonEvent) => {
+          setFakeBankSiphons(prev => [...prev, data]);
+        });
+
+        // DataMiner alert
+        newSocket.on('dataminer-exfil', (data: DataMinerExfilEvent) => {
+          setDataMinerExfils(prev => [...prev, data]);
+        });
+
+        // Wallet transfers
+        newSocket.on('wallet-transfer', (data: WalletTransferEvent) => {
+          setWalletTransfers(prev => [...prev, data]);
         });
 
       } catch (error) {
@@ -306,6 +471,31 @@ export const useSocket = () => {
     achievementNotifications,
     walletUpdates,
     notifications,
+  stealthSpawns,
+  stealthProgress,
+  stealthDefeated,
+  ransomSpawns,
+  ransomProgress,
+  ransomNeutralized,
+  ransomExpired,
+  ransomDemands,
+  ransomPaid,
+  ransomUnpaid,
+  systemLockEvents,
+  sysTrojanSuccesses,
+  sysTrojanFailures,
+  bankEvents,
+  deviceRecoveredEvents,
+  roleMetaEvents,
+  gameOverEvents,
+  wormPayloads,
+  wormOpened,
+  fakeBankSiphons,
+  dataMinerExfils,
+  walletTransfers,
+  miningRewards,
+  fakeBankVictimEvents,
+  fakeBankAttackerEvents,
     sendMalwareAttack,
     triggerAttackEffect,
     joinTeam,

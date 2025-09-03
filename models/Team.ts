@@ -105,6 +105,7 @@ TeamSchema.index({ accessCodeId: 1 });
 TeamSchema.index({ playspaceId: 1 });
 TeamSchema.index({ deviceId: 1 });
 TeamSchema.index({ 'wallet.walletAddress': 1 });
+TeamSchema.index({ 'wallet.bitcoinBalance': -1 });
 
 // Instance methods
 TeamSchema.methods.addMember = function(username: string, role?: string) {

@@ -60,7 +60,7 @@ const NotificationSchema = new Schema<Notification>(
       ref: 'DeviceUser',
       required: true
     },
-    type: {
+  type: {
       type: String,
       enum: [
         'game_invite',
@@ -73,7 +73,8 @@ const NotificationSchema = new Schema<Notification>(
         'bank_device_available',
         'achievement_unlocked',
         'tournament_update',
-        'system_alert',
+    'system_alert',
+    'system_message',
         'payment_success',
         'payment_failed'
       ],
@@ -91,7 +92,7 @@ const NotificationSchema = new Schema<Notification>(
     },
     priority: {
       type: String,
-      enum: ['low', 'medium', 'high', 'urgent'],
+      enum: ['low', 'medium', 'high', 'urgent', 'normal'],
       default: 'medium'
     },
 

@@ -120,6 +120,9 @@ const DeviceSchema = new Schema<Device>(
         firewall: { type: Boolean, default: true },
         antiVirus: { type: Boolean, default: true },
         vulnerabilities: [{ type: String }],
+  vpn: { type: Boolean, default: false },
+  enc: { type: Boolean, default: false },
+  ids: { type: Boolean, default: false },
       },
     },
 
@@ -139,6 +142,8 @@ const DeviceSchema = new Schema<Device>(
 // Create indexes for better query performance
 DeviceSchema.index({ deviceMacAddress: 1 });
 DeviceSchema.index({ deviceType: 1 });
+DeviceSchema.index({ status: 1 });
+DeviceSchema.index({ 'configuration.networkSettings.ipAddress': 1 });
 
 // Helper method to add a log entry
 DeviceSchema.methods.addLogEntry = function (

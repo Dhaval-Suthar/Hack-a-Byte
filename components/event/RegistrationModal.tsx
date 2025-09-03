@@ -224,7 +224,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                 </h4>
 
                 {/* Pricing Type Selection */}
-                {event.pricing.extended && (
+                {event.pricing.extended ? (
                   <div className="mb-4">
                     <label className="flex items-center text-cyber-secondary text-sm font-bold mb-2">
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -261,7 +261,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                       </label>
                     </div>
                   </div>
-                )}
+                ) : ""}
 
                 <div className="text-white text-sm">
                   <div className="flex justify-between items-center">

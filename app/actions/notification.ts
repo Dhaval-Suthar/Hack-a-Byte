@@ -5,23 +5,24 @@ import NotificationModel from "@/models/Notification";
 
 export async function createNotification(data: {
   recipient: string;
-  type: 'attack_alert' | 'defense_success' | 'achievement_unlocked' | 'tournament_update' | 'system_message';
+  type: string;
   title: string;
   message: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  priority: string;
   data?: Record<string, unknown>;
   expiresAt?: Date;
 }) {
   try {
     await connectDb();
 
+    if (!data.recipient || !data.title?.trim() || !data.message?.trim()) return { success: false, error: 'Missing required fields' };
     const notification = new NotificationModel({
       recipient: data.recipient,
       type: data.type,
       title: data.title,
       message: data.message,
       priority: data.priority,
-      data: data.data || {},
+      metadata: data.data || {},
       expiresAt: data.expiresAt,
       isRead: false,
     });
@@ -38,11 +39,7 @@ export async function getUserNotifications(userId: string, limit: number = 50, o
   try {
     await connectDb();
 
-    const notifications = await NotificationModel.find({ recipient: userId })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(offset)
-      .lean();
+  const notifications = await NotificationModel.find({ recipient: userId }).sort({ createdAt: -1 }).limit(limit).skip(offset).lean();
 
     return { success: true, notifications };
   } catch (error) {

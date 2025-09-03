@@ -273,7 +273,7 @@ const HackPhoneLoginScreen: React.FC<HackPhoneLoginScreenProps> = ({ onSlideToUn
                       progressPercent > 60 ? 'opacity-75' : 'opacity-100'
                     }`}
                     style={{
-                      background: progressPercent > 60
+                      backgroundImage: progressPercent > 60
                         ? "linear-gradient(90deg, rgba(34,197,94,0.8) 0%, rgba(34,197,94,1) 50%, rgba(34,197,94,0.8) 100%)"
                         : "linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.45) 100%)",
                       WebkitBackgroundClip: "text",

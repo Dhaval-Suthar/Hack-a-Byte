@@ -1,4 +1,20 @@
+// Polyfill TextEncoder/Decoder early
+import { TextEncoder, TextDecoder } from 'util';
+(globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
+(globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
+
 import '@testing-library/jest-dom';
+// Memory Mongo bootstrap (only if tests actually touch DB)
+import { startMemoryMongo, stopMemoryMongo } from './__tests__/testMongoMemory';
+
+beforeAll(async () => {
+  // Start memory mongo once; suites that mock connectDb won't be affected
+  await startMemoryMongo();
+});
+
+afterAll(async () => {
+  await stopMemoryMongo();
+});
 
 // Simple polyfill for TextEncoder/TextDecoder
 // @ts-expect-error - Polyfill for Jest environment

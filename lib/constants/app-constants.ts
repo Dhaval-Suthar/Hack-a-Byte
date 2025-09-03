@@ -123,3 +123,36 @@ export const CHARACTER_INFO = {
     image: "/characters/denver.png",
   },
 } as const;
+
+// Role groupings (normalized to lowercase)
+export const ROLE_GROUPS = {
+  attackers: ['rio', 'tokyo'],
+  strategist: ['professor'],
+  defenders: ['berlin', 'nairobi', 'denver'],
+} as const;
+
+// Centralized app access control (keys = appId used in router)
+// Value is an array of allowed lowercase role ids.
+export const APP_ROLE_ACCESS: Record<string, string[]> = {
+  // Economic / offensive tooling
+  'appStore': [...ROLE_GROUPS.attackers],
+  'worm-phish': [...ROLE_GROUPS.attackers],
+  'faucet': [...ROLE_GROUPS.attackers],
+  'email-sms': [...ROLE_GROUPS.attackers],
+  // Strategic / unique
+  'stocks': [...ROLE_GROUPS.strategist],
+  // Defensive tooling
+  'def-stealth': [...ROLE_GROUPS.defenders],
+  'def-ransom': [...ROLE_GROUPS.defenders],
+  'security': [...ROLE_GROUPS.defenders, ...ROLE_GROUPS.strategist],
+  'bank-status': [...ROLE_GROUPS.defenders, ...ROLE_GROUPS.strategist],
+};
+
+// Helper to format allowed roles for UI messaging
+export function formatAllowedRoles(appId: string): string {
+  const roles = APP_ROLE_ACCESS[appId];
+  if (!roles) return '';
+  return roles
+    .map(r => CHARACTER_INFO[r as keyof typeof CHARACTER_INFO]?.name || r)
+    .join(', ');
+}

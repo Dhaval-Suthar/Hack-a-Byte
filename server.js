@@ -16,6 +16,8 @@ app.prepare().then(() => {
 
   // Initialize Socket.IO
   const io = initSocket(server);
+  // Initialize transient state sweeper
+  require('./lib/stateSweeper');
 
   server.listen(3000, (err) => {
     if (err) throw err;

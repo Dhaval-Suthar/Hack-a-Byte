@@ -4,10 +4,21 @@ import connectDb from "@/db/connectDb";
 import WalletTransactionModel from "@/models/WalletTransaction";
 import Team from "@/models/Team";
 
+// Map action-layer legacy types to schema enum values
+const typeMap: Record<string, string> = {
+  tournament_fee: 'fee',
+  prize: 'bonus',
+  defense: 'defense_penalty'
+};
+
+function generateReference(prefix: string = 'TXN'): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 export async function createWalletTransaction(data: {
   teamId: string;
   type: 'deposit' | 'withdrawal' | 'transfer' | 'tournament_fee' | 'prize' | 'attack' | 'defense';
-  amount: number;
+  amount: number; // positive for credit, negative for debit (tests use this convention)
   description: string;
   attackerId?: string;
   defenderId?: string;
@@ -17,34 +28,64 @@ export async function createWalletTransaction(data: {
   try {
     await connectDb();
 
-    const transaction = new WalletTransactionModel({
-      teamId: data.teamId,
-      type: data.type,
+    const team = await Team.findById(data.teamId);
+    if (!team) {
+      return { success: false, error: 'Team not found' };
+    }
+
+    if (typeof data.amount !== 'number' || data.amount === 0 || isNaN(data.amount)) {
+      return { success: false, error: 'Invalid amount' };
+    }
+
+    const mappedType = (typeMap as Record<string, string>)[data.type] || data.type;
+    const allowedTypes = ['deposit','withdrawal','transfer','fee','bonus','attack','defense_penalty'];
+    if (!allowedTypes.includes(mappedType)) {
+      return { success: false, error: 'Invalid transaction type' };
+    }
+
+    const balanceBefore = team.wallet.bitcoinBalance;
+    const balanceAfter = balanceBefore + data.amount;
+    if (balanceAfter < 0) {
+      return { success: false, error: 'Insufficient balance' };
+    }
+
+    const reference = generateReference();
+
+    const transaction = await WalletTransactionModel.create({
+      teamId: team._id,
+      walletAddress: team.wallet.walletAddress,
+      type: mappedType,
       amount: data.amount,
       description: data.description,
       attackerId: data.attackerId,
       defenderId: data.defenderId,
-      transactionHash: data.transactionHash,
+      reference,
+      balanceBefore,
+      balanceAfter,
       status: data.status,
-      timestamp: new Date(),
+      metadata: {},
+      tags: []
     });
 
-    await transaction.save();
+    if (data.status === 'completed') {
+      team.wallet.bitcoinBalance = balanceAfter;
+      await team.save();
+    }
+
     return { success: true, transaction: transaction.toObject() };
   } catch (error) {
-    console.error("Error creating wallet transaction:", error);
-    return { success: false, error: "Failed to create transaction" };
+    console.error('Error creating wallet transaction:', error);
+    return { success: false, error: 'Failed to create transaction' };
   }
 }
 
 export async function getTeamTransactions(teamId: string, limit: number = 50, offset: number = 0) {
   try {
     await connectDb();
-
     const transactions = await WalletTransactionModel.find({ teamId })
       .populate('attackerId', 'username')
       .populate('defenderId', 'username')
-      .sort({ timestamp: -1 })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .skip(offset)
       .lean();
@@ -117,52 +158,65 @@ export async function transferBitcoin(fromTeamId: string, toTeamId: string, amou
   try {
     await connectDb();
 
+    if (amount <= 0) return { success: false, error: 'Invalid amount' };
+
     const [fromTeam, toTeam] = await Promise.all([
       Team.findById(fromTeamId),
       Team.findById(toTeamId)
     ]);
 
     if (!fromTeam || !toTeam) {
-      return { success: false, error: "One or both teams not found" };
+      return { success: false, error: 'One or both teams not found' };
     }
 
     if (fromTeam.wallet.bitcoinBalance < amount) {
-      return { success: false, error: "Insufficient balance" };
+      return { success: false, error: 'Insufficient balance' };
     }
 
-    // Update balances
-    fromTeam.wallet.bitcoinBalance -= amount;
-    toTeam.wallet.bitcoinBalance += amount;
+    const refBase = generateReference('TRF');
 
-    // Create transaction records
+    const fromBalanceBefore = fromTeam.wallet.bitcoinBalance;
+    const fromBalanceAfter = fromBalanceBefore - amount;
+    const toBalanceBefore = toTeam.wallet.bitcoinBalance;
+    const toBalanceAfter = toBalanceBefore + amount;
+
+    // Prepare transactions
     const withdrawalTx = new WalletTransactionModel({
-      teamId: fromTeamId,
+      teamId: fromTeam._id,
+      walletAddress: fromTeam.wallet.walletAddress,
       type: 'transfer',
       amount: -amount,
       description: `Transfer to ${toTeam.name}: ${description}`,
       status: 'completed',
-      timestamp: new Date(),
+      reference: refBase + '-OUT',
+      balanceBefore: fromBalanceBefore,
+      balanceAfter: fromBalanceAfter,
+      metadata: { direction: 'outbound', counterparty: toTeam._id.toString() },
+      tags: ['transfer']
     });
 
     const depositTx = new WalletTransactionModel({
-      teamId: toTeamId,
+      teamId: toTeam._id,
+      walletAddress: toTeam.wallet.walletAddress,
       type: 'transfer',
-      amount: amount,
+      amount,
       description: `Transfer from ${fromTeam.name}: ${description}`,
       status: 'completed',
-      timestamp: new Date(),
+      reference: refBase + '-IN',
+      balanceBefore: toBalanceBefore,
+      balanceAfter: toBalanceAfter,
+      metadata: { direction: 'inbound', counterparty: fromTeam._id.toString() },
+      tags: ['transfer']
     });
 
-    await Promise.all([
-      fromTeam.save(),
-      toTeam.save(),
-      withdrawalTx.save(),
-      depositTx.save()
-    ]);
+    // Persist
+    fromTeam.wallet.bitcoinBalance = fromBalanceAfter;
+    toTeam.wallet.bitcoinBalance = toBalanceAfter;
+    await Promise.all([ fromTeam.save(), toTeam.save(), withdrawalTx.save(), depositTx.save() ]);
 
-    return { success: true, message: "Transfer completed successfully" };
+    return { success: true, message: 'Transfer completed successfully' };
   } catch (error) {
-    console.error("Error transferring bitcoin:", error);
-    return { success: false, error: "Failed to transfer bitcoin" };
+    console.error('Error transferring bitcoin:', error);
+    return { success: false, error: 'Failed to transfer bitcoin' };
   }
 }

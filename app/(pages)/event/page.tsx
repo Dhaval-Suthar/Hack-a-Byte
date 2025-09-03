@@ -101,13 +101,55 @@ export default function Page() {
   const [scanlines, setScanlines] = useState(true);
   const [eventQuery, setEventQuery] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentTime, setCurrentTime] = useState("--:--:--");
   const [registrationModal, setRegistrationModal] = useState<{
     isOpen: boolean;
     event: Event | null;
   }>({ isOpen: false, event: null });
 
-  const today = new Date();
-  const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+
+  // Update current date on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateDate = () => {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      setCurrentDate(dateStr);
+    };
+    
+    // Update date at midnight
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    const timeout = setTimeout(() => {
+      updateDate();
+      // Set up daily updates
+      setInterval(updateDate, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // Update current time on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    };
+    
+    // Set initial time
+    updateTime();
+    
+    // Update time every second
+    const interval = setInterval(updateTime, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Filter events based on the selected view
   const filteredEvents = eventsWithCounts.filter(event => {
@@ -753,7 +795,7 @@ export default function Page() {
               <span className="text-cyber-primary">{currentDate}</span>
             </div>
             <div className="text-right text-xs text-gray-500 mt-1">
-              System time: {new Date().toLocaleTimeString()}
+              System time: {currentTime}
             </div>
           </div>
         </div>

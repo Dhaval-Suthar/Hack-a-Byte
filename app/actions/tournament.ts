@@ -3,6 +3,53 @@
 import connectDb from "@/db/connectDb";
 import TournamentModel from "@/models/Tournament";
 import Team from "@/models/Team";
+import { Types } from 'mongoose';
+
+interface LegacyTournamentInput { [k: string]: unknown }
+function mapLegacyTournamentInput(data: LegacyTournamentInput) {
+  const now = new Date();
+  const regStart = new Date(now.getTime() - 5 * 60 * 1000);
+  const regEnd = new Date(now.getTime() + 60 * 60 * 1000);
+  const maxTeams = typeof data.maxTeams === 'number' ? data.maxTeams : 8;
+  const entryFee = typeof data.entryFee === 'number' ? data.entryFee : 0;
+  const prizePool = typeof (data.prizePool) === 'number' ? (data.prizePool as number) : 0;
+  return {
+    name: data.name || 'Tournament',
+    description: data.description || 'No description',
+    type: 'single_elimination',
+    status: 'registration_open',
+    maxTeams,
+    minTeams: Math.min(2, maxTeams),
+    teamSize: 1,
+    entryFee,
+    registrationStart: regStart,
+    registrationEnd: regEnd,
+    startDate: data.startDate || new Date(Date.now() + 2 * 60 * 60 * 1000),
+    endDate: data.endDate || new Date(Date.now() + 3 * 60 * 60 * 1000),
+    bracket: [],
+    currentRound: 0,
+    registeredTeams: [],
+    acceptedTeams: [],
+    rejectedTeams: [],
+    prizes: [],
+    rules: {
+      maxGameDuration: 25,
+      allowRematches: false,
+      scoringSystem: 'score_based',
+      tiebreakerRules: []
+    },
+    stats: {
+      totalGames: 0,
+      totalParticipants: 0,
+      averageGameDuration: 0,
+      totalPrizePool: prizePool
+    },
+  createdBy: new Types.ObjectId(),
+    admins: [],
+    isPublic: true,
+    tags: []
+  };
+}
 
 export async function createTournament(data: {
   name: string;
@@ -17,29 +64,17 @@ export async function createTournament(data: {
 }) {
   try {
     await connectDb();
+  if (!data.name || !data.name.trim()) return { success: false, error: 'Name required' };
+  if (!data.description || !data.description.trim()) return { success: false, error: 'Description required' };
+  if (!Array.isArray(data.rules) || !data.rules.length) return { success: false, error: 'At least one rule required' };
 
     // Verify admin key if provided
     if (data.adminKey) {
       // Add admin verification logic here
     }
 
-    const tournament = new TournamentModel({
-      name: data.name,
-      description: data.description,
-      maxTeams: data.maxTeams,
-      entryFee: data.entryFee,
-      prizePool: data.prizePool,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      rules: data.rules,
-      status: 'registration_open',
-      registeredTeams: [],
-      brackets: [],
-      currentRound: 0,
-      totalRounds: Math.ceil(Math.log2(data.maxTeams)),
-    });
-
-    await tournament.save();
+  const mapped = mapLegacyTournamentInput(data);
+  const tournament = await TournamentModel.create(mapped);
     return { success: true, tournament: tournament.toObject() };
   } catch (error) {
     console.error("Error creating tournament:", error);

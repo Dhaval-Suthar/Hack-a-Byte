@@ -93,7 +93,7 @@ function parseDownloads(d: string): number {
 
 const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
   // Initialize Socket.IO connection
-  const { sendMalwareAttack, triggerAttackEffect, isConnected } = useSocket();
+  const { sendMalwareAttack, triggerAttackEffect, isConnected, socket } = useSocket();
   // Inject custom styles for running malware animation
   useEffect(() => {
     const style = document.createElement("style");
@@ -471,7 +471,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
                                  deployItem.category === 'worm' ? 'high' :
                                  deployItem.category === 'virus' ? 'medium' : 'low';
 
-            const effectMessage = deployItem.category === 'ransomware' ? 'RANSOMWARE DETECTED - SYSTEM LOCKED' :
+                      const effectMessage = deployItem.category === 'ransomware' ? 'RANSOMWARE DETECTED - SYSTEM LOCKED' :
                                  deployItem.category === 'worm' ? 'NETWORK INTRUSION DETECTED' :
                                  deployItem.category === 'virus' ? 'MALWARE INFECTION DETECTED' : 'SECURITY ALERT';
 
@@ -517,7 +517,10 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
       console.error('Deployment error:', error);
       alert('Deployment failed. Please try again.');
     }
-  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username]);
+              if (socket && deployItem.category === 'ransomware' && deployItem.name.toLowerCase().includes('bank')) {
+                socket.emit('fake-bank-warning', { domain: deployData.domainName || 'bank.example', ts: Date.now() });
+              }
+  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username, socket]);
 
   const getCategoryBadge = (cat: Category) => ({
     virus: "bg-red-500",

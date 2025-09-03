@@ -687,12 +687,22 @@ const StockMarketApp: React.FC = () => {
         ) : (
           filteredStocks.map((stock) => (
             <div key={stock.symbol} className="bg-gradient-to-b from-white to-[#f8f8f8]">
-              <button
+              <div
+                role="button"
+                aria-label={`Open trade panel for ${stock.symbol}`}
+                tabIndex={0}
                 onClick={() => {
                   setSelectedStock(stock);
                   setActiveTab("trade");
                 }}
-                className="w-full px-4 py-3 text-left hover:from-[#f0f8ff] hover:to-[#e6f3ff] active:from-[#e0f0ff] active:to-[#d0e8ff] transition-all duration-150"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedStock(stock);
+                    setActiveTab('trade');
+                  }
+                }}
+                className="w-full px-4 py-3 text-left hover:from-[#f0f8ff] hover:to-[#e6f3ff] active:from-[#e0f0ff] active:to-[#d0e8ff] transition-all duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400/60"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
@@ -750,7 +760,7 @@ const StockMarketApp: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           ))
         )}

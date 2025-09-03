@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+// Extended to include legacy test types: deposit, withdrawal, attack
 export type TransactionType =
   | 'mining'
   | 'transfer'
@@ -10,7 +11,10 @@ export type TransactionType =
   | 'sale'
   | 'fee'
   | 'bonus'
-  | 'refund';
+  | 'refund'
+  | 'deposit'
+  | 'withdrawal'
+  | 'attack';
 
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
@@ -80,7 +84,10 @@ const WalletTransactionSchema = new Schema<WalletTransaction>(
         'sale',
         'fee',
         'bonus',
-        'refund'
+        'refund',
+        'deposit',
+        'withdrawal',
+        'attack'
       ],
       required: true
     },

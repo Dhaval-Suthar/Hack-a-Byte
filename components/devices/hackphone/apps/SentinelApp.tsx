@@ -233,6 +233,18 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   const [activeTab, setActiveTab] = useState<'mission' | 'transfers' | 'wallets'>('mission');
   const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
+  // New scan gating state
+  const SCAN_COOLDOWN_MS = 60_000; // 1 minute
+  const [lastScanTime, setLastScanTime] = useState<number | null>(null);
+  const [scanCompleted, setScanCompleted] = useState(false);
+  const [deviceLockedForScan, setDeviceLockedForScan] = useState<DeviceInfo | null>(null);
+  const [nowTs, setNowTs] = useState(Date.now());
+
+  // Tick every second to update cooldown display
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Check user role on component mount
   useEffect(() => {
@@ -250,10 +262,17 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   };
 
   const startScan = async () => {
+    if (lastScanTime && Date.now() - lastScanTime < SCAN_COOLDOWN_MS) {
+      addNotification('⏳ Scan cooldown active. Please wait.');
+      return;
+    }
     setIsScanning(true);
     setScanProgress(0);
     setDiscoveredDevices(0);
     addNotification("🔍 Initiating strategic reconnaissance scan...");
+    setSelectedDevice(null);
+    setDeviceLockedForScan(null);
+    setScanCompleted(false);
 
     // Simulate scanning process
     for (let i = 0; i <= 100; i += 2) {
@@ -276,14 +295,16 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
     
     setIsScanning(false);
     
-    // Refresh all data
-    fetchDevices();
+  // Refresh all data (will be first reveal after scan)
+  fetchDevices();
     fetchWallets();
     fetchTeamBalance();
+  setLastScanTime(Date.now());
+  setScanCompleted(true);
   };
 
   useEffect(() => {
-    fetchDevices();
+    // On mount we only fetch wallets & team balance; devices gated behind scan
     fetchWallets();
     fetchTeamBalance();
   }, []);
@@ -352,8 +373,11 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
     );
   }
 
-  const onlineDevices = devices.filter(d => d.status === "online").length;
-  const maintenanceDevices = devices.filter(d => d.status === "maintenance").length;
+  const onlineDevices = scanCompleted ? devices.filter(d => d.status === "online").length : 0;
+  const maintenanceDevices = scanCompleted ? devices.filter(d => d.status === "maintenance").length : 0;
+
+  const cooldownRemaining = lastScanTime ? Math.max(0, SCAN_COOLDOWN_MS - (nowTs - lastScanTime)) : 0;
+  const cooldownSeconds = Math.ceil(cooldownRemaining / 1000);
 
   const getSecurityColor = (level: string) => {
     switch (level) {
@@ -512,27 +536,40 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                         </div>
                       </div>
                     )}
-                    <button
-                      onClick={startScan}
-                      disabled={isScanning}
-                      className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl ${
-                        isScanning 
-                          ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/30'
-                          : 'bg-gradient-to-r from-red-500 via-orange-500 to-red-500 hover:from-red-400 hover:via-orange-400 hover:to-red-400 text-white shadow-red-500/50 hover:shadow-red-500/70 border border-red-400/50'
-                      }`}
-                    >
-                      {isScanning ? (
-                        <div className="flex items-center justify-center space-x-3">
-                          <div className="animate-spin w-6 h-6 border-3 border-white border-t-transparent rounded-full" />
-                          <span>TACTICAL SCAN ACTIVE</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center space-x-2">
-                          <span>🚀</span>
-                          <span>INITIATE STRATEGIC SCAN</span>
-                        </div>
+                    <div className="space-y-3">
+                      <button
+                        onClick={startScan}
+                        disabled={isScanning || cooldownRemaining > 0}
+                        className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 transform ${
+                          (isScanning || cooldownRemaining > 0)
+                            ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/30'
+                            : 'hover:scale-105 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 hover:from-red-400 hover:via-orange-400 hover:to-red-400 text-white shadow-xl shadow-red-500/50 hover:shadow-red-500/70 border border-red-400/50'
+                        }`}
+                      >
+                        {isScanning ? (
+                          <div className="flex items-center justify-center space-x-3">
+                            <div className="animate-spin w-6 h-6 border-3 border-white border-t-transparent rounded-full" />
+                            <span>TACTICAL SCAN ACTIVE</span>
+                          </div>
+                        ) : cooldownRemaining > 0 ? (
+                          <div className="flex items-center justify-center space-x-2">
+                            <span>⏳</span>
+                            <span>COOLDOWN {cooldownSeconds}s</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center space-x-2">
+                            <span>🚀</span>
+                            <span>{scanCompleted ? 'RE-SCAN NETWORK' : 'INITIATE STRATEGIC SCAN'}</span>
+                          </div>
+                        )}
+                      </button>
+                      {!scanCompleted && !isScanning && (
+                        <p className="text-center text-xs text-gray-500">Run a scan to reveal target devices.</p>
                       )}
-                    </button>
+                      {deviceLockedForScan && (
+                        <p className="text-center text-xs text-cyan-400">Target locked. Re-scan to analyze another device.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -560,63 +597,80 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-                {devices.length === 0 ? (
+                {!scanCompleted ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4 opacity-50">🛰️</div>
+                    <div className="text-gray-400 mb-2">Scan required</div>
+                    <div className="text-sm text-gray-500">Initiate a strategic scan to enumerate targets.</div>
+                  </div>
+                ) : devices.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4 opacity-50">🔍</div>
                     <div className="text-gray-400 mb-2">No targets detected</div>
-                    <div className="text-sm text-gray-500">Run a strategic scan to discover enemy assets</div>
+                    <div className="text-sm text-gray-500">Re-scan later to discover new devices</div>
                   </div>
                 ) : (
-                  devices.map((device, index) => (
-                    <div 
-                      key={device.id} 
-                      className="group relative bg-gradient-to-r from-gray-800/40 to-gray-900/40 backdrop-blur-sm rounded-xl border border-gray-700/30 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] p-4"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                      onClick={() => setSelectedDevice(device)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="relative">
-                            <div className={`w-5 h-5 rounded-full border-2 ${
-                              device.status === 'online' ? 'bg-green-400 border-green-300 shadow-lg shadow-green-400/50' :
-                              device.status === 'maintenance' ? 'bg-yellow-400 border-yellow-300 shadow-lg shadow-yellow-400/50' : 
-                              'bg-red-400 border-red-300 shadow-lg shadow-red-400/50'
-                            }`}>
-                              {device.status === 'online' && (
-                                <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75" />
+                  devices.map((device, index) => {
+                    const locked = !!deviceLockedForScan && deviceLockedForScan.id !== device.id;
+                    return (
+                      <div
+                        key={device.id}
+                        className={`group relative bg-gradient-to-r from-gray-800/40 to-gray-900/40 backdrop-blur-sm rounded-xl border transition-all duration-300 p-4 ${
+                          locked ? 'border-gray-700/30 opacity-40 cursor-not-allowed' : 'border-gray-700/30 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10 cursor-pointer transform hover:scale-[1.02]'
+                        }`}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                        onClick={() => {
+                          if (locked) return;
+                          setSelectedDevice(device);
+                          if (!deviceLockedForScan) {
+                            setDeviceLockedForScan(device);
+                            addNotification('🎯 Target locked for this scan');
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="relative">
+                              <div className={`w-5 h-5 rounded-full border-2 ${
+                                device.status === 'online' ? 'bg-green-400 border-green-300 shadow-lg shadow-green-400/50' :
+                                device.status === 'maintenance' ? 'bg-yellow-400 border-yellow-300 shadow-lg shadow-yellow-400/50' :
+                                'bg-red-400 border-red-300 shadow-lg shadow-red-400/50'
+                              }`}>
+                                {device.status === 'online' && (
+                                  <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75" />
+                                )}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-white font-bold group-hover:text-cyan-300 transition-colors">
+                                  {device.deviceType.toUpperCase()}
+                                </span>
+                                {device.isBank && <span className="text-lg">🏦</span>}
+                                {device.bitcoinBalance && device.bitcoinBalance > 100 && <span className="text-yellow-400">💎</span>}
+                                {deviceLockedForScan?.id === device.id && <span className="text-cyan-400">🔒</span>}
+                              </div>
+                              <div className="text-xs text-gray-400 font-mono">{device.ipAddress}</div>
+                              {device.bitcoinBalance && (
+                                <div className="text-sm font-bold text-green-400">₿{device.bitcoinBalance.toFixed(2)}</div>
                               )}
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-white font-bold group-hover:text-cyan-300 transition-colors">
-                                {device.deviceType.toUpperCase()}
-                              </span>
-                              {device.isBank && <span className="text-lg">🏦</span>}
-                              {device.bitcoinBalance && device.bitcoinBalance > 100 && <span className="text-yellow-400">💎</span>}
+                          <div className="text-right space-y-2">
+                            <div className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                              device.securityLevel === 'high' ? 'text-green-400 bg-green-400/10 border-green-400/30' :
+                              device.securityLevel === 'medium' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30' :
+                              'text-red-400 bg-red-400/10 border-red-400/30'
+                            }`}>
+                              {device.securityLevel.toUpperCase()}
                             </div>
-                            <div className="text-xs text-gray-400 font-mono">{device.ipAddress}</div>
-                            {device.bitcoinBalance && (
-                              <div className="text-sm font-bold text-green-400">₿{device.bitcoinBalance.toFixed(2)}</div>
-                            )}
+                            <div className="text-xs text-gray-500">{formatLastSeen(device.lastSeen)}</div>
                           </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <div className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                            device.securityLevel === 'high' ? 'text-green-400 bg-green-400/10 border-green-400/30' :
-                            device.securityLevel === 'medium' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30' :
-                            'text-red-400 bg-red-400/10 border-red-400/30'
-                          }`}>
-                            {device.securityLevel.toUpperCase()}
-                          </div>
-                          <div className="text-xs text-gray-500">{formatLastSeen(device.lastSeen)}</div>
-                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       </div>
-                      
-                      {/* Hover glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -633,11 +687,12 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                         <div className="text-xs text-gray-400">{selectedDevice.deviceType.toUpperCase()}</div>
                       </div>
                     </div>
-                    <button 
-                      className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-500/10" 
+                    <button
+                      className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-500/10"
                       onClick={() => setSelectedDevice(null)}
+                      disabled={!!deviceLockedForScan && deviceLockedForScan.id === selectedDevice.id}
                     >
-                      ✕
+                      {deviceLockedForScan && deviceLockedForScan.id === selectedDevice.id ? '🔒' : '✕'}
                     </button>
                   </div>
                   

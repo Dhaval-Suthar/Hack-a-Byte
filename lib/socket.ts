@@ -2,6 +2,8 @@ import { Server as NetServer } from 'http';
 import { NextApiResponse } from 'next';
 import { Server as ServerIO } from 'socket.io';
 import { Socket as NetSocket } from 'net';
+import Team from '@/models/Team';
+import connectDb from '@/db/connectDb';
 
 export type NextApiResponseServerIo = NextApiResponse & {
   socket: NetSocket & {
@@ -34,6 +36,11 @@ export const initSocket = (httpServer: NetServer) => {
     console.log('🔌 Client connected:', socket.id);
     console.log('🔌 Total connected clients:', io.sockets.sockets.size);
 
+    // Helper: emit to a playspace room with standard envelope
+    const emitToPlayspace = (playspaceId: string, event: string, payload: Record<string, unknown>) => {
+      io.to(playspaceId).emit(event, { ...payload, ts: Date.now(), scope: 'playspace', playspaceId });
+    };
+
     // Join playspace room
     socket.on('join-playspace', (playspaceId: string) => {
       socket.join(playspaceId);
@@ -48,7 +55,7 @@ export const initSocket = (httpServer: NetServer) => {
     });
 
     // Join team room for team-based features
-    socket.on('join-team', (teamId: string) => {
+    socket.on('join-team', async (teamId: string) => {
       socket.join(`team-${teamId}`);
       console.log(`🔌 Client ${socket.id} joined team: ${teamId}`);
       console.log(`🔌 Clients in team-${teamId}:`, io.sockets.adapter.rooms.get(`team-${teamId}`)?.size || 0);
@@ -58,6 +65,16 @@ export const initSocket = (httpServer: NetServer) => {
         clientsByTeam.set(teamId, new Set());
       }
       clientsByTeam.get(teamId)?.add(socket.id);
+
+      // Emit role metadata for the team
+      try {
+        await connectDb();
+        const team = await Team.findById(teamId).select('teamMembers.role');
+        if (team) {
+          const roles = team.teamMembers.map((m: { role?: string }) => m.role).filter(Boolean);
+          io.to(`team-${teamId}`).emit('role-metadata', { teamId, roles, ts: Date.now() });
+        }
+      } catch {}
     });
 
     // Join user room for personal notifications
@@ -206,6 +223,13 @@ export const initSocket = (httpServer: NetServer) => {
         ...data,
         timestamp: Date.now(),
       });
+    });
+
+    // Internal forwarder for API-triggered scoped malware events (if APIs choose socket.emit)
+    socket.on('internal-malware-event', (data: { playspaceId: string; event: string; payload?: Record<string, unknown>; }) => {
+      if (data?.playspaceId && data?.event) {
+        emitToPlayspace(data.playspaceId, data.event, data.payload || {});
+      }
     });
 
     socket.on('disconnect', () => {

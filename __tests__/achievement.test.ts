@@ -287,19 +287,24 @@ describe('Achievement Actions', () => {
       });
       userId = user._id.toString();
 
-      const achievement = await AchievementModel.create({
+      // Use createAchievement action instead of direct model creation to ensure proper normalization
+      const achievementData = {
         name: 'Triple Win',
         description: 'Win 5 games',
         icon: '🏆',
-        category: 'gameplay',
-        rarity: 'rare',
+        category: 'gameplay' as const,
+        rarity: 'rare' as const,
         requirements: { wins: 5 },
         prerequisites: [],
         rewards: { bitcoin: 0.001 },
         isActive: true,
-        unlockedCount: 0,
-      });
-      achievementId = achievement._id.toString();
+      };
+
+      const result = await createAchievement(achievementData);
+      if (!result.success || !result.achievement) {
+        throw new Error('Failed to create achievement for test');
+      }
+      achievementId = result.achievement._id.toString();
     });
 
     it('should check achievement progress', async () => {
