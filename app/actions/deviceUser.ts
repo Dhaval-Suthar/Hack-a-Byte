@@ -76,12 +76,13 @@ export async function createDeviceUser(
       gameState: {
         unlockedApplications: ['Notepad', 'MyComputer'],
         skills: {},
-        missions: new Map(),
+        missions: {},
         gameStats: {
           totalPlayTime: 0,
           loginCount: 1,
           lastLoginDate: new Date(),
-          achievementsUnlocked: []
+          achievementsUnlocked: [],
+          wins: 0
         },
         settings: {
           soundEnabled: true,
@@ -105,7 +106,7 @@ export async function createDeviceUser(
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: newUser._id.toString(),
+      userId: String(newUser._id),
       username,
       sessionId: newUser.sessionId
     });
@@ -125,22 +126,23 @@ export async function createDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: newUser._id.toString(),
+        _id: String(newUser._id),
         username: newUser.username,
         sessionId: newUser.sessionId,
         progress: {
           unlockedApplications: newUser.gameState.unlockedApplications,
-          skills: Object.fromEntries(newUser.gameState.skills || new Map())
+          skills: newUser.gameState.skills || {}
         },
         gameState: {
           unlockedApplications: newUser.gameState.unlockedApplications,
-          skills: Object.fromEntries(newUser.gameState.skills || new Map()),
-          missions: Object.fromEntries(newUser.gameState.missions || new Map()),
+          skills: newUser.gameState.skills || {},
+          missions: newUser.gameState.missions || {},
           gameStats: {
             totalPlayTime: newUser.gameState.gameStats?.totalPlayTime || 0,
             loginCount: newUser.gameState.gameStats?.loginCount || 0,
             lastLoginDate: newUser.gameState.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: newUser.gameState.gameStats?.achievementsUnlocked || []
+            achievementsUnlocked: newUser.gameState.gameStats?.achievementsUnlocked || [],
+            wins: newUser.gameState.gameStats?.wins || 0
           },
           settings: {
             soundEnabled: newUser.gameState.settings?.soundEnabled ?? true,
@@ -197,7 +199,8 @@ export async function loginDeviceUser(
         totalPlayTime: 0,
         loginCount: 1,
         lastLoginDate: new Date(),
-        achievementsUnlocked: []
+        achievementsUnlocked: [],
+        wins: 0
       };
     }
 
@@ -232,7 +235,7 @@ export async function loginDeviceUser(
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: user._id.toString(),
+      userId: String(user._id),
       username,
       sessionId: user.sessionId
     });
@@ -415,7 +418,7 @@ export async function getUsersByDeviceId(deviceId: string) {
     return { 
       success: true, 
       users: users.map(user => ({
-        _id: user._id.toString(),
+        _id: String(user._id),
         username: user.username,
         loginTime: user.loginTime,
         lastActiveTime: user.lastActiveTime,

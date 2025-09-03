@@ -420,13 +420,30 @@ export default function Page() {
           //   description: "Network defense specialists protecting digital realms",
           //   features: ["Logo on event website"],
           // },
+          {
+            tier: "Cyber Sentinels",
+            price: "$10,000",
+            color: "from-cyber-primary to-cyber-secondary",
+            borderColor: "cyber-primary",
+            description: "Advanced threat protectors guarding digital frontiers",
+            features: [
+              "Large booth in cybersecurity pavilion",
+              "Workshop session on threat detection (45 min)",
+              "Logo on event website and security materials",
+              "Social media mentions in security channels",
+              "5 VIP passes for security professionals",
+              "Access to cybersecurity talent database",
+              "Participation in security panel discussions",
+              "Exclusive security recruitment opportunities",
+            ],
+          },
         ].map((package_, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
-            className={`bg-black/60 border border-${package_.borderColor}/40 rounded-lg overflow-hidden`}
+            className="bg-black/60 border border-cyber-primary/40 rounded-lg overflow-hidden"
           >
             <div className={`bg-gradient-to-r ${package_.color} px-4 py-2 text-black font-bold`}>{package_.tier}</div>
 

@@ -219,13 +219,14 @@ export async function resetUserProgress(
     // Reset game state to initial values
     user.gameState = {
       unlockedApplications: ['Notepad', 'MyComputer'],
-      skills: new Map(),
-      missions: new Map(),
+      skills: {},
+      missions: {},
       gameStats: {
         totalPlayTime: 0,
         loginCount: user.gameState.gameStats?.loginCount || 0, // Keep login count
         lastLoginDate: user.gameState.gameStats?.lastLoginDate || new Date(),
-        achievementsUnlocked: []
+        achievementsUnlocked: [],
+        wins: 0
       },
       settings: {
         soundEnabled: true,

@@ -218,7 +218,6 @@ export default function Page() {
     }
   };
 
-"use client";
 /**
  * Community Page - Now Functional with Real Data
  *

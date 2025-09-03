@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import mongoose from "mongoose";
 // Use leo-profanity on the server to sanitize messages before saving
-// Use require to avoid TS typing issues in this file
-const leo = require('leo-profanity');
+// Use import to avoid TS typing issues in this file
+import leo from 'leo-profanity';
 import connectDb from "@/db/connectDb";
 import ChatMessageModel from "@/models/ChatMessage";
 import DeviceUser from "@/models/DeviceUser";
@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           'puto', 'mierda', 'joder', 'merde', 'putain', 'connard', 'scheiße', 'ficken', 'merda', 'cazzo',
           'caralho', 'хуй', 'пизда', 'كس', 'चूत', 'くたばれ', '他妈的'
         ]);
-      } catch (e) {
+      } catch {
         // ignore if already added or any issue
       }
 

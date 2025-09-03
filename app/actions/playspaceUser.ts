@@ -63,7 +63,7 @@ export async function createDeviceUser(
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: newUser._id.toString(),
+      userId: String(newUser._id),
       username,
       sessionId: newUser.sessionId
     });
@@ -83,7 +83,7 @@ export async function createDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: newUser._id.toString(), // Convert ObjectId to string
+        _id: String(newUser._id), // Convert ObjectId to string
         username: newUser.username,
         sessionId: newUser.sessionId,
         progress: newUser.userData?.progress || {
@@ -133,7 +133,7 @@ export async function loginDeviceUser(
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: user._id.toString(),
+      userId: String(user._id),
       username,
       sessionId: user.sessionId
     });
@@ -153,7 +153,7 @@ export async function loginDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: user._id.toString(), // Convert ObjectId to string
+        _id: String(user._id), // Convert ObjectId to string
         username: user.username,
         sessionId: user.sessionId,
         progress: user.userData?.progress || {
@@ -201,7 +201,7 @@ export async function getDeviceUser(
     return {
       isLoggedIn: true,
       user: {
-        _id: user._id.toString(), // Convert ObjectId to string
+        _id: String(user._id), // Convert ObjectId to string
         username: user.username,
         sessionId: user.sessionId,
         progress: user.userData?.progress || {
@@ -259,7 +259,7 @@ export async function getUsersByDeviceId(deviceId: string) {
     return { 
       success: true, 
       users: users.map(user => ({
-        _id: user._id.toString(),
+        _id: String(user._id),
         username: user.username,
         loginTime: user.loginTime,
         lastActiveTime: user.lastActiveTime,
