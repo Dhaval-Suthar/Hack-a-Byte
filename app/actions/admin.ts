@@ -1,12 +1,12 @@
 "use server";
 
 import connectDb from "@/db/connectDb";
-import User from "@/models/User";
 import AccessCode, { AccessCodeType } from "@/models/AccessCode";
 import Team from "@/models/Team";
 import Playspace from "@/models/Playspace";
 import Device from "@/models/Device";
 import Event from "@/models/Event";
+import Sponsor from "@/models/Sponsor";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { generateMacAddress } from "@/lib/utils";
@@ -32,106 +32,6 @@ async function checkAdminStatus(adminKey?: string) {
     isAdmin: false,
     error: "Authentication key required",
   };
-}
-
-// User Actions
-export async function getUsers(adminKey?: string) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    await connectDb();
-    const users = await User.find({})
-      .select("_id username email isAuthenticated isMentor isAdmin createdAt")
-      .lean() // Use lean() to get plain objects
-      .sort({ createdAt: -1 });
-
-    // Ensure all user objects have the required fields with proper defaults
-    // Also convert MongoDB objects to plain objects to avoid serialization issues
-    const safeUsers = users.map((user) => ({
-      _id: user._id ? user._id.toString() : "",
-      username: user.username || "Unknown",
-      email: user.email || "",
-      isAuthenticated: typeof user.isAuthenticated === "boolean" ? user.isAuthenticated : false,
-      isMentor: typeof user.isMentor === "boolean" ? user.isMentor : false,
-      isAdmin: typeof user.isAdmin === "boolean" ? user.isAdmin : false,
-      createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
-    }));
-
-    return { users: safeUsers };
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return { error: "Failed to fetch users" };
-  }
-}
-
-export async function updateUser(userId: string, action: string, adminKey?: string) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    if (!userId || !action) {
-      return { error: "Missing user ID or action" };
-    }
-
-    await connectDb();
-
-    // Get the target user
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return { error: "User not found" };
-    }
-
-    // Perform the requested action
-    switch (action) {
-      case "promoteToAdmin":
-        user.isAdmin = true;
-        break;
-      case "removeAdmin":
-        user.isAdmin = false;
-        break;
-      case "promoteToMentor":
-        user.isMentor = true;
-        break;
-      case "removeMentor":
-        user.isMentor = false;
-        break;
-      case "delete":
-        await User.findByIdAndDelete(userId);
-        revalidatePath("/admin");
-        return {
-          success: true,
-          message: "User deleted successfully",
-        };
-      default:
-        return { error: "Invalid action" };
-    }
-
-    await user.save();
-    revalidatePath("/admin");
-
-    return {
-      success: true,
-      message: "User updated successfully",
-      user: {
-        _id: user._id.toString(),
-        username: user.username,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isMentor: user.isMentor,
-      },
-    };
-  } catch (error) {
-    console.error("Error updating user:", error);
-    return { error: "Failed to update user" };
-  }
 }
 
 // Access Code Actions
@@ -469,13 +369,13 @@ export async function createTeam(name: string, description: string, numberOfPlay
       return { error: "Team name already exists" };
     }
 
-    // If leader is specified, verify the user exists
-    if (leaderUserId) {
-      const leader = await User.findById(leaderUserId);
-      if (!leader) {
-        return { error: "Specified leader user does not exist" };
-      }
-    }
+    // If leader is specified, we'll just store it as is (no validation since User model is removed)
+    // if (leaderUserId) {
+    //   const leader = await User.findById(leaderUserId);
+    //   if (!leader) {
+    //     return { error: "Specified leader user does not exist" };
+    //   }
+    // }
 
     // Generate wallet credentials
     const crypto = await import("crypto");
@@ -490,7 +390,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
     // Initialize member slots
     const teamMembers = Array.from({ length: numberOfPlayers }, () => ({ accessCodeUsed: false }));
 
-    // Create new team
+  // Create new team (playspace & access code will be generated just after and then linked back)
     const newTeam = new Team({
       name: name.trim(),
       description: description?.trim() || "",
@@ -514,7 +414,8 @@ export async function createTeam(name: string, description: string, numberOfPlay
     await newTeam.save();
 
     // Create playspace and device for the team
-    try {
+  let generatedAccessCode: string | undefined;
+  try {
       const playspaceResult = await createAccessCodeAndPlayspace({
         numberOfPlayers,
         playingDevice,
@@ -524,9 +425,17 @@ export async function createTeam(name: string, description: string, numberOfPlay
       });
 
       if (playspaceResult.success) {
-        // Update team with playspace and device references
-        newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
-        newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+    generatedAccessCode = playspaceResult.accessCode;
+        // Update team with playspace, device & access code references
+        if (playspaceResult.playspaceId) {
+          newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
+        }
+        if (playspaceResult.deviceId) {
+          newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+        }
+        if (playspaceResult.accessCodeId) {
+          newTeam.accessCodeId = new mongoose.Types.ObjectId(playspaceResult.accessCodeId);
+        }
         await newTeam.save();
       } else {
         console.warn("Failed to create playspace and device for team:", playspaceResult.error);
@@ -550,6 +459,10 @@ export async function createTeam(name: string, description: string, numberOfPlay
         members: newTeam.members.length,
         numberOfPlayers: newTeam.numberOfPlayers,
         walletAddress: newTeam.wallet.walletAddress,
+        accessCodeId: newTeam.accessCodeId ? newTeam.accessCodeId.toString() : undefined,
+        playspaceId: newTeam.playspaceId ? newTeam.playspaceId.toString() : undefined,
+        deviceId: newTeam.deviceId ? newTeam.deviceId.toString() : undefined,
+        accessCode: generatedAccessCode,
       },
     };
   } catch (error) {
@@ -591,11 +504,11 @@ export async function updateTeam(teamId: string, updates: { name?: string; descr
     // Update leader
     if (updates.leaderUserId !== undefined) {
       if (updates.leaderUserId) {
-        // Verify the new leader exists
-        const leader = await User.findById(updates.leaderUserId);
-        if (!leader) {
-          return { error: "Specified leader user does not exist" };
-        }
+        // Verify the new leader exists (removed since User model is gone)
+        // const leader = await User.findById(updates.leaderUserId);
+        // if (!leader) {
+        //   return { error: "Specified leader user does not exist" };
+        // }
         team.leaderUserId = updates.leaderUserId;
         // Add leader to members if not already there
         if (!team.members.includes(updates.leaderUserId)) {
@@ -657,6 +570,210 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
   } catch (error) {
     console.error("Error deleting team:", error);
     return { error: "Failed to delete team" };
+  }
+}
+
+// Sponsor Actions
+export async function getSponsors(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const sponsors = await Sponsor.find({}).lean().sort({ createdAt: -1 });
+
+    // Transform the data to ensure all fields exist
+    const sponsorsWithFormattedData = sponsors.map((sponsor) => ({
+      _id: sponsor._id ? sponsor._id.toString() : "",
+      name: sponsor.name || "Unknown Sponsor",
+      tier: sponsor.tier || "binary-titans",
+      logo: sponsor.logo || "",
+      description: sponsor.description || "No description",
+      benefits: Array.isArray(sponsor.benefits) ? sponsor.benefits : [],
+      websiteUrl: sponsor.websiteUrl || "",
+      isActive: typeof sponsor.isActive === "boolean" ? sponsor.isActive : true,
+      createdAt: sponsor.createdAt ? new Date(sponsor.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: sponsor.updatedAt ? new Date(sponsor.updatedAt).toISOString() : new Date().toISOString(),
+    }));
+
+    return { sponsors: sponsorsWithFormattedData };
+  } catch (error) {
+    console.error("Error fetching sponsors:", error);
+    return { error: "Failed to fetch sponsors" };
+  }
+}
+
+export async function createSponsor(
+  name: string,
+  tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
+  logo: string,
+  description: string,
+  benefits: string[],
+  websiteUrl: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return { error: "Sponsor name is required" };
+    }
+
+    if (!logo || logo.trim().length === 0) {
+      return { error: "Sponsor logo URL is required" };
+    }
+
+    if (!websiteUrl || websiteUrl.trim().length === 0) {
+      return { error: "Sponsor website URL is required" };
+    }
+
+    // Check if sponsor name already exists
+    const existingSponsor = await Sponsor.findOne({ name: name.trim() });
+    if (existingSponsor) {
+      return { error: "Sponsor name already exists" };
+    }
+
+    const newSponsor = new Sponsor({
+      name: name.trim(),
+      tier,
+      logo: logo.trim(),
+      description: description?.trim() || "",
+      benefits: benefits || [],
+      websiteUrl: websiteUrl.trim(),
+      isActive: true,
+    });
+
+    await newSponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor created successfully",
+      sponsor: {
+        _id: newSponsor._id.toString(),
+        name: newSponsor.name,
+        tier: newSponsor.tier,
+        logo: newSponsor.logo,
+        description: newSponsor.description,
+        benefits: newSponsor.benefits,
+        websiteUrl: newSponsor.websiteUrl,
+        isActive: newSponsor.isActive,
+        createdAt: newSponsor.createdAt.toISOString(),
+        updatedAt: newSponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("Error creating sponsor:", error);
+    return { error: "Failed to create sponsor" };
+  }
+}
+
+export async function updateSponsor(
+  sponsorId: string,
+  updates: {
+    name?: string;
+    tier?: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+    logo?: string;
+    description?: string;
+    benefits?: string[];
+    websiteUrl?: string;
+    isActive?: boolean;
+  },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    // Validate name uniqueness if being updated
+    if (updates.name && updates.name.trim() !== sponsor.name) {
+      const existingSponsor = await Sponsor.findOne({ name: updates.name.trim() });
+      if (existingSponsor && existingSponsor._id.toString() !== sponsorId) {
+        return { error: "Sponsor name already exists" };
+      }
+      sponsor.name = updates.name.trim();
+    }
+
+    // Update other fields
+    if (updates.tier !== undefined) sponsor.tier = updates.tier;
+    if (updates.logo !== undefined) sponsor.logo = updates.logo.trim();
+    if (updates.description !== undefined) sponsor.description = updates.description.trim();
+    if (updates.benefits !== undefined) sponsor.benefits = updates.benefits;
+    if (updates.websiteUrl !== undefined) sponsor.websiteUrl = updates.websiteUrl.trim();
+    if (updates.isActive !== undefined) sponsor.isActive = updates.isActive;
+
+    await sponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor updated successfully",
+      sponsor: {
+        _id: sponsor._id.toString(),
+        name: sponsor.name,
+        tier: sponsor.tier,
+        logo: sponsor.logo,
+        description: sponsor.description,
+        benefits: sponsor.benefits,
+        websiteUrl: sponsor.websiteUrl,
+        isActive: sponsor.isActive,
+        createdAt: sponsor.createdAt.toISOString(),
+        updatedAt: sponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("Error updating sponsor:", error);
+    return { error: "Failed to update sponsor" };
+  }
+}
+
+export async function deleteSponsor(sponsorId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    await Sponsor.findByIdAndDelete(sponsorId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting sponsor:", error);
+    return { error: "Failed to delete sponsor" };
   }
 }
 
@@ -977,87 +1094,6 @@ export async function verifyAdmin(adminKey?: string) {
   }
 }
 
-export async function initializeAdmin(username: string, email: string, password: string, adminCode: string) {
-  try {
-    // Connect to database
-    await connectDb();
-
-    // Check if admin code is valid (should match env variable)
-    const validAdminCode = process.env.ADMIN_INITIALIZATION_CODE;
-
-    if (!validAdminCode || adminCode !== validAdminCode) {
-      return { error: "Invalid admin code" };
-    }
-
-    // Validate input
-    if (!username || !email || !password) {
-      return { error: "Missing required fields" };
-    }
-
-    // Check if any admin user already exists
-    const existingAdmin = await User.findOne({ isAdmin: true });
-
-    if (existingAdmin) {
-      return {
-        error: "Admin account already initialized. Use the admin dashboard to create additional admin accounts.",
-      };
-    }
-
-    // Check if username or email already exists
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
-    });
-
-    if (existingUser) {
-      if (existingUser.username === username) {
-        return { error: "Username already exists" };
-      }
-      if (existingUser.email === email) {
-        return { error: "Email already exists" };
-      }
-    }
-
-    // Create new admin user
-    const newAdmin = new User({
-      username,
-      email,
-      passwordHash: password, // Will be hashed by pre-save hook
-      isAuthenticated: true,
-      isAdmin: true,
-      progress: {
-        currentChapter: 1,
-        unlockedApplications: ["Notepad", "MyComputer"],
-        skills: {},
-      },
-      bankAccount: {
-        balance: 1000, // Admins start with more credits
-        transactions: [
-          {
-            amount: 1000,
-            description: "Admin account initialization",
-            timestamp: new Date(),
-          },
-        ],
-      },
-    });
-
-    await newAdmin.save();
-
-    // Return success without exposing sensitive information
-    const adminData = newAdmin.toObject();
-    delete adminData.passwordHash;
-
-    return {
-      success: true,
-      message: "Admin account created successfully",
-      admin: adminData,
-    };
-  } catch (error) {
-    console.error("Error creating admin:", error);
-    return { error: "Failed to create admin user" };
-  }
-}
-
 export async function updateAccessCode(
   codeId: string,
   updates: {
@@ -1330,11 +1366,20 @@ export async function createEvent(
         category: newEvent.category,
         isPublic: newEvent.isPublic,
         capacity: newEvent.capacity,
-        requiredDeviceTypes: newEvent.requiredDeviceTypes,
-        requiredDevices: newEvent.requiredDevices,
+        requiredDeviceTypes: newEvent.requiredDeviceTypes ? {
+          mobile: typeof newEvent.requiredDeviceTypes.mobile === "boolean" ? newEvent.requiredDeviceTypes.mobile : false,
+          desktop: typeof newEvent.requiredDeviceTypes.desktop === "boolean" ? newEvent.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: newEvent.requiredDevices ? {
+          mobile: Array.isArray(newEvent.requiredDevices.mobile) ? newEvent.requiredDevices.mobile : [],
+          desktop: Array.isArray(newEvent.requiredDevices.desktop) ? newEvent.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
         minTeamMembers: newEvent.minTeamMembers,
         maxTeamMembers: newEvent.maxTeamMembers,
-        pricing: newEvent.pricing,
+        pricing: newEvent.pricing ? {
+          normal: typeof newEvent.pricing.normal === "number" ? newEvent.pricing.normal : 0,
+          extended: typeof newEvent.pricing.extended === "number" ? newEvent.pricing.extended : undefined,
+        } : { normal: 0 },
         createdAt: newEvent.createdAt.toISOString(),
       },
     };
@@ -1439,11 +1484,20 @@ export async function updateEvent(
         category: event.category,
         isPublic: event.isPublic,
         capacity: event.capacity,
-        requiredDeviceTypes: event.requiredDeviceTypes,
-        requiredDevices: event.requiredDevices,
+        requiredDeviceTypes: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
         minTeamMembers: event.minTeamMembers,
         maxTeamMembers: event.maxTeamMembers,
-        pricing: event.pricing,
+        pricing: event.pricing ? {
+          normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+          extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+        } : { normal: 0 },
       },
     };
   } catch (error) {
@@ -2151,24 +2205,20 @@ export async function getAnalyticsData(adminKey?: string) {
       totalEvents,
       activeUsers
     ] = await Promise.all([
-      User.countDocuments({}),
+      Promise.resolve(0), // User model removed
       Team.countDocuments({}),
       AccessCode.countDocuments({}),
       Playspace.countDocuments({}),
       Device.countDocuments({}),
       Event.countDocuments({}),
-      // Active users (users who have been active in the last 24 hours)
-      User.countDocuments({
-        updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-      })
+      // Active users (users who have been active in the last 24 hours) - removed
+      Promise.resolve(0)
     ]);
 
     // Get sponsor count safely
     let totalSponsors = 0;
     try {
-      if (mongoose.connection.db) {
-        totalSponsors = await mongoose.connection.db.collection('sponsorcontacts').countDocuments({});
-      }
+      totalSponsors = await Sponsor.countDocuments({});
     } catch (error) {
       console.warn("Could not fetch sponsor count:", error);
     }
@@ -2180,22 +2230,6 @@ export async function getAnalyticsData(adminKey?: string) {
       description: string;
       timestamp: string;
     }> = [];
-
-    // Get recent user registrations
-    const recentUsers = await User.find({})
-      .select("username email createdAt")
-      .sort({ createdAt: -1 })
-      .limit(3)
-      .lean();
-
-    recentUsers.forEach(user => {
-      recentActivities.push({
-        id: `user-${user._id}`,
-        type: "user",
-        description: `New user registered: ${user.username}`,
-        timestamp: user.createdAt.toISOString()
-      });
-    });
 
     // Get recent teams
     const recentTeams = await Team.find({})
@@ -2256,70 +2290,6 @@ export async function getAnalyticsData(adminKey?: string) {
   } catch (error) {
     console.error("Error fetching analytics data:", error);
     return { error: "Failed to fetch analytics data" };
-  }
-}
-
-export async function getUserGrowthData(adminKey?: string, days: number = 30) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    await connectDb();
-
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
-
-    // Get user growth data
-    const userGrowth = await User.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id": 1 }
-      }
-    ]);
-
-    // Get team growth data
-    const teamGrowth = await Team.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id": 1 }
-      }
-    ]);
-
-    return {
-      userGrowth,
-      teamGrowth,
-      period: { startDate, endDate, days }
-    };
-  } catch (error) {
-    console.error("Error fetching growth data:", error);
-    return { error: "Failed to fetch growth data" };
   }
 }
 
@@ -2929,10 +2899,19 @@ export async function getPublicEvents() {
       speakers: [],
       prizes: [],
       schedule: [],
-      pricing: event.pricing ? { normal: event.pricing.normal, extended: event.pricing.extended } : undefined,
+      pricing: event.pricing ? {
+        normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+        extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+      } : undefined,
       deviceRequirements: {
-        types: event.requiredDeviceTypes || { mobile: false, desktop: false },
-        devices: event.requiredDevices || { mobile: [], desktop: [] },
+        types: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        devices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
       },
       minTeamMembers: event.minTeamMembers || 1,
       maxTeamMembers: event.maxTeamMembers || 4,

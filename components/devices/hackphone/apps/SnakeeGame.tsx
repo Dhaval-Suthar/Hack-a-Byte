@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
+import { getPlayspaceId } from "@/lib/playspace-utils";
 
 // Constants and pure helpers (module scope to keep stable identities)
 const GRID_RADIUS = 9;
@@ -225,6 +226,16 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
         if (newScore > highScore) {
           setHighScore(newScore);
           localStorage.setItem("hexHighScore", newScore.toString());
+        }
+
+        // Award 10 bitcoins per successful (positive) point gain only when points > 0
+        if (points > 0) {
+          const playspaceId = getPlayspaceId();
+          fetch('/api/reward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-playspace-id': playspaceId || '' },
+            body: JSON.stringify({ amount: 10, reason: 'snake-point' })
+          }).catch(()=>{});
         }
         return newScore;
       });

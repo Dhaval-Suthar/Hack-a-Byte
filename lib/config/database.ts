@@ -9,7 +9,6 @@ export const DATABASE_CONFIG = {
 
   // Collection names
   collections: {
-    users: 'users',
     devices: 'devices',
     deviceUsers: 'device_users',
     playspaces: 'playspaces',
@@ -25,10 +24,6 @@ export const DATABASE_CONFIG = {
 
   // Indexes
   indexes: {
-    users: [
-      { key: { email: 1 }, options: { unique: true } },
-      { key: { username: 1 }, options: { unique: true } },
-    ],
     devices: [
       { key: { deviceMacAddress: 1 }, options: { unique: true } },
       { key: { deviceType: 1 } },

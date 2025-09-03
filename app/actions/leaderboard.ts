@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import connectDB from "@/db/connectDb";
 import LeaderboardEntry from "@/models/LeaderboardEntry";
 import DeviceUser from "@/models/DeviceUser";
+import Device from "@/models/Device";
 
 // Type for serialized leaderboard entry (used in return types)
 export interface SerializedLeaderboardEntry {
@@ -38,8 +39,11 @@ export async function addLeaderboardEntry(
       return { success: false, error: "Device user not found" };
     }
 
+    // Get the device type from Device model
+    const device = await Device.findOne({ deviceMacAddress: deviceId });
+    const deviceType = device?.deviceType || "hackbook-w95";
+
     const username = deviceUser.username || "Anonymous Player";
-    const deviceType = deviceUser.deviceType || "hackbook-w95";
     
     // Create and save the leaderboard entry
     const entry = new LeaderboardEntry({

@@ -366,3 +366,4 @@ export async function getRegistrationDetails(registrationId: string) {
     };
   }
 }
+

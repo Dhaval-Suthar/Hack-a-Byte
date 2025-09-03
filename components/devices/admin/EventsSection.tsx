@@ -73,7 +73,15 @@ export default function EventsSection({
     if (!date) return "";
     const d = new Date(date);
     if (isNaN(d.getTime())) return "";
-    return d.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+
+    // Convert to local timezone for display in datetime-local input
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   const filtered = evts.filter((event) =>
@@ -707,7 +715,7 @@ export default function EventsSection({
             <tr key={event._id} className="border-b border-neutral-700">
               <td className="p-2 font-semibold">{event.title}</td>
               <td className="p-2">{event.category || "Event"}</td>
-              <td className="p-2">{event.startDate ? new Date(event.startDate).toLocaleDateString() : "TBD"}</td>
+              <td className="p-2">{event.startDate ? new Date(event.startDate).toLocaleString() : "TBD"}</td>
               <td className="p-2">{event.location || "TBD"}</td>
               <td className="p-2">{event.capacity || "Unlimited"}</td>
               {(onUpdateEvent || onDeleteEvent) && (

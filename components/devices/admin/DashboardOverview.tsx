@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { AccessCode, Playspace, Device, EventItem, GameSession, Team } from "./shared-types";
+import { AccessCode, Playspace, Device, EventItem, GameSession, Team, Sponsor } from "./shared-types";
 
 interface DashboardOverviewProps {
   codes: AccessCode[];
@@ -9,9 +9,10 @@ interface DashboardOverviewProps {
   evts: EventItem[];
   sess: GameSession[];
   teams?: Team[];
+  sponsors?: Sponsor[];
 }
 
-export default function DashboardOverview({ codes, plays, devs, evts, sess, teams = [] }: DashboardOverviewProps) {
+export default function DashboardOverview({ codes, plays, devs, evts, sess, teams = [], sponsors = [] }: DashboardOverviewProps) {
   const stats = [
     ["Codes", codes.length],
     ["Playspaces", plays.length],
@@ -19,6 +20,7 @@ export default function DashboardOverview({ codes, plays, devs, evts, sess, team
     ["Events", evts.length],
     ["Sessions", sess.length],
     ["Teams", teams.length],
+    ["Sponsors", sponsors.length],
   ] as const;
 
   return (

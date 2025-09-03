@@ -9,8 +9,11 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const config: Config = {
   coverageProvider: 'v8',
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
+  globalSetup: '<rootDir>/jest.globalSetup.ts',
+  globalTeardown: '<rootDir>/jest.globalTeardown.ts',
   // Add more setup options before each test is run
+  setupFiles: ['<rootDir>/jest.polyfills.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',

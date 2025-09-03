@@ -8,6 +8,7 @@ import Device from "@/models/Device";
 import DeviceUser, { MissionProgress, UserGameState } from "@/models/DeviceUser";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { ROLE_LIMITS } from "@/lib/constants/app-constants";
 
 export async function getAvailableRoles(accessCode: string) {
   try {
@@ -23,15 +24,28 @@ export async function getAvailableRoles(accessCode: string) {
       return { success: false, error: "No team found for this code" };
     }
 
-    const members = team.teamMembers as unknown as TeamMemberType[];
-    const takenRoles = new Set(
-      members.filter((m: TeamMemberType) => !!m.role).map((m: TeamMemberType) => String(m.role))
-    );
-    // Static roles for now; can be made dynamic per event
-    const roles = ["Leader", "Hacker", "Analyst", "Defender"];
-    const available = roles.filter(r => !takenRoles.has(r));
+  const members = team.teamMembers as unknown as TeamMemberType[];
+    const teamSize = team.numberOfPlayers;
+    const roleLimits = ROLE_LIMITS[teamSize as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
 
-    return { success: true, teamId: team._id.toString(), availableRoles: available, totalSlots: team.numberOfPlayers };
+    // Count current role assignments
+    const roleCounts: Record<string, number> = {};
+    members.forEach((member: TeamMemberType) => {
+      if (member.role) {
+        const normalized = member.role.toLowerCase();
+        roleCounts[normalized] = (roleCounts[normalized] || 0) + 1;
+      }
+    });
+
+    // Get available roles based on limits
+    const availableRoles: string[] = [];
+    Object.entries(roleLimits).forEach(([role, limit]) => {
+      const currentCount = roleCounts[role] || 0;
+      if (currentCount < limit) {
+        availableRoles.push(role);
+      }
+    });
+    return { success: true, teamId: team._id.toString(), availableRoles, totalSlots: team.numberOfPlayers };
   } catch (error) {
     console.error("Error getting available roles:", error);
     return { success: false, error: "Failed to fetch roles" };
@@ -59,10 +73,15 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     }
   const members: TeamMemberType[] = (team.teamMembers as unknown as TeamMemberType[]) || [];
 
-    // Prevent duplicate roles in the same team
-  const roleExists = members.some((m: TeamMemberType) => m.role === role);
-    if (roleExists) {
-      return { success: false, error: `Role "${role}" is already taken by another team member` };
+    // Check if role is available based on team size limits
+    const teamSize = team.numberOfPlayers;
+    const roleLimits = ROLE_LIMITS[teamSize as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
+  const normalizedRole = role.toLowerCase();
+  const currentRoleCount = members.filter((m: TeamMemberType) => m.role && m.role.toLowerCase() === normalizedRole).length;
+  const maxAllowed = roleLimits[normalizedRole as keyof typeof roleLimits] || 0;
+
+    if (currentRoleCount >= maxAllowed) {
+      return { success: false, error: `Role "${role}" limit reached for this team size` };
     }
 
     // Find first available member slot
@@ -72,7 +91,7 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     }
 
     team.teamMembers[memberIndex].username = username;
-    team.teamMembers[memberIndex].role = role;
+  team.teamMembers[memberIndex].role = normalizedRole;
     team.teamMembers[memberIndex].accessCodeUsed = true;
     team.teamMembers[memberIndex].accessCodeUsedAt = new Date();
 
@@ -91,6 +110,7 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     }
 
     await team.save();
+
 
     return {
       success: true,
@@ -130,12 +150,19 @@ export async function getUserProgress(deviceId: string, deviceType: string) {
       return { error: "User not found" };
     }
 
-    // Convert Map objects to plain objects for serialization
-    const missions = user.gameState.missions ? Object.fromEntries(user.gameState.missions) : {};
+    const toRecordMissions = (m: unknown): Record<string, MissionProgress> => {
+      if (!m) return {};
+      if (m instanceof Map) return Object.fromEntries(m.entries()) as Record<string, MissionProgress>;
+      return m as Record<string, MissionProgress>;
+    };
+    const toRecordSkills = (s: unknown): Record<string, number> => {
+      if (!s) return {};
+      if (s instanceof Map) return Object.fromEntries(s.entries()) as Record<string, number>;
+      return s as Record<string, number>;
+    };
+    const missionsRec = toRecordMissions(user.gameState.missions);
     const serializedMissions: Record<string, object> = {};
-    
-    // Serialize Date objects and ensure all properties are plain values in missions
-    for (const [key, mission] of Object.entries(missions)) {
+    for (const [key, mission] of Object.entries(missionsRec)) {
       serializedMissions[key] = {
         id: mission.id || key,
         title: mission.title || '',
@@ -151,29 +178,30 @@ export async function getUserProgress(deviceId: string, deviceType: string) {
         })) : []
       };
     }
-
-    const gameState = {
+    const gameState: UserGameState = {
       unlockedApplications: user.gameState.unlockedApplications || [],
-      skills: user.gameState.skills ? Object.fromEntries(user.gameState.skills) : {},
-      missions: serializedMissions,
+      skills: toRecordSkills(user.gameState.skills),
+      missions: serializedMissions as Record<string, MissionProgress>,
       gameStats: {
         totalPlayTime: user.gameState.gameStats?.totalPlayTime || 0,
         loginCount: user.gameState.gameStats?.loginCount || 0,
-        lastLoginDate: user.gameState.gameStats?.lastLoginDate?.toISOString() || null,
-        achievementsUnlocked: user.gameState.gameStats?.achievementsUnlocked || []
+        lastLoginDate: user.gameState.gameStats?.lastLoginDate || new Date(),
+        achievementsUnlocked: user.gameState.gameStats?.achievementsUnlocked || [],
+        wins: user.gameState.gameStats?.wins || 0,
       },
       settings: {
         soundEnabled: user.gameState.settings?.soundEnabled ?? true,
         showHiddenFiles: user.gameState.settings?.showHiddenFiles ?? false,
         difficulty: user.gameState.settings?.difficulty || 'medium'
-      }
+      },
+      initialWins: user.gameState.initialWins || 0,
     };
 
     return {
       success: true,
-      gameState: gameState as UserGameState,
+  gameState,
       user: {
-        _id: user._id.toString(),
+  _id: String((user as { _id?: unknown })?._id ?? ''),
         username: user.username,
         lastActiveTime: user.lastActiveTime?.toISOString() || null
       }
@@ -224,12 +252,13 @@ export async function updateMissionProgress(
     }
 
     // Initialize gameState.missions if it doesn't exist
-    if (!user.gameState.missions) {
-      user.gameState.missions = new Map();
-    }
-
-    // Get existing mission data or create new
-    const existingMission = user.gameState.missions.get(missionId) || {
+    const missionStore: Record<string, MissionProgress> = (() => {
+      const raw = user.gameState.missions as unknown;
+      if (!raw) return {};
+      if (raw instanceof Map) return Object.fromEntries(raw.entries()) as Record<string, MissionProgress>;
+      return raw as Record<string, MissionProgress>;
+    })();
+    const existingMission = missionStore[missionId] || {
       id: missionId,
       title: missionData.title || `Mission ${missionId}`,
       description: missionData.description || "",
@@ -263,7 +292,8 @@ export async function updateMissionProgress(
     }
 
     // Update the mission in the user's game state
-    user.gameState.missions.set(missionId, updatedMission);
+  missionStore[missionId] = updatedMission;
+  user.gameState.missions = missionStore as unknown as UserGameState['missions'];
 
     // Update last active time
     user.lastActiveTime = new Date();
@@ -471,13 +501,8 @@ export async function updateGameStats(
 
     // Initialize game stats if they don't exist
     if (!user.gameState.gameStats) {
-      user.gameState.gameStats = {
-        totalPlayTime: 0,
-        loginCount: 0,
-        lastLoginDate: new Date(),
-        achievementsUnlocked: []
-      };
-    }
+      user.gameState.gameStats = { totalPlayTime: 0, loginCount: 0, lastLoginDate: new Date(), achievementsUnlocked: [], wins: 0 };
+    } else if (typeof user.gameState.gameStats.wins !== 'number') { user.gameState.gameStats.wins = 0; }
 
     // Update game stats
     user.gameState.gameStats = {
@@ -533,7 +558,12 @@ export async function getMissionStatus(
       return { error: "User not found" };
     }
 
-    const mission = user.gameState.missions?.get(missionId);
+    const mission = (() => {
+      const raw = user.gameState.missions as unknown;
+      if (!raw) return undefined;
+      if (raw instanceof Map) return raw.get(missionId);
+      return (raw as Record<string, MissionProgress>)[missionId];
+    })();
 
     return {
       success: true,
@@ -589,14 +619,14 @@ export async function bulkUpdateMissions(
     }
 
     // Initialize missions map if it doesn't exist
-    if (!user.gameState.missions) {
-      user.gameState.missions = new Map();
-    }
-
-    // Update all missions
-    for (const [missionId, missionData] of Object.entries(missions)) {
-      user.gameState.missions.set(missionId, missionData);
-    }
+    const bulkStore: Record<string, MissionProgress> = (() => {
+      const raw = user.gameState.missions as unknown;
+      if (!raw) return {};
+      if (raw instanceof Map) return Object.fromEntries(raw.entries()) as Record<string, MissionProgress>;
+      return raw as Record<string, MissionProgress>;
+    })();
+    for (const [mid, mdata] of Object.entries(missions)) bulkStore[mid] = mdata;
+    user.gameState.missions = bulkStore as unknown as UserGameState['missions'];
 
     user.lastActiveTime = new Date();
 
@@ -639,15 +669,13 @@ export async function resetAllProgress(deviceId: string, deviceType: string) {
 
     // Reset all game state
     user.gameState = {
-      missions: new Map(),
-      skills: new Map(),
       unlockedApplications: [],
-      settings: new Map(),
-      totalScore: 0,
-      gamesCompleted: 0,
-      achievements: [],
-      lastActiveTime: new Date()
-    };
+      skills: {},
+      missions: {},
+      gameStats: { totalPlayTime: 0, loginCount: 0, lastLoginDate: new Date(), achievementsUnlocked: [], wins: 0 },
+      settings: { soundEnabled: true, showHiddenFiles: false, difficulty: 'medium' },
+      initialWins: 0,
+    } as UserGameState;
 
     await user.save();
 

@@ -9,11 +9,12 @@ import DevicesSection from "./DevicesSection";
 import EventsSection from "./EventsSection";
 import SessionsSection from "./SessionsSection";
 import TeamsSection from "./TeamsSection";
+import SponsorsSection from "./SponsorsSection";
 import Notifications from "./Notifications";
 import BulkDeleteModal from "./BulkDeleteModal";
 
 // Import types
-import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team } from "./shared-types";
+import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team, Sponsor } from "./shared-types";
 
 // Server actions
 import { getAccessCodes, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
@@ -23,8 +24,9 @@ import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 
-const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions"];
+const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors"];
 
 const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
 
@@ -38,9 +40,19 @@ export default function MiniAdminDashboard() {
   const [evts, setEvts] = useState<EventItem[]>([]);
   const [sess, setSess] = useState<GameSession[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [q, setQ] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [bulk, setBulk] = useState<string[] | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createFormData, setCreateFormData] = useState({
+    type: "temporary",
+    priority: 5,
+    maxUsages: "",
+    expiresInHours: "",
+    description: "",
+    playspaceId: "",
+  });
 
   const note = (n: Omit<Note, "id">) => {
     const id = crypto.randomUUID();
@@ -53,13 +65,14 @@ export default function MiniAdminDashboard() {
     setErr(null);
     try {
       const key = authKey();
-      const [ac, pl, dv, ev, gs, tm] = await Promise.all([
+      const [ac, pl, dv, ev, gs, tm, sp] = await Promise.all([
         getAccessCodes(key),
         getPlayspaces(key),
         getAllDevices(key),
         getEvents(key),
         getGameSessions(key),
         getTeams(key),
+        getSponsors(key),
       ]);
 
       // Transform access codes to match expected type
@@ -99,11 +112,20 @@ export default function MiniAdminDashboard() {
         category: evt.category,
         isPublic: evt.isPublic,
         capacity: evt.capacity,
-  requiredDeviceTypes: evt.requiredDeviceTypes,
-  requiredDevices: evt.requiredDevices,
-  minTeamMembers: evt.minTeamMembers,
-  maxTeamMembers: evt.maxTeamMembers,
-  pricing: evt.pricing,
+        requiredDeviceTypes: evt.requiredDeviceTypes ? {
+          mobile: evt.requiredDeviceTypes.mobile || false,
+          desktop: evt.requiredDeviceTypes.desktop || false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: evt.requiredDevices ? {
+          mobile: Array.isArray(evt.requiredDevices.mobile) ? evt.requiredDevices.mobile : [],
+          desktop: Array.isArray(evt.requiredDevices.desktop) ? evt.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
+        minTeamMembers: evt.minTeamMembers,
+        maxTeamMembers: evt.maxTeamMembers,
+        pricing: evt.pricing ? {
+          normal: typeof evt.pricing.normal === 'number' ? evt.pricing.normal : 0,
+          extended: typeof evt.pricing.extended === 'number' ? evt.pricing.extended : undefined,
+        } : { normal: 0 },
       }));
       setEvts(transformedEvts);
 
@@ -135,6 +157,21 @@ export default function MiniAdminDashboard() {
         members: team.members,
       }));
       setTeams(transformedTeams);
+
+      // Transform sponsors to match expected type
+      const transformedSponsors = (sp?.sponsors || []).map(sponsor => ({
+        _id: sponsor._id,
+        name: sponsor.name,
+        tier: sponsor.tier,
+        logo: sponsor.logo,
+        description: sponsor.description,
+        benefits: sponsor.benefits,
+        websiteUrl: sponsor.websiteUrl,
+        isActive: sponsor.isActive,
+        createdAt: sponsor.createdAt,
+        updatedAt: sponsor.updatedAt,
+      }));
+      setSponsors(transformedSponsors);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : "Load failed";
       setErr(errorMessage);
@@ -202,12 +239,38 @@ export default function MiniAdminDashboard() {
   };
 
   const handleGenerate = async () => {
+    setShowCreateModal(true);
+  };
+
+  const handleCreateAccessCode = async () => {
     try {
-      await generateAccessCode(authKey());
-      note({ kind: "ok", msg: "Created" });
+      const maxUsages = createFormData.maxUsages ? parseInt(createFormData.maxUsages) : undefined;
+      const expiresInHours = createFormData.expiresInHours ? parseInt(createFormData.expiresInHours) : undefined;
+
+      await generateAccessCode(
+        createFormData.type,
+        createFormData.priority,
+        maxUsages,
+        expiresInHours,
+        createFormData.description || undefined,
+        createFormData.playspaceId || undefined,
+        authKey()
+      );
+
+      note({ kind: "ok", msg: "Access code created successfully" });
+      setShowCreateModal(false);
+      setCreateFormData({
+        type: "temporary",
+        priority: 5,
+        maxUsages: "",
+        expiresInHours: "",
+        description: "",
+        playspaceId: "",
+      });
       load();
-    } catch {
-      note({ kind: "err", msg: "Create fail" });
+    } catch (error) {
+      console.error("Error creating access code:", error);
+      note({ kind: "err", msg: "Failed to create access code" });
     }
   };
 
@@ -258,6 +321,56 @@ export default function MiniAdminDashboard() {
       load();
     } catch {
       note({ kind: "err", msg: "Delete team failed" });
+    }
+  };
+
+  // Sponsor management functions
+  const handleCreateSponsor = async (
+    name: string,
+    tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
+    logo: string,
+    description: string,
+    benefits: string[],
+    websiteUrl: string
+  ) => {
+    try {
+      await createSponsor(name, tier, logo, description, benefits, websiteUrl, authKey());
+      note({ kind: "ok", msg: "Sponsor created" });
+      load();
+    } catch (error) {
+      console.error("Error creating sponsor:", error);
+      note({ kind: "err", msg: "Create sponsor failed" });
+    }
+  };
+
+  const handleUpdateSponsor = async (
+    id: string,
+    updates: {
+      name?: string;
+      tier?: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+      logo?: string;
+      description?: string;
+      benefits?: string[];
+      websiteUrl?: string;
+      isActive?: boolean;
+    }
+  ) => {
+    try {
+      await updateSponsor(id, updates, authKey());
+      note({ kind: "ok", msg: "Sponsor updated" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Update sponsor failed" });
+    }
+  };
+
+  const handleDeleteSponsor = async (id: string) => {
+    try {
+      await deleteSponsor(id, authKey());
+      note({ kind: "ok", msg: "Sponsor deleted" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Delete sponsor failed" });
     }
   };
 
@@ -364,8 +477,8 @@ export default function MiniAdminDashboard() {
       await createEvent(
         eventData.title,
         eventData.description,
-        new Date(eventData.startDate),
-        new Date(eventData.endDate),
+        new Date(eventData.startDate + ':00'), // Add seconds to ensure proper parsing
+        new Date(eventData.endDate + ':00'), // Add seconds to ensure proper parsing
         eventData.location,
         eventData.category,
         eventData.isPublic,
@@ -421,8 +534,8 @@ export default function MiniAdminDashboard() {
 
       if (updates.title) transformedUpdates.title = updates.title;
       if (updates.description) transformedUpdates.description = updates.description;
-      if (updates.startDate) transformedUpdates.startDate = new Date(updates.startDate);
-      if (updates.endDate) transformedUpdates.endDate = new Date(updates.endDate);
+      if (updates.startDate) transformedUpdates.startDate = new Date(updates.startDate + ':00');
+      if (updates.endDate) transformedUpdates.endDate = new Date(updates.endDate + ':00');
       if (updates.location) transformedUpdates.location = updates.location;
       if (updates.category) transformedUpdates.category = updates.category;
       if (updates.isPublic !== undefined) transformedUpdates.isPublic = updates.isPublic;
@@ -476,7 +589,7 @@ export default function MiniAdminDashboard() {
   const body = () => {
     switch (tab) {
       case "dashboard":
-        return <DashboardOverview codes={codes} plays={plays} devs={devs} evts={evts} sess={sess} teams={teams} />;
+        return <DashboardOverview codes={codes} plays={plays} devs={devs} evts={evts} sess={sess} teams={teams} sponsors={sponsors} />;
       case "teams":
         return (
           <TeamsSection
@@ -535,6 +648,15 @@ export default function MiniAdminDashboard() {
         />;
       case "sessions":
         return <SessionsSection sess={sess} q={q} setQ={setQ} onAdjust={adjust} onEnd={end} />;
+      case "sponsors":
+        return <SponsorsSection 
+          sponsors={sponsors} 
+          q={q} 
+          setQ={setQ}
+          onCreateSponsor={handleCreateSponsor}
+          onUpdateSponsor={handleUpdateSponsor}
+          onDeleteSponsor={handleDeleteSponsor}
+        />;
     }
   };
 
@@ -563,6 +685,105 @@ export default function MiniAdminDashboard() {
       <div className="min-h-[200px]">{body()}</div>
       <Notifications notes={notes} />
       <BulkDeleteModal bulk={bulk} onConfirm={bulkDel} onCancel={() => setBulk(null)} />
+
+      {/* Create Access Code Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-neutral-800 p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Create New Access Code</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  value={createFormData.type}
+                  onChange={(e) => setCreateFormData({ ...createFormData, type: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                >
+                  <option value="temporary">Temporary</option>
+                  <option value="permanent">Permanent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Priority (1-9)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="9"
+                  value={createFormData.priority}
+                  onChange={(e) => setCreateFormData({ ...createFormData, priority: parseInt(e.target.value) || 5 })}
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Max Usages (optional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={createFormData.maxUsages}
+                  onChange={(e) => setCreateFormData({ ...createFormData, maxUsages: e.target.value })}
+                  placeholder="Leave empty for unlimited"
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Expires in Hours (optional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={createFormData.expiresInHours}
+                  onChange={(e) => setCreateFormData({ ...createFormData, expiresInHours: e.target.value })}
+                  placeholder="Leave empty for no expiration"
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                <input
+                  type="text"
+                  value={createFormData.description}
+                  onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
+                  placeholder="Enter description"
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Assign to Playspace (optional)</label>
+                <select
+                  value={createFormData.playspaceId}
+                  onChange={(e) => setCreateFormData({ ...createFormData, playspaceId: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-700 rounded text-sm"
+                >
+                  <option value="">Select playspace (optional)</option>
+                  {plays.map(playspace => (
+                    <option key={playspace._id} value={playspace._id}>{playspace.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCreateAccessCode}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium"
+              >
+                Create Access Code
+              </button>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-neutral-600 hover:bg-neutral-700 rounded text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { APP_REGISTRY, DOCK_APPS, getAppById } from "../shared/AppRegistry";
 import { HomeScreenProps, AppConfig } from "@/types/devices";
+import { useSocket } from '@/hooks/useSocket';
 
 const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,
@@ -12,6 +13,25 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const { stealthSpawns, ransomSpawns, bankEvents, ransomDemands } = useSocket();
+  const activeDemand = ransomDemands.slice(-1)[0];
+  const latestBank = bankEvents?.slice(-1)[0];
+  const [alertBadge, setAlertBadge] = useState<{ type: 'stealth' | 'ransom'; ts: number } | null>(null);
+
+  useEffect(() => {
+    const latestStealth = stealthSpawns.slice(-1)[0];
+    if (latestStealth) {
+      setAlertBadge({ type: 'stealth', ts: Date.now() });
+      setTimeout(()=> setAlertBadge(b => (b && Date.now()-b.ts>5000)? null : b), 5200);
+    }
+  }, [stealthSpawns]);
+  useEffect(() => {
+    const latestRansom = ransomSpawns.slice(-1)[0];
+    if (latestRansom) {
+      setAlertBadge({ type: 'ransom', ts: Date.now() });
+      setTimeout(()=> setAlertBadge(b => (b && Date.now()-b.ts>5000)? null : b), 5200);
+    }
+  }, [ransomSpawns]);
 
   // Use the app registry instead of hardcoded apps
   const apps = useMemo(() => APP_REGISTRY, []);
@@ -93,9 +113,16 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
         }}
       />
 
-      {/* Time */}
+      {/* Top status layer */}
       <div className="text-center text-white relative z-10 pt-2">
-        <div className="text-5xl font-thin mb-1">{/* time removed */}</div>
+        <div className="flex justify-center gap-2">
+          {latestBank && (
+            <div className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wide ${latestBank.online? 'bg-green-600/80':'bg-red-700/80'} shadow`}>BANK {latestBank.online? 'ONLINE':'OFFLINE'}</div>
+          )}
+          {alertBadge && (
+            <div className="px-3 py-1 rounded-full text-[10px] font-semibold tracking-wide bg-red-600/80 shadow animate-pulse">THREAT</div>
+          )}
+        </div>
       </div>
 
       {/* App pages (swipeable) */}
@@ -167,6 +194,22 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* Dock */}
       <div className="px-4 sm:px-6 pt-2 pb-20 relative z-10 max-w-[420px] mx-auto w-full">
+        {activeDemand && (
+          <div className="absolute -top-36 left-1/2 -translate-x-1/2 w-[90%] bg-gradient-to-br from-red-900/90 to-gray-900/90 border border-red-500/60 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in text-left">
+            <div className="text-red-300 font-bold mb-2 text-sm tracking-wide">RANSOM DEMAND</div>
+            <div className="text-xs text-red-200 mb-2">Your files are encrypted. Pay <span className="font-semibold text-red-100">₿{activeDemand.demand}</span> before timer expires.</div>
+            <RansomTimer demand={activeDemand} />
+            <div className="flex gap-2 mt-3">
+              <button className="flex-1 px-3 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white text-xs font-semibold" onClick={()=>window.dispatchEvent(new CustomEvent('open-app',{ detail:{ id:'def-ransom'} }))}>DEFEND</button>
+              <button className="flex-1 px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium" onClick={()=> payRansom(activeDemand)}>PAY</button>
+            </div>
+          </div>
+        )}
+        {alertBadge && (
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1 rounded-full shadow animate-pulse">
+            {alertBadge.type === 'stealth' ? 'STEALTH VIRAL DETECTED' : 'RANSOMWARE ACTIVE'}
+          </div>
+        )}
         {/* Glossy dock */}
         <div className="mx-auto max-w-[360px] h-[70px] rounded-[18px] bg-white/10 supports-[backdrop-filter]:backdrop-blur-md border border-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.5)] relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
@@ -205,5 +248,28 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
     </div>
   );
 };
+
+// Timer subcomponent
+interface ActiveDemand { targetKey: string; demand: number; windowMs: number; ts: number; attackerTeamId?: string }
+const RansomTimer: React.FC<{ demand: ActiveDemand }> = ({ demand }) => {
+  const [remaining, setRemaining] = useState<number>(()=> demand.windowMs || 0);
+  useEffect(()=>{
+    const end = demand.ts + (demand.windowMs||0);
+    const id = setInterval(()=>{
+      const rem = end - Date.now();
+      setRemaining(rem);
+      if (rem<=0) clearInterval(id);
+    }, 500);
+    return ()=> clearInterval(id);
+  }, [demand]);
+  const secs = Math.max(0, Math.ceil(remaining/1000));
+  return <div className="text-[10px] text-red-300">Time left: {secs}s</div>;
+};
+
+async function payRansom(demand: ActiveDemand) {
+  try {
+    await fetch('/api/attack/ransomware/pay', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ targetKey: demand.targetKey }) });
+  } catch {}
+}
 
 export default HackPhoneHomeScreen;

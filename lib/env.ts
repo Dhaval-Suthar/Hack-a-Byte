@@ -45,6 +45,10 @@ function validateEnvironment(): EnvSchema {
     } else {
       console.error('Unexpected error during environment validation', { error: error instanceof Error ? error.message : String(error) });
     }
+    // During tests, throw instead of exiting to allow overriding vars
+    if (process.env.NODE_ENV === 'test') {
+      throw error;
+    }
     process.exit(1);
   }
 }
