@@ -267,8 +267,18 @@ export default function DeviceSelectionPage() {
     // Apply playspace access filter
     devices = filterByPlayspaceAccess(devices);
 
-    // Apply platform filter (mobile/desktop)
+    // Apply platform filter (mobile/desktop) but prioritize mobile devices
     devices = filterByPlatform(devices);
+
+    // Sort devices to prioritize mobile devices first
+    devices.sort((a, b) => {
+      // Mobile devices come first
+      if (a.platform === "mobile" && b.platform !== "mobile") return -1;
+      if (a.platform !== "mobile" && b.platform === "mobile") return 1;
+
+      // Within the same platform, maintain original order
+      return 0;
+    });
 
     return devices;
   }, [allDeviceOptions, filterByPlayspaceAccess, filterByPlatform]);

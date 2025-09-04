@@ -8,7 +8,7 @@ import { RegistrationModalProps } from "../../types/event";
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
   const { registerForEvent, loading } = useEventRegistration();
   const [email, setEmail] = useState("");
-  const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("pc_laptop");
+  const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("smartphone");
   const [numberOfPlayers, setNumberOfPlayers] = useState(1);
   const [selectedPricing, setSelectedPricing] = useState<"normal" | "extended">("normal");
   const [formError, setFormError] = useState("");
@@ -21,7 +21,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
       setNumberOfPlayers(minPlayers);
 
       setSelectedPricing("normal");
-      setPlayingDevice("pc_laptop");
+      setPlayingDevice("smartphone");
       setEmail("");
       setFormError("");
     }
@@ -60,7 +60,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         onClose();
         // Reset form
         setEmail("");
-        setPlayingDevice("pc_laptop");
+        setPlayingDevice("smartphone");
         setNumberOfPlayers(1);
         // Redirect user to home page to enter access code
         window.location.href = "/";
