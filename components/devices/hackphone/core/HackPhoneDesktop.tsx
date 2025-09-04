@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -96,48 +96,65 @@ const HackPhoneDesktop = () => {
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
-      {currentApp ? (
-        <HackPhoneAppsRouter
-          appId={currentApp}
-          onClose={handleAppClose}
-          user={user}
-          time={time}
-          onAppSwitch={handleAppSwitch}
-          onOpenApp={handleAppOpen}
-        />
-      ) : (
-        <HackPhoneHomeScreen
-          onAppOpen={handleAppOpen}
-        />
-      )}
-
-      {/* Persistent bottom overlay: bezel + home button */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black border-t border-white/10 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.7)] overflow-hidden z-[40]"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-black/70" />
+    <div className="relative w-screen h-screen overflow-hidden touch-pan-y">
+      {/* Main content area with improved touch handling */}
+      <div className="relative w-full h-full">
+        {currentApp ? (
+          <HackPhoneAppsRouter
+            appId={currentApp}
+            onClose={handleAppClose}
+            user={user}
+            time={time}
+            onAppSwitch={handleAppSwitch}
+            onOpenApp={handleAppOpen}
+          />
+        ) : (
+          <HackPhoneHomeScreen
+            onAppOpen={handleAppOpen}
+          />
+        )}
       </div>
 
+      {/* Enhanced bottom navigation with haptic feedback */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/90 border-t border-white/20 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[40] supports-[backdrop-filter]:backdrop-blur-md"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/50" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-black/80" />
+      </div>
+
+      {/* Enhanced home button with improved touch target */}
       <button
         aria-label="Home"
-        onClick={() => closeApp()}
-        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/70 border border-white/10 ring-1 ring-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.65)] active:translate-y-[1px] transition-transform duration-100 supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50]"
+        onClick={() => {
+          // Add haptic feedback for supported devices
+          if ('vibrate' in navigator) {
+            navigator.vibrate(50);
+          }
+          closeApp();
+        }}
+        onTouchStart={(e) => {
+          // Improve touch responsiveness
+          e.currentTarget.style.transform = 'translate(-50%, 0) scale(0.95)';
+        }}
+        onTouchEnd={(e) => {
+          e.currentTarget.style.transform = 'translate(-50%, 0) scale(1)';
+        }}
+        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/80 border border-white/20 ring-1 ring-white/30 shadow-[0_14px_30px_rgba(0,0,0,0.7)] transition-all duration-150 ease-out supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50] active:scale-95 hover:ring-white/40"
       >
-        <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/18 via-transparent to-transparent" />
-        <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.55)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.04),inset_0_-6px_10px_rgba(0,0,0,0.55)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/20 via-transparent to-transparent" />
+        <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.6)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.05),inset_0_-6px_10px_rgba(0,0,0,0.6)]" />
         <div
-          className="pointer-events-none absolute -top-1 left-0 w-[65%] h-[65%] opacity-45"
+          className="pointer-events-none absolute -top-1 left-0 w-[65%] h-[65%] opacity-50"
           style={{
             background:
-              "radial-gradient(120px 80px at 30% 20%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 55%, transparent 60%)",
+              "radial-gradient(120px 80px at 30% 20%, rgba(255,255,255,0.4), rgba(255,255,255,0.08) 55%, transparent 60%)",
             borderTopLeftRadius: 9999,
           }}
         />
-        <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/85 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.4)]" />
+        <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/90 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.5)]" />
       </button>
     </div>
   );

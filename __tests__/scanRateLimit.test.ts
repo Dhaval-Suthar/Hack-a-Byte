@@ -3,7 +3,7 @@ import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import Device from '@/models/Device';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.setTimeout(30000);

@@ -3,7 +3,7 @@ import transferHandler from '@/pages/api/wallet/transfer';
 import Team from '@/models/Team';
 import connectDb from '@/db/connectDb';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activeFakeBank } from '@/pages/api/attack/fakebank';
 

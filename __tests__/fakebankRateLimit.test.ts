@@ -2,7 +2,7 @@ import handler from '@/pages/api/attack/fakebank';
 import Team from '@/models/Team';
 import connectDb from '@/db/connectDb';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import { resetRateLimit } from '@/lib/rateLimit';
 import type { NextApiRequest, NextApiResponse } from 'next';
 

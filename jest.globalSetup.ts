@@ -1,4 +1,4 @@
-import { startMemoryMongo } from './__tests__/testMongoMemory';
+import { startMemoryMongo } from './lib/mongoMemoryServer';
 
 export default async function globalSetup() {
   await startMemoryMongo();

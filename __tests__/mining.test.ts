@@ -3,7 +3,7 @@ import snakeHandler from '@/pages/api/extract/mining/snake';
 import Team from '@/models/Team';
 import connectDb from '@/db/connectDb';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.setTimeout(30_000);
