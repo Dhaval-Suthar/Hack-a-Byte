@@ -33,6 +33,20 @@ interface SentinelAppProps {
   time: string;
 }
 
+interface Toggle {
+  id: string;
+  name: string;
+  desc: string;
+  impact: number; // security score delta
+}
+
+const SECURITY_TOGGLES: Toggle[] = [
+  { id: 'vpn', name: 'VPN', desc: 'Encrypt outbound traffic', impact: 8 },
+  { id: 'enc', name: 'Encryption', desc: 'Device storage encryption', impact: 10 },
+  { id: 'fw', name: 'Firewall', desc: 'Block unsolicited ports', impact: 7 },
+  { id: 'ids', name: 'IDS', desc: 'Intrusion detection sensor', impact: 5 },
+];
+
 // All mock/static data removed – live data only
 
 // Animated scanning radar component
@@ -230,7 +244,7 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   const [scanProgress, setScanProgress] = useState(0);
   const [discoveredDevices, setDiscoveredDevices] = useState<number>(0);
   const [notifications, setNotifications] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'mission' | 'transfers' | 'wallets'>('mission');
+  const [activeTab, setActiveTab] = useState<'mission' | 'transfers' | 'wallets' | 'security'>('mission');
   const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
   // New scan gating state
@@ -239,6 +253,17 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   const [scanCompleted, setScanCompleted] = useState(false);
   const [deviceLockedForScan, setDeviceLockedForScan] = useState<DeviceInfo | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
+
+  // Security configuration state  
+  const [securityStates, setSecurityStates] = useState<Record<string, boolean>>({});
+  const [securityScore, setSecurityScore] = useState(0);
+
+  // Calculate security score when toggles change
+  useEffect(() => {
+    const score = SECURITY_TOGGLES.reduce((acc, toggle) => 
+      acc + (securityStates[toggle.id] ? toggle.impact : 0), 0);
+    setSecurityScore(score);
+  }, [securityStates]);
 
   // Tick every second to update cooldown display
   useEffect(() => {
@@ -451,11 +476,12 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         {[
           { id: 'mission', name: 'Mission Control', icon: '🎯', gradient: 'from-red-500/20 to-orange-500/20' },
           { id: 'transfers', name: 'Bank Transfers', icon: '💸', gradient: 'from-blue-500/20 to-cyan-500/20' },
-          { id: 'wallets', name: 'Wallet Monitor', icon: '💰', gradient: 'from-green-500/20 to-emerald-500/20' }
+          { id: 'wallets', name: 'Wallet Monitor', icon: '💰', gradient: 'from-green-500/20 to-emerald-500/20' },
+          { id: 'security', name: 'Security Config', icon: '🛡️', gradient: 'from-purple-500/20 to-violet-500/20' }
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as 'mission' | 'transfers' | 'wallets')}
+            onClick={() => setActiveTab(tab.id as 'mission' | 'transfers' | 'wallets' | 'security')}
             className={`flex-1 py-4 px-3 text-sm font-bold transition-all duration-300 relative overflow-hidden group ${
               activeTab === tab.id
                 ? 'text-white bg-gradient-to-r ' + tab.gradient + ' border-b-2 border-cyan-400 shadow-lg shadow-cyan-400/20'
@@ -813,6 +839,45 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="p-4 space-y-4">
+            <div className="bg-gradient-to-br from-gray-800/60 to-purple-900/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-xl">
+              <h2 className="text-purple-400 font-bold mb-4 tracking-wide flex items-center space-x-2">
+                <span>🛡️</span>
+                <span>SECURITY CONFIGURATION</span>
+              </h2>
+              <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-700 mb-4">
+                <div className="text-sm text-gray-300 mb-3">Configure defenses to improve resistance against attacks. Higher security score increases automatic mitigation chance.</div>
+                <div className="text-xs text-gray-400">
+                  Security Score: <span className="text-green-400 font-semibold">{securityScore}</span> 
+                  (Mitigation Chance: {Math.min(95, 30 + securityScore * 2)}%)
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {SECURITY_TOGGLES.map(toggle => (
+                  <button 
+                    key={toggle.id} 
+                    onClick={() => setSecurityStates(prev => ({ ...prev, [toggle.id]: !prev[toggle.id] }))} 
+                    className={`p-3 rounded-xl border text-left transition-all duration-200 shadow bg-gray-800/60 hover:bg-gray-700/60 ${
+                      securityStates[toggle.id] ? 'border-green-500 ring-1 ring-green-400' : 'border-gray-600'
+                    }`}
+                  > 
+                    <div className="font-semibold flex items-center justify-between text-white">
+                      {toggle.name} 
+                      {securityStates[toggle.id] && <span className="text-green-400 text-xs">ON</span>}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1 leading-snug">{toggle.desc}</div>
+                    <div className="mt-2 text-[10px] text-gray-500">+{toggle.impact} score</div>
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-gray-500 pt-6">
+                Interactive mini-games for specific malware defense coming soon.
               </div>
             </div>
           </div>

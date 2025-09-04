@@ -576,7 +576,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
           <div className="absolute left-0 top-0 bottom-0 flex items-center">
             <span className="text-white/90 text-xs">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
-          <div className="text-[15px] font-bold tracking-wide">App Store</div>
+          <div className="text-[15px] font-bold tracking-wide">SecureTech Store</div>
           <div className="absolute right-0 top-0 bottom-0 flex items-center space-x-2">
             <button
               onClick={async () => {
@@ -615,7 +615,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="text-4xl mb-4">⏳</div>
-            <div className="text-[15px] text-[#245a9e]">Loading App Store...</div>
+            <div className="text-[15px] text-[#245a9e]">Loading SecureTech Store...</div>
           </div>
         </div>
       ) : (

@@ -283,9 +283,9 @@ const BlackMart: React.FC<BlackMartProps> = () => {
           height={24}
           className="mr-3"
         />
-        <h1 className="text-lg font-bold">BlackMart - Underground Software Store</h1>
+        <h1 className="text-lg font-bold">BlackMart Desktop - Enterprise Malware Distribution</h1>
         <div className="ml-auto text-sm opacity-90">
-          Version 2.1.3 | Secure Connection
+          Version 2.1.3 | Desktop Platform | Secure Connection
         </div>
       </div>
 

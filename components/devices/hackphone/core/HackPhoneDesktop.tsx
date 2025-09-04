@@ -6,8 +6,6 @@ import { getDeviceUser } from "@/app/actions/deviceUser";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
 import HackPhoneHomeScreen from "@/components/devices/hackphone/core/HackPhoneHomeScreen";
-import AlertHub from "@/components/devices/hackphone/apps/AlertHub";
-import StealthViralProgressPanel from "@/components/devices/hackphone/apps/StealthViralProgress";
 import HackPhoneAppsRouter from "@/components/devices/hackphone/core/HackPhoneAppsRouter";
 import { useAppNavigation } from "../shared/useAppNavigation";
 import { User } from "@/types/devices";
@@ -19,11 +17,6 @@ const HackPhoneDesktop = () => {
   const [user, setUser] = useState<User | null>(null);
   const [time, setTime] = useState(new Date());
   const [hasPasscode, setHasPasscode] = useState(false);
-  // Panel visibility state
-  const [showAlerts, setShowAlerts] = useState(false);
-  const [showStealthOps, setShowStealthOps] = useState(false);
-  const [alertCount, setAlertCount] = useState(0);
-  const [stealthCount, setStealthCount] = useState(0);
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
@@ -117,56 +110,6 @@ const HackPhoneDesktop = () => {
         <HackPhoneHomeScreen
           onAppOpen={handleAppOpen}
         />
-      )}
-
-      {/* Toggle buttons (collapsed state) */}
-      {!showAlerts && (
-        <button
-          aria-label="Open Alerts"
-          onClick={() => setShowAlerts(true)}
-          className="absolute top-2 left-2 z-[60] px-3 py-1.5 rounded-md bg-black/70 border border-white/10 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wide text-gray-300 hover:bg-black/80 shadow"
-        >
-          Alerts{alertCount>0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] text-[10px] rounded-full bg-red-600/80 text-white px-1">{alertCount}</span>}
-        </button>
-      )}
-      {!showStealthOps && (
-        <button
-          aria-label="Open Stealth Ops"
-          onClick={() => setShowStealthOps(true)}
-          className="absolute top-2 right-2 z-[60] px-3 py-1.5 rounded-md bg-purple-950/70 border border-purple-500/30 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wide text-purple-200 hover:bg-purple-950/80 shadow"
-        >
-          Stealth Ops{stealthCount>0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] text-[10px] rounded-full bg-fuchsia-600/80 text-white px-1">{stealthCount}</span>}
-        </button>
-      )}
-
-      {/* Unified Alert Hub (top overlay) */}
-      {showAlerts && (
-        <div className="absolute top-2 left-2 w-[min(320px,80vw)] max-h-[50vh] rounded-lg bg-black/70 border border-white/10 backdrop-blur-md shadow-lg overflow-hidden z-[60] flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-gray-300 bg-white/5 border-b border-white/10">
-            <span>Alerts</span>
-            <button
-              aria-label="Collapse Alerts"
-              onClick={() => setShowAlerts(false)}
-              className="text-gray-400 hover:text-white transition text-xs px-1 py-0.5"
-            >✕</button>
-          </div>
-          <AlertHub onCountChange={setAlertCount} />
-        </div>
-      )}
-
-      {/* StealthViral Attacker Progress (right side) */}
-      {showStealthOps && (
-        <div className="absolute top-2 right-2 w-[min(260px,70vw)] max-h-[40vh] rounded-lg bg-purple-950/60 border border-purple-500/30 backdrop-blur-md shadow-lg overflow-hidden z-[60] flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-purple-200/90 bg-purple-900/40 border-b border-purple-500/30">
-            <span>Stealth Ops</span>
-            <button
-              aria-label="Collapse Stealth Ops"
-              onClick={() => setShowStealthOps(false)}
-              className="text-purple-300 hover:text-white transition text-xs px-1 py-0.5"
-            >✕</button>
-          </div>
-          <div className="p-2 flex-1 overflow-auto"><StealthViralProgressPanel onCountChange={setStealthCount} /></div>
-        </div>
       )}
 
       {/* Persistent bottom overlay: bezel + home button */}

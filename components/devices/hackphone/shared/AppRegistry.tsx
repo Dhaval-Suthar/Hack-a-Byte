@@ -184,14 +184,14 @@ export const APP_REGISTRY: AppConfig[] = [
   },
   {
     id: "appStore",
-    name: "App Store",
+    name: "SecureTech",
     icon: "/hackphone/apps/appStore/app-icon.png",
     category: "system",
-    description: "Download and manage apps",
+    description: "SecureTech security software marketplace",
     isSystemApp: true,
     permissions: [
-      { type: 'network', required: true, description: 'Download apps' },
-      { type: 'storage', required: true, description: 'Install apps' }
+      { type: 'network', required: true, description: 'Download security tools' },
+      { type: 'storage', required: true, description: 'Install applications' }
     ]
   },
   {
@@ -207,10 +207,10 @@ export const APP_REGISTRY: AppConfig[] = [
   },
   {
     id: "sentinel",
-    name: "Sentinel",
+    name: "Security Center",
     icon: "/hackphone/apps/sentinel/app-icon.png",
     category: "security",
-    description: "Security and monitoring tools",
+    description: "Security monitoring and defensive configuration",
     requiresAuth: true,
     permissions: [
       { type: 'network', required: true, description: 'Security scanning' },
@@ -220,22 +220,12 @@ export const APP_REGISTRY: AppConfig[] = [
   ,
   {
     id: "mining",
-    name: "Mining",
+    name: "Bitcoin Miner",
     icon: "/hackphone/apps/game/app-icon.png", // reuse game icon until custom asset added
     category: "finance",
-    description: "Mine bitcoins via sorting mini-game",
+    description: "Mine bitcoins via skill-based mini-games",
     permissions: [
       { type: 'storage', required: false, description: 'Persist mining progress' }
-    ]
-  },
-  {
-    id: "security",
-    name: "Security",
-    icon: "/hackphone/apps/sentinel/app-icon.png",
-    category: "security",
-    description: "Configure defensive systems",
-    permissions: [
-      { type: 'storage', required: true, description: 'Persist security configuration' }
     ]
   },
   {

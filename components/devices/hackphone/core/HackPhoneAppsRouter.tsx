@@ -34,7 +34,6 @@ const SettingsApp = lazy(() => import("../apps/SettingsApp"));
 const SentinelApp = lazy(() => import("../apps/SentinelApp"));
 const Calendar = lazy(() => import("../apps/Calendar/Calendar"));
 const MiningApp = lazy(() => import("../apps/MiningApp"));
-const SecurityCenterApp = lazy(() => import("../apps/SecurityCenterApp"));
 const DefenderStealthViral = lazy(() => import("../apps/DefenderStealthViral"));
 const DefenderRansomware = lazy(() => import("../apps/DefenderRansomware"));
 const BankStatusApp = lazy(() => import("../apps/BankStatusApp"));
@@ -287,13 +286,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}> 
             <MiningApp />
-          </Suspense>,
-          appId
-        );
-      case "security":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <SecurityCenterApp />
           </Suspense>,
           appId
         );
