@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { getPlayspaceId } from '@/lib/playspace-utils';
+import { io as rawIo, Socket } from 'socket.io-client';
 
 interface BlackMartPhoneProps {
   onClose?: () => void;
@@ -177,6 +179,143 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
   const [detailItem, setDetailItem] = useState<MalwareItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
+  // Phase 1 wiring state
+  const [attackerTeamId, setAttackerTeamId] = useState('');
+  const [targetDeviceId, setTargetDeviceId] = useState('');
+  // Phase 2: auto context
+  const [devices, setDevices] = useState<{id:string; teamId?:string; deviceType:string; status:string; isBank?:boolean;}[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [deviceError, setDeviceError] = useState<string|undefined>();
+  const [socket, setSocket] = useState<Socket|null>(null); // retained to allow future real-time UI enhancements
+  const [statusLines, setStatusLines] = useState<string[]>([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+  // Phase 3 real-time feedback
+  interface WormToken { id:string; wormId:string; channel:'email'|'sms'; targetTeamId:string; expires:number }
+  const [wormTokens, setWormTokens] = useState<WormToken[]>([]);
+  const [ransomStatus, setRansomStatus] = useState<string>();
+  const [stealthStatus, setStealthStatus] = useState<string>();
+  const [showIntelPanel, setShowIntelPanel] = useState(false);
+  const [ransomProgress, setRansomProgress] = useState<{p:number; total:number}|null>(null);
+  const [stealthProgress, setStealthProgress] = useState<{p:number; total:number}|null>(null);
+  const playspaceId = getPlayspaceId();
+  const appendStatus = (l:string)=>setStatusLines(p=>[...p,l]);
+  // Utility: mutate ransomware / stealth viral progress (defender simulation)
+  const defendRansom = useCallback(async ()=>{
+    const targetKey = playspaceId || targetDeviceId; if (!targetKey) return;
+    try {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const ch = chars[Math.floor(Math.random()*chars.length)];
+      const resp = await fetch(`/api/attack/ransomware?targetKey=${encodeURIComponent(targetKey)}`, { method:'PUT', headers: attackerTeamId? { 'x-team-id': attackerTeamId, 'Content-Type':'application/json'}: undefined, body: JSON.stringify({ char: ch }) });
+      const js = await resp.json().catch(()=>({}));
+      if (resp.ok && js.success) appendStatus(`⌨ ransom char ${ch}${js.completed? ' (completed)': ''}`); else appendStatus(`⌨ ransom fail ${js.error||resp.status}`);
+  } catch { appendStatus('⌨ ransom error'); }
+  }, [playspaceId, targetDeviceId, attackerTeamId]);
+  const defendStealth = useCallback(async ()=>{
+    const targetKey = playspaceId || targetDeviceId; if (!targetKey) return;
+    try {
+      const resp = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, { method:'PUT', headers: attackerTeamId? { 'x-team-id': attackerTeamId, 'Content-Type':'application/json'}: undefined, body: JSON.stringify({}) });
+      const js = await resp.json().catch(()=>({}));
+      if (resp.ok && js.success) appendStatus(`🖱 stealth click ${js.clicks||'?'}${js.defeated?' (defeated)':''}`); else appendStatus(`🖱 stealth fail ${js.error||resp.status}`);
+  } catch { appendStatus('🖱 stealth error'); }
+  }, [playspaceId, targetDeviceId, attackerTeamId]);
+  const openWormToken = useCallback(async (tokenId:string)=>{
+    try {
+      const teamId = attackerTeamId; if (!teamId) { appendStatus('📬 need team to open'); return; }
+      appendStatus(`📬 open token ${tokenId.slice(0,6)}`);
+      const resp = await fetch('/api/attack/worm/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ teamId, tokenId }) });
+      const js = await resp.json().catch(()=>({}));
+      if (resp.ok && js.success) {
+        setWormTokens(t=> t.filter(tok=>tok.id!==tokenId));
+        appendStatus(`� worm reward +${js.reward}`);
+      } else {
+        appendStatus(`📬 open fail ${js.error || resp.status}`);
+      }
+    } catch { appendStatus('📬 token open error'); }
+  }, [attackerTeamId]);
+
+  // Fetch devices (online) and attempt to infer attacker team id (first with roles we expect or first non-bank device w/ team)
+  useEffect(()=>{
+    let cancelled = false;
+    async function load() {
+      setLoadingDevices(true); setDeviceError(undefined);
+      try {
+        const resp = await fetch('/api/devices');
+        if (!resp.ok) throw new Error('devices fetch failed');
+        const json = await resp.json();
+        if (cancelled) return;
+        const list = Array.isArray(json.devices)? json.devices as typeof devices : [];
+        setDevices(list);
+        // pick a default attacker team id (first teamId present on a non-bank device)
+        if (!attackerTeamId) {
+          const pick = list.find(d=>d.teamId && !d.isBank);
+          if (pick?.teamId) setAttackerTeamId(pick.teamId);
+        }
+        // pick a target device (different from attacker device if possible)
+        if (!targetDeviceId) {
+          const attackerDeviceId = list.find(d=>d.teamId === attackerTeamId)?.id;
+          const target = list.find(d=> d.id !== attackerDeviceId && !d.isBank);
+          if (target) setTargetDeviceId(target.id);
+        }
+      } catch (e) {
+        if (!cancelled) setDeviceError(e instanceof Error? e.message : 'Unknown device load error');
+      } finally { if (!cancelled) setLoadingDevices(false); }
+    }
+    load();
+    const interval = setInterval(load, 15_000); // refresh every 15s
+    return ()=>{ cancelled = true; clearInterval(interval); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recompute target if attacker changes and current target equals attacker
+  useEffect(()=>{
+    if (!devices.length || !attackerTeamId) return;
+    const attackerDeviceId = devices.find(d=>d.teamId===attackerTeamId)?.id;
+    if (attackerDeviceId && attackerDeviceId === targetDeviceId) {
+      const alt = devices.find(d=>d.id!==attackerDeviceId && !d.isBank);
+      if (alt) setTargetDeviceId(alt.id);
+    }
+  }, [attackerTeamId, devices, targetDeviceId]);
+
+  // Socket join for team room (so defender/attacker events route correctly) + malware event listeners
+  useEffect(()=>{
+    if (!attackerTeamId) return;
+    setSocket(prev=>{
+      if (prev) { prev.emit('join-team', attackerTeamId); return prev; }
+      const s = rawIo('/', { path: '/api/socket/io', transports: ['websocket'] });
+      s.on('connect', ()=> appendStatus('🔌 joined socket'));
+      s.emit('join-team', attackerTeamId);
+      // Worm tokens
+      s.on('worm-payload', (p: { tokenId:string; wormId:string; channel:'email'|'sms'; targetTeamId:string; expires:number })=>{
+        setWormTokens(old=>[...old.filter(t=>t.id!==p.tokenId), { id:p.tokenId, wormId:p.wormId, channel:p.channel, targetTeamId:p.targetTeamId, expires:p.expires }]);
+        appendStatus(`📨 worm token ${p.tokenId.slice(0,6)} ${p.channel}`);
+      });
+      // Ransomware
+      s.on('ransomware-spawn', (p:{phrase:string; rewardDemand:number})=>{ setRansomStatus(`Spawn ${p.phrase} demand ${p.rewardDemand}`); appendStatus('💣 ransomware spawn'); });
+  s.on('ransomware-progress', (p:{progress:number; total:number})=> { setRansomStatus(`Progress ${p.progress}/${p.total}`); setRansomProgress({p:p.progress, total:p.total}); });
+      s.on('ransomware-neutralized', (p:{bonus:number})=>{ setRansomStatus(`Neutralized +${p.bonus}`); appendStatus('🛡 ransomware neutralized'); });
+      s.on('ransomware-demand', (p:{demand:number; windowMs:number})=>{ setRansomStatus(`Demand ${p.demand} ${Math.round(p.windowMs/1000)}s window`); appendStatus('💰 ransom demand'); });
+      // Stealth viral
+      s.on('malware-stealth-viral-spawn', (p:{clicksRequired:number})=>{ setStealthStatus(`Stealth 0/${p.clicksRequired}`); appendStatus('🕵 stealth spawn'); });
+  s.on('malware-stealth-viral-progress', (p:{clicks:number; clicksRequired:number})=> { setStealthStatus(`Stealth ${p.clicks}/${p.clicksRequired}`); setStealthProgress({p:p.clicks,total:p.clicksRequired}); });
+      s.on('malware-stealth-viral-defeated', ()=>{ setStealthStatus('Stealth defeated'); appendStatus('✅ stealth defeated'); });
+      // SysTrojan
+      s.on('systrojan-success', ()=> appendStatus('💥 systrojan success'));
+      s.on('systrojan-failure', ()=> appendStatus('🛡 systrojan blocked'));
+      return s;
+    });
+    return ()=>{ socket?.off('connect'); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attackerTeamId]);
+
+  // Persist intel panel preference
+  useEffect(()=>{
+    const stored = localStorage.getItem('bm_intel');
+    if (stored === '1') setShowIntelPanel(true);
+  }, []);
+  useEffect(()=>{ localStorage.setItem('bm_intel', showIntelPanel? '1':'0'); }, [showIntelPanel]);
+
+  // Derived lists
+  const selectableTargets = useMemo(()=> devices.filter(d=>!d.isBank && d.teamId && d.teamId !== attackerTeamId), [devices, attackerTeamId]);
 
   // Filter malware items
   const filteredItems = MALWARE_CATALOG
@@ -202,21 +341,42 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
     setShowDeployment(true);
   }, []);
 
-  const executeDeploy = useCallback(() => {
+  const executeDeploy = useCallback(async () => {
     if (!selectedItem) return;
-
-    // Show deployment progress
-    setTimeout(() => {
-      alert(`${selectedItem.name} deployed successfully!\n\nTarget: ${
-        selectedItem.category === 'virus' ? deploymentData.macAddress :
-        selectedItem.category === 'worm' ? deploymentData.ipAddress :
-        deploymentData.domainName
-      }\n\nStatus: Active`);
-      setShowDeployment(false);
-      setSelectedItem(null);
-      setDeploymentData({});
-    }, 2000);
-  }, [selectedItem, deploymentData]);
+    setIsDeploying(true); setStatusLines([]);
+    const id = selectedItem.id;
+    appendStatus(`▶ Deploying ${selectedItem.name}`);
+    try {
+      let resp: Response | null = null;
+      if (id === 'virus-001') {
+        if (!targetDeviceId || !attackerTeamId) throw new Error('targetDeviceId & attackerTeamId required');
+        appendStatus('POST /api/attack/systrojan');
+        resp = await fetch('/api/attack/systrojan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ targetDeviceId, attackerTeamId }) });
+      } else if (id === 'virus-002') {
+        const targetKey = playspaceId || targetDeviceId; if (!targetKey) throw new Error('target key required');
+        appendStatus('POST /api/attack/stealth-viral');
+        resp = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, { method:'POST', headers: attackerTeamId ? { 'x-team-id': attackerTeamId } : undefined });
+      } else if (id === 'virus-003') {
+        if (!targetDeviceId || !attackerTeamId) throw new Error('targetDeviceId & attackerTeamId required');
+        appendStatus('POST /api/attack/dataminer');
+        resp = await fetch('/api/attack/dataminer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ targetDeviceId, attackerTeamId }) });
+      } else if (id.startsWith('worm-')) {
+        if (!attackerTeamId) throw new Error('attackerTeamId required');
+        appendStatus('POST /api/attack/worm');
+        resp = await fetch('/api/attack/worm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ attackerTeamId, wormId: id }) });
+      } else if (id.startsWith('ransom-')) {
+        const targetKey = playspaceId || targetDeviceId; if (!targetKey) throw new Error('target key required');
+        appendStatus('POST /api/attack/ransomware');
+        resp = await fetch(`/api/attack/ransomware?targetKey=${encodeURIComponent(targetKey)}`, { method:'POST', headers: attackerTeamId ? { 'Content-Type':'application/json'} : undefined, body: attackerTeamId ? JSON.stringify({ attackerTeamId }) : undefined });
+      }
+      if (!resp) throw new Error('No response');
+      const json = await resp.json().catch(()=>({}));
+      if (!resp.ok || json.success === false) appendStatus(`❌ Fail: ${json.error || resp.statusText}`); else appendStatus('✅ Accepted. Await effects.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      appendStatus(`⚠ ${msg}`);
+    } finally { setIsDeploying(false); }
+  }, [selectedItem, attackerTeamId, targetDeviceId, playspaceId]);
 
   const confirmPurchase = useCallback(() => {
     if (!purchaseItem) return;
@@ -404,6 +564,27 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
               <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Deploy {selectedItem.name}</h3>
 
               <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-600 mb-1">Attacker Team</label>
+                      <select value={attackerTeamId} onChange={e=>setAttackerTeamId(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded text-xs">
+                        <option value="">Select team…</option>
+                        {Array.from(new Set(devices.map(d=>d.teamId).filter(Boolean)))
+                          .map(tid=> <option key={tid as string} value={tid as string}>{tid}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-600 mb-1">Target Device</label>
+                      <select value={targetDeviceId} onChange={e=>setTargetDeviceId(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded text-xs">
+                        <option value="">Select device…</option>
+                        {selectableTargets.map(d=> <option key={d.id} value={d.id}>{d.id.slice(0,6)}… {d.deviceType}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {loadingDevices && <div className="text-[10px] text-gray-500">Loading devices…</div>}
+                  {deviceError && <div className="text-[10px] text-red-600">{deviceError}</div>}
+                </div>
                 {selectedItem.category === 'virus' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -455,6 +636,58 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
                     <span className="text-red-700">Deploying malware without authorization is illegal. This is for simulation only.</span>
                   </div>
                 </div>
+                {statusLines.length>0 && (
+                  <div className="bg-gray-900 text-gray-100 rounded-lg p-2 max-h-32 overflow-auto text-[10px] leading-tight">
+                    {statusLines.map((l,i)=>(<div key={i}>{l}</div>))}
+                  </div>
+                )}
+                <button onClick={()=>setShowIntelPanel(s=>!s)} className="mt-2 text-[10px] underline text-blue-600">{showIntelPanel?'Hide':'Show'} Live Intel</button>
+                {showIntelPanel && (
+                  <div className="mt-2 space-y-2">
+                    <div className="bg-white border rounded p-2">
+                      <div className="text-[11px] font-semibold mb-1 flex justify-between items-center">
+                        <span>Worm Payload Tokens</span>
+                        <button onClick={()=> setWormTokens(t=> t.filter(tok=> tok.expires > Date.now()))} className="text-[9px] text-blue-600 underline">Prune</button>
+                      </div>
+                      <div className="max-h-24 overflow-auto space-y-1 text-[10px]">
+                        {wormTokens.filter(t=>t.expires>Date.now()).length===0 && <div className="text-gray-500">None</div>}
+                        {wormTokens.filter(t=>t.expires>Date.now()).map(t=> (
+                          <div key={t.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{t.id.slice(0,6)} {t.channel} {t.wormId.replace('worm-','W')}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">{Math.max(0,Math.round((t.expires-Date.now())/1000))}s</span>
+                              <button onClick={()=>openWormToken(t.id)} className="px-1 py-0.5 bg-green-600 text-white rounded text-[9px]">Open</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-white border rounded p-2">
+                      <div className="text-[11px] font-semibold mb-1 flex justify-between items-center">
+                        <span>Ransomware</span>
+                        <button onClick={defendRansom} className="text-[9px] text-blue-600 underline">Type</button>
+                      </div>
+                      <div className="text-[10px] min-h-[14px]">{ransomStatus || 'Idle'}</div>
+                      {ransomProgress && (
+                        <div className="mt-1 h-2 bg-gray-200 rounded overflow-hidden">
+                          <div className="h-full bg-purple-500 transition-all" style={{ width: `${(ransomProgress.p / ransomProgress.total)*100}%` }} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white border rounded p-2">
+                      <div className="text-[11px] font-semibold mb-1 flex justify-between items-center">
+                        <span>Stealth Viral</span>
+                        <button onClick={defendStealth} className="text-[9px] text-blue-600 underline">Click</button>
+                      </div>
+                      <div className="text-[10px] min-h-[14px]">{stealthStatus || 'Idle'}</div>
+                      {stealthProgress && (
+                        <div className="mt-1 h-2 bg-gray-200 rounded overflow-hidden">
+                          <div className="h-full bg-yellow-500 transition-all" style={{ width: `${(stealthProgress.p / stealthProgress.total)*100}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex space-x-3 mt-6">
@@ -466,14 +699,14 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
                 </button>
                 <button
                   onClick={executeDeploy}
-                  className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-medium"
+                  className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-medium disabled:opacity-50"
                   disabled={
                     (selectedItem.category === 'virus' && !deploymentData.macAddress) ||
                     (selectedItem.category === 'worm' && !deploymentData.ipAddress) ||
-                    (selectedItem.category === 'ransomware' && !deploymentData.domainName)
+                    (selectedItem.category === 'ransomware' && !deploymentData.domainName) || isDeploying
                   }
                 >
-                  Deploy
+                  {isDeploying ? 'Deploying...' : 'Deploy'}
                 </button>
               </div>
             </div>

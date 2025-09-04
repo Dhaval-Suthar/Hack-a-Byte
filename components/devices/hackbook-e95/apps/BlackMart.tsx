@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { getPlayspaceId } from '@/lib/playspace-utils';
 import Image from "next/image";
 import clsx from "clsx";
 
@@ -147,6 +148,14 @@ const BlackMart: React.FC<BlackMartProps> = () => {
   const [purchaseItem, setPurchaseItem] = useState<MalwareItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'popular' | 'price' | 'rating'>('popular');
+  // Phase 1 additions
+  const [targetDeviceId, setTargetDeviceId] = useState(''); // manual input for device-targeted malware
+  const [attackerTeamId, setAttackerTeamId] = useState(''); // manual until we wire actual team context
+  const [statusLines, setStatusLines] = useState<string[]>([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const playspaceId = getPlayspaceId();
+
+  const appendStatus = (line: string) => setStatusLines(prev => [...prev, line]);
 
   // Filter and sort malware items
   const filteredItems = MALWARE_CATALOG
@@ -179,37 +188,55 @@ const BlackMart: React.FC<BlackMartProps> = () => {
     setShowDeployment(true);
   }, []);
 
-  const executeDeploy = useCallback(() => {
+  const executeDeploy = useCallback(async () => {
     if (!selectedItem) return;
+    setIsDeploying(true);
+    setStatusLines([]);
+    const id = selectedItem.id;
+    appendStatus(`▶ Starting deployment for ${selectedItem.name} (${id})`);
 
-    // Show deployment progress
-    const steps = [
-      'Initializing deployment system...',
-      'Validating target parameters...',
-      'Establishing secure connection...',
-      'Uploading payload...',
-      'Executing deployment...',
-      'Deployment completed successfully!'
-    ];
-
-    let stepIndex = 0;
-    const interval = setInterval(() => {
-      if (stepIndex < steps.length - 1) {
-        console.log(`[${selectedItem.name}] ${steps[stepIndex]}`);
-        stepIndex++;
+    try {
+      let resp: Response | null = null;
+      if (id === 'virus-001') { // SysTrojan Pro destructive
+        if (!targetDeviceId || !attackerTeamId) throw new Error('targetDeviceId & attackerTeamId required');
+        appendStatus('Calling /api/attack/systrojan ...');
+        resp = await fetch('/api/attack/systrojan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetDeviceId, attackerTeamId }) });
+      } else if (id === 'virus-002') { // StealthViral
+        const targetKey = playspaceId || targetDeviceId;
+        if (!targetKey) throw new Error('playspace or device target required');
+        appendStatus('Triggering StealthViral (stealth-viral)...');
+        resp = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, { method: 'POST', headers: attackerTeamId ? { 'x-team-id': attackerTeamId } : undefined });
+      } else if (id === 'virus-003') { // DataMiner X (assumes endpoint exists)
+        if (!targetDeviceId || !attackerTeamId) throw new Error('targetDeviceId & attackerTeamId required');
+        appendStatus('Calling /api/attack/dataminer ...');
+        resp = await fetch('/api/attack/dataminer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetDeviceId, attackerTeamId }) });
+      } else if (id.startsWith('worm-')) {
+        if (!attackerTeamId) throw new Error('attackerTeamId required');
+        appendStatus('Dispatching worm swarm (/api/attack/worm)...');
+        resp = await fetch('/api/attack/worm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attackerTeamId, wormId: id }) });
+      } else if (id.startsWith('ransom-')) {
+        const targetKey = playspaceId || targetDeviceId;
+        if (!targetKey) throw new Error('playspace or device target required');
+        appendStatus('Spawning ransomware instance...');
+        resp = await fetch(`/api/attack/ransomware?targetKey=${encodeURIComponent(targetKey)}`, { method: 'POST', headers: attackerTeamId ? { 'Content-Type': 'application/json' } : undefined, body: attackerTeamId ? JSON.stringify({ attackerTeamId }) : undefined });
       } else {
-        clearInterval(interval);
-        alert(`${selectedItem.name} has been successfully deployed!\n\nTarget: ${
-          selectedItem.category === 'virus' ? deploymentData.macAddress :
-          selectedItem.category === 'worm' ? deploymentData.ipAddress :
-          deploymentData.domainName
-        }\n\nStatus: Active`);
-        setShowDeployment(false);
-        setSelectedItem(null);
-        setDeploymentData({});
+        throw new Error('Unsupported malware id in Phase 1');
       }
-    }, 800);
-  }, [selectedItem, deploymentData]);
+
+      if (!resp) throw new Error('No response');
+      const json = await resp.json().catch(()=>({}));
+      if (!resp.ok || json.success === false) {
+        appendStatus(`❌ Deployment failed: ${json.error || resp.statusText}`);
+      } else {
+        appendStatus('✅ Deployment request accepted. Await realtime effects.');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      appendStatus(`⚠ Error: ${msg}`);
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [selectedItem, targetDeviceId, attackerTeamId, playspaceId]);
 
   const confirmPurchase = useCallback(() => {
     if (!purchaseItem) return;
@@ -307,6 +334,30 @@ const BlackMart: React.FC<BlackMartProps> = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-4 overflow-auto bg-white">
+        {showDeployment && (
+          <div className="mb-4 border border-[#808080] bg-[#f8f8f8] p-3 text-xs text-gray-800 space-y-2">
+            <div className="font-bold">Deployment Console</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-semibold mb-1">Attacker Team ID</label>
+                <input value={attackerTeamId} onChange={e=>setAttackerTeamId(e.target.value)} placeholder="team id" className="w-full px-1 py-0.5 border text-[11px]" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold mb-1">Target Device ID (fallback)</label>
+                <input value={targetDeviceId} onChange={e=>setTargetDeviceId(e.target.value)} placeholder="device id" className="w-full px-1 py-0.5 border text-[11px]" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button disabled={isDeploying} onClick={executeDeploy} className="px-2 py-1 bg-black text-white text-[11px] disabled:opacity-50">{isDeploying ? 'Deploying...' : 'Execute Deploy'}</button>
+              <button disabled={isDeploying} onClick={()=>{setShowDeployment(false); setSelectedItem(null);}} className="px-2 py-1 bg-gray-300 text-[11px]">Close</button>
+            </div>
+            {statusLines.length>0 && (
+              <div className="mt-2 max-h-32 overflow-auto bg-[#e9e9e9] p-2 border text-[10px] leading-snug">
+                {statusLines.map((l,i)=>(<div key={i}>{l}</div>))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item) => (
             <div

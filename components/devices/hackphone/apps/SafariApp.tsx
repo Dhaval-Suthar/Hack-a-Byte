@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { io as rawIo, Socket } from 'socket.io-client';
+import AlertHub from './AlertHub';
 import Image from "next/image";
 
 interface SafariAppProps {
@@ -17,6 +19,9 @@ const toUrl = (input: string) => {
   return `https://www.google.com/search?q=${q}`;
 };
 
+interface ExtractorEvent { id: string; type: string; outcome: 'gain'|'loss'|'neutral'; amount: number; detail?: string; ts: number }
+interface DeviceMeta { teamId?: string; isBank?: boolean }
+
 const SafariApp: React.FC<SafariAppProps> = () => {
   const [tabTitle, setTabTitle] = useState("Untitled");
   const [address, setAddress] = useState("https://www.redmondpie.com/");
@@ -27,6 +32,55 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [history, setHistory] = useState<string[]>([address]);
   const [histIndex, setHistIndex] = useState(0);
   const [cannotOpen, setCannotOpen] = useState<string | null>(null);
+  // Extraction additions
+  const [teamId, setTeamId] = useState<string>('');
+  const [faucetState, setFaucetState] = useState<{ attempts: number; windowExpires: number; lastReward: number; balance?: number }|null>(null);
+  const [events, setEvents] = useState<ExtractorEvent[]>([]);
+  const [socket, setSocket] = useState<Socket|null>(null);
+  const [claiming, setClaiming] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [phishWarning, setPhishWarning] = useState<string|null>(null);
+  const [showAlertHub, setShowAlertHub] = useState(false);
+  const [customPatternInput, setCustomPatternInput] = useState('');
+  const [useCustomPatterns, setUseCustomPatterns] = useState(false);
+
+  // Derived risk metrics
+  const riskSummary = useMemo(()=>{
+    const gains = events.filter(e=>e.outcome==='gain').reduce((a,b)=>a+b.amount,0);
+    const losses = events.filter(e=>e.outcome==='loss').reduce((a,b)=>a+Math.abs(b.amount),0);
+    const net = gains - losses;
+    return { gains, losses, net };
+  }, [events]);
+
+  // Restore persisted state (events, faucet meta, custom patterns)
+  useEffect(()=>{
+    try {
+      const evRaw = localStorage.getItem('safari_events');
+      if (evRaw) {
+        const parsed: ExtractorEvent[] = JSON.parse(evRaw);
+        if (Array.isArray(parsed)) setEvents(parsed.slice(0,50));
+      }
+    } catch {/* ignore */}
+    try {
+      const fsRaw = localStorage.getItem('safari_faucet_state');
+      if (fsRaw) {
+        const parsed = JSON.parse(fsRaw);
+        if (parsed && typeof parsed === 'object' && 'attempts' in parsed) setFaucetState(parsed);
+      }
+    } catch {/* ignore */}
+    try {
+      const pat = localStorage.getItem('safari_custom_patterns');
+      if (pat) setCustomPatternInput(pat);
+      const flag = localStorage.getItem('safari_use_custom_patterns');
+      if (flag === '1') setUseCustomPatterns(true);
+    } catch {/* ignore */}
+  }, []);
+
+  // Persist events & faucet state & patterns
+  useEffect(()=>{ try { localStorage.setItem('safari_events', JSON.stringify(events)); } catch {} }, [events]);
+  useEffect(()=>{ if (faucetState) { try { localStorage.setItem('safari_faucet_state', JSON.stringify(faucetState)); } catch {} } }, [faucetState]);
+  useEffect(()=>{ try { localStorage.setItem('safari_custom_patterns', customPatternInput); } catch {} }, [customPatternInput]);
+  useEffect(()=>{ try { localStorage.setItem('safari_use_custom_patterns', useCustomPatterns? '1':'0'); } catch {} }, [useCustomPatterns]);
 
   // Pull-to-refresh state
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -54,6 +108,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     setHistory(newHist);
     setHistIndex(newHist.length - 1);
     setAddress(url);
+  classifyAndWarn(url);
   };
 
   const goBack = () => {
@@ -146,6 +201,115 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     </div>
   );
 
+  const claimFaucet = useCallback(async ()=>{
+    if (!teamId) return;
+    setClaiming(true);
+    try {
+      const resp = await fetch('/api/extract/faucet', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ teamId }) });
+      const js = await resp.json();
+      if (resp.ok && js.success) {
+        setFaucetState({ attempts: js.attempts, windowExpires: js.windowExpires, lastReward: js.reward, balance: js.balance });
+      }
+    } catch {/* ignore */} finally { setClaiming(false); }
+  }, [teamId]);
+
+  const runEmailSms = useCallback(async ()=>{
+    if (!teamId) return;
+    setEmailLoading(true);
+    try {
+      const resp = await fetch('/api/extract/email-sms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ teamId }) });
+      const js = await resp.json();
+      if (resp.ok && js.success) {
+        const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type:'email-sms', outcome: js.outcome, amount: js.amount, ts: Date.now(), detail: js.detail };
+        setEvents(ev=> [evt, ...ev].slice(0,50));
+      }
+    } catch {/* ignore */} finally { setEmailLoading(false); }
+  }, [teamId]);
+
+  // Auto team discovery (reuse /api/devices logic similar to BlackMartPhone but lighter)
+  useEffect(()=>{
+    let cancelled = false;
+    async function load() {
+      try {
+        const resp = await fetch('/api/devices');
+        if (!resp.ok) return;
+        const js = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(js.devices)) {
+          const devices: DeviceMeta[] = js.devices;
+          // pick first device with teamId (non-bank) or fallback first
+          const pick = devices.find(d=> d.teamId && !d.isBank) || devices.find(d=>d.teamId);
+          if (pick?.teamId && !teamId) setTeamId(pick.teamId);
+        }
+      } catch {}
+    }
+    load();
+    const id = setInterval(load, 20000);
+    return ()=>{ cancelled = true; clearInterval(id); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Socket connect for extractor events
+  useEffect(()=>{
+    if (!teamId || socket) return;
+    const s = rawIo('/', { path: '/api/socket/io', transports:['websocket'] });
+    s.on('connect', ()=>{/* noop */});
+    // Listen for faucet + generic extractor events
+    s.on('extractor-faucet', (p: { teamId:string; reward:number; attempts:number; windowExpires:number; balance:number; ts:number })=>{
+      if (p.teamId !== teamId) return;
+      setFaucetState({ attempts: p.attempts, windowExpires: p.windowExpires, lastReward: p.reward, balance: p.balance });
+      const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type:'faucet', outcome:'gain', amount:p.reward, ts:p.ts, detail:`Attempt ${p.attempts}` };
+      setEvents(ev=> [evt, ...ev].slice(0,50));
+    });
+    s.on('extractor-event', (p: { teamId:string; event: ExtractorEvent })=>{
+      if (p.teamId !== teamId) return;
+      const e = p.event;
+      setEvents(ev=> [ { id: e.id || Math.random().toString(36).slice(2), type:e.type, outcome:e.outcome, amount:e.amount, ts:e.ts, detail:e.detail }, ...ev].slice(0,50));
+    });
+    setSocket(s);
+    return ()=>{ s.disconnect(); };
+  }, [teamId, socket]);
+
+  const formatTimeLeft = () => {
+    if (!faucetState) return '';
+    const ms = faucetState.windowExpires - Date.now();
+    if (ms <= 0) return 'window reset';
+    const sec = Math.floor(ms/1000);
+    return `${Math.floor(sec/60)}m ${(sec%60)}s`; 
+  };
+
+  // Cooldown bar re-render
+  const pctWindow = (()=>{
+    if (!faucetState) return 0;
+    const total = faucetState.windowExpires - (faucetState.windowExpires - 5*60*1000); // window length known 5m
+    const rem = faucetState.windowExpires - Date.now();
+    return Math.max(0, Math.min(100, 100 - (rem/ total)*100));
+  })();
+  useEffect(()=>{ const id = setInterval(()=>{ if (faucetState) setFaucetState(s=> s? {...s}: s); }, 1000); return ()=> clearInterval(id); }, [faucetState]);
+
+  // Phishing detection
+  const defaultSuspiciousPatterns = useMemo(()=>[/login/i,/bank/i,/wallet/i,/secure-update/i,/verify/i,/\.ru\b/i,/\.cn\b/i], []);
+  const customPatterns = useMemo(()=>{
+    if (!useCustomPatterns || !customPatternInput.trim()) return [] as RegExp[];
+    return customPatternInput.split(/[,\n]/).map(s=>s.trim()).filter(Boolean).map(p=>{
+      try { return new RegExp(p, 'i'); } catch { return null; }
+    }).filter((r): r is RegExp => !!r);
+  }, [customPatternInput, useCustomPatterns]);
+  const suspiciousPatterns = useMemo(()=> useCustomPatterns ? customPatterns : defaultSuspiciousPatterns, [useCustomPatterns, customPatterns, defaultSuspiciousPatterns]);
+  const classifyAndWarn = (url:string) => {
+    try {
+      const u = new URL(url);
+      const hostPath = `${u.hostname}${u.pathname}`;
+      const hit = suspiciousPatterns.some(rx=> rx.test(hostPath));
+      if (hit) {
+        const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type:'phish-detect', outcome:'neutral', amount:0, ts: Date.now(), detail: u.hostname };
+        setEvents(ev=> [evt, ...ev].slice(0,50));
+        setPhishWarning(`Potential phishing risk: ${u.hostname}`);
+        setTimeout(()=> setPhishWarning(null), 6000);
+      }
+    } catch {/* ignore */}
+  };
+
   const BottomBar = () => {
     const buttons = [
       { id: "back", icon: "https://api.iconify.design/ion/chevron-back.svg?color=white", onClick: goBack, disabled: !canGoBack },
@@ -222,6 +386,59 @@ const SafariApp: React.FC<SafariAppProps> = () => {
               <div className="text-[#234] text-sm mb-4">{cannotOpen}</div>
               <button onClick={() => setCannotOpen(null)} className="mx-auto px-6 py-1.5 rounded bg-gradient-to-b from:white to-[#e0e0e0] border border-black/20 shadow text-[#123] font-semibold">OK</button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Extractor panel */}
+      <div className="px-3 py-2 bg-black/40 text-[11px] text-gray-200 space-y-2 border-t border-white/10">
+        <div className="flex items-center gap-2">
+          <input value={teamId} onChange={e=>setTeamId(e.target.value)} placeholder="Team ID" className="bg-white/10 px-2 py-1 rounded w-40 focus:outline-none" />
+          <button onClick={claimFaucet} disabled={!teamId||claiming} className="px-3 py-1 rounded bg-indigo-600 disabled:bg-gray-600 text-white text-xs font-semibold">{claiming? 'Claiming...': 'Claim Faucet'}</button>
+          <button onClick={runEmailSms} disabled={!teamId||emailLoading} className="px-3 py-1 rounded bg-emerald-600 disabled:bg-gray-600 text-white text-xs font-semibold">{emailLoading? 'Running...':'Email/SMS Batch'}</button>
+          {faucetState && <div className="text-xs text-gray-300">Attempt {faucetState.attempts} · Last +{faucetState.lastReward} · {formatTimeLeft()}</div>}
+          <button onClick={()=>setShowAlertHub(s=>!s)} className="ml-auto px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-[10px]">{showAlertHub? 'Hide Alerts':'Show Alerts'}</button>
+        </div>
+        {faucetState && (
+          <div className="w-full h-2 bg-white/10 rounded overflow-hidden">
+            <div style={{ width: pctWindow+'%' }} className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all" />
+          </div>
+        )}
+        <div className="flex gap-4 text-[10px] font-mono">
+          <div className="text-green-400">G+{riskSummary.gains}</div>
+          <div className="text-red-400">L-{riskSummary.losses}</div>
+          <div className={riskSummary.net>=0? 'text-green-300':'text-red-300'}>Net {riskSummary.net>=0?'+':''}{riskSummary.net}</div>
+        </div>
+        {/* Custom phishing patterns */}
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 text-[10px]">
+            <input type="checkbox" checked={useCustomPatterns} onChange={e=>setUseCustomPatterns(e.target.checked)} />
+            <span>Use custom phishing patterns</span>
+          </label>
+          {useCustomPatterns && (
+            <textarea
+              value={customPatternInput}
+              onChange={e=>setCustomPatternInput(e.target.value)}
+              placeholder="Enter regex fragments separated by comma or newline (e.g. login, bank, verify)"
+              className="w-full bg-white/5 border border-white/10 rounded p-1 text-[10px] h-16 resize-none focus:outline-none"
+            />
+          )}
+        </div>
+        <div className="max-h-28 overflow-auto space-y-0.5 font-mono">
+          {events.map(e=> (
+            <div key={e.id} className={`text-[10px] flex justify-between ${e.outcome==='gain'?'text-green-400': e.outcome==='loss'?'text-red-400':'text-gray-400'}`}> 
+              <span>{e.type}{e.detail?`: ${e.detail}`:''}</span>
+              <span>{e.amount>0?`+${e.amount}`: e.amount<0? e.amount: ''}</span>
+            </div>
+          ))}
+          {events.length===0 && <div className="text-gray-500 text-[10px]">No extractor events</div>}
+        </div>
+        {phishWarning && (
+          <div className="text-amber-400 text-[10px] font-semibold animate-pulse">{phishWarning}</div>
+        )}
+        {showAlertHub && (
+          <div className="mt-2 border border-white/10 rounded bg-black/30 max-h-52 overflow-auto">
+            <AlertHub />
           </div>
         )}
       </div>
