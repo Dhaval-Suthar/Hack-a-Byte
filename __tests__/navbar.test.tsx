@@ -16,10 +16,12 @@ jest.mock('next/navigation', () => ({
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement> & { src: string; alt: string }) => (
+  default: (props: Record<string, unknown>) => {
+    // Extract Next.js specific props that shouldn't go to img element
+    const { fill, priority, ...imgProps } = props;
     // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} alt={props.alt || ''} />
-  ),
+    return <img {...imgProps} alt={String(props.alt || '')} />;
+  },
 }));
 
 // Mock Next.js Link component

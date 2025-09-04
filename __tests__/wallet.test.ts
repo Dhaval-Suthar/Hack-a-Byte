@@ -4,6 +4,13 @@ import WalletTransactionModel from '@/models/WalletTransaction';
 import Team from '@/models/Team';
 import { createWalletTransaction, getTeamTransactions, getTransactionById, updateTransactionStatus, getTeamBalance, transferBitcoin } from '@/app/actions/wallet';
 
+// Type definition for wallet transaction
+interface WalletTransactionResult {
+  teamId: string;
+  type: string;
+  [key: string]: unknown;
+}
+
 describe('Wallet Actions', () => {
   beforeEach(async () => {
     await connectDb();
@@ -121,9 +128,9 @@ describe('Wallet Actions', () => {
       const result = await getTransactionById(transactionId);
 
       expect(result.success).toBe(true);
-  const baseTeamId = (await Team.findOne({ name:'BaseTeam'}))!._id.toString();
-  expect(result.transaction && result.transaction.teamId.toString()).toBe(baseTeamId);
-  expect(result.transaction?.type).toBe('deposit');
+      const baseTeamId = (await Team.findOne({ name:'BaseTeam'}))!._id.toString();
+      expect(result.transaction && (result.transaction as unknown as WalletTransactionResult).teamId.toString()).toBe(baseTeamId);
+      expect((result.transaction as unknown as WalletTransactionResult)?.type).toBe('deposit');
     });
 
     it('should fail for non-existent transaction', async () => {

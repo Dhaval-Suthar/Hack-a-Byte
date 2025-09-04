@@ -140,7 +140,7 @@ const DeviceSchema = new Schema<Device>(
 );
 
 // Create indexes for better query performance
-DeviceSchema.index({ deviceMacAddress: 1 });
+// Note: deviceMacAddress already has unique index from schema definition
 DeviceSchema.index({ deviceType: 1 });
 DeviceSchema.index({ status: 1 });
 DeviceSchema.index({ 'configuration.networkSettings.ipAddress': 1 });
