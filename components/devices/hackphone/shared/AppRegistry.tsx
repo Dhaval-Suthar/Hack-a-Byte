@@ -164,10 +164,10 @@ export const APP_REGISTRY: AppConfig[] = [
   },
   {
     id: "appStore",
-    name: "SecureTech",
+    name: "App Store",
     icon: "/hackphone/apps/appStore/app-icon.png",
     category: "system",
-    description: "SecureTech security software marketplace",
+    description: "Malware marketplace",
     isSystemApp: true,
     permissions: [
       { type: "network", required: true, description: "Download security tools" },

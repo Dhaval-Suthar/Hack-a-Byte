@@ -38,7 +38,6 @@ const DefenderStealthViral = lazy(() => import("../apps/DefenderStealthViral"));
 const DefenderRansomware = lazy(() => import("../apps/DefenderRansomware"));
 const BankStatusApp = lazy(() => import("../apps/BankStatusApp"));
 const WormPhishingApp = lazy(() => import("../apps/WormPhishingApp"));
-const SafariFaucet = lazy(() => import("../apps/SafariFaucet"));
 const EmailSmsExtractor = lazy(() => import("../apps/EmailSmsExtractor"));
 
 const LoadingSpinner = () => (
@@ -314,13 +313,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}> 
             <WormPhishingApp />
-          </Suspense>,
-          appId
-        );
-      case "faucet":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <SafariFaucet />
           </Suspense>,
           appId
         );
