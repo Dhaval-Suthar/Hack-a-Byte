@@ -389,7 +389,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "settings":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <SettingsApp onClose={onClose} onBack={() => onAppSwitch?.('game')} user={user} />
+            <SettingsApp />
           </Suspense>,
           appId
         );

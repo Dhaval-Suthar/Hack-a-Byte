@@ -281,8 +281,14 @@ const BlackMartPhone: React.FC<BlackMartPhoneProps> = ({ time }) => {
     if (!attackerTeamId) return;
     setSocket(prev=>{
       if (prev) { prev.emit('join-team', attackerTeamId); return prev; }
-      const s = rawIo('/', { path: '/api/socket/io', transports: ['websocket'] });
+      const s = rawIo('/', { path: '/api/socketio', transports: ['websocket'], timeout: 20000 });
       s.on('connect', ()=> appendStatus('🔌 joined socket'));
+      s.on('connect_error', (error) => {
+        console.warn('BlackMart socket connection error:', error.message);
+      });
+      s.on('connect_timeout', () => {
+        console.warn('BlackMart socket connection timeout');
+      });
       s.emit('join-team', attackerTeamId);
       // Worm tokens
       s.on('worm-payload', (p: { tokenId:string; wormId:string; channel:'email'|'sms'; targetTeamId:string; expires:number })=>{

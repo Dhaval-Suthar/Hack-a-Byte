@@ -252,8 +252,14 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   // Socket connect for extractor events
   useEffect(()=>{
     if (!teamId || socket) return;
-    const s = rawIo('/', { path: '/api/socket/io', transports:['websocket'] });
+    const s = rawIo('/', { path: '/api/socketio', transports:['websocket'], timeout: 20000 });
     s.on('connect', ()=>{/* noop */});
+    s.on('connect_error', (error) => {
+      console.warn('SafariApp socket connection error:', error.message);
+    });
+    s.on('connect_timeout', () => {
+      console.warn('SafariApp socket connection timeout');
+    });
     // Listen for faucet + generic extractor events
     s.on('extractor-faucet', (p: { teamId:string; reward:number; attempts:number; windowExpires:number; balance:number; ts:number })=>{
       if (p.teamId !== teamId) return;

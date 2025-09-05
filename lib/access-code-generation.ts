@@ -6,6 +6,7 @@ import Playspace from "@/models/Playspace";
 import Device from "@/models/Device";
 import mongoose from "mongoose";
 import { logger } from "./logger";
+import { generateUniqueIPAddress, generateDeviceMacAddress } from "./device-utils";
 
 export interface CreateAccessCodeAndPlayspaceOptions {
   numberOfPlayers: number;
@@ -78,6 +79,9 @@ async function createPlayspaceWithDevices(
     // Generate a unique MAC address for the single team device
     const deviceMacAddress = generateDeviceMacAddress();
     
+    // Generate a unique IP address for the device
+    const deviceIPAddress = await generateUniqueIPAddress();
+    
     const newDevice = new Device({
       deviceType,
       deviceMacAddress,
@@ -89,8 +93,20 @@ async function createPlayspaceWithDevices(
         installedApps: deviceType === "hackphone" 
           ? ["Safari", "Calculator", "Settings", "Terminal", "Files", "Network Scanner", "Crypto Toolkit"]
           : ["Notepad", "Calculator", "Paint", "MyComputer", "Terminal", "Minesweeper", "CD Player"],
-        theme: "default",
-        securityLevel: 1
+        networkSettings: {
+          ipAddress: deviceIPAddress,
+          subnet: deviceIPAddress.includes('192.168') ? '255.255.255.0' : '255.0.0.0',
+          gateway: deviceIPAddress.includes('192.168') 
+            ? deviceIPAddress.replace(/\d+$/, '1') 
+            : deviceIPAddress.replace(/\d+\.\d+$/, '0.1'),
+          dns: ['8.8.8.8', '8.8.4.4'],
+          isNetworkEnabled: false
+        },
+        securitySettings: {
+          firewall: false,
+          antiVirus: false,
+          vulnerabilities: []
+        }
       },
       logs: []
     });
@@ -110,23 +126,6 @@ async function createPlayspaceWithDevices(
       error: "Failed to create playspace and devices"
     };
   }
-}
-
-/**
- * Generates a MAC address for the device
- */
-function generateDeviceMacAddress(): string {
-  const hexChars = '0123456789ABCDEF';
-  let mac = '';
-  
-  for (let i = 0; i < 6; i++) {
-    if (i > 0) mac += ':';
-    for (let j = 0; j < 2; j++) {
-      mac += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
-    }
-  }
-  
-  return mac;
 }
 
 /**

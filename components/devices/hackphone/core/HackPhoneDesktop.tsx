@@ -17,6 +17,7 @@ const HackPhoneDesktop = () => {
   const [user, setUser] = useState<User | null>(null);
   const [time, setTime] = useState(new Date());
   const [hasPasscode, setHasPasscode] = useState(false);
+  const [deviceId, setDeviceId] = useState<string | undefined>();
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
@@ -48,6 +49,14 @@ const HackPhoneDesktop = () => {
         let playspaceId = urlPlayspaceId;
         if (!playspaceId) {
           playspaceId = getPlayspaceId();
+        }
+
+        // Set deviceId for passing to apps
+        setDeviceId(urlDeviceId || undefined);
+
+        // Store device MAC address in localStorage if available
+        if (urlDeviceId) {
+          localStorage.setItem("device_mac_address", urlDeviceId);
         }
 
         // On iPhone 4 UX, we allow home without playspace; only require auth for deviceId flow
@@ -107,6 +116,7 @@ const HackPhoneDesktop = () => {
             time={time}
             onAppSwitch={handleAppSwitch}
             onOpenApp={handleAppOpen}
+            deviceId={deviceId}
           />
         ) : (
           <HackPhoneHomeScreen

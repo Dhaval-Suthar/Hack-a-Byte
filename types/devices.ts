@@ -45,6 +45,7 @@ export interface AppRouterProps {
   onAppSwitch?: (appId: string) => void;
   onOpenApp?: (appId: string) => void;
   initialPhoneNumber?: string;
+  deviceId?: string;
 }
 
 export interface HomeScreenProps {

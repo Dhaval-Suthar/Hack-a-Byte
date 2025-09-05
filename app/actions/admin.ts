@@ -9,8 +9,8 @@ import Event from "@/models/Event";
 import Sponsor from "@/models/Sponsor";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
-import { generateMacAddress } from "@/lib/utils";
 import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
+import { generateUniqueIPAddress, generateDeviceMacAddress } from "@/lib/device-utils";
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -1614,15 +1614,15 @@ export async function createDevice(
       osVersion: "1.0.0",
       installedApps: [],
       networkSettings: {
-        ipAddress: "192.168.1.100",
+        ipAddress: await generateUniqueIPAddress(),
         subnet: "255.255.255.0",
         gateway: "192.168.1.1",
         dns: ["8.8.8.8", "8.8.4.4"],
-        isNetworkEnabled: true,
+        isNetworkEnabled: false,
       },
       securitySettings: {
-        firewall: true,
-        antiVirus: true,
+        firewall: false,
+        antiVirus: false,
         vulnerabilities: [],
       },
     };
@@ -1656,7 +1656,7 @@ export async function createDevice(
     }
 
     // Generate a unique device MacAddress
-    const deviceMacAddress = `${generateMacAddress()}`;
+    const deviceMacAddress = await generateDeviceMacAddress();
 
     // Create new device
     const newDevice = new Device({

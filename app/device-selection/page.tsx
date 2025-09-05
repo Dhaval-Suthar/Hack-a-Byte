@@ -292,6 +292,12 @@ export default function DeviceSelectionPage() {
       const deviceInstance = getSelectedDeviceInstance(deviceId);
       const specificDeviceId = deviceInstance?.id;
 
+      // Store the device MAC address in localStorage
+      if (specificDeviceId) {
+        localStorage.setItem("device_mac_address", specificDeviceId);
+        console.log("Device MAC address stored in localStorage:", specificDeviceId);
+      }
+
       // Small delay to show selection effect before navigating
       setTimeout(() => {
         // Build the navigation path with both playspaceId and specific deviceId

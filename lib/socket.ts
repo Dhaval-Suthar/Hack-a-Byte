@@ -21,6 +21,8 @@ export const initSocket = (httpServer: NetServer) => {
       origin: '*',
       methods: ['GET', 'POST'],
     },
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
   console.log('🔌 Socket.IO server created with path: /api/socketio');

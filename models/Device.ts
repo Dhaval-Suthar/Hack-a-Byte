@@ -73,8 +73,32 @@ export interface Device extends Document {
       firewall: boolean;
       antiVirus: boolean;
       vulnerabilities: string[]; // List of simulated vulnerabilities for CTF scenarios
+      vpn?: boolean;
+      enc?: boolean;
+      ids?: boolean;
     };
   };
+
+  // Additional device settings
+  passcode?: string | null;
+  pin?: string | null;
+  airplaneMode?: boolean;
+  wifiEnabled?: boolean;
+  bluetoothEnabled?: boolean;
+  notifications?: boolean;
+  notificationsEnabled?: boolean;
+  location?: boolean;
+  locationEnabled?: boolean;
+  deviceLock?: boolean;
+  brightness?: number;
+  ringerVolume?: number;
+  vibrateEnabled?: boolean;
+  ringtone?: string;
+  network?: string;
+  darkMode?: boolean;
+  hapticFeedback?: boolean;
+  autoUpdateApps?: boolean;
+  autoBrightness?: boolean;
 
   // Device logs for actions performed
   logs: {
@@ -120,11 +144,32 @@ const DeviceSchema = new Schema<Device>(
         firewall: { type: Boolean, default: true },
         antiVirus: { type: Boolean, default: true },
         vulnerabilities: [{ type: String }],
-  vpn: { type: Boolean, default: false },
-  enc: { type: Boolean, default: false },
-  ids: { type: Boolean, default: false },
+        vpn: { type: Boolean, default: false },
+        enc: { type: Boolean, default: false },
+        ids: { type: Boolean, default: false },
       },
     },
+
+    // Additional device settings
+    passcode: { type: String, default: null },
+    pin: { type: String, default: null },
+    airplaneMode: { type: Boolean, default: false },
+    wifiEnabled: { type: Boolean, default: true },
+    bluetoothEnabled: { type: Boolean, default: true },
+    notifications: { type: Boolean, default: true },
+    notificationsEnabled: { type: Boolean, default: true },
+    location: { type: Boolean, default: true },
+    locationEnabled: { type: Boolean, default: true },
+    deviceLock: { type: Boolean, default: false },
+    brightness: { type: Number, default: 50 },
+    ringerVolume: { type: Number, default: 70 },
+    vibrateEnabled: { type: Boolean, default: true },
+    ringtone: { type: String, default: "Marimba" },
+    network: { type: String, default: "Home WiFi" },
+    darkMode: { type: Boolean, default: false },
+    hapticFeedback: { type: Boolean, default: true },
+    autoUpdateApps: { type: Boolean, default: true },
+    autoBrightness: { type: Boolean, default: true },
 
     logs: [
       {

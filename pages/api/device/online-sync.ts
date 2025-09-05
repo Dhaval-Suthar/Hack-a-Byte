@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { deviceId } = req.query;
       if (!deviceId || typeof deviceId !== 'string') return res.status(400).json({ error: 'deviceId required' });
       await connectDb();
-      const device = await Device.findById(deviceId).select('status');
+      const device = await Device.findOne({ deviceMacAddress: deviceId }).select('status');
       if (!device) return res.status(404).json({ error: 'Device not found' });
       return res.status(200).json({ online: device.status === 'online', status: device.status });
     }
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const key = req.headers['x-admin-key'];
       if (!key) return res.status(401).json({ error: 'Unauthorized' });
       await connectDb();
-      const updated = await Device.findByIdAndUpdate(deviceId, { status }, { new: true }).select('status');
+      const updated = await Device.findOneAndUpdate({ deviceMacAddress: deviceId }, { status }, { new: true }).select('status');
       if (!updated) return res.status(404).json({ error: 'Device not found' });
       try {
         const resAny = res as unknown as NextApiResponseServerIo;

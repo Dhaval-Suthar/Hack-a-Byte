@@ -146,6 +146,8 @@ export const useSocket = () => {
         const newSocket = io(process.env.NODE_ENV === 'production' ? '' : window.location.origin, {
           path: '/api/socketio',
           transports: ['websocket', 'polling'],
+          timeout: 20000,
+          forceNew: true,
         });
         newSocket.on('mining-reward', (data: MiningRewardEvent) => {
           setMiningRewards(prev => [...prev, data]);
@@ -175,8 +177,13 @@ export const useSocket = () => {
           }
         });
 
-        newSocket.on('disconnect', () => {
-          console.log('❌ Disconnected from Socket.IO server');
+        newSocket.on('connect_error', (error) => {
+          console.warn('Socket.IO connection error:', error.message);
+          setIsConnected(false);
+        });
+
+        newSocket.on('connect_timeout', () => {
+          console.warn('Socket.IO connection timeout');
           setIsConnected(false);
         });
 

@@ -455,6 +455,7 @@ const Desktop = () => {
             if (urlDeviceId) {
               devId = urlDeviceId;
               localStorage.setItem("selectedDeviceId", urlDeviceId);
+              localStorage.setItem("device_mac_address", urlDeviceId);
             }
           }
         }
