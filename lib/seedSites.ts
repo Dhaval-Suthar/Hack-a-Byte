@@ -94,7 +94,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 25,
-    rewardCooldownMinutes: 120, // 2 hours cooldown
+  rewardCooldownMinutes: 3, // short cooldown (minutes)
     backgroundColor: "#1a1a1a",
     textColor: "#fbbf24"
   },
@@ -141,7 +141,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 18,
-    rewardCooldownMinutes: 90, // 1.5 hours cooldown
+  rewardCooldownMinutes: 3, // short cooldown
     backgroundColor: "#1e3a8a",
     textColor: "#dbeafe"
   },
@@ -182,7 +182,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 15,
-    rewardCooldownMinutes: 45, // 45 minutes cooldown
+  rewardCooldownMinutes: 2, // short cooldown
     backgroundColor: "#581c87",
     textColor: "#e9d5ff"
   },
@@ -223,7 +223,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 30,
-    rewardCooldownMinutes: 180, // 3 hours cooldown (higher reward, longer cooldown)
+  rewardCooldownMinutes: 3, // short cooldown
     backgroundColor: "#14532d",
     textColor: "#bbf7d0"
   },
@@ -264,7 +264,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 20,
-    rewardCooldownMinutes: 60, // 1 hour cooldown
+  rewardCooldownMinutes: 3, // short cooldown
     backgroundColor: "#9a3412",
     textColor: "#fed7aa"
   },
@@ -305,7 +305,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 12,
-    rewardCooldownMinutes: 30, // 30 minutes cooldown (lower reward, shorter cooldown)
+  rewardCooldownMinutes: 2, // short cooldown
     backgroundColor: "#111827",
     textColor: "#f3f4f6"
   },

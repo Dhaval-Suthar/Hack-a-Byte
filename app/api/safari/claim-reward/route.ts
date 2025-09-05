@@ -96,7 +96,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check cooldown period
+    // Check cooldown period (migrate legacy long cooldowns >5 mins down to 2-3 mins)
+    if (site.rewardCooldownMinutes && site.rewardCooldownMinutes > 5) {
+      site.rewardCooldownMinutes = Math.floor(Math.random() * 2) + 2; // 2 or 3
+      await site.save();
+    }
+
     if (site.rewardClaimed && site.rewardClaimedAt) {
       const cooldownMinutes = site.rewardCooldownMinutes || 3;
       const timeSinceLastClaim = Date.now() - site.rewardClaimedAt.getTime();
@@ -173,9 +178,14 @@ export async function POST(request: NextRequest) {
     site.rewardClaimed = true;
     site.rewardClaimedBy = team._id; // Store the actual team ObjectId
     site.rewardClaimedAt = new Date();
+    // Set next cooldown window randomly 2-3 minutes
+    site.rewardCooldownMinutes = Math.floor(Math.random() * 2) + 2; // 2 or 3
     await site.save();
 
-    // Update team balance
+    // Safely parse reward amount
+    const rewardNumeric = Number(site.rewardAmount) || 0;
+
+    // Ensure wallet exists then persist balance change atomically
     if (!team.wallet) {
       team.wallet = {
         walletAddress: `bc1q${'0'.repeat(38)}`,
@@ -183,18 +193,42 @@ export async function POST(request: NextRequest) {
         privateKey: '',
         publicKey: ''
       };
+      await team.save();
     }
-    team.wallet.bitcoinBalance = (team.wallet.bitcoinBalance || 0) + (site.rewardAmount || 0);
-    await team.save();
 
-    console.log(`Team ${teamId} claimed reward site ${url} for ${site.rewardAmount} bitcoins`);
+    // Atomic increment (fallback to manual if structure missing)
+    const incResult = await Team.updateOne(
+      { _id: team._id },
+      { $inc: { 'wallet.bitcoinBalance': rewardNumeric } }
+    );
+    if (incResult.modifiedCount === 0) {
+      // Fallback manual update
+      const fresh = await Team.findById(team._id);
+      if (fresh) {
+        if (!fresh.wallet) {
+          fresh.wallet = {
+            walletAddress: `bc1q${'0'.repeat(38)}`,
+            bitcoinBalance: 0,
+            privateKey: '',
+            publicKey: ''
+          };
+        }
+        fresh.wallet.bitcoinBalance = (fresh.wallet.bitcoinBalance || 0) + rewardNumeric;
+        await fresh.save();
+        console.log('[claim-reward] Fallback manual wallet increment used', { team: team._id.toString(), add: rewardNumeric });
+      }
+    }
+    // Re-fetch updated team wallet
+    const updatedTeam = await Team.findById(team._id).select('wallet playspaceId');
+
+  console.log(`Team ${teamId} claimed reward site ${url} for ${rewardNumeric} bitcoins (new balance: ${updatedTeam?.wallet?.bitcoinBalance}) incResult:`, incResult);
 
     return NextResponse.json({
       success: true,
       claimed: true,
-      reward: site.rewardAmount,
-      newBalance: team.wallet.bitcoinBalance,
-      cooldownMinutes: site.rewardCooldownMinutes
+  reward: rewardNumeric,
+  newBalance: updatedTeam?.wallet?.bitcoinBalance || 0,
+  cooldownMinutes: site.rewardCooldownMinutes
     });
 
   } catch (error) {
