@@ -47,7 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bitcoinBalance: team.wallet.bitcoinBalance,
         stockPortfolio: team.stockPortfolio || [],
         purchasedMalware: team.purchasedMalware || [],
-        teamName: team.name
+        teamName: team.name,
+        teamId: team._id.toString()
       });
     }
 
