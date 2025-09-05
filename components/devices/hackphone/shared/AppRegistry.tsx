@@ -8,9 +8,7 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "communication",
     description: "Send and receive text messages",
     isSystemApp: true,
-    permissions: [
-      { type: 'contacts', required: false, description: 'Access contacts for messaging' }
-    ]
+    permissions: [{ type: "contacts", required: false, description: "Access contacts for messaging" }],
   },
   {
     id: "calender",
@@ -18,7 +16,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/calender/app-icon.png",
     category: "productivity",
     description: "Manage your schedule and events",
-    isSystemApp: true
+    isSystemApp: true,
   },
   {
     id: "photos",
@@ -27,9 +25,7 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "media",
     description: "View and manage your photo gallery",
     isSystemApp: true,
-    permissions: [
-      { type: 'storage', required: true, description: 'Access photo storage' }
-    ]
+    permissions: [{ type: "storage", required: true, description: "Access photo storage" }],
   },
   {
     id: "camera",
@@ -39,9 +35,9 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "Take photos and videos",
     isSystemApp: true,
     permissions: [
-      { type: 'camera', required: true, description: 'Access camera hardware' },
-      { type: 'storage', required: true, description: 'Save photos and videos' }
-    ]
+      { type: "camera", required: true, description: "Access camera hardware" },
+      { type: "storage", required: true, description: "Save photos and videos" },
+    ],
   },
   {
     id: "youtube",
@@ -49,9 +45,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/youtube/app-icon.png",
     category: "media",
     description: "Watch videos and browse content",
-    permissions: [
-      { type: 'network', required: true, description: 'Internet access for streaming' }
-    ]
+    permissions: [{ type: "network", required: true, description: "Internet access for streaming" }],
   },
   {
     id: "stocks",
@@ -59,9 +53,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/stocks/app-icon.png",
     category: "finance",
     description: "Track stock prices and market data",
-    permissions: [
-      { type: 'network', required: true, description: 'Access financial data' }
-    ]
+    permissions: [{ type: "network", required: true, description: "Access financial data" }],
   },
   {
     id: "maps",
@@ -70,9 +62,9 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "utility",
     description: "Navigate and find locations",
     permissions: [
-      { type: 'location', required: false, description: 'Access current location' },
-      { type: 'network', required: true, description: 'Download map data' }
-    ]
+      { type: "location", required: false, description: "Access current location" },
+      { type: "network", required: true, description: "Download map data" },
+    ],
   },
   {
     id: "weather",
@@ -81,9 +73,9 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "utility",
     description: "Check weather forecasts",
     permissions: [
-      { type: 'location', required: false, description: 'Get local weather' },
-      { type: 'network', required: true, description: 'Fetch weather data' }
-    ]
+      { type: "location", required: false, description: "Get local weather" },
+      { type: "network", required: true, description: "Fetch weather data" },
+    ],
   },
   {
     id: "notes",
@@ -91,9 +83,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/notes/app-icon.png",
     category: "productivity",
     description: "Create and manage notes",
-    permissions: [
-      { type: 'storage', required: true, description: 'Save notes locally' }
-    ]
+    permissions: [{ type: "storage", required: true, description: "Save notes locally" }],
   },
   {
     id: "settings",
@@ -101,7 +91,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/setting/app-icon.png",
     category: "system",
     description: "Configure device settings",
-    isSystemApp: true
+    isSystemApp: true,
   },
   {
     id: "phone",
@@ -110,9 +100,7 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "communication",
     description: "Make and receive calls",
     isSystemApp: true,
-    permissions: [
-      { type: 'microphone', required: true, description: 'Voice calls' }
-    ]
+    permissions: [{ type: "microphone", required: true, description: "Voice calls" }],
   },
   {
     id: "mail",
@@ -120,9 +108,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/mail/app-icon.png",
     category: "communication",
     description: "Send and receive emails",
-    permissions: [
-      { type: 'network', required: true, description: 'Email server access' }
-    ]
+    permissions: [{ type: "network", required: true, description: "Email server access" }],
   },
   {
     id: "safari",
@@ -130,9 +116,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/safari/app-icon.png",
     category: "utility",
     description: "Browse the web",
-    permissions: [
-      { type: 'network', required: true, description: 'Internet access' }
-    ]
+    permissions: [{ type: "network", required: true, description: "Internet access" }],
   },
   {
     id: "music",
@@ -140,9 +124,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/music/app-icon.png",
     category: "media",
     description: "Play music and manage playlists",
-    permissions: [
-      { type: 'storage', required: true, description: 'Access music files' }
-    ]
+    permissions: [{ type: "storage", required: true, description: "Access music files" }],
   },
   {
     id: "calculator",
@@ -150,7 +132,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/calculator/app-icon.png",
     category: "utility",
     description: "Perform mathematical calculations",
-    isSystemApp: true
+    isSystemApp: true,
   },
   {
     id: "clock",
@@ -158,7 +140,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/clock/app-icon.png",
     category: "utility",
     description: "Time, alarms, and stopwatch",
-    isSystemApp: true
+    isSystemApp: true,
   },
   {
     id: "contacts",
@@ -168,19 +150,17 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "Manage your contacts",
     isSystemApp: true,
     permissions: [
-      { type: 'contacts', required: true, description: 'Access contact list' },
-      { type: 'storage', required: true, description: 'Save contact data' }
-    ]
+      { type: "contacts", required: true, description: "Access contact list" },
+      { type: "storage", required: true, description: "Save contact data" },
+    ],
   },
   {
     id: "game",
     name: "Games",
-    icon: "/hackphone/apps/game/app-icon.png",
+    icon: "/hackphone/apps/snake-game/app-icon.png",
     category: "entertainment",
     description: "Play games and have fun",
-    permissions: [
-      { type: 'storage', required: false, description: 'Save game progress' }
-    ]
+    permissions: [{ type: "storage", required: false, description: "Save game progress" }],
   },
   {
     id: "appStore",
@@ -190,9 +170,9 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "SecureTech security software marketplace",
     isSystemApp: true,
     permissions: [
-      { type: 'network', required: true, description: 'Download security tools' },
-      { type: 'storage', required: true, description: 'Install applications' }
-    ]
+      { type: "network", required: true, description: "Download security tools" },
+      { type: "storage", required: true, description: "Install applications" },
+    ],
   },
   {
     id: "files",
@@ -201,9 +181,7 @@ export const APP_REGISTRY: AppConfig[] = [
     category: "utility",
     description: "Browse and manage files",
     isSystemApp: true,
-    permissions: [
-      { type: 'storage', required: true, description: 'Access file system' }
-    ]
+    permissions: [{ type: "storage", required: true, description: "Access file system" }],
   },
   {
     id: "sentinel",
@@ -213,20 +191,17 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "Security monitoring and defensive configuration",
     requiresAuth: true,
     permissions: [
-      { type: 'network', required: true, description: 'Security scanning' },
-      { type: 'storage', required: true, description: 'Log security events' }
-    ]
-  }
-  ,
+      { type: "network", required: true, description: "Security scanning" },
+      { type: "storage", required: true, description: "Log security events" },
+    ],
+  },
   {
     id: "mining",
     name: "Bitcoin Miner",
-    icon: "/hackphone/apps/game/app-icon.png", // reuse game icon until custom asset added
+    icon: "/hackphone/apps/bitcoin-miner/app-icon.png", // reuse game icon until custom asset added
     category: "finance",
     description: "Mine bitcoins via skill-based mini-games",
-    permissions: [
-      { type: 'storage', required: false, description: 'Persist mining progress' }
-    ]
+    permissions: [{ type: "storage", required: false, description: "Persist mining progress" }],
   },
   {
     id: "def-stealth",
@@ -234,7 +209,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/sentinel/app-icon.png",
     category: "security",
     description: "Neutralize stealth viral infections via rapid taps",
-    permissions: [ { type: 'network', required: true, description: 'Poll infection status' } ]
+    permissions: [{ type: "network", required: true, description: "Poll infection status" }],
   },
   {
     id: "def-ransom",
@@ -242,7 +217,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/sentinel/app-icon.png",
     category: "security",
     description: "Type code phrases to decrypt and stop ransomware",
-    permissions: [ { type: 'network', required: true, description: 'Send typing progress' } ]
+    permissions: [{ type: "network", required: true, description: "Send typing progress" }],
   },
   {
     id: "bank-status",
@@ -250,7 +225,7 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/stocks/app-icon.png",
     category: "finance",
     description: "Monitor bank online/offline state and SystemLock",
-    permissions: [ { type: 'network', required: true, description: 'Receive bank state events' } ]
+    permissions: [{ type: "network", required: true, description: "Receive bank state events" }],
   },
   {
     id: "worm-phish",
@@ -258,8 +233,8 @@ export const APP_REGISTRY: AppConfig[] = [
     icon: "/hackphone/apps/game/app-icon.png",
     category: "attack",
     description: "Launch worm phishing reward exploit",
-    permissions: [ { type: 'network', required: true, description: 'Trigger worm phishing endpoint' } ]
-  }
+    permissions: [{ type: "network", required: true, description: "Trigger worm phishing endpoint" }],
+  },
 ];
 
 // Dock apps (always visible)
