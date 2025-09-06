@@ -17,6 +17,7 @@ export interface ISite extends Document {
   fakeTargetAmount?: number; // Amount to steal from visitors
   deployedBy?: string; // Team ID that deployed this fake site
   deployedAt?: Date;
+  fakeVictimCount?: number; // Number of visitors processed for fake site
   favicon?: string;
   backgroundColor?: string;
   textColor?: string;
@@ -44,6 +45,7 @@ const siteSchema = new Schema<ISite>({
   fakeTargetAmount: { type: Number },
   deployedBy: { type: String },
   deployedAt: { type: Date },
+  fakeVictimCount: { type: Number, default: 0 },
   favicon: { type: String },
   backgroundColor: { type: String, default: '#ffffff' },
   textColor: { type: String, default: '#000000' },

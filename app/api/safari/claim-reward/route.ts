@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { teamId, url } = await request.json();
 
+    console.log('🎯 [claim-reward] Request received:', { teamId, url });
+
     if (!teamId || !url) {
       return NextResponse.json(
         { success: false, error: 'Missing teamId or url' },
@@ -25,74 +27,151 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('🎯 [claim-reward] Site found:', { 
+      siteId: site._id, 
+      title: site.title, 
+      isFake: site.isFakeSite,
+      deployedBy: site.deployedBy 
+    });
+
     // Check if this is a fake site deployed by an attacker
-    if (site.isFakeSite && site.fakeTargetAmount) {
+  if (site.isFakeSite && site.fakeTargetAmount) {
       // This is a fake site - steal bitcoins from the visitor
       // The incoming teamId could be either playspaceId OR the actual Mongo _id depending on caller
       let victimTeam = await Team.findOne({ playspaceId: teamId });
       if (!victimTeam) {
         try {
           victimTeam = await Team.findById(teamId);
-  } catch {
+        } catch {
           /* ignore cast errors */
         }
       }
       if (!victimTeam) {
+        console.log('🎯 [fake-site] Victim team not found:', { teamId });
         return NextResponse.json(
           { success: false, error: 'Team not found (checked playspaceId and _id)' },
           { status: 404 }
         );
       }
 
-      const stealAmount = site.fakeTargetAmount;
-      const currentBalance = victimTeam.wallet?.bitcoinBalance || 0;
+      console.log('🎯 [fake-site] Victim team found:', { 
+        victimId: victimTeam._id, 
+        victimPlayspaceId: victimTeam.playspaceId,
+        victimBalance: victimTeam.wallet?.bitcoinBalance || 0 
+      });  const stealAmount = site.fakeTargetAmount;
+      // Ensure victim wallet exists
+      if (!victimTeam.wallet) {
+        victimTeam.wallet = {
+          walletAddress: `bc1q${'0'.repeat(38)}`,
+          bitcoinBalance: 0,
+          privateKey: '',
+          publicKey: ''
+        };
+        await victimTeam.save();
+      }
+      const currentBalance = victimTeam.wallet.bitcoinBalance || 0;
       const actualStealAmount = Math.min(stealAmount, currentBalance);
 
-      if (actualStealAmount > 0) {
-        // Deduct from victim
-        if (!victimTeam.wallet) {
-          victimTeam.wallet = {
+      // Prevent self-theft (deployer visiting own fake site)
+      if (site.deployedBy && victimTeam._id.equals(site.deployedBy)) {
+        console.log('[fake-site] Deployer visited own fake site - no transfer');
+        return NextResponse.json({
+          success: true,
+          claimed: true,
+          stolen: 0,
+          reason: 'self-visit',
+          victimBalance: victimTeam.wallet.bitcoinBalance,
+          attackerBalance: victimTeam.wallet.bitcoinBalance,
+          fake: true,
+          victimCount: site.fakeVictimCount || 0
+        });
+      }
+
+      let attackerNewBalance: number | undefined = undefined;
+      let attackerPreBalance: number | undefined = undefined;
+  const victimPreBalance = currentBalance;
+
+      // Ensure attacker wallet exists BEFORE updates (needed if legacy missing)
+      if (site.deployedBy) {
+        const attackerEnsure = await Team.findById(site.deployedBy);
+        if (attackerEnsure && !attackerEnsure.wallet) {
+          attackerEnsure.wallet = {
             walletAddress: `bc1q${'0'.repeat(38)}`,
             bitcoinBalance: 0,
             privateKey: '',
             publicKey: ''
           };
+          await attackerEnsure.save();
         }
-        victimTeam.wallet.bitcoinBalance = currentBalance - actualStealAmount;
-        await victimTeam.save();
+        attackerPreBalance = attackerEnsure?.wallet?.bitcoinBalance;
+      }
 
-        // Add to attacker's team
-        if (site.deployedBy) {
-          const attackerTeam = await Team.findById(site.deployedBy);
-          if (attackerTeam) {
-            if (!attackerTeam.wallet) {
-              attackerTeam.wallet = {
+      if (actualStealAmount > 0 && site.deployedBy) {
+        // Atomic updates for victim (-) and attacker (+)
+  const [victimUpdate, attackerUpdate] = await Promise.all([
+          Team.updateOne({ _id: victimTeam._id }, { $inc: { 'wallet.bitcoinBalance': -actualStealAmount } }),
+          Team.updateOne({ _id: site.deployedBy }, { $inc: { 'wallet.bitcoinBalance': actualStealAmount } })
+        ]);
+
+        // Fallback manual if modifiedCount 0
+        if (victimUpdate.modifiedCount === 0) {
+          const freshVictim = await Team.findById(victimTeam._id);
+          if (freshVictim?.wallet) {
+            freshVictim.wallet.bitcoinBalance = Math.max(0, (freshVictim.wallet.bitcoinBalance || 0) - actualStealAmount);
+            await freshVictim.save();
+          }
+        }
+        if (attackerUpdate.modifiedCount === 0) {
+          const freshAttacker = await Team.findById(site.deployedBy);
+          if (freshAttacker) {
+            if (!freshAttacker.wallet) {
+              freshAttacker.wallet = {
                 walletAddress: `bc1q${'0'.repeat(38)}`,
                 bitcoinBalance: 0,
                 privateKey: '',
                 publicKey: ''
               };
             }
-            attackerTeam.wallet.bitcoinBalance = (attackerTeam.wallet.bitcoinBalance || 0) + actualStealAmount;
-            await attackerTeam.save();
+            freshAttacker.wallet.bitcoinBalance = (freshAttacker.wallet.bitcoinBalance || 0) + actualStealAmount;
+            await freshAttacker.save();
+            attackerNewBalance = freshAttacker.wallet.bitcoinBalance;
           }
+        } else {
+          const attackerAfter = await Team.findById(site.deployedBy).select('wallet.bitcoinBalance');
+          attackerNewBalance = attackerAfter?.wallet?.bitcoinBalance;
         }
-
-        console.log(`Fake site attack: Team ${teamId} lost ${actualStealAmount} bitcoins to ${site.deployedBy}`);
+  console.log(`[fake-site] Transfer: victim ${victimTeam._id} -${actualStealAmount} BTC (pre=${victimPreBalance}) -> attacker ${site.deployedBy} (+) attackerPre=${attackerPreBalance} attackerPost=${attackerNewBalance}`);
+      } else {
+  console.log(`[fake-site] No transferable balance (victim balance=${currentBalance}, target=${stealAmount})`);
       }
 
-      // Delete the fake site after successful theft to avoid detection
-      await Site.deleteOne({ _id: site._id });
-      console.log(`Fake site ${url} deleted after stealing ${actualStealAmount} bitcoins`);
+      // Increment victim count and only remove after 30 victims
+      site.fakeVictimCount = (site.fakeVictimCount || 0) + 1;
+      const victimCount = site.fakeVictimCount;
+      if (victimCount >= 30) {
+        await Site.deleteOne({ _id: site._id });
+        console.log(`Fake site ${url} deleted after reaching ${victimCount} victims.`);
+      } else {
+        await site.save();
+        console.log(`Fake site ${url} processed victim #${victimCount} (stolen: ${actualStealAmount}).`);
+      }
 
-      // Return fake reward message (victim thinks they got reward but actually lost money)
+      // Return minimal response (do NOT show reward gained message for fake sites)
+      // Re-fetch victim balance after atomic ops
+      const refreshedVictim = await Team.findById(victimTeam._id).select('wallet.bitcoinBalance');
+
       return NextResponse.json({
         success: true,
         claimed: true,
-        reward: site.rewardAmount || 0,
-        newBalance: victimTeam.wallet?.bitcoinBalance || 0,
-        message: 'Reward claimed successfully!',
-        actuallyStolen: true // For debugging/testing
+        stolen: actualStealAmount,
+        victimBalance: refreshedVictim?.wallet?.bitcoinBalance || 0,
+        attackerBalance: attackerNewBalance,
+        preVictimBalance: currentBalance,
+        preAttackerBalance: attackerPreBalance,
+        fake: true,
+        victimCount,
+        debug: true,
+        zeroReason: actualStealAmount === 0 ? (currentBalance === 0 ? 'victim-empty' : 'unknown') : undefined
       });
     }
 
@@ -163,18 +242,24 @@ export async function POST(request: NextRequest) {
     if (!team) {
       try {
         team = await Team.findById(teamId);
-  } catch {
+      } catch {
         /* ignore cast errors */
       }
     }
     if (!team) {
+      console.log('🎯 [reward-claim] Team not found:', { teamId });
       return NextResponse.json(
         { success: false, error: 'Team not found (checked playspaceId and _id)' },
         { status: 404 }
       );
     }
 
-    // Claim the reward
+    console.log('🎯 [reward-claim] Team found:', { 
+      teamMongoId: team._id, 
+      teamPlayspaceId: team.playspaceId,
+      teamName: team.name,
+      currentBalance: team.wallet?.bitcoinBalance || 0 
+    });    // Claim the reward
     site.rewardClaimed = true;
     site.rewardClaimedBy = team._id; // Store the actual team ObjectId
     site.rewardClaimedAt = new Date();
@@ -221,14 +306,21 @@ export async function POST(request: NextRequest) {
     // Re-fetch updated team wallet
     const updatedTeam = await Team.findById(team._id).select('wallet playspaceId');
 
-  console.log(`Team ${teamId} claimed reward site ${url} for ${rewardNumeric} bitcoins (new balance: ${updatedTeam?.wallet?.bitcoinBalance}) incResult:`, incResult);
+    console.log(`[reward-claim] Team ${teamId} claimed reward site ${url} for ${rewardNumeric} bitcoins (balance: ${(team.wallet?.bitcoinBalance || 0)} -> ${updatedTeam?.wallet?.bitcoinBalance || 0}) incResult:`, incResult);
 
     return NextResponse.json({
       success: true,
       claimed: true,
-  reward: rewardNumeric,
-  newBalance: updatedTeam?.wallet?.bitcoinBalance || 0,
-  cooldownMinutes: site.rewardCooldownMinutes
+      reward: rewardNumeric,
+      newBalance: updatedTeam?.wallet?.bitcoinBalance || 0,
+      previousBalance: (team.wallet?.bitcoinBalance || 0),
+      cooldownMinutes: site.rewardCooldownMinutes,
+      debug: {
+        teamFound: !!team,
+        walletExists: !!team.wallet,
+        atomicUpdate: incResult.modifiedCount > 0,
+        balanceChange: (updatedTeam?.wallet?.bitcoinBalance || 0) - (team.wallet?.bitcoinBalance || 0)
+      }
     });
 
   } catch (error) {

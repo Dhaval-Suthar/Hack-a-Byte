@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { io as rawIo, Socket } from 'socket.io-client';
 import Image from "next/image";
+import { getPlayspaceId } from "@/lib/playspace-utils";
 
 interface SafariAppProps {
   onClose?: () => void;
@@ -426,6 +427,8 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     const rewardSite = sites.find(site => site.url === url && site.isRewardSite);
     if (!rewardSite) return;
 
+    console.log('🎯 Attempting to claim reward site:', { url, teamId, rewardSite: rewardSite.title });
+
     try {
       const response = await fetch('/api/safari/claim-reward', {
         method: 'POST',
@@ -434,32 +437,31 @@ const SafariApp: React.FC<SafariAppProps> = () => {
       });
 
       const result = await response.json();
+      console.log('🎯 Claim result:', result);
       
       if (result.success && result.claimed) {
         // Add event
         const evt: ExtractorEvent = {
           id: Math.random().toString(36).slice(2),
           type: 'reward-site',
-          outcome: result.actuallyStolen ? 'loss' : 'gain', // Show loss if bitcoins were stolen
-          amount: result.actuallyStolen ? (rewardSite.fakeTargetAmount || 0) : (rewardSite.rewardAmount || 0),
+          outcome: result.fake ? 'loss' : 'gain',
+          amount: result.fake ? (rewardSite.fakeTargetAmount || result.stolen || 0) : (rewardSite.rewardAmount || result.reward || 0),
           ts: Date.now(),
           detail: rewardSite.title
         };
         setEvents(ev => [evt, ...ev].slice(0, 50));
 
-        // Show notification based on whether it was actually a theft
-        if (result.actuallyStolen) {
-          // Victim thinks they got reward but actually lost money
+        if (!result.fake) {
           addNotification({
             type: 'success',
-            message: `🎉 Congratulations! You earned ${rewardSite.rewardAmount} bitcoins from "${rewardSite.title}"!`,
+            message: `🎉 Reward claimed: ${rewardSite.rewardAmount ?? result.reward} BTC from "${rewardSite.title}" (Balance: ${result.newBalance})`,
             duration: 5000
           });
         } else {
           addNotification({
-            type: 'success',
-            message: `🎉 Congratulations! You were the first to access "${rewardSite.title}" and earned ${rewardSite.rewardAmount} bitcoins!`,
-            duration: 5000
+            type: 'warning',
+            message: `⚠️ Suspicious activity detected on site "${rewardSite.title}" (${result.stolen} BTC stolen)`,
+            duration: 4000
           });
         }
 
@@ -471,7 +473,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
             setSites(sitesData.sites);
             
             // If current site was deleted (fake site), redirect to home
-            if (result.actuallyStolen && !sitesData.sites.find((s: Site) => s.url === url)) {
+            if (result.fake && !sitesData.sites.find((s: Site) => s.url === url)) {
               setTimeout(() => {
                 setShowHomePage(true);
                 addNotification({
@@ -530,8 +532,12 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           setTabTitle(data.site.title);
           
           // Check if this is a reward site - always attempt to claim
-          if (data.site.isRewardSite) {
-            checkRewardSite(address);
+          if (data.site.isRewardSite && teamId) {
+            // Inline the reward check to avoid dependency loop
+            const rewardSite = sites.find(site => site.url === address && site.isRewardSite);
+            if (rewardSite) {
+              checkRewardSite(address);
+            }
           }
         } else {
           // Site not found, create a default one
@@ -557,7 +563,8 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     };
 
     loadCurrentSite();
-  }, [address, checkRewardSite, showHomePage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, showHomePage, teamId]);
 
   const extractTitleFromUrl = (url: string) => {
     try {
@@ -768,17 +775,50 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     let cancelled = false;
     async function load() {
       try {
+        // Get current playspace ID using the proper utility
+        const playspaceId = getPlayspaceId();
+        console.log('🎯 Safari detected playspace:', { playspaceId });
+
+        if (playspaceId && !teamId) {
+          // Use /api/team with proper x-playspace-id header like other apps
+          const teamResponse = await fetch('/api/team', {
+            headers: {
+              'x-playspace-id': playspaceId
+            }
+          });
+          if (teamResponse.ok) {
+            const teamData = await teamResponse.json();
+            if (teamData.success && teamData.teamId) {
+              console.log('🎯 Safari found current team via /api/team:', { 
+                teamId: teamData.teamId,
+                teamName: teamData.teamName,
+                balance: teamData.bitcoinBalance
+              });
+              setTeamId(teamData.teamId.toString()); // Use the actual MongoDB _id
+              return;
+            }
+          }
+        }
+
+        // Fallback to devices API if team API fails
         const resp = await fetch('/api/devices');
         if (!resp.ok) return;
         const js = await resp.json();
         if (cancelled) return;
         if (Array.isArray(js.devices)) {
           const devices: DeviceMeta[] = js.devices;
-          // pick first device with teamId (non-bank) or fallback first
           const pick = devices.find(d=> d.teamId && !d.isBank) || devices.find(d=>d.teamId);
-          if (pick?.teamId && !teamId) setTeamId(pick.teamId);
+          if (pick?.teamId && !teamId) {
+            console.log('🎯 Safari fallback to device teamId:', { 
+              deviceTeamId: pick.teamId, 
+              isBank: pick.isBank
+            });
+            setTeamId(pick.teamId);
+          }
         }
-      } catch {}
+      } catch (error) {
+        console.error('🎯 Safari team detection error:', error);
+      }
     }
     load();
     const id = setInterval(load, 20000);
