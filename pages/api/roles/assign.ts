@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const team = await Team.findOne({ accessCodeId: codeDoc._id });
     if (!team) return res.status(404).json({ error: 'Team not found' });
     const normalizedRole = String(role).toLowerCase();
-    const limits = ROLE_LIMITS[team.numberOfPlayers as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
+  const limits = ROLE_LIMITS[team.numberOfPlayers as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
     const maxAllowed = (limits as Record<string, number>)[normalizedRole] || 0;
   const currentCount = team.teamMembers.filter((m: { role?: string|null }) => m.role && m.role.toLowerCase() === normalizedRole).length;
     if (currentCount >= maxAllowed) return res.status(400).json({ error: `Role "${normalizedRole}" limit reached` });
@@ -30,12 +30,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     slot.accessCodeUsedAt = new Date();
     codeDoc.usageCount += 1;
     await codeDoc.save();
-  const allJoined = team.teamMembers.every((m: { accessCodeUsed: boolean }) => m.accessCodeUsed);
+    // Bring the device online as soon as at least one member joins
+    if (team.deviceId) {
+      const Device = (await import('@/models/Device')).default;
+      await Device.findByIdAndUpdate(team.deviceId, { status: 'online' });
+    }
+
+    const allJoined = team.teamMembers.every((m: { accessCodeUsed: boolean }) => m.accessCodeUsed);
     if (allJoined) {
-      if (team.deviceId) {
-        const Device = (await import('@/models/Device')).default;
-        await Device.findByIdAndUpdate(team.deviceId, { status: 'online' });
-      }
       if (!team.timer.isActive) {
         team.timer.startTime = new Date();
         team.timer.isActive = true;

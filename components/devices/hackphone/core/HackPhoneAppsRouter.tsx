@@ -11,6 +11,8 @@ import { AttackReceiver } from "../shared/AttackReceiver";
 import { AttackEffects } from "../shared/AttackEffects";
 import { AttackData } from "@/hooks/useSocket";
 import { APP_ROLE_ACCESS, formatAllowedRoles } from '@/lib/constants/app-constants';
+import { useNotificationService } from "@/hooks/useNotificationService";
+import IOS4Notification from "@/components/ui/IOS4Notification";
 
 // Lazy load complex app components
 const CalculatorApp = lazy(() => import("../apps/CalculatorApp"));
@@ -54,13 +56,15 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   onAppSwitch,
   onOpenApp,
   initialPhoneNumber,
+  playspaceId,
 }) => {
   const analytics = useAppAnalytics();
   const sessionStartTime = useRef<number>(Date.now());
   const [userRole, setUserRole] = useState<string | null>(null);
   const [teamSize, setTeamSize] = useState<number | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
-  // Check localStorage for selected role on component mount
+    // Check localStorage for selected role on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const selectedRole = localStorage.getItem('selectedRole');
@@ -68,24 +72,35 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       // Attempt to read cached team info (if stored) else fetch minimal
       const cachedSize = localStorage.getItem('teamSize');
       if (cachedSize) {
-        setTeamSize(Number(cachedSize));
-      } else {
-        // Lightweight fetch to infer size (ignoring errors silently)
-        fetch('/api/team', { method: 'GET' })
-          .then(async r=>({ ok: r.ok, status: r.status, json: r.ok ? await r.json(): null }))
-          .then(({ ok, json }) => {
-            if (!ok) return; // silently ignore 400 (no playspace yet)
-            if (json && Array.isArray(json.teamMembers)) {
-              setTeamSize(json.teamMembers.length);
-              localStorage.setItem('teamSize', String(json.teamMembers.length));
-            }
-          }).catch(()=>{});
+        setTeamSize(parseInt(cachedSize, 10));
       }
     }
   }, []);
 
+  // Fetch teamId when playspaceId is available
+  useEffect(() => {
+    const fetchTeamId = async () => {
+      if (playspaceId) {
+        try {
+          const response = await fetch(`/api/team/get-team-id?playspaceId=${playspaceId}`);
+          const data = await response.json();
+          if (data.success) {
+            setTeamId(data.teamId);
+          }
+        } catch (error) {
+          console.error('Failed to fetch team ID:', error);
+        }
+      }
+    };
+
+    fetchTeamId();
+  }, [playspaceId]);
+
   // Phone number state for PhoneApp integration
   const [phoneNumber] = useState<string>('');
+
+  // Notification system
+  const { notification, dismissNotification } = useNotificationService(teamId || undefined);
 
   // Track app open
   useEffect(() => {
@@ -218,7 +233,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "messages":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <MessagingApp time={time} />
+            <MessagingApp time={time} teamId={teamId || undefined} />
           </Suspense>,
           appId
         );
@@ -374,7 +389,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "mail":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <MailApp onClose={onClose} time={time} />
+            <MailApp onClose={onClose} time={time} teamId={teamId || undefined} />
           </Suspense>,
           appId
         );
@@ -423,6 +438,27 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         // like screen shake, sound alerts, etc.
       }} />
       {renderApp()}
+      
+      {/* iOS 4 Style Notifications */}
+      {notification && (
+        <IOS4Notification
+          message={notification.body}
+          type={notification.type}
+          isVisible={!!notification}
+          onDismiss={dismissNotification}
+          onOpen={() => {
+            // Open the appropriate app when notification is tapped
+            if (onOpenApp) {
+              if (notification.type === 'sms') {
+                onOpenApp('messages');
+              } else if (notification.type === 'email') {
+                onOpenApp('mail');
+              }
+            }
+            dismissNotification();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -10,6 +10,7 @@ import EventsSection from "./EventsSection";
 import SessionsSection from "./SessionsSection";
 import TeamsSection from "./TeamsSection";
 import SponsorsSection from "./SponsorsSection";
+import MessagingSection from "./MessagingSection";
 import Notifications from "./Notifications";
 import BulkDeleteModal from "./BulkDeleteModal";
 
@@ -26,7 +27,7 @@ import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admi
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 
-const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors"];
+const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
 
 const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
 
@@ -657,6 +658,8 @@ export default function MiniAdminDashboard() {
           onUpdateSponsor={handleUpdateSponsor}
           onDeleteSponsor={handleDeleteSponsor}
         />;
+      case "messaging":
+        return <MessagingSection devs={devs} teams={teams} q={q} setQ={setQ} />;
     }
   };
 

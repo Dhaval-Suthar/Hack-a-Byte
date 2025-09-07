@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,6 +9,8 @@ import HackPhoneHomeScreen from "@/components/devices/hackphone/core/HackPhoneHo
 import HackPhoneAppsRouter from "@/components/devices/hackphone/core/HackPhoneAppsRouter";
 import { useAppNavigation } from "../shared/useAppNavigation";
 import { User } from "@/types/devices";
+import { useNotificationService } from "@/hooks/useNotificationService";
+import IOS4Notification from "@/components/ui/IOS4Notification";
 
 const HackPhoneDesktop = () => {
   const router = useRouter();
@@ -18,9 +20,14 @@ const HackPhoneDesktop = () => {
   const [time, setTime] = useState(new Date());
   const [hasPasscode, setHasPasscode] = useState(false);
   const [deviceId, setDeviceId] = useState<string | undefined>();
+  const [playspaceId, setPlayspaceId] = useState<string | undefined>();
+  const [teamId, setTeamId] = useState<string | undefined>();
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
+
+  // Notification system for home screen
+  const { notification, dismissNotification } = useNotificationService(teamId);
 
   // Update time every second
   useEffect(() => {
@@ -46,13 +53,70 @@ const HackPhoneDesktop = () => {
         const urlPlayspaceId = searchParams?.get("playspaceId");
         const urlDeviceId = searchParams?.get("deviceId");
         
-        let playspaceId = urlPlayspaceId;
-        if (!playspaceId) {
-          playspaceId = getPlayspaceId();
+        let currentPlayspaceId = urlPlayspaceId;
+        if (!currentPlayspaceId) {
+          currentPlayspaceId = getPlayspaceId();
         }
 
-        // Set deviceId for passing to apps
+        // Store playspaceId and deviceId for passing to apps
+        setPlayspaceId(currentPlayspaceId || undefined);
         setDeviceId(urlDeviceId || undefined);
+
+        // Get teamId for notifications
+        let resolvedTeamId: string | undefined;
+        if (currentPlayspaceId) {
+          // Preferred: resolve by playspaceId
+          try {
+            const teamResponse = await fetch(`/api/team/get-team-id?playspaceId=${currentPlayspaceId}`);
+            const teamData = await teamResponse.json();
+            if (teamData.success) {
+              resolvedTeamId = teamData.teamId;
+            }
+          } catch (error) {
+            console.error('Failed to fetch team ID by playspace:', error);
+          }
+
+          // Fallback: try cookie/localStorage playspace if different
+          if (!resolvedTeamId) {
+            const altPlayspace = getPlayspaceId();
+            if (altPlayspace && altPlayspace !== currentPlayspaceId) {
+              try {
+                const altRes = await fetch(`/api/team/get-team-id?playspaceId=${altPlayspace}`);
+                const altJson = await altRes.json();
+                if (altJson?.success) {
+                  resolvedTeamId = altJson.teamId;
+                }
+              } catch (e) {
+                console.error('Fallback playspace team lookup failed:', e);
+              }
+            }
+          }
+        }
+
+        if (!resolvedTeamId && urlDeviceId) {
+          // Fallback: resolve teamId via deviceId from devices API
+          try {
+            const devicesRes = await fetch('/api/devices');
+            const devicesJson = await devicesRes.json();
+            if (devicesJson?.success && Array.isArray(devicesJson.devices)) {
+              const needle = String(urlDeviceId).toLowerCase();
+              const match = devicesJson.devices.find((d: { id?: string; deviceMacAddress?: string }) => {
+                const did = (d.id || '').toString().toLowerCase();
+                const mac = (d.deviceMacAddress || '').toString().toLowerCase();
+                return did === needle || mac === needle;
+              });
+              if (match?.teamId) {
+                resolvedTeamId = match.teamId as string;
+              }
+            }
+          } catch (error) {
+            console.error('Failed to resolve team ID by device:', error);
+          }
+        }
+
+        if (resolvedTeamId) {
+          setTeamId(resolvedTeamId);
+        }
 
         // Store device MAC address in localStorage if available
         if (urlDeviceId) {
@@ -62,17 +126,17 @@ const HackPhoneDesktop = () => {
         // On iPhone 4 UX, we allow home without playspace; only require auth for deviceId flow
 
         if (urlDeviceId) {
-          if (!playspaceId) {
+          if (!currentPlayspaceId) {
             router.push(`/hackphone/login?deviceId=${urlDeviceId}`);
             return;
           }
-          const result = await getDeviceUser(playspaceId, urlDeviceId);
+          const result = await getDeviceUser(currentPlayspaceId, urlDeviceId);
           if (result.isLoggedIn && result.user) {
             setUser(result.user);
           } else {
             // If there is no device passcode, allow guest access instead of redirecting
             if (hasPasscode) {
-              router.push(`/hackphone/login?playspaceId=${playspaceId}&deviceId=${urlDeviceId}`);
+              router.push(`/hackphone/login?playspaceId=${currentPlayspaceId}&deviceId=${urlDeviceId}`);
               return;
             }
           }
@@ -117,6 +181,7 @@ const HackPhoneDesktop = () => {
             onAppSwitch={handleAppSwitch}
             onOpenApp={handleAppOpen}
             deviceId={deviceId}
+            playspaceId={playspaceId}
           />
         ) : (
           <HackPhoneHomeScreen
@@ -124,6 +189,28 @@ const HackPhoneDesktop = () => {
           />
         )}
       </div>
+
+            {/* iOS 4 Style Notifications on Home Screen */}
+      {notification && !currentApp && (
+        <>
+          {console.log('🎯 Rendering notification on home screen:', notification)}
+          <IOS4Notification
+            message={notification.body}
+            type={notification.type}
+            isVisible={!!notification}
+            onDismiss={dismissNotification}
+            onOpen={() => {
+              // Open the appropriate app when notification is tapped
+              if (notification.type === 'sms') {
+                handleAppOpen('messages');
+              } else if (notification.type === 'email') {
+                handleAppOpen('mail');
+              }
+              dismissNotification();
+            }}
+          />
+        </>
+      )}
 
       {/* Enhanced bottom navigation with haptic feedback */}
       <div

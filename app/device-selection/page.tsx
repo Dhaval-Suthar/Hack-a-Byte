@@ -26,12 +26,18 @@ interface DeviceInstance {
 export default function DeviceSelectionPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [currentPlayspaceId, setCurrentPlayspaceId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<DeviceInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<{ [deviceType: string]: string }>({});
+
+  // Handle hydration
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Detect if user is on mobile
   useEffect(() => {
@@ -396,11 +402,13 @@ export default function DeviceSelectionPage() {
         <div className="text-center my-8">
           <p className="text-yellow-400 font-mono">No devices are available for this playspace.</p>
           {currentPlayspaceId && <p className="text-green-400 font-mono mt-2">Playspace ID: {currentPlayspaceId}</p>}
-          <p className="text-blue-400 font-mono mt-4">
-            {isMobile
-              ? "Try accessing from a desktop device for more options."
-              : "Try accessing from a mobile device for more options."}
-          </p>
+          {isHydrated && (
+            <p className="text-blue-400 font-mono mt-4">
+              {isMobile
+                ? "Try accessing from a desktop device for more options."
+                : "Try accessing from a mobile device for more options."}
+            </p>
+          )}
         </div>
       )}
 

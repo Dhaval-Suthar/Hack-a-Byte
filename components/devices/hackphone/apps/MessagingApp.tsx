@@ -1,6 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
+interface MessageData {
+  id: string;
+  sender: string;
+  senderPhone: string;
+  content: string;
+  timestamp: string;
+  isRead: boolean;
+  isScam?: boolean;
+  rewardAmount?: number;
+  lossAmount?: number;
+  processed?: boolean;
+  outcome?: 'gain' | 'loss' | 'neutral';
+}
 
 interface Message {
   id: string;
@@ -8,784 +22,654 @@ interface Message {
   timestamp: Date;
   isSent: boolean;
   status?: "sent" | "delivered" | "read";
+  type?: 'system' | 'regular';
+  isScam?: boolean;
+  rewardAmount?: number;
+  lossAmount?: number;
+  processed?: boolean;
+  outcome?: 'gain' | 'loss' | 'neutral';
 }
 
 interface Conversation {
   id: string;
   contactName: string;
+  contactPhone?: string;
   lastMessage: string;
   lastMessageTime: Date;
   unreadCount: number;
   messages: Message[];
+  type?: 'system' | 'regular';
 }
 
 interface MessagingAppProps {
   time?: Date;
+  teamId?: string;
 }
 
-const MessagingApp: React.FC<MessagingAppProps> = () => {
+interface TeamWallet {
+  walletAddress: string;
+  privateKey: string;
+  bitcoinBalance: number;
+}
+
+const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
   const [currentView, setCurrentView] = useState<"conversations" | "chat" | "compose">("conversations");
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [composeRecipient, setComposeRecipient] = useState("");
   const [composeMessage, setComposeMessage] = useState("");
-  const [isShiftPressed, setIsShiftPressed] = useState(false);
-  const autoCapitalize = true; // Auto-capitalize first letter
-  const [showNumbers, setShowNumbers] = useState(false); // Toggle between letters and numbers
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [teamWallet, setTeamWallet] = useState<TeamWallet | null>(null);
 
-  // Sample conversation data
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: "1",
-      contactName: "Terry White",
-      lastMessage: "I sent you the photos for the book. Let me know what you think.",
-      lastMessageTime: new Date(2011, 11, 14, 17, 2),
-      unreadCount: 0,
-      messages: [
-        {
-          id: "1",
-          text: "I sent you the photos for the book. Let me know what you think.",
-          timestamp: new Date(2011, 11, 14, 17, 2),
-          isSent: false,
-          status: "read"
-        }
-      ]
-    },
-    {
-      id: "2",
-      contactName: "Brad",
-      lastMessage: "The model will be here at 10 tomorrow.",
-      lastMessageTime: new Date(2011, 11, 14, 14, 52),
-      unreadCount: 0,
-      messages: [
-        {
-          id: "1",
-          text: "The model will be here at 10 tomorrow.",
-          timestamp: new Date(2011, 11, 14, 14, 52),
-          isSent: false,
-          status: "read"
-        }
-      ]
-    },
-    {
-      id: "3",
-      contactName: "Jeff Kelby",
-      lastMessage: "I'm on my way over. Want to meet at City Fish?",
-      lastMessageTime: new Date(2011, 11, 14, 11, 24),
-      unreadCount: 0,
-      messages: [
-        {
-          id: "1",
-          text: "I'm on my way over. Want to meet at City Fish?",
-          timestamp: new Date(2011, 11, 14, 11, 24),
-          isSent: false,
-          status: "read"
-        }
-      ]
-    },
-    {
-      id: "4",
-      contactName: "Paul Wilder",
-      lastMessage: "When do you need me to set up the projector?",
-      lastMessageTime: new Date(2011, 11, 14, 10, 49),
-      unreadCount: 0,
-      messages: [
-        {
-          id: "1",
-          text: "When do you need me to set up the projector?",
-          timestamp: new Date(2011, 11, 14, 10, 49),
-          isSent: false,
-          status: "read"
-        }
-      ]
-    },
-    {
-      id: "5",
-      contactName: "Matt Kloskowski",
-      lastMessage: "We're shooting Photoshop User TV at 3:00.",
-      lastMessageTime: new Date(2011, 11, 14, 10, 14),
-      unreadCount: 1,
-      messages: [
-        {
-          id: "1",
-          text: "We're shooting Photoshop User TV at 3:00.",
-          timestamp: new Date(2011, 11, 14, 10, 14),
-          isSent: false,
-          status: "delivered"
-        },
-        {
-          id: "2",
-          text: "Can we move it to 3:30?",
-          timestamp: new Date(2011, 11, 14, 11, 23),
-          isSent: true,
-          status: "delivered"
-        },
-        {
-          id: "3",
-          text: "I'll check with video and let you know.",
-          timestamp: new Date(2011, 11, 14, 11, 23),
-          isSent: false,
-          status: "delivered"
-        },
-        {
-          id: "4",
-          text: "Okay, we've moved it to 3:30.",
-          timestamp: new Date(2011, 11, 14, 11, 23),
-          isSent: false,
-          status: "delivered"
-        },
-        {
-          id: "5",
-          text: "Great. I'll be there.",
-          timestamp: new Date(2011, 11, 14, 11, 24),
-          isSent: true,
-          status: "sent"
-        }
-      ]
+  // System SMS conversations - no static messages
+  const [systemConversations, setSystemConversations] = useState<Conversation[]>([]);
+  
+  const conversations = systemConversations.sort((a, b) => 
+    new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+  );
+
+  // Fetch team wallet information
+  const fetchTeamWallet = useCallback(async () => {
+    if (!teamId) return;
+    
+    try {
+      const response = await fetch(`/api/team/${teamId}/wallet`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setTeamWallet(data.wallet);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team wallet:', error);
     }
-  ]);
+  }, [teamId]);
 
-  // status bar time removed
+  // Fetch system SMS messages
+  const fetchSystemMessages = useCallback(async () => {
+    if (!teamId) return;
+    
+    try {
+      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=sms`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Group SMS messages by sender
+        const messagesBySender: Record<string, MessageData[]> = {};
+        
+        data.messages.forEach((msg: MessageData) => {
+          const sender = msg.sender;
+          if (!messagesBySender[sender]) {
+            messagesBySender[sender] = [];
+          }
+          messagesBySender[sender].push(msg);
+        });
+        
+        // Create conversations from grouped messages
+        const systemConvs: Conversation[] = Object.entries(messagesBySender).map(([sender, messages]) => {
+          const sortedMessages = messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          const latestMessage = sortedMessages[sortedMessages.length - 1];
+          
+          const formattedMessages: Message[] = sortedMessages.map(msg => ({
+            id: msg.id,
+            text: msg.content,
+            timestamp: new Date(msg.timestamp),
+            isSent: false,
+            status: "delivered" as const,
+            type: 'system',
+            isScam: msg.isScam,
+            rewardAmount: msg.rewardAmount,
+            lossAmount: msg.lossAmount,
+            processed: msg.processed,
+            outcome: msg.outcome
+          }));
+          
+          return {
+            id: `system-${sender}`,
+            contactName: sender,
+            contactPhone: messages[0].senderPhone,
+            lastMessage: latestMessage.content,
+            lastMessageTime: new Date(latestMessage.timestamp),
+            unreadCount: messages.filter((m: MessageData) => !m.isRead).length,
+            messages: formattedMessages,
+            type: 'system'
+          };
+        });
+        
+        setSystemConversations(systemConvs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch system messages:', error);
+    }
+  }, [teamId]);
 
-  const formatMessageTime = (date: Date) => {
+  useEffect(() => {
+    if (teamId) {
+      fetchSystemMessages();
+      fetchTeamWallet();
+      const interval = setInterval(fetchSystemMessages, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [teamId, fetchSystemMessages, fetchTeamWallet]);
+
+  const handleMessageOpen = async (message: Message, conversation: Conversation) => {
+    if (message.type === 'system' && !message.processed && teamId) {
+      setLoading(true);
+      try {
+    const response = await fetch('/api/extract/open-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+      teamId,
+      messageId: message.id,
+      messageType: 'sms'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && !result.alreadyProcessed) {
+          // Update the message as processed
+          setSystemConversations(prev => prev.map(conv => {
+            if (conv.id === conversation.id) {
+              return {
+                ...conv,
+                messages: conv.messages.map(msg => 
+                  msg.id === message.id 
+                    ? { ...msg, processed: true, outcome: result.outcome, status: "read" as const }
+                    : msg
+                ),
+                unreadCount: Math.max(0, conv.unreadCount - 1)
+              };
+            }
+            return conv;
+          }));
+          
+          // Show notification
+          if (result.outcome === 'gain') {
+            setNotification(`🎉 SMS Reward claimed! +${result.balanceChange} BTC`);
+          } else if (result.outcome === 'loss') {
+            setNotification(`⚠️ SMS Scam detected! ${result.balanceChange} BTC`);
+          } else {
+            setNotification('SMS opened');
+          }
+          
+          setTimeout(() => setNotification(null), 3000);
+        }
+      } catch (error) {
+        console.error('Failed to process SMS open:', error);
+        setNotification('Error processing SMS');
+        setTimeout(() => setNotification(null), 3000);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const formatTime = (date: Date) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
     if (messageDate.getTime() === today.getTime()) {
       return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (messageDate.getTime() === yesterday.getTime()) {
+      return "Yesterday";
+    }
+    
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  const sendMessage = async () => {
+    if (newMessage.trim() && selectedConversation) {
+      const message: Message = {
+        id: `sent-${Date.now()}`,
+        text: newMessage,
+        timestamp: new Date(),
+        isSent: true,
+        status: "delivered",
+        type: 'regular'
+      };
+
+      // Add message to conversation
+      const updatedConversation = {
+        ...selectedConversation,
+        messages: [...selectedConversation.messages, message],
+        lastMessage: newMessage,
+        lastMessageTime: new Date()
+      };
+
+      if (selectedConversation.type === 'system') {
+        setSystemConversations(prev => prev.map(conv => 
+          conv.id === selectedConversation.id ? updatedConversation : conv
+        ));
+      }
+
+      setSelectedConversation(updatedConversation);
+      const replyText = newMessage;
+      setNewMessage("");
+
+      // If replying to a system conversation, attempt reward claim via reply endpoint
+      if (selectedConversation.type === 'system') {
+        try {
+          const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system');
+          if (lastSystemMsg && teamId) {
+            const resp = await fetch('/api/extract/reply-message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ teamId, messageId: lastSystemMsg.id, messageType: 'sms', replyText })
+            });
+            const result = await resp.json();
+            if (result.success) {
+              const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
+              if (result.alreadyProcessed) {
+                setNotification('✓ Reward already claimed');
+                // Mark as processed locally if not set
+                const updatedConv = {
+                  ...updatedConversation,
+                  messages: updatedConversation.messages.map(m => 
+                    m.id === lastSystemMsg.id ? { ...m, processed: true, outcome: m.outcome || 'gain' } : m
+                  )
+                };
+                setSelectedConversation(updatedConv);
+                setSystemConversations(prev => prev.map(conv => 
+                  conv.id === selectedConversation.id ? updatedConv : conv
+                ));
+              } else {
+                setNotification(`🎉 Reply accepted. +${delta} BTC`);
+                
+                // Add automatic system response
+                const systemResponse: Message = {
+                  id: `system-response-${Date.now()}`,
+                  text: `Thank you! Your reward of ${delta} BTC has been credited to your account. No further replies are needed.`,
+                  timestamp: new Date(),
+                  isSent: false,
+                  status: "delivered",
+                  type: 'system'
+                };
+
+                // Update conversation with processed state and add system response
+                const updatedConvWithResponse = {
+                  ...updatedConversation,
+                  messages: [
+                    ...updatedConversation.messages.map(m => 
+                      m.id === lastSystemMsg.id ? { ...m, processed: true, outcome: 'gain' as const } : m
+                    ),
+                    systemResponse
+                  ],
+                  lastMessage: systemResponse.text,
+                  lastMessageTime: systemResponse.timestamp
+                };
+                
+                setSelectedConversation(updatedConvWithResponse);
+                setSystemConversations(prev => prev.map(conv => 
+                  conv.id === selectedConversation.id ? updatedConvWithResponse : conv
+                ));
+              }
+            } else if (result.error) {
+              setNotification(result.error);
+            }
+          }
+        } catch (err) {
+          console.error('Reply claim failed:', err);
+          setNotification('Reply failed');
+        } finally {
+          setTimeout(() => setNotification(null), 2500);
+        }
+      }
     }
   };
 
-  // Helper function to determine if next character should be capitalized
-  const shouldCapitalize = (text: string) => {
-    if (text.length === 0) return true; // First character
-    const lastTwoChars = text.slice(-2);
-    // Capitalize after sentence endings (. ! ?) followed by space, or at start
-    return lastTwoChars.match(/[.!?]\s$/) || text.trim().length === 0;
-  };
-
-  // Handle key press with proper capitalization logic
-  const handleKeyPress = (key: string, isComposeMode = false) => {
-    const setter = isComposeMode ? setComposeMessage : setNewMessage;
-    
-    setter(prev => {
-      const shouldCap = isShiftPressed || (autoCapitalize && shouldCapitalize(prev));
-      const charToAdd = shouldCap ? key.toUpperCase() : key.toLowerCase();
-      
-      // Auto-turn off shift after typing (except for caps lock behavior)
-      if (isShiftPressed && !autoCapitalize) {
-        setIsShiftPressed(false);
+  const handleDeleteConversation = async () => {
+    if (selectedConversation && selectedConversation.type === 'system' && teamId) {
+      try {
+        // Collect underlying message IDs (only system messages have real IDs)
+        const ids = selectedConversation.messages
+          .filter(m => !m.isSent && m.type === 'system')
+          .map(m => m.id);
+        if (ids.length) {
+          await fetch('/api/extract/delete-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ teamId, messageType: 'sms', messageIds: ids })
+          });
+        }
+      } catch (e) {
+        console.error('Failed to delete messages from DB:', e);
+      } finally {
+        // Remove conversation from UI regardless
+        setSystemConversations(prev => prev.filter(conv => conv.id !== selectedConversation.id));
+        setCurrentView("conversations");
+        setSelectedConversation(null);
+        setNotification("Conversation deleted");
+        setTimeout(() => setNotification(null), 2000);
       }
-      
-      return prev + charToAdd;
-    });
+    }
   };
 
-  // Toggle shift key
-  const toggleShift = () => {
-    setIsShiftPressed(!isShiftPressed);
-  };
-
-  // Toggle between letters and numbers
-  const toggleNumbers = () => {
-    setShowNumbers(!showNumbers);
-    setIsShiftPressed(false); // Reset shift when switching modes
-  };
-
-  // Handle special character input
-  const handleSpecialChar = (char: string, isComposeMode = false) => {
-    const setter = isComposeMode ? setComposeMessage : setNewMessage;
-    setter(prev => prev + char);
-  };
-
-  const renderConversationsList = () => (
-    <div className="w-full h-full bg-white flex flex-col">
-      {/* Header only - removing status bar */}
-      <div className="bg-gradient-to-b from-[#cdd5df] to-[#a7b1bf] border-b border-[#8a95a1]">
-        {/* Header */}
-        <div className="px-4 py-3 pt-4">
-          <div className="flex items-center justify-between">
-            {/* Back removed per UX: stay inside Messages app */}
-            <h1 className="text-[20px] font-bold text-[#1a1a1a] drop-shadow-sm">Messages</h1>
-            <button 
-              onClick={() => setCurrentView("compose")}
-              className="text-[#1f5be6] font-bold text-[17px]"
-            >
-              ✎
-            </button>
-          </div>
+  const renderConversationsView = () => (
+    <div className="flex flex-col h-full bg-[#2c2c2e]">
+      {/* Header */}
+      <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+        <div className="flex items-center justify-between">
+          <h1 className="text-white text-lg font-semibold">Messages</h1>
+          <button 
+            onClick={() => setCurrentView("compose")}
+            className="bg-[#007aff] hover:bg-[#0056cc] text-white px-3 py-1 rounded-full text-sm"
+          >
+            Compose
+          </button>
         </div>
       </div>
 
-      {/* Conversations List */}
-      <div className="flex-1 bg-white">
+      {/* Conversations list */}
+      <div className="flex-1 overflow-auto">
         {conversations.map((conversation) => (
-          <button
+          <div
             key={conversation.id}
             onClick={() => {
-              // Mark conversation as read when opening it
-              const updatedConversation = { ...conversation, unreadCount: 0 };
-              setConversations(convs => 
-                convs.map(conv => 
-                  conv.id === conversation.id 
-                    ? updatedConversation
-                    : conv
-                )
-              );
-              setSelectedConversation(updatedConversation);
+              setSelectedConversation(conversation);
               setCurrentView("chat");
             }}
-            className="w-full flex items-center px-4 py-[11px] border-b border-[#e0e0e0] active:bg-[#d9d9d9] bg-white"
+            className={`
+              flex items-center p-4 cursor-pointer transition-colors border-b border-[#38383a]
+              ${conversation.unreadCount > 0 ? 'bg-[#1c1c1e]' : 'bg-[#2c2c2e]'}
+              hover:bg-[#3a3a3c]
+              ${conversation.type === 'system' ? 'border-l-4 border-blue-500' : ''}
+            `}
           >
-            {/* Contact Avatar */}
-            <div className="w-[43px] h-[43px] bg-gradient-to-b from-[#f7f7f7] to-[#d1d1d1] rounded-full flex items-center justify-center mr-[10px] border border-[#b4b4b4] shadow-sm">
-              <span className="text-[20px] text-[#666] font-normal">👤</span>
+            {/* Avatar */}
+            <div className={`
+              w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold mr-3
+              ${conversation.type === 'system' ? 'bg-blue-600' : 'bg-gray-500'}
+            `}>
+              {conversation.contactName.charAt(0).toUpperCase()}
             </div>
-            
-            {/* Message Info */}
+
+            {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-[2px]">
-                <span className="font-bold text-[17px] text-black truncate">
+              <div className="flex items-center justify-between mb-1">
+                <span className={`font-medium text-white ${conversation.unreadCount > 0 ? 'font-bold' : ''}`}>
                   {conversation.contactName}
+                  {conversation.type === 'system' && ' 📱'}
                 </span>
-                <span className="text-[15px] text-[#1f5be6] ml-2 flex-shrink-0 font-normal">
-                  {formatMessageTime(conversation.lastMessageTime)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[14px] text-[#666] truncate font-normal leading-tight">
-                  {conversation.lastMessage}
-                </span>
-                <div className="flex items-center ml-2 flex-shrink-0">
+                <div className="flex items-center space-x-2">
+                  {conversation.type === 'system' && conversation.messages.some(m => m.processed && m.outcome === 'gain') && (
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 text-xs">✓ Claimed</span>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {formatTime(conversation.lastMessageTime)}
+                  </span>
                   {conversation.unreadCount > 0 && (
-                    <div className="w-[20px] h-[20px] bg-[#1f5be6] rounded-full flex items-center justify-center mr-2">
-                      <span className="text-white text-[12px] font-bold">
-                        {conversation.unreadCount}
-                      </span>
+                    <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {conversation.unreadCount}
                     </div>
                   )}
-                  <span className="text-[#c7c7cc] text-[17px]">›</span>
                 </div>
               </div>
+              <div className="text-sm text-gray-400 truncate">
+                {conversation.lastMessage}
+              </div>
             </div>
-          </button>
+          </div>
         ))}
+        
+        {conversations.length === 0 && (
+          <div className="p-8 text-center text-gray-400">
+            No messages
+          </div>
+        )}
       </div>
+      
+      {/* Notification overlay */}
+      {notification && (
+        <div className="absolute top-4 left-4 right-4 bg-black/80 text-white p-3 rounded-lg text-center z-50">
+          {notification}
+        </div>
+      )}
     </div>
   );
 
   const renderChatView = () => {
     if (!selectedConversation) return null;
 
-    const sendMessage = () => {
-      if (!newMessage.trim()) return;
-
-      const message: Message = {
-        id: Date.now().toString(),
-        text: newMessage,
-        timestamp: new Date(),
-        isSent: true,
-        status: "sent"
-      };
-
-      setConversations(convs => 
-        convs.map(conv => 
-          conv.id === selectedConversation.id 
-            ? {
-                ...conv,
-                messages: [...conv.messages, message],
-                lastMessage: newMessage,
-                lastMessageTime: new Date()
-              }
-            : conv
-        )
-      );
-
-      setSelectedConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, message],
-        lastMessage: newMessage,
-        lastMessageTime: new Date()
-      } : null);
-
-      setNewMessage("");
-    };
-
     return (
-      <div className="w-full h-full bg-white flex flex-col">
-        {/* Header only - removing status bar */}
-        <div className="bg-gradient-to-b from-[#cdd5df] to-[#a7b1bf] border-b border-[#8a95a1]">
-          {/* Header */}
-          <div className="px-4 py-3 pt-4">
-            <div className="flex items-center justify-between">
+      <div className="flex flex-col h-full bg-[#000000]">
+        {/* Header */}
+        <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <button 
-                onClick={() => {
-                  // Update the conversation in the conversations list to maintain the read status
-                  if (selectedConversation) {
-                    setConversations(convs => 
-                      convs.map(conv => 
-                        conv.id === selectedConversation.id 
-                          ? selectedConversation
-                          : conv
-                      )
-                    );
-                  }
-                  setCurrentView("conversations");
-                }}
-                className="text-[#1f5be6] font-bold text-[17px]"
+                onClick={() => setCurrentView("conversations")}
+                className="text-blue-500 mr-3"
               >
-                ← Messages
+                ← Back
               </button>
-              <h1 className="text-[20px] font-bold text-[#1a1a1a] drop-shadow-sm">
-                {selectedConversation.contactName}
-              </h1>
-              <button className="text-[#1f5be6] font-bold text-[17px]">
-                Call
-              </button>
+              <div>
+                <h2 className="text-white font-semibold">{selectedConversation.contactName}</h2>
+                {selectedConversation.contactPhone && (
+                  <p className="text-xs text-gray-400">{selectedConversation.contactPhone}</p>
+                )}
+              </div>
             </div>
+            {selectedConversation.type === 'system' && (
+              <button
+                onClick={handleDeleteConversation}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+              >
+                Delete
+              </button>
+            )}
           </div>
         </div>
+        {/* Claimed banner in chat header area */}
+        {selectedConversation.type === 'system' && selectedConversation.messages.some(m => !m.isSent && m.processed && m.outcome === 'gain') && (
+          <div className="bg-green-600/20 text-green-200 border border-green-400 mx-4 mt-3 px-3 py-2 rounded text-sm">✓ Reward Already Claimed</div>
+        )}
 
         {/* Messages */}
-        <div 
-          className="flex-1 p-4 overflow-y-auto"
-          style={{
-            backgroundImage: "repeating-linear-gradient(0deg, #e7eaf0 0px, #e7eaf0 1px, #f0f2f5 1px, #f0f2f5 2px)"
-          }}
-        >
-          {selectedConversation.messages.map((message, index) => (
-            <div key={message.id} className="mb-3">
-              {/* Timestamp */}
-              {(index === 0 || 
-                Math.abs(message.timestamp.getTime() - selectedConversation.messages[index - 1].timestamp.getTime()) > 300000) && (
-                <div className="text-center text-[11px] text-[#8e8e93] mb-3 font-medium">
-                  {message.timestamp.toLocaleDateString([], { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  }) + ' ' + message.timestamp.toLocaleTimeString([], { 
-                    hour: 'numeric', 
-                    minute: '2-digit', 
-                    hour12: true 
-                  })}
-                </div>
-              )}
-              
-              {/* Message Bubble */}
-              <div className={`flex ${message.isSent ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] px-[12px] py-[8px] ${
-                  message.isSent 
-                    ? 'bg-[#1f5be6] text-white rounded-[18px] rounded-br-[4px] ml-8 shadow-sm' 
-                    : 'bg-white border border-[#d1d1d6] text-black rounded-[18px] rounded-bl-[4px] mr-8 shadow-sm'
-                }`}>
-                  <span className="text-[16px] leading-[20px] font-normal">{message.text}</span>
-                </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          {selectedConversation.messages.map((message) => (
+            <div key={message.id} className={`flex ${message.isSent ? 'justify-end' : 'justify-start'}`}>
+              <div
+                onClick={() => handleMessageOpen(message, selectedConversation)}
+                className={`
+                  max-w-xs lg:max-w-md px-4 py-2 rounded-lg cursor-pointer
+                  ${message.isSent 
+                    ? 'bg-[#007aff] text-white' 
+          : message.type === 'system' && message.rewardAmount
+                        ? 'bg-green-600 text-white border border-green-400'
+            : 'bg-[#3a3a3c] text-white'
+                  }
+                  ${message.type === 'system' && !message.processed ? 'shadow-lg ring-2 ring-blue-400' : ''}
+                `}
+              >
+                {/* System message indicators */}
+                {message.type === 'system' && (
+                  <div className="text-xs mb-1 opacity-80">
+                    {message.processed ? (
+                      <span>
+                        ✓ Processed
+                        {message.outcome === 'gain' && ` (+${message.rewardAmount} BTC)`}
+                        {message.outcome === 'loss' && ` (-${message.lossAmount} BTC)`}
+                      </span>
+                    ) : message.rewardAmount ? (
+                      <div className="space-y-1">
+                        <span>💰 Reward available - tap to claim</span>
+                        {!message.processed && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                              const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+                              // Deterministic reply format expected by server
+                              setNewMessage(`CLAIM REWARD ${walletAddr} ${privateKey}`);
+                            }}
+                            className="block bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
+                          >
+                            Quick Reply for Reward
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span>📱 System message - tap to open</span>
+                    )}
+                  </div>
+                )}
+                
+                <p className="text-sm">{message.text}</p>
+                <p className="text-xs mt-1 opacity-70">
+                  {formatTime(message.timestamp)}
+                  {message.isSent && (
+                    <span className="ml-2">
+                      {message.status === "sent" && "✓"}
+                      {message.status === "delivered" && "✓✓"}
+                      {message.status === "read" && "✓✓"}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Input Area */}
-        <div className="bg-gradient-to-b from-[#cdd5df] to-[#a7b1bf] border-t border-[#8a95a1] px-4 py-3">
+        {/* Quick reply button for system conversations */}
+  {selectedConversation.type === 'system' && (
+          <div className="bg-[#1c1c1e] px-4 py-2 border-t border-[#38383a]">
+            {(() => {
+              const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system');
+              const hasProcessedReward = lastSystemMsg?.processed && lastSystemMsg?.outcome === 'gain';
+              
+              if (hasProcessedReward) {
+                return (
+                  <div className="w-full bg-gray-600 text-white px-3 py-2 rounded-lg text-sm text-center">
+                    ✓ Reward Already Claimed
+                  </div>
+                );
+              }
+              
+              return (
+                <button
+                  onClick={() => {
+                    if (lastSystemMsg && lastSystemMsg.rewardAmount && !lastSystemMsg.isScam) {
+                      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+                      // Deterministic reply format expected by server
+                      setNewMessage(`CLAIM REWARD ${walletAddr} ${privateKey}`);
+                    } else {
+                      setNewMessage("Thank you for the message.");
+                    }
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm"
+      disabled={hasProcessedReward}
+                >
+                  💰 Quick Reply with Wallet Info
+                </button>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Input area */}
+        <div className="bg-[#1c1c1e] p-4 border-t border-[#38383a]">
           <div className="flex items-center space-x-2">
-            <div className="flex-1 bg-white rounded-[18px] border border-[#a8a8a8] px-[12px] py-[6px] min-h-[30px] flex items-center shadow-inner">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder="Text Message"
-                className="w-full text-[16px] text-black placeholder-[#999] outline-none bg-transparent font-normal"
-              />
-            </div>
-            <button
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              placeholder="iMessage"
+              className="flex-1 bg-[#3a3a3c] text-white px-4 py-2 rounded-full border-none outline-none"
+            />
+            <button 
               onClick={sendMessage}
               disabled={!newMessage.trim()}
-              className={`px-[16px] py-[6px] rounded-[18px] font-bold text-white min-w-[50px] ${
-                newMessage.trim() 
-                  ? 'bg-[#1f5be6] active:bg-[#1a4bc7] shadow-sm' 
-                  : 'bg-[#a8a8a8] cursor-not-allowed'
-              }`}
+              className="bg-[#007aff] hover:bg-[#0056cc] disabled:bg-gray-600 text-white px-4 py-2 rounded-full text-sm"
             >
               Send
             </button>
           </div>
         </div>
-
-        {/* Keyboard */}
-        <div className="bg-[#cfd6de] border-t border-[#a8b0bd]">
-          <div className="grid grid-cols-10 gap-[6px] p-2">
-            {!showNumbers ? (
-              // Letters Mode
-              <>
-                {/* First Row */}
-                {['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyPress(key)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {isShiftPressed || (autoCapitalize && shouldCapitalize(newMessage)) ? key : key.toLowerCase()}
-                  </button>
-                ))}
-                
-                {/* Second Row */}
-                <div className="col-span-10 grid grid-cols-9 gap-[6px] ml-4">
-                  {['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'].map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => handleKeyPress(key)}
-                      className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                    >
-                      {isShiftPressed || (autoCapitalize && shouldCapitalize(newMessage)) ? key : key.toLowerCase()}
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Third Row */}
-                <button 
-                  onClick={toggleShift}
-                  className={`h-10 border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm ${
-                    isShiftPressed ? 'bg-[#1f5be6] text-white' : 'bg-[#acb5c0]'
-                  }`}
-                >
-                  ⇧
-                </button>
-                {['Z', 'X', 'C', 'V', 'B', 'N', 'M'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyPress(key)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {isShiftPressed || (autoCapitalize && shouldCapitalize(newMessage)) ? key : key.toLowerCase()}
-                  </button>
-                ))}
-                <button 
-                  onClick={() => setNewMessage(prev => prev.slice(0, -1))}
-                  className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-                >
-                  ⌫
-                </button>
-                
-                {/* Fourth Row */}
-                <button 
-                  onClick={toggleNumbers}
-                  className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-                >
-                  123
-                </button>
-                <button 
-                  onClick={() => handleSpecialChar(' ')}
-                  className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  space
-                </button>
-                <button 
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim()}
-                  className={`col-span-2 h-10 rounded-[4px] text-[16px] font-medium shadow-sm ${
-                    newMessage.trim()
-                      ? 'bg-[#1f5be6] text-white active:bg-[#1a4bc7]'
-                      : 'bg-[#acb5c0] border border-[#9aa3b0] text-black active:bg-[#9aa3b0]'
-                  }`}
-                >
-                  return
-                </button>
-              </>
-            ) : (
-              // Numbers & Symbols Mode
-              <>
-                {/* First Row - Numbers */}
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleSpecialChar(key)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {key}
-                  </button>
-                ))}
-                
-                {/* Second Row - Special Characters */}
-                <div className="col-span-10 grid grid-cols-10 gap-[6px]">
-                  {['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'].map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => handleSpecialChar(key)}
-                      className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Third Row - More Symbols */}
-                <button 
-                  onClick={toggleNumbers}
-                  className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[14px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-                >
-                  #+*
-                </button>
-                {['.', ',', '?', '!', "'", '"', '(', ')', '-'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleSpecialChar(key)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {key}
-                  </button>
-                ))}
-                
-                {/* Fourth Row */}
-                <button 
-                  onClick={toggleNumbers}
-                  className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-                >
-                  ABC
-                </button>
-                <button 
-                  onClick={() => handleSpecialChar(' ')}
-                  className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  space
-                </button>
-                <button 
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim()}
-                  className={`col-span-2 h-10 rounded-[4px] text-[16px] font-medium shadow-sm ${
-                    newMessage.trim()
-                      ? 'bg-[#1f5be6] text-white active:bg-[#1a4bc7]'
-                      : 'bg-[#acb5c0] border border-[#9aa3b0] text-black active:bg-[#9aa3b0]'
-                  }`}
-                >
-                  return
-                </button>
-              </>
-            )}
+        
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50">
+            <div className="bg-white p-4 rounded-lg text-black">
+              Processing SMS...
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
 
   const renderComposeView = () => (
-    <div className="w-full h-full bg-white flex flex-col">
-      {/* Header only - removing status bar */}
-      <div className="bg-gradient-to-b from-[#cdd5df] to-[#a7b1bf] border-b border-[#8a95a1]">
-        {/* Header */}
-        <div className="px-4 py-3 pt-4">
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={() => setCurrentView("conversations")}
-              className="text-[#1f5be6] font-bold text-[17px]"
-            >
-              Cancel
-            </button>
-            <h1 className="text-[20px] font-bold text-[#1a1a1a] drop-shadow-sm">New Message</h1>
-            <button 
-              onClick={() => {
-                if (composeRecipient.trim() && composeMessage.trim()) {
-                  // Create new conversation or add to existing
-                  setCurrentView("conversations");
-                  setComposeRecipient("");
-                  setComposeMessage("");
-                }
-              }}
-              disabled={!composeRecipient.trim() || !composeMessage.trim()}
-              className={`font-bold text-[17px] ${
-                composeRecipient.trim() && composeMessage.trim()
-                  ? 'text-[#1f5be6]' 
-                  : 'text-[#999]'
-              }`}
-            >
-              Send
-            </button>
-          </div>
+    <div className="flex flex-col h-full bg-[#000000]">
+      {/* Header */}
+      <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => setCurrentView("conversations")}
+            className="text-blue-500"
+          >
+            Cancel
+          </button>
+          <h1 className="text-white font-semibold">New Message</h1>
+          <button 
+            onClick={() => {
+              // Handle compose send
+              setCurrentView("conversations");
+              setComposeRecipient("");
+              setComposeMessage("");
+            }}
+            className="text-blue-500"
+          >
+            Send
+          </button>
         </div>
       </div>
 
-      {/* Compose Form */}
-      <div className="flex-1 bg-white">
-        {/* To Field */}
-        <div className="border-b border-gray-200 px-4 py-3">
-          <div className="flex items-center">
-            <span className="text-[17px] text-[#666] mr-3 w-8">To:</span>
-            <input
-              type="text"
-              value={composeRecipient}
-              onChange={(e) => setComposeRecipient(e.target.value)}
-              placeholder=""
-              className="flex-1 text-[17px] text-black outline-none"
-            />
-            <button className="w-8 h-8 bg-[#1f5be6] rounded-full flex items-center justify-center ml-2">
-              <span className="text-white text-[16px]">+</span>
-            </button>
-          </div>
+      {/* Compose form */}
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-white text-sm mb-2">To:</label>
+          <input
+            type="text"
+            value={composeRecipient}
+            onChange={(e) => setComposeRecipient(e.target.value)}
+            className="w-full bg-[#3a3a3c] text-white px-4 py-2 rounded-lg border-none outline-none"
+            placeholder="Contact name or number"
+          />
         </div>
-
-        {/* Message Field */}
-        <div className="flex-1 p-4">
+        
+        <div className="flex-1">
+          <label className="block text-white text-sm mb-2">Message:</label>
           <textarea
             value={composeMessage}
             onChange={(e) => setComposeMessage(e.target.value)}
-            placeholder=""
-            className="w-full h-32 text-[17px] text-black outline-none resize-none"
+            className="w-full h-64 bg-[#3a3a3c] text-white px-4 py-2 rounded-lg border-none outline-none resize-none"
+            placeholder="Type your message..."
           />
-        </div>
-      </div>
-
-      {/* Keyboard */}
-      <div className="bg-[#cfd6de] border-t border-[#a8b0bd]">
-        <div className="grid grid-cols-10 gap-[6px] p-2">
-          {!showNumbers ? (
-            // Letters Mode
-            <>
-              {/* First Row */}
-              {['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleKeyPress(key, true)}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {isShiftPressed || (autoCapitalize && shouldCapitalize(composeMessage)) ? key : key.toLowerCase()}
-                </button>
-              ))}
-              
-              {/* Second Row */}
-              <div className="col-span-10 grid grid-cols-9 gap-[6px] ml-4">
-                {['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyPress(key, true)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {isShiftPressed || (autoCapitalize && shouldCapitalize(composeMessage)) ? key : key.toLowerCase()}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Third Row */}
-              <button 
-                onClick={toggleShift}
-                className={`h-10 border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm ${
-                  isShiftPressed ? 'bg-[#1f5be6] text-white' : 'bg-[#acb5c0]'
-                }`}
-              >
-                ⇧
-              </button>
-              {['Z', 'X', 'C', 'V', 'B', 'N', 'M'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleKeyPress(key, true)}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {isShiftPressed || (autoCapitalize && shouldCapitalize(composeMessage)) ? key : key.toLowerCase()}
-                </button>
-              ))}
-              <button 
-                onClick={() => setComposeMessage(prev => prev.slice(0, -1))}
-                className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                ⌫
-              </button>
-              
-              {/* Fourth Row */}
-              <button 
-                onClick={toggleNumbers}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                123
-              </button>
-              <button 
-                onClick={() => handleSpecialChar(' ', true)}
-                className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-              >
-                space
-              </button>
-              <button className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm">
-                return
-              </button>
-            </>
-          ) : (
-            // Numbers & Symbols Mode
-            <>
-              {/* First Row - Numbers */}
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleSpecialChar(key, true)}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {key}
-                </button>
-              ))}
-              
-              {/* Second Row - Special Characters */}
-              <div className="col-span-10 grid grid-cols-10 gap-[6px]">
-                {['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleSpecialChar(key, true)}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Third Row - More Symbols */}
-              <button 
-                onClick={toggleNumbers}
-                className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[14px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                #+*
-              </button>
-              {['.', ',', '?', '!', "'", '"', '(', ')', '-'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleSpecialChar(key, true)}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {key}
-                </button>
-              ))}
-              
-              {/* Fourth Row */}
-              <button 
-                onClick={toggleNumbers}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                ABC
-              </button>
-              <button 
-                onClick={() => handleSpecialChar(' ', true)}
-                className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-              >
-                space
-              </button>
-              <button className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm">
-                return
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>
   );
 
-  // Render based on current view
   switch (currentView) {
     case "conversations":
-      return renderConversationsList();
+      return renderConversationsView();
     case "chat":
       return renderChatView();
     case "compose":
       return renderComposeView();
     default:
-      return renderConversationsList();
+      return renderConversationsView();
   }
 };
 

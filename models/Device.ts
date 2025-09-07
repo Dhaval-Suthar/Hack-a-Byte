@@ -1,52 +1,12 @@
 // filepath: /Users/dhavalsuthar/Desktop/hackabyte/models/Devices.ts
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface FileSystemNode {
-  name: string;
-  type: "file" | "directory";
-  content?: string; // For files
-  metadata?: {
-    createdAt: Date;
-    modifiedAt: Date;
-    size: number;
-    permissions: string; // e.g., 'rwx', 'r--', etc.
-    owner: string;
-    isHidden: boolean;
-    isSystem: boolean;
-    fileType?: string; // e.g., 'txt', 'exe', 'jpg'
-    icon?: string; // Path to icon representation
-  };
-  children?: mongoose.Types.ObjectId[]; // For directories, references to other FileSystemNodes
-}
-
-// Schema for file system nodes (files and directories)
-const FileSystemNodeSchema = new Schema<FileSystemNode>({
-  name: { type: String, required: true },
-  type: { type: String, enum: ["file", "directory"], required: true },
-  content: { type: String }, // Only for files
-  metadata: {
-    createdAt: { type: Date, default: Date.now },
-    modifiedAt: { type: Date, default: Date.now },
-    size: { type: Number, default: 0 },
-    permissions: { type: String, default: "rw-" },
-    owner: { type: String, default: "system" },
-    isHidden: { type: Boolean, default: false },
-    isSystem: { type: Boolean, default: false },
-    fileType: { type: String },
-    icon: { type: String },
-  },
-  children: [{ type: mongoose.Schema.Types.ObjectId, ref: "FileSystemNode" }], // Only for directories
-});
-
 // Device model interface
 export interface Device extends Document {
   deviceMacAddress: string; // Unique identifier for the device instance
   deviceType: string; // e.g., 'hackbook-w95', 'hackdroid', 'hackphone'
   status: "online" | "offline" | "maintenance";
-  playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to 
-
-  // File system root directory
-  fileSystemRoot: mongoose.Schema.Types.ObjectId;
+  playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to
 
   // Currently logged in users
   currentUsers: {
@@ -116,8 +76,6 @@ const DeviceSchema = new Schema<Device>(
     deviceType: { type: String, required: true },
     status: { type: String, enum: ["online", "offline", "maintenance"], default: "offline" },
     playspace: { type: mongoose.Schema.Types.ObjectId, ref: "Playspace" },
-
-    fileSystemRoot: { type: mongoose.Schema.Types.ObjectId, ref: "FileSystemNode" },
 
     currentUsers: [
       {
@@ -272,10 +230,6 @@ DeviceSchema.methods.userLogout = function (userId: mongoose.Types.ObjectId) {
 
   return Promise.resolve(this);
 };
-
-// FileSystemNode model
-export const FileSystemNodeModel =
-  mongoose.models.FileSystemNode || mongoose.model<FileSystemNode>("FileSystemNode", FileSystemNodeSchema);
 
 // Device model
 export default mongoose.models.Device || mongoose.model<Device>("Device", DeviceSchema);

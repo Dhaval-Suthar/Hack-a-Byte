@@ -230,7 +230,8 @@ export const APP_REGISTRY: AppConfig[] = [
   {
     id: "worm-phish",
     name: "Worm Phish",
-    icon: "/hackphone/apps/game/app-icon.png",
+  // Use a valid existing icon until a dedicated asset is added
+  icon: "/hackphone/apps/sentinel/app-icon.png",
     category: "attack",
     description: "Launch worm phishing reward exploit",
     permissions: [{ type: "network", required: true, description: "Trigger worm phishing endpoint" }],

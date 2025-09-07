@@ -6,6 +6,7 @@ import Playspace from "@/models/Playspace";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { generateMacAddress } from "@/lib/utils";
+import { createSampleMessagesForDevice } from "@/lib/randomMessageGenerator";
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -164,6 +165,17 @@ export async function createDevice(
     });
 
     await newDevice.save();
+
+    // If this is a hackphone device, create sample messages
+    if (deviceType === 'hackphone') {
+      try {
+        await createSampleMessagesForDevice(newDevice._id.toString());
+        console.log(`Sample messages created for hackphone device ${newDevice._id}`);
+      } catch (error) {
+        console.error('Error creating sample messages for hackphone:', error);
+        // Don't fail device creation if sample message creation fails
+      }
+    }
 
     revalidatePath("/admin");
 

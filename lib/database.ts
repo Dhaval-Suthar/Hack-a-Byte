@@ -101,16 +101,7 @@ class DatabaseConnection {
       this.isConnected = true;
     });
 
-    // Handle application termination
-    process.on('SIGINT', async () => {
-      await this.disconnect();
-      process.exit(0);
-    });
-
-    process.on('SIGTERM', async () => {
-      await this.disconnect();
-      process.exit(0);
-    });
+  // Note: Avoid process.on/process.exit to remain compatible with Edge bundling.
   }
 
   async disconnect(): Promise<void> {

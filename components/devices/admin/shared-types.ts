@@ -95,4 +95,4 @@ export interface Note {
   kind: "ok" | "err" | "info";
 }
 
-export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions" | "sponsors";
+export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions" | "sponsors" | "messaging";

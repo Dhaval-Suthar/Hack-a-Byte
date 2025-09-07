@@ -27,6 +27,9 @@ export const initSocket = (httpServer: NetServer) => {
 
   console.log('🔌 Socket.IO server created with path: /api/socketio');
 
+  // Expose server IO globally for internal emitters (e.g., background schedulers)
+  (globalThis as unknown as { __serverIo?: ServerIO }).__serverIo = io;
+
   // Store connected clients by playspaceId
   const clientsByPlayspace = new Map<string, Set<string>>();
   // Store connected clients by teamId for team-based features
@@ -46,8 +49,8 @@ export const initSocket = (httpServer: NetServer) => {
     // Join playspace room
     socket.on('join-playspace', (playspaceId: string) => {
       socket.join(playspaceId);
-      console.log(`Client ${socket.id} joined playspace: ${playspaceId}`);
-      console.log('Clients in room', playspaceId, ':', io.sockets.adapter.rooms.get(playspaceId)?.size || 0);
+      const size = io.sockets.adapter.rooms.get(playspaceId)?.size || 0;
+      console.log(`Client ${socket.id} joined playspace: ${playspaceId} (clients: ${size})`);
 
       // Track clients by playspace
       if (!clientsByPlayspace.has(playspaceId)) {
@@ -58,9 +61,14 @@ export const initSocket = (httpServer: NetServer) => {
 
     // Join team room for team-based features
     socket.on('join-team', async (teamId: string) => {
-      socket.join(`team-${teamId}`);
-      console.log(`🔌 Client ${socket.id} joined team: ${teamId}`);
-      console.log(`🔌 Clients in team-${teamId}:`, io.sockets.adapter.rooms.get(`team-${teamId}`)?.size || 0);
+      const roomName = `team-${teamId}`;
+      // If already in the room, skip noisy re-joins
+      if ((socket.rooms as Set<string>).has(roomName)) {
+        return;
+      }
+      socket.join(roomName);
+      const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
+      console.log(`🔌 Client ${socket.id} joined team: ${teamId} (clients: ${size})`);
 
       // Track clients by team
       if (!clientsByTeam.has(teamId)) {
@@ -74,7 +82,7 @@ export const initSocket = (httpServer: NetServer) => {
         const team = await Team.findById(teamId).select('teamMembers.role');
         if (team) {
           const roles = team.teamMembers.map((m: { role?: string }) => m.role).filter(Boolean);
-          io.to(`team-${teamId}`).emit('role-metadata', { teamId, roles, ts: Date.now() });
+          io.to(roomName).emit('role-metadata', { teamId, roles, ts: Date.now() });
         }
       } catch {}
     });
@@ -264,4 +272,9 @@ export const initSocket = (httpServer: NetServer) => {
   });
 
   return io;
+};
+
+// Helper to access the Socket.IO server instance outside API routes (may be undefined until /api/socketio initializes)
+export const getServerIo = (): ServerIO | undefined => {
+  return (globalThis as unknown as { __serverIo?: ServerIO }).__serverIo;
 };

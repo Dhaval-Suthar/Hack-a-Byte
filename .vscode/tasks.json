@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Typecheck (tsc --noEmit)",
+			"type": "shell",
+			"command": "pnpm -s tsc --noEmit",
+			"problemMatcher": [
+				"$tsc-stylish"
+			],
+			"group": "build"
+		}
+	]
+}

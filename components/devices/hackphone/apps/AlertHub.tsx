@@ -56,7 +56,13 @@ export const AlertHub: React.FC<AlertHubProps> = ({ onCountChange }) => {
   const deviceStatus = (data: DeviceStatus) => push({ type: 'device-status', message: `Device ${data.deviceId} is now ${data.status}`, severity: data.status==='online' ? 'info':'warn', meta: wrap(data) });
   // Extractor loop events
   const faucet = (data: { teamId: string; reward: number; attempts: number }) => push({ type: 'faucet-claim', message: `Faucet +${data.reward} (attempt ${data.attempts})`, severity: 'info', meta: wrap(data) });
-  const emailSms = (data: { teamId: string; outcome: string; amount: number }) => push({ type: 'email-sms', message: `Email/SMS ${data.outcome}${data.amount?` (${data.amount>0?'+':''}${data.amount})`:''}`, severity: data.outcome==='loss' ? 'error' : data.outcome==='gain' ? 'info' : 'warn', meta: wrap(data) });
+  const emailSms = (data: { teamId: string; outcome?: string; amount?: number; balance?: number; detail?: string }) => {
+    const outcome = data.outcome ?? 'event';
+    const amt = typeof data.amount === 'number' ? data.amount : 0;
+    const sign = amt > 0 ? '+' : '';
+    const suffix = amt !== 0 ? ` (${sign}${amt})` : '';
+    push({ type: 'email-sms', message: `Email/SMS ${outcome}${suffix}`, severity: outcome==='loss' ? 'error' : outcome==='gain' ? 'info' : 'warn', meta: wrap(data) });
+  };
   const extractorEvent = (data: { teamId: string; event: Record<string, unknown> }) => push({ type: 'extractor-event', message: `Extractor ${String(data.event?.type||'evt')} ${String(data.event?.outcome||'')}`, severity: 'info', meta: wrap(data) });
 
     socket.on('ransomware-demand', ransomwareDemand);
