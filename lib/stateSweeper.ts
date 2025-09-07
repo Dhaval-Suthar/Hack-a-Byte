@@ -81,3 +81,7 @@ if (!g.__sweeperStarted) {
   
   console.log('✅ StateSweeper fully initialized');
 }
+
+// Export empty object to make this a proper module
+const stateSweeper = {};
+export default stateSweeper;

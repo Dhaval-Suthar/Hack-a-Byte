@@ -36,6 +36,7 @@ interface AppStoreProps {
   onClose?: () => void;
   time: Date;
   user?: User | null;
+  attackerTeamId?: string; // prefer direct teamId to avoid playspace mismatch
 }
 
 type Category = "virus" | "worm" | "ransomware";
@@ -64,6 +65,10 @@ interface DeploymentData {
   stealAmount?: string;
   customTitle?: string;
   customDescription?: string;
+  // For worm-based broadcast scams
+  emailSubject?: string;
+  emailContent?: string;
+  smsContent?: string;
 }
 
 // Reuse the BlackMart catalog data (duplicated here for isolation and to avoid a breaking refactor)
@@ -96,7 +101,7 @@ function parseDownloads(d: string): number {
   return isNaN(n) ? 0 : n;
 }
 
-const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
+const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attackerTeamIdProp }) => {
   // Initialize Socket.IO connection
   const { sendMalwareAttack, triggerAttackEffect, isConnected, socket } = useSocket();
   // Inject custom styles for running malware animation
@@ -397,11 +402,23 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
       const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
       isValidTarget = macRegex.test(deployData.macAddress.trim());
       targetInfo = deployData.macAddress.trim();
-    } else if (deployItem.category === 'worm' && deployData.ipAddress) {
-      // Basic IP address validation
-      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-      isValidTarget = ipRegex.test(deployData.ipAddress.trim());
-      targetInfo = deployData.ipAddress.trim();
+    } else if (deployItem.category === 'worm') {
+      // Special handling for EmailSpread Pro / SocialHook / NetCrawler
+      if (deployItem.name === 'EmailSpread Pro') {
+        isValidTarget = Boolean(deployData.emailSubject && deployData.emailContent);
+        targetInfo = 'all online hackphones';
+      } else if (deployItem.name === 'SocialHook') {
+        isValidTarget = Boolean(deployData.smsContent);
+        targetInfo = 'all online hackphones';
+      } else if (deployItem.name === 'NetCrawler') {
+        isValidTarget = Boolean(deployData.emailSubject && deployData.emailContent && deployData.smsContent);
+        targetInfo = 'all online hackphones';
+      } else if (deployData.ipAddress) {
+        // Fallback: IP targeting for other worms (if any)
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        isValidTarget = ipRegex.test(deployData.ipAddress.trim());
+        targetInfo = deployData.ipAddress.trim();
+      }
     } else if (deployItem.category === 'ransomware') {
       // Special handling for fake site malware
       if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
@@ -433,8 +450,51 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
       let deploymentMessage = `${deployItem.name} deployed successfully!`;
       let effectMessage = '';
 
-      // Special handling for fake site deployment
-      if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
+      // Special handling for fake site deployment and worm broadcast scams
+      if (deployItem.category === 'worm' && (deployItem.name === 'EmailSpread Pro' || deployItem.name === 'SocialHook' || deployItem.name === 'NetCrawler')) {
+        // Prefer teamId passed from AppsRouter; fallback to resolving via playspaceId
+        let attackerTeamId: string | undefined = attackerTeamIdProp;
+        if (!attackerTeamId) {
+          const playspaceId = getPlayspaceId();
+          if (playspaceId) {
+            try {
+              const r = await fetch(`/api/team/get-team-id?playspaceId=${playspaceId}`, { cache: 'no-store' });
+              const j = await r.json();
+              if (j?.success && j?.teamId) attackerTeamId = j.teamId as string;
+            } catch (e) {
+              console.warn('Failed to resolve teamId from playspaceId:', e);
+            }
+          }
+        }
+        if (!attackerTeamId) {
+          alert('Unable to determine your team. Please re-open App Store or rejoin your playspace.');
+          return;
+        }
+        const wormId = deployItem.name === 'EmailSpread Pro' ? 'worm-001' : deployItem.name === 'NetCrawler' ? 'worm-002' : 'worm-003';
+        // Call backend to broadcast to all online hackphones
+        const resp = await fetch('/api/attack/scam-broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attackerTeamId,
+            wormId,
+            emailSubject: deployData.emailSubject,
+            emailContent: deployData.emailContent,
+            smsContent: deployData.smsContent,
+          })
+        });
+        if (!resp.ok) {
+          const txt = await resp.text().catch(()=> '');
+          throw new Error(`Broadcast failed (${resp.status}): ${txt}`);
+        }
+        const json = await resp.json().catch(()=>({ success: true }));
+        const recipients = Number(json?.recipients ?? 0);
+        const emails = Number(json?.emails ?? 0);
+        const sms = Number(json?.sms ?? 0);
+        effectMessage = `📡 Broadcast queued to ${recipients} online device(s)${emails?`, ${emails} email(s)`:''}${sms?`, ${sms} SMS`:''}.`;
+        deploymentMessage = `${deployItem.name} executed: scam ${wormId==='worm-002'?'emails + SMS':''}${wormId==='worm-001'?'emails':''}${wormId==='worm-003'?'SMS':''} dispatched.`;
+      }
+      else if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
         // Deploy SiteClone Pro fake site (no steal amount needed - random 10-20 BTC)
         const fakeResponse = await fetch('/api/safari/deploy-fake-site', {
           method: 'POST',
@@ -461,7 +521,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
         } else {
           throw new Error('Failed to deploy fake site');
         }
-      } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
+  } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
         // Deploy FakeBank Portal fake site (with custom steal amount)
         const fakeResponse = await fetch('/api/safari/deploy-fake-site', {
           method: 'POST',
@@ -487,7 +547,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
         } else {
           throw new Error('Failed to deploy fake site');
         }
-      } else {
+  } else {
         // Regular malware deployment
         if (deployItem.category === 'virus') {
           effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
@@ -593,7 +653,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
     if (socket && deployItem.category === 'ransomware' && deployItem.name.toLowerCase().includes('bank')) {
       socket.emit('fake-bank-warning', { domain: deployData.domainName || 'bank.example', ts: Date.now() });
     }
-  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username, socket]);
+  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username, socket, attackerTeamIdProp]);
 
   const getCategoryBadge = (cat: Category) => ({
     virus: "bg-red-500",
@@ -998,18 +1058,57 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
                 </div>
               )}
               {deployItem.category === "worm" && (
-                <div>
-                  <label className="block text-[12px] text-[#666] mb-1">Target IP Address</label>
-                  <input
-                    value={deployData.ipAddress || ""}
-                    onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
-                    placeholder="192.168.1.100"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
-                  />
-                  <div className="text-[11px] text-[#888] mt-1">
-                    Enter the target&apos;s IP address (e.g., 192.168.1.100)
+                (deployItem.name === 'EmailSpread Pro' || deployItem.name === 'NetCrawler' || deployItem.name === 'SocialHook') ? (
+                  <>
+                    {(deployItem.name === 'EmailSpread Pro' || deployItem.name === 'NetCrawler') && (
+                      <>
+                        <label className="block text-[12px] text-[#666] mb-1">Email Subject</label>
+                        <input
+                          value={deployData.emailSubject || ''}
+                          onChange={(e) => setDeployData({ ...deployData, emailSubject: e.target.value })}
+                          placeholder="Security Notice"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 mb-2"
+                        />
+                        <label className="block text-[12px] text-[#666] mb-1">Email Content</label>
+                        <textarea
+                          value={deployData.emailContent || ''}
+                          onChange={(e) => setDeployData({ ...deployData, emailContent: e.target.value })}
+                          placeholder="We detected unusual activity..."
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[80px]"
+                        />
+                        <div className="text-[11px] text-[#888] mt-1">Email will be sent to all online hackphone devices.</div>
+                      </>
+                    )}
+                    {(deployItem.name === 'SocialHook' || deployItem.name === 'NetCrawler') && (
+                      <>
+                        <label className="block text-[12px] text-[#666] mb-1 mt-3">SMS Content</label>
+                        <textarea
+                          value={deployData.smsContent || ''}
+                          onChange={(e) => setDeployData({ ...deployData, smsContent: e.target.value })}
+                          placeholder="Security alert: Suspicious activity detected..."
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[60px]"
+                        />
+                        <div className="text-[11px] text-[#888] mt-1">SMS will be sent to all online hackphone devices.</div>
+                      </>
+                    )}
+                    <div className="bg-orange-50 border border-orange-200 rounded p-2 text-[12px] text-orange-700 mt-2">
+                      ⚠️ This will dispatch scam messages to all online hackphone devices.
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-[12px] text-[#666] mb-1">Target IP Address</label>
+                    <input
+                      value={deployData.ipAddress || ""}
+                      onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
+                      placeholder="192.168.1.100"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    />
+                    <div className="text-[11px] text-[#888] mt-1">
+                      Enter the target&apos;s IP address (e.g., 192.168.1.100)
+                    </div>
                   </div>
-                </div>
+                )
               )}
               {deployItem.category === "ransomware" &&
                 (deployItem.name === "FakeBank Portal" || deployItem.name === "SiteClone Pro") && (
@@ -1106,7 +1205,13 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user }) => {
                 onClick={executeDeploy}
                 disabled={
                   (deployItem.category === "virus" && !deployData.macAddress) ||
-                  (deployItem.category === "worm" && !deployData.ipAddress) ||
+                  (deployItem.category === "worm" &&
+                    ((deployItem.name === 'EmailSpread Pro' && !(deployData.emailSubject && deployData.emailContent)) ||
+                     (deployItem.name === 'SocialHook' && !deployData.smsContent) ||
+                     (deployItem.name === 'NetCrawler' && !(deployData.emailSubject && deployData.emailContent && deployData.smsContent)) ||
+                     (!['EmailSpread Pro','SocialHook','NetCrawler'].includes(deployItem.name) && !deployData.ipAddress)
+                    )
+                  ) ||
                   (deployItem.category === "ransomware" &&
                     deployItem.name === "FakeBank Portal" &&
                     (!deployData.targetUrl || !deployData.stealAmount)) ||

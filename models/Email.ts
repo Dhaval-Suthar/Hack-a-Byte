@@ -14,6 +14,7 @@ export interface Email extends Document {
   
   // System email properties
   type: 'system' | 'user' | 'sample';
+  attackerTeamId?: mongoose.Schema.Types.ObjectId; // Track deployer to route replies
   isScam?: boolean;
   rewardAmount?: number; // BTC reward if legitimate
   lossAmount?: number; // BTC loss if scam
@@ -33,6 +34,7 @@ export interface EmailModel extends Model<Email> {
   createSystemEmail(data: {
     recipient: mongoose.Types.ObjectId;
     deviceId?: mongoose.Types.ObjectId;
+  attackerTeamId?: mongoose.Types.ObjectId;
     sender: string;
     senderEmail: string;
     subject: string;
@@ -77,6 +79,10 @@ const EmailSchema = new Schema<Email>(
     senderEmail: { 
       type: String, 
       required: true 
+    },
+    attackerTeamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team'
     },
     subject: { 
       type: String, 
@@ -174,6 +180,7 @@ EmailSchema.methods.markAsProcessed = function(outcome: 'gain' | 'loss' | 'neutr
 EmailSchema.statics.createSystemEmail = function(data: {
   recipient: mongoose.Types.ObjectId;
   deviceId?: mongoose.Types.ObjectId;
+  attackerTeamId?: mongoose.Types.ObjectId;
   sender: string;
   senderEmail: string;
   subject: string;

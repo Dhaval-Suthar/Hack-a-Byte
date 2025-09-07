@@ -369,7 +369,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "appStore":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <AppStore onClose={onClose} time={time} user={user} />
+            <AppStore onClose={onClose} time={time} user={user} attackerTeamId={teamId || undefined} />
           </Suspense>,
           appId
         );

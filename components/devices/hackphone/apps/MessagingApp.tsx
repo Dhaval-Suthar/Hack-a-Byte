@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSocket } from '@/hooks/useSocket';
 
 interface MessageData {
   id: string;
@@ -61,6 +62,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [teamWallet, setTeamWallet] = useState<TeamWallet | null>(null);
+  const { socket, isConnected, joinTeam } = useSocket();
 
   // System SMS conversations - no static messages
   const [systemConversations, setSystemConversations] = useState<Conversation[]>([]);
@@ -90,7 +92,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
     if (!teamId) return;
     
     try {
-      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=sms`);
+      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=sms`, { cache: 'no-store' });
       const data = await response.json();
       
       if (data.success) {
@@ -148,12 +150,25 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
       fetchSystemMessages();
       fetchTeamWallet();
       const interval = setInterval(fetchSystemMessages, 30000);
-      return () => clearInterval(interval);
+      // Join socket team room and subscribe to message-created for SMS
+      joinTeam(teamId);
+      const onCreated = (evt: { teamId: string; type: 'sms'|'email'; id: string; content: string; sender?: string; timestamp: number; }) => {
+        if (evt.type === 'sms' && evt.teamId === teamId) {
+          fetchSystemMessages();
+        }
+      };
+      if (socket && isConnected) {
+        socket.on('message-created', onCreated);
+      }
+      return () => {
+        clearInterval(interval);
+        if (socket) socket.off('message-created', onCreated);
+      };
     }
-  }, [teamId, fetchSystemMessages, fetchTeamWallet]);
+  }, [teamId, fetchSystemMessages, fetchTeamWallet, joinTeam, socket, isConnected]);
 
   const handleMessageOpen = async (message: Message, conversation: Conversation) => {
-    if (message.type === 'system' && !message.processed && teamId) {
+    if (message.type === 'system' && teamId) {
       setLoading(true);
       try {
     const response = await fetch('/api/extract/open-message', {
@@ -170,15 +185,15 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         
         const result = await response.json();
         
-        if (result.success && !result.alreadyProcessed) {
-          // Update the message as processed
+        if (result.success) {
+          // Mark as read only; do not set processed here
           setSystemConversations(prev => prev.map(conv => {
             if (conv.id === conversation.id) {
               return {
                 ...conv,
-                messages: conv.messages.map(msg => 
-                  msg.id === message.id 
-                    ? { ...msg, processed: true, outcome: result.outcome, status: "read" as const }
+                messages: conv.messages.map(msg =>
+                  msg.id === message.id
+                    ? { ...msg, status: "read" as const }
                     : msg
                 ),
                 unreadCount: Math.max(0, conv.unreadCount - 1)
@@ -186,17 +201,8 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
             }
             return conv;
           }));
-          
-          // Show notification
-          if (result.outcome === 'gain') {
-            setNotification(`🎉 SMS Reward claimed! +${result.balanceChange} BTC`);
-          } else if (result.outcome === 'loss') {
-            setNotification(`⚠️ SMS Scam detected! ${result.balanceChange} BTC`);
-          } else {
-            setNotification('SMS opened');
-          }
-          
-          setTimeout(() => setNotification(null), 3000);
+          setNotification('SMS opened');
+          setTimeout(() => setNotification(null), 2000);
         }
       } catch (error) {
         console.error('Failed to process SMS open:', error);
@@ -354,11 +360,11 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
   };
 
   const renderConversationsView = () => (
-    <div className="flex flex-col h-full bg-[#2c2c2e]">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+      <div className="bg-gray-100 p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h1 className="text-white text-lg font-semibold">Messages</h1>
+          <h1 className="text-black text-lg font-semibold">Messages</h1>
           <button 
             onClick={() => setCurrentView("compose")}
             className="bg-[#007aff] hover:bg-[#0056cc] text-white px-3 py-1 rounded-full text-sm"
@@ -378,9 +384,9 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
               setCurrentView("chat");
             }}
             className={`
-              flex items-center p-4 cursor-pointer transition-colors border-b border-[#38383a]
-              ${conversation.unreadCount > 0 ? 'bg-[#1c1c1e]' : 'bg-[#2c2c2e]'}
-              hover:bg-[#3a3a3c]
+              flex items-center p-4 cursor-pointer transition-colors border-b border-gray-100
+              ${conversation.unreadCount > 0 ? 'bg-blue-50' : 'bg-white'}
+              hover:bg-gray-50
               ${conversation.type === 'system' ? 'border-l-4 border-blue-500' : ''}
             `}
           >
@@ -395,7 +401,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className={`font-medium text-white ${conversation.unreadCount > 0 ? 'font-bold' : ''}`}>
+                <span className={`font-medium text-black ${conversation.unreadCount > 0 ? 'font-bold' : ''}`}>
                   {conversation.contactName}
                   {conversation.type === 'system' && ' 📱'}
                 </span>
@@ -403,7 +409,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                   {conversation.type === 'system' && conversation.messages.some(m => m.processed && m.outcome === 'gain') && (
                     <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 text-xs">✓ Claimed</span>
                   )}
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     {formatTime(conversation.lastMessageTime)}
                   </span>
                   {conversation.unreadCount > 0 && (
@@ -413,7 +419,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                   )}
                 </div>
               </div>
-              <div className="text-sm text-gray-400 truncate">
+              <div className="text-sm text-gray-600 truncate">
                 {conversation.lastMessage}
               </div>
             </div>
@@ -421,7 +427,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         ))}
         
         {conversations.length === 0 && (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-gray-500">
             No messages
           </div>
         )}
@@ -440,9 +446,9 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
     if (!selectedConversation) return null;
 
     return (
-      <div className="flex flex-col h-full bg-[#000000]">
+      <div className="flex flex-col h-full bg-white">
         {/* Header */}
-        <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+        <div className="bg-gray-100 p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <button 
@@ -452,9 +458,9 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                 ← Back
               </button>
               <div>
-                <h2 className="text-white font-semibold">{selectedConversation.contactName}</h2>
+                <h2 className="text-black font-semibold">{selectedConversation.contactName}</h2>
                 {selectedConversation.contactPhone && (
-                  <p className="text-xs text-gray-400">{selectedConversation.contactPhone}</p>
+                  <p className="text-xs text-gray-500">{selectedConversation.contactPhone}</p>
                 )}
               </div>
             </div>
@@ -470,11 +476,11 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         </div>
         {/* Claimed banner in chat header area */}
         {selectedConversation.type === 'system' && selectedConversation.messages.some(m => !m.isSent && m.processed && m.outcome === 'gain') && (
-          <div className="bg-green-600/20 text-green-200 border border-green-400 mx-4 mt-3 px-3 py-2 rounded text-sm">✓ Reward Already Claimed</div>
+          <div className="bg-green-50 text-green-700 border border-green-200 mx-4 mt-3 px-3 py-2 rounded text-sm">✓ Reward Already Claimed</div>
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50">
           {selectedConversation.messages.map((message) => (
             <div key={message.id} className={`flex ${message.isSent ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -484,15 +490,15 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                   ${message.isSent 
                     ? 'bg-[#007aff] text-white' 
           : message.type === 'system' && message.rewardAmount
-                        ? 'bg-green-600 text-white border border-green-400'
-            : 'bg-[#3a3a3c] text-white'
+                        ? 'bg-green-100 text-green-800 border border-green-300'
+            : 'bg-white text-black border border-gray-200'
                   }
                   ${message.type === 'system' && !message.processed ? 'shadow-lg ring-2 ring-blue-400' : ''}
                 `}
               >
                 {/* System message indicators */}
                 {message.type === 'system' && (
-                  <div className="text-xs mb-1 opacity-80">
+                  <div className="text-xs mb-1 opacity-70">
                     {message.processed ? (
                       <span>
                         ✓ Processed
@@ -508,8 +514,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                               e.stopPropagation();
                               const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
                               const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                              // Deterministic reply format expected by server
-                              setNewMessage(`CLAIM REWARD ${walletAddr} ${privateKey}`);
+                              setNewMessage(`${walletAddr} ${privateKey}`);
                             }}
                             className="block bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
                           >
@@ -524,7 +529,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                 )}
                 
                 <p className="text-sm">{message.text}</p>
-                <p className="text-xs mt-1 opacity-70">
+                <p className={`text-xs mt-1 opacity-70 ${message.isSent ? 'text-white' : 'text-gray-500'}`}>
                   {formatTime(message.timestamp)}
                   {message.isSent && (
                     <span className="ml-2">
@@ -541,15 +546,15 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
 
         {/* Quick reply button for system conversations */}
   {selectedConversation.type === 'system' && (
-          <div className="bg-[#1c1c1e] px-4 py-2 border-t border-[#38383a]">
+          <div className="bg-gray-100 px-4 py-2 border-t border-gray-200">
             {(() => {
-              const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system');
-              const hasProcessedReward = lastSystemMsg?.processed && lastSystemMsg?.outcome === 'gain';
+              const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system' && !m.processed);
+              const processed = !lastSystemMsg; // if no unprocessed system msg, treat as processed
               
-              if (hasProcessedReward) {
+              if (processed) {
                 return (
-                  <div className="w-full bg-gray-600 text-white px-3 py-2 rounded-lg text-sm text-center">
-                    ✓ Reward Already Claimed
+                  <div className="w-full bg-gray-400 text-white px-3 py-2 rounded-lg text-sm text-center">
+                    ✓ Already Processed
                   </div>
                 );
               }
@@ -557,17 +562,13 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
               return (
                 <button
                   onClick={() => {
-                    if (lastSystemMsg && lastSystemMsg.rewardAmount && !lastSystemMsg.isScam) {
-                      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-                      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                      // Deterministic reply format expected by server
-                      setNewMessage(`CLAIM REWARD ${walletAddr} ${privateKey}`);
-                    } else {
-                      setNewMessage("Thank you for the message.");
-                    }
+                    if (!lastSystemMsg) return;
+                    const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                    const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+                    setNewMessage(`${walletAddr} ${privateKey}`);
                   }}
                   className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm"
-      disabled={hasProcessedReward}
+  disabled={!lastSystemMsg}
                 >
                   💰 Quick Reply with Wallet Info
                 </button>
@@ -577,7 +578,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         )}
 
         {/* Input area */}
-        <div className="bg-[#1c1c1e] p-4 border-t border-[#38383a]">
+        <div className="bg-white p-4 border-t border-gray-200">
           <div className="flex items-center space-x-2">
             <input
               type="text"
@@ -585,12 +586,12 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="iMessage"
-              className="flex-1 bg-[#3a3a3c] text-white px-4 py-2 rounded-full border-none outline-none"
+              className="flex-1 bg-gray-100 text-black px-4 py-2 rounded-full border border-gray-300 outline-none focus:border-blue-500"
             />
             <button 
               onClick={sendMessage}
               disabled={!newMessage.trim()}
-              className="bg-[#007aff] hover:bg-[#0056cc] disabled:bg-gray-600 text-white px-4 py-2 rounded-full text-sm"
+              className="bg-[#007aff] hover:bg-[#0056cc] disabled:bg-gray-400 text-white px-4 py-2 rounded-full text-sm"
             >
               Send
             </button>
@@ -610,9 +611,9 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
   };
 
   const renderComposeView = () => (
-    <div className="flex flex-col h-full bg-[#000000]">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-[#1c1c1e] p-4 border-b border-[#38383a]">
+      <div className="bg-gray-100 p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <button 
             onClick={() => setCurrentView("conversations")}
@@ -620,7 +621,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
           >
             Cancel
           </button>
-          <h1 className="text-white font-semibold">New Message</h1>
+          <h1 className="text-black font-semibold">New Message</h1>
           <button 
             onClick={() => {
               // Handle compose send
@@ -638,22 +639,22 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
       {/* Compose form */}
       <div className="flex-1 p-4 space-y-4">
         <div>
-          <label className="block text-white text-sm mb-2">To:</label>
+          <label className="block text-black text-sm mb-2">To:</label>
           <input
             type="text"
             value={composeRecipient}
             onChange={(e) => setComposeRecipient(e.target.value)}
-            className="w-full bg-[#3a3a3c] text-white px-4 py-2 rounded-lg border-none outline-none"
+            className="w-full bg-gray-100 text-black px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-blue-500"
             placeholder="Contact name or number"
           />
         </div>
         
         <div className="flex-1">
-          <label className="block text-white text-sm mb-2">Message:</label>
+          <label className="block text-black text-sm mb-2">Message:</label>
           <textarea
             value={composeMessage}
             onChange={(e) => setComposeMessage(e.target.value)}
-            className="w-full h-64 bg-[#3a3a3c] text-white px-4 py-2 rounded-lg border-none outline-none resize-none"
+            className="w-full h-64 bg-gray-100 text-black px-4 py-2 rounded-lg border border-gray-300 outline-none resize-none focus:border-blue-500"
             placeholder="Type your message..."
           />
         </div>

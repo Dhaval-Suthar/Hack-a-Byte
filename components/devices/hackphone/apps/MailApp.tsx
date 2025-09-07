@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSocket } from '@/hooks/useSocket';
 
 interface Email {
   id: string;
@@ -45,6 +46,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [teamWallet, setTeamWallet] = useState<TeamWallet | null>(null);
+  const { socket, isConnected, joinTeam } = useSocket();
 
   // System emails from the random message generator
   const [systemEmails, setSystemEmails] = useState<Email[]>([]);
@@ -74,7 +76,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
     if (!teamId) return;
     
     try {
-      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=email`);
+      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=email`, { cache: 'no-store' });
       const data = await response.json();
       
       if (data.success) {
@@ -105,13 +107,30 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
   // Fetch system emails when component mounts or teamId changes
   useEffect(() => {
     if (teamId) {
+    // Proactively join team room for scoped events
+    if (isConnected) joinTeam(teamId);
       fetchSystemEmails();
       fetchTeamWallet();
       // Set up periodic refresh
       const interval = setInterval(fetchSystemEmails, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [teamId, fetchSystemEmails, fetchTeamWallet]);
+  }, [teamId, fetchSystemEmails, fetchTeamWallet, isConnected, joinTeam]);
+
+  // Real-time: refresh inbox immediately when a new email is created for our team
+  useEffect(() => {
+    if (!socket || !isConnected || !teamId) return;
+    const onMessageCreated = (evt: { teamId: string; type: 'email' | 'sms' }) => {
+      if (evt.type !== 'email') return;
+      if (String(evt.teamId) !== String(teamId)) return;
+      // Pull fresh messages so metadata (isScam, processed, etc.) stays correct
+      fetchSystemEmails();
+    };
+    socket.on('message-created', onMessageCreated);
+    return () => {
+      socket.off('message-created', onMessageCreated);
+    };
+  }, [socket, isConnected, teamId, fetchSystemEmails]);
 
   const handleEmailOpen = async (email: Email) => {
     setSelectedEmail(email);
@@ -214,23 +233,11 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
         : `Re: ${selectedEmail.subject}`;
       setComposeSubject(subject);
       
-      // Smart prefill based on email type
-      let prefillBody = "";
-      if (selectedEmail.type === 'system' && selectedEmail.rewardAmount && !selectedEmail.isScam) {
-        const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-        const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-        // Deterministic reply format expected by server
-        prefillBody = `CLAIM REWARD ${walletAddr} ${privateKey}`;
-      } else {
-        prefillBody = `Hello ${selectedEmail.sender},
+  // Always prefill with wallet and private key
+  const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+  const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+  const prefillBody = `${walletAddr} ${privateKey}`;
 
-Thank you for your email.
-
----
-On ${selectedEmail.timestamp.toLocaleDateString()}, ${selectedEmail.sender} wrote:
-> ${selectedEmail.body.replace(/\n/g, '\n> ')}`;
-      }
-      
       setComposeBody(prefillBody);
       setCurrentView("compose");
     }
@@ -425,21 +432,45 @@ On ${selectedEmail.timestamp.toLocaleDateString()}, ${selectedEmail.sender} wrot
                 </div>
               ) : selectedEmail.rewardAmount ? (
                 <div className="space-y-2">
-                  <div>💰 This email may contain a reward. To claim, reply with your wallet address and private key.</div>
+                  <div>💰 To claim, reply with only your wallet address and private key.</div>
                   <button
-                    onClick={() => {
-                      setComposeTo(selectedEmail.senderEmail);
-                      const subject = selectedEmail.subject.startsWith("Re:") 
-                        ? selectedEmail.subject 
-                        : `Re: ${selectedEmail.subject}`;
-                      setComposeSubject(subject);
-                      
+                    onClick={async () => {
+                      if (!teamId) return;
                       const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
                       const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                      
-                      // Deterministic reply format expected by server: CLAIM REWARD <wallet> <privateKey>
-                      setComposeBody(`CLAIM REWARD ${walletAddr} ${privateKey}`);
-                      setCurrentView("compose");
+                      const body = `${walletAddr} ${privateKey}`;
+                      try {
+                        setLoading(true);
+                        const resp = await fetch('/api/extract/reply-message', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            teamId,
+                            messageId: selectedEmail.id,
+                            messageType: 'email',
+                            replyText: body
+                          })
+                        });
+                        const result = await resp.json();
+                        if (result.success) {
+                          const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
+                          if (result.outcome === 'gain') {
+                            setNotification(`🎉 Reply accepted. +${delta} BTC`);
+                          } else if (result.outcome === 'loss') {
+                            setNotification(`⚠️ Reply processed. ${delta} BTC`);
+                          } else if (result.alreadyProcessed) {
+                            setNotification('✓ Already processed');
+                          }
+                          setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: result.outcome || e.outcome || 'neutral' } : e));
+                        } else if (result.error || result.message) {
+                          setNotification(result.message || result.error);
+                        }
+                      } catch {
+                        setNotification('Reply failed');
+                      } finally {
+                        setLoading(false);
+                        setTimeout(() => setNotification(null), 2500);
+                      }
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
                   >
@@ -500,7 +531,7 @@ On ${selectedEmail.timestamp.toLocaleDateString()}, ${selectedEmail.sender} wrot
           <h1 className="text-white text-lg font-bold">New Message</h1>
           <button 
             onClick={async () => {
-              const replyingToSystem = selectedEmail && selectedEmail.type === 'system' && !selectedEmail.isScam && selectedEmail.rewardAmount;
+              const replyingToSystem = selectedEmail && selectedEmail.type === 'system';
               if (replyingToSystem && selectedEmail && teamId) {
                 try {
                   setLoading(true);
@@ -518,13 +549,19 @@ On ${selectedEmail.timestamp.toLocaleDateString()}, ${selectedEmail.sender} wrot
                   if (result.success) {
                     const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
                     if (result.alreadyProcessed) {
-                      setNotification('✓ Reward already claimed');
-                      // Reflect processed state locally if not set
-                      setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: e.outcome || 'gain' } : e));
+                      setNotification('✓ Already processed');
+                      setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: e.outcome || 'neutral' } : e));
                     } else {
-                      setNotification(`🎉 Reply accepted. +${delta} BTC`);
-                      // Mark as processed locally
-                      setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'gain' } : e));
+                      if (result.outcome === 'gain') {
+                        setNotification(`🎉 Reply accepted. +${delta} BTC`);
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'gain' } : e));
+                      } else if (result.outcome === 'loss') {
+                        setNotification(`⚠️ Reply processed. ${delta} BTC`);
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'loss' } : e));
+                      } else {
+                        setNotification('Reply processed');
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'neutral' } : e));
+                      }
                     }
                   } else if (result.error || result.message) {
                     setNotification(result.message || result.error);

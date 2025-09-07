@@ -19,7 +19,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectDb();
     const model = messageType === 'email' ? EmailModel : SMSModel;
 
-    const result = await model.deleteMany({ _id: { $in: messageIds }, recipient: teamId });
+    // Filter to only valid ObjectId strings (24 hex chars)
+    const validIds = messageIds.filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id));
+    if (validIds.length === 0) {
+      return res.status(200).json({ success: true, deletedCount: 0 });
+    }
+
+    const result = await model.deleteMany({ _id: { $in: validIds }, recipient: teamId });
     return res.status(200).json({ success: true, deletedCount: result.deletedCount || 0 });
   } catch (error) {
     console.error('Error deleting messages:', error);

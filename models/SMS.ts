@@ -11,6 +11,7 @@ export interface SMS extends Document {
   
   // System SMS properties
   type: 'system' | 'user' | 'sample';
+  attackerTeamId?: mongoose.Schema.Types.ObjectId; // Track deployer to route replies
   isScam?: boolean;
   rewardAmount?: number; // BTC reward if legitimate
   lossAmount?: number; // BTC loss if scam
@@ -33,6 +34,7 @@ export interface SMSModel extends Model<SMS> {
   createSystemSMS(data: {
     recipient: mongoose.Types.ObjectId;
     deviceId?: mongoose.Types.ObjectId;
+  attackerTeamId?: mongoose.Types.ObjectId;
     sender: string;
     senderPhone: string;
     content: string;
@@ -86,6 +88,10 @@ const SMSSchema = new Schema<SMS>(
     senderPhone: { 
       type: String, 
       required: true 
+    },
+    attackerTeamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team'
     },
     content: { 
       type: String, 
@@ -181,6 +187,7 @@ SMSSchema.methods.markAsProcessed = function(outcome: 'gain' | 'loss' | 'neutral
 SMSSchema.statics.createSystemSMS = function(data: {
   recipient: mongoose.Types.ObjectId;
   deviceId?: mongoose.Types.ObjectId;
+  attackerTeamId?: mongoose.Types.ObjectId;
   sender: string;
   senderPhone: string;
   content: string;

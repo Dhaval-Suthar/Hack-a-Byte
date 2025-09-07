@@ -337,11 +337,12 @@ export async function sendScheduledMessage(message: PendingMessage) {
     const teamId = new mongoose.Types.ObjectId(message.teamId);
     const deviceId = new mongoose.Types.ObjectId(message.deviceId);
     
-    if (message.template.type === 'email') {
+  if (message.template.type === 'email') {
       // Create email using EmailModel
-    const created = await (EmailModel as EmailModelType).createSystemEmail({
+  const created = await (EmailModel as EmailModelType).createSystemEmail({
         recipient: teamId,
         deviceId: deviceId,
+    // attackerTeamId intentionally omitted for random system messages
         sender: message.template.sender,
         senderEmail: message.template.senderEmail!,
         subject: message.template.subject!,
@@ -366,11 +367,12 @@ export async function sendScheduledMessage(message: PendingMessage) {
           timestamp: Date.now(),
         });
       } catch {}
-    } else {
+  } else {
       // Create SMS using SMSModel
-    const created = await (SMSModel as SMSModelType).createSystemSMS({
+  const created = await (SMSModel as SMSModelType).createSystemSMS({
         recipient: teamId,
         deviceId: deviceId,
+    // attackerTeamId intentionally omitted for random system messages
         sender: message.template.sender,
         senderPhone: message.template.senderPhone!,
         content: message.template.content,

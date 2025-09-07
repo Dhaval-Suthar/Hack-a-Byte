@@ -1,20 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
-import EmailModel from '@/models/Email';
-import SMSModel from '@/models/SMS';
+import EmailModel, { type EmailModel as EmailModelType } from '@/models/Email';
+import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import { badRequest, notFound, methodNotAllowed, internalError } from '@/lib/api-errors';
 import type { NextApiResponseServerIo } from '@/lib/socket';
+import mongoose from 'mongoose';
 
-// Deterministic parsing: expect format "CLAIM REWARD <wallet> <privateKey>"
-// We intentionally avoid regex address/key validation per request; just ensure tokens exist.
+// Deterministic parsing: accept either "<wallet> <privateKey>" or legacy "CLAIM REWARD <wallet> <privateKey>"
+// We intentionally avoid regex validation; just ensure tokens exist.
 function extractWalletAndKeyFromReply(replyText: string): { wallet?: string; priv?: string } {
-  // Normalize whitespace; split by any whitespace
   const tokens = String(replyText || '').trim().split(/\s+/).filter(Boolean);
-  // Expected positions: tokens[0]=CLAIM, tokens[1]=REWARD, tokens[2]=wallet, tokens[3]=privateKey
-  const wallet = tokens[2];
-  const priv = tokens[3];
-  return { wallet, priv };
+  if (tokens.length >= 4 && tokens[0].toUpperCase() === 'CLAIM' && tokens[1].toUpperCase() === 'REWARD') {
+    return { wallet: tokens[2], priv: tokens[3] };
+  }
+  if (tokens.length >= 2) {
+    return { wallet: tokens[0], priv: tokens[1] };
+  }
+  return { wallet: undefined, priv: undefined };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -22,6 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { teamId, messageId, messageType, replyText } = req.body || {};
+  console.log('reply-message: invoked', { teamId, messageId, messageType });
     if (!teamId || !messageId || !messageType || !replyText) {
       return badRequest(res, 'teamId, messageId, messageType and replyText are required');
     }
@@ -43,37 +47,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let updated: unknown | null = null;
     let branch: 'reward' | 'scam' | null = null;
 
-    // Try reward branch first only if tokens present
+  // Try reward branch first only if tokens present
     if (hasAddr && hasPriv) {
       updated = await model.findOneAndUpdate(
         { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: { $ne: true }, rewardAmount: { $gt: 0 } },
         { $set: { processed: true, processedAt: new Date(), outcome: 'gain', isRead: true } },
         { new: true }
       );
-      if (updated) branch = 'reward';
+      if (updated) {
+        branch = 'reward';
+        console.log('reply-message: reward branch matched', { messageId });
+      }
     }
 
-    // If not reward, attempt scam branch (allow any non-empty reply)
+  // If not reward, attempt scam branch (allow any non-empty reply)
     if (!updated) {
       const hasSomeText = typeof replyText === 'string' && replyText.trim().length > 0;
       if (!hasSomeText) {
         return badRequest(res, 'Reply text is required');
       }
       const updatedScam = await model.findOneAndUpdate(
-        { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: true, lossAmount: { $gt: 0 } },
-        { $set: { processed: true, processedAt: new Date(), outcome: 'loss', isRead: true } },
+    { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: true },
+    { $set: { processed: true, processedAt: new Date(), outcome: 'neutral', isRead: true } },
         { new: true }
       );
       if (updatedScam) {
         updated = updatedScam;
-        branch = 'scam';
+    branch = 'scam';
+        console.log('reply-message: scam branch matched', { messageId });
       }
     }
 
-    if (!updated) {
+  if (!updated) {
       // Determine specific reason
       const existing = await model.findOne({ _id: messageId, recipient: teamId }).lean() as unknown as { processed?: boolean } | null;
-      if (!existing) return notFound(res, 'Message not found');
+      if (!existing) {
+        console.warn('reply-message: message not found or recipient mismatch', { messageId, teamId });
+        return notFound(res, 'Message not found');
+      }
       if (existing?.processed) {
         // Provide stable shape with zero change to avoid undefined on client
         const team = await Team.findById(teamId).select('wallet.bitcoinBalance');
@@ -90,6 +101,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const reward = Number((updated as { rewardAmount?: number } | null)?.rewardAmount || 0);
       team.wallet.bitcoinBalance += reward;
       await team.save();
+      // Forward reply to original sender (if attackerTeamId exists)
+      try {
+        interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
+        const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
+        if (meta?.attackerTeamId) {
+          const baseContent = wallet && priv
+            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+            : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
+          if (messageType === 'sms') {
+            const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderPhone: '+0 (relay)',
+              content: baseContent,
+            });
+            console.log('reply-message: SMS forward created (reward)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
+            try {
+              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'sms',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+              console.log('reply-message: emitted message-created SMS (reward)', { room: `team-${String(meta.attackerTeamId)}` });
+            } catch {}
+          } else {
+            const createdForward = await (EmailModel as EmailModelType).createSystemEmail({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderEmail: 'relay@hackabyte.local',
+              subject: `Reply received on your message: ${meta.subject || 'No Subject'}`,
+              content: baseContent,
+            });
+            console.log('reply-message: email forward created (reward)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
+            try {
+              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'email',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                subject: (createdForward as unknown as { subject: string }).subject,
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+              console.log('reply-message: emitted message-created email (reward)', { room: `team-${String(meta.attackerTeamId)}` });
+            } catch {}
+          }
+        }
+      } catch {}
       // Emit socket event (team scoped)
       try {
         const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
@@ -115,18 +179,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch {}
       return res.status(200).json({ success: true, outcome: 'gain', balanceChange: Number((updated as { rewardAmount?: number } | null)?.rewardAmount || 0), newBalance: team.wallet.bitcoinBalance });
     } else {
-      // Scam branch: deduct loss on reply
-      const loss = Number((updated as { lossAmount?: number } | null)?.lossAmount || 0);
-      team.wallet.bitcoinBalance = Math.max(0, team.wallet.bitcoinBalance - loss);
-      await team.save();
+      // Scam branch: do NOT deduct any amount; treat as neutral processing
+  await team.save();
+      // Forward reply (with wallet+priv if provided)
+      try {
+        interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
+        const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
+        if (meta?.attackerTeamId) {
+          const baseContent = wallet && priv
+            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+            : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
+          if (messageType === 'sms') {
+            const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderPhone: '+0 (relay)',
+              content: baseContent,
+            });
+            console.log('reply-message: SMS forward created (scam)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
+            try {
+              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'sms',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+              console.log('reply-message: emitted message-created SMS (scam)', { room: `team-${String(meta.attackerTeamId)}` });
+            } catch {}
+          } else {
+            const createdForward = await (EmailModel as EmailModelType).createSystemEmail({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderEmail: 'relay@hackabyte.local',
+              subject: `Victim reply received: ${meta.subject || 'No Subject'}`,
+              content: baseContent,
+            });
+            console.log('reply-message: email forward created (scam)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
+            try {
+              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'email',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                subject: (createdForward as unknown as { subject: string }).subject,
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+              console.log('reply-message: emitted message-created email (scam)', { room: `team-${String(meta.attackerTeamId)}` });
+            } catch {}
+          }
+        }
+      } catch {}
       try {
         const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
         io?.to?.(`team-${teamId}`)?.emit('extractor-email-sms', {
           teamId,
-          outcome: 'loss',
-          amount: -loss,
+          outcome: 'neutral',
+          amount: 0,
           balance: team.wallet.bitcoinBalance,
-          detail: `Reply processed. -${loss} BTC`,
+          detail: `Reply processed. No balance change.`,
           ts: Date.now()
         });
         io?.to?.(`team-${teamId}`)?.emit('extractor-event', {
@@ -134,14 +249,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           event: {
             id: Math.random().toString(36).slice(2),
             type: messageType,
-            outcome: 'loss',
-            amount: -loss,
+            outcome: 'neutral',
+            amount: 0,
             ts: Date.now(),
-            detail: 'Loss from replying to message'
+            detail: 'Reply processed (no balance change)'
           }
         });
       } catch {}
-      return res.status(200).json({ success: true, outcome: 'loss', balanceChange: -loss, newBalance: team.wallet.bitcoinBalance });
+      return res.status(200).json({ success: true, outcome: 'neutral', balanceChange: 0, newBalance: team.wallet.bitcoinBalance });
     }
   } catch (error) {
     console.error('Error processing reply-message:', error);
