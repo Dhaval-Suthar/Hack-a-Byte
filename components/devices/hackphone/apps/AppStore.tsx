@@ -65,6 +65,7 @@ interface DeploymentData {
   stealAmount?: string;
   customTitle?: string;
   customDescription?: string;
+  targetDeviceId?: string;
   // For worm-based broadcast scams
   emailSubject?: string;
   emailContent?: string;
@@ -397,11 +398,16 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     let isValidTarget = false;
     let targetInfo = '';
 
-    if (deployItem.category === 'virus' && deployData.macAddress) {
-      // Basic MAC address validation
+    if (deployItem.category === 'virus' && deployData.macAddress && deployData.ipAddress) {
+      // Validate both MAC address and IP address
       const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
-      isValidTarget = macRegex.test(deployData.macAddress.trim());
-      targetInfo = deployData.macAddress.trim();
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      
+      const validMac = macRegex.test(deployData.macAddress.trim());
+      const validIP = ipRegex.test(deployData.ipAddress.trim());
+      
+      isValidTarget = validMac && validIP;
+      targetInfo = `${deployData.macAddress.trim()} (${deployData.ipAddress.trim()})`;
     } else if (deployItem.category === 'worm') {
       // Special handling for EmailSpread Pro / SocialHook / NetCrawler
       if (deployItem.name === 'EmailSpread Pro') {
@@ -442,7 +448,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     }
 
     if (!isValidTarget) {
-      alert('Please enter a valid target address in the correct format.');
+      if (deployItem.category === 'virus' && (deployItem.name === 'SysTrojan Pro' || deployItem.name === 'StealthViral' || deployItem.name === 'DataMiner X')) {
+        alert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.');
+      } else {
+        alert('Please enter a valid target address in the correct format.');
+      }
       return;
     }
 
@@ -550,7 +560,102 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   } else {
         // Regular malware deployment
         if (deployItem.category === 'virus') {
-          effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
+          const attackerTeamId = attackerTeamIdProp || user?.teamId;
+          if (!attackerTeamId) {
+            throw new Error('Attacker team ID not found');
+          }
+
+          // Call specific virus APIs
+          if (deployItem.id === 'virus-001') { // SysTrojan Pro
+            const targetDeviceId = deployData.targetDeviceId || deployData.macAddress; // Assume MAC is device ID for now
+            const response = await fetch('/api/attack/systrojan', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ targetDeviceId, attackerTeamId })
+            });
+            const result = await response.json();
+            if (result.success) {
+              if (result.outcome === 'destroyed') {
+                effectMessage = `💥 SysTrojan Pro destroyed target device! Siphoned ${result.siphon} BTC. Device is now under maintenance.`;
+              } else {
+                effectMessage = `🦠 SysTrojan Pro injection failed. Target security too strong.`;
+              }
+            } else {
+              throw new Error(result.error || 'SysTrojan attack failed');
+            }
+          } else if (deployItem.id === 'virus-002') { // StealthViral
+            const targetKey = deployData.targetDeviceId || deployData.macAddress || 'unknown-target';
+            // Resolve target teamId via helper endpoint (by device MAC) - fallback to playspace team if not found
+            let targetTeamId: string | undefined;
+            try {
+              if (deployData.macAddress) {
+                const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
+                if (r.ok) {
+                  const j = await r.json();
+                  if (j?.success && j?.teamId) targetTeamId = j.teamId;
+                }
+              }
+            } catch (e) { console.warn('Resolve target team failed (mac):', e); }
+            if (!targetTeamId) {
+              try {
+                const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
+                if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
+              } catch (e) { console.warn('Resolve target team failed (ip):', e); }
+            }
+            if (!targetTeamId) {
+              alert('Could not resolve target team for StealthViral (missing mapping).');
+              throw new Error('Target team resolution failed');
+            }
+            console.log('🔍 StealthViral deployment:', { targetKey, targetTeamId, attackerTeamId, deployData });
+            const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
+              method: 'POST',
+              headers: { 'x-team-id': attackerTeamId, 'x-target-team-id': targetTeamId }
+            });
+            const result = await response.json();
+            if (result.success) {
+              effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+            } else {
+              throw new Error(result.error || 'StealthViral deployment failed');
+            }
+          } else if (deployItem.id === 'virus-003') { // DataMiner X
+            const targetDeviceId = deployData.targetDeviceId || deployData.macAddress;
+            // Resolve target team as above
+            let targetTeamId: string | undefined;
+            try {
+              if (deployData.macAddress) {
+                const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
+                if (r.ok) { const j = await r.json(); if (j?.success && j?.teamId) targetTeamId = j.teamId; }
+              }
+            } catch {}
+            if (!targetTeamId) {
+              try {
+                const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
+                if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
+              } catch {}
+            }
+            const response = await fetch('/api/attack/dataminer', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ targetDeviceId, attackerTeamId, targetTeamId })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+              if (result.outcome === 'success') {
+                effectMessage = `⛏️ DataMiner X exfiltration successful! Retrieved private key: ${result.privateKey}`;
+              } else {
+                effectMessage = `⛏️ DataMiner X failed to penetrate target security.`;
+              }
+            } else {
+              if (response.status === 429) {
+                const resetTs: number | undefined = result?.reset;
+                const secs = resetTs ? Math.max(0, Math.ceil((resetTs - Date.now()) / 1000)) : undefined;
+                alert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`);
+              }
+              throw new Error(result.error || 'DataMiner attack failed');
+            }
+          } else {
+            effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
+          }
         } else if (deployItem.category === 'worm') {
           effectMessage = `🕷️ Worm spreading from ${targetInfo}. Network propagation initiated.`;
         } else if (deployItem.category === 'ransomware') {
@@ -609,11 +714,40 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                                  deployItem.category === 'worm' ? 'NETWORK INTRUSION DETECTED' :
                                  deployItem.category === 'virus' ? 'MALWARE INFECTION DETECTED' : 'SECURITY ALERT';
 
-            triggerAttackEffect({
-              playspaceId: attackerPlayspaceId,
-              effect: effectMessageSocket,
-              severity: effectSeverity,
-              duration: deployItem.category === 'ransomware' ? 15000 : 10000,
+            // Prefer defender-scoped big-screen effect when a target team is known (virus/worm/ransomware)
+            const maybeTargetTeamId = (async () => {
+              try {
+                if (deployItem.category === 'virus' || deployItem.category === 'worm' || deployItem.category === 'ransomware') {
+                  if (deployData.macAddress) {
+                    const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
+                    if (r.ok) { const j = await r.json(); if (j?.success && j?.teamId) return j.teamId as string; }
+                  }
+                  if (deployData.ipAddress) {
+                    const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress)}`);
+                    if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) return j2.teamId as string; }
+                  }
+                }
+              } catch {}
+              return undefined;
+            })();
+
+            maybeTargetTeamId.then((resolvedTargetTeamId) => {
+              if (resolvedTargetTeamId) {
+                triggerAttackEffect({
+                  teamId: resolvedTargetTeamId,
+                  effect: effectMessageSocket,
+                  severity: effectSeverity,
+                  duration: deployItem.category === 'ransomware' ? 15000 : 10000,
+                });
+              } else {
+                // Fallback to attacker playspace for non-targeted/legacy effects
+                triggerAttackEffect({
+                  playspaceId: attackerPlayspaceId,
+                  effect: effectMessageSocket,
+                  severity: effectSeverity,
+                  duration: deployItem.category === 'ransomware' ? 15000 : 10000,
+                });
+              }
             });
           }
 
@@ -653,7 +787,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     if (socket && deployItem.category === 'ransomware' && deployItem.name.toLowerCase().includes('bank')) {
       socket.emit('fake-bank-warning', { domain: deployData.domainName || 'bank.example', ts: Date.now() });
     }
-  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username, socket, attackerTeamIdProp]);
+  }, [deployItem, deployData, isConnected, sendMalwareAttack, triggerAttackEffect, user?.username, user?.teamId, socket, attackerTeamIdProp]);
 
   const getCategoryBadge = (cat: Category) => ({
     virus: "bg-red-500",
@@ -1044,18 +1178,32 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             <div className="text-[15px] font-bold mb-2 text-center">Deploy {deployItem.name}</div>
             <div className="space-y-3 text-[13px]">
               {deployItem.category === "virus" && (
-                <div>
-                  <label className="block text-[12px] text-[#666] mb-1">Target MAC Address</label>
-                  <input
-                    value={deployData.macAddress || ""}
-                    onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
-                    placeholder="00:1B:44:11:3A:B7"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
-                  />
-                  <div className="text-[11px] text-[#888] mt-1">
-                    Enter the target&apos;s MAC address (e.g., 00:1B:44:11:3A:B7)
+                <>
+                  <div>
+                    <label className="block text-[12px] text-[#666] mb-1">Target MAC Address</label>
+                    <input
+                      value={deployData.macAddress || ""}
+                      onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
+                      placeholder="00:1B:44:11:3A:B7"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    />
+                    <div className="text-[11px] text-[#888] mt-1">
+                      Enter the target&apos;s MAC address (e.g., 00:1B:44:11:3A:B7)
+                    </div>
                   </div>
-                </div>
+                  <div>
+                    <label className="block text-[12px] text-[#666] mb-1">Target IP Address</label>
+                    <input
+                      value={deployData.ipAddress || ""}
+                      onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
+                      placeholder="192.168.1.100"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    />
+                    <div className="text-[11px] text-[#888] mt-1">
+                      Enter the target&apos;s IP address (e.g., 192.168.1.100)
+                    </div>
+                  </div>
+                </>
               )}
               {deployItem.category === "worm" && (
                 (deployItem.name === 'EmailSpread Pro' || deployItem.name === 'NetCrawler' || deployItem.name === 'SocialHook') ? (

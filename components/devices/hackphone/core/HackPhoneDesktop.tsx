@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -7,10 +7,16 @@ import { getPlayspaceId } from "@/lib/playspace-utils";
 import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
 import HackPhoneHomeScreen from "@/components/devices/hackphone/core/HackPhoneHomeScreen";
 import HackPhoneAppsRouter from "@/components/devices/hackphone/core/HackPhoneAppsRouter";
+import DeviceStatusGuard from "@/components/devices/hackphone/core/DeviceStatusGuard";
+import GameOverListener from "@/components/devices/hackphone/core/GameOverListener";
 import { useAppNavigation } from "../shared/useAppNavigation";
 import { User } from "@/types/devices";
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
+import dynamic from 'next/dynamic';
+
+// Lazy-load virus popups to avoid SSR issues
+const VirusPopups = dynamic(() => import('@/components/notifications/VirusPopups'), { ssr: false });
 
 const HackPhoneDesktop = () => {
   const router = useRouter();
@@ -62,65 +68,55 @@ const HackPhoneDesktop = () => {
         setPlayspaceId(currentPlayspaceId || undefined);
         setDeviceId(urlDeviceId || undefined);
 
-        // Get teamId for notifications
-        let resolvedTeamId: string | undefined;
+        // Get teamId from playspaceId for notifications
         if (currentPlayspaceId) {
-          // Preferred: resolve by playspaceId
           try {
             const teamResponse = await fetch(`/api/team/get-team-id?playspaceId=${currentPlayspaceId}`);
             const teamData = await teamResponse.json();
             if (teamData.success) {
-              resolvedTeamId = teamData.teamId;
+              setTeamId(teamData.teamId);
             }
           } catch (error) {
-            console.error('Failed to fetch team ID by playspace:', error);
-          }
-
-          // Fallback: try cookie/localStorage playspace if different
-          if (!resolvedTeamId) {
-            const altPlayspace = getPlayspaceId();
-            if (altPlayspace && altPlayspace !== currentPlayspaceId) {
-              try {
-                const altRes = await fetch(`/api/team/get-team-id?playspaceId=${altPlayspace}`);
-                const altJson = await altRes.json();
-                if (altJson?.success) {
-                  resolvedTeamId = altJson.teamId;
-                }
-              } catch (e) {
-                console.error('Fallback playspace team lookup failed:', e);
-              }
-            }
+            console.error('Failed to fetch team ID:', error);
           }
         }
 
-        if (!resolvedTeamId && urlDeviceId) {
-          // Fallback: resolve teamId via deviceId from devices API
+        // If no deviceId in URL, try to get it from localStorage and resolve correct team
+        let resolvedDeviceId = urlDeviceId;
+        
+        if (!urlDeviceId) {
           try {
-            const devicesRes = await fetch('/api/devices');
-            const devicesJson = await devicesRes.json();
-            if (devicesJson?.success && Array.isArray(devicesJson.devices)) {
-              const needle = String(urlDeviceId).toLowerCase();
-              const match = devicesJson.devices.find((d: { id?: string; deviceMacAddress?: string }) => {
-                const did = (d.id || '').toString().toLowerCase();
-                const mac = (d.deviceMacAddress || '').toString().toLowerCase();
-                return did === needle || mac === needle;
-              });
-              if (match?.teamId) {
-                resolvedTeamId = match.teamId as string;
-              }
+            const storedMac = localStorage.getItem("device_mac_address");
+            if (storedMac) {
+              console.log('🔍 Using stored MAC address (no URL deviceId):', storedMac);
+              // Only set deviceId for convenience; do NOT override teamId here to avoid
+              // accidentally joining the wrong team on unrelated devices.
+              resolvedDeviceId = storedMac;
             }
           } catch (error) {
-            console.error('Failed to resolve team ID by device:', error);
+            console.error('Failed to read stored MAC address:', error);
           }
         }
-
-        if (resolvedTeamId) {
-          setTeamId(resolvedTeamId);
-        }
+        
+        setDeviceId(resolvedDeviceId || undefined);
 
         // Store device MAC address in localStorage if available
         if (urlDeviceId) {
           localStorage.setItem("device_mac_address", urlDeviceId);
+          
+          // Also resolve the correct team for this device
+          try {
+            const resolveResponse = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(urlDeviceId)}`);
+            if (resolveResponse.ok) {
+              const resolveData = await resolveResponse.json();
+              if (resolveData.success && resolveData.teamId) {
+                console.log('🎯 Resolved team for URL deviceId:', { deviceId: urlDeviceId, teamId: resolveData.teamId });
+                setTeamId(resolveData.teamId); // Override the playspace-based teamId
+              }
+            }
+          } catch (error) {
+            console.error('Failed to resolve URL device team:', error);
+          }
         }
 
         // On iPhone 4 UX, we allow home without playspace; only require auth for deviceId flow
@@ -169,26 +165,27 @@ const HackPhoneDesktop = () => {
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden touch-pan-y">
-      {/* Main content area with improved touch handling */}
-      <div className="relative w-full h-full">
-        {currentApp ? (
-          <HackPhoneAppsRouter
-            appId={currentApp}
-            onClose={handleAppClose}
-            user={user}
-            time={time}
-            onAppSwitch={handleAppSwitch}
-            onOpenApp={handleAppOpen}
-            deviceId={deviceId}
-            playspaceId={playspaceId}
-          />
-        ) : (
-          <HackPhoneHomeScreen
-            onAppOpen={handleAppOpen}
-          />
-        )}
-      </div>
+    <DeviceStatusGuard deviceId={deviceId} playspaceId={playspaceId}>
+      <div className="relative w-screen h-screen overflow-hidden touch-pan-y">
+        {/* Main content area with improved touch handling */}
+        <div className="relative w-full h-full">
+          {currentApp ? (
+            <HackPhoneAppsRouter
+              appId={currentApp}
+              onClose={handleAppClose}
+              user={user}
+              time={time}
+              onAppSwitch={handleAppSwitch}
+              onOpenApp={handleAppOpen}
+              deviceId={deviceId}
+              playspaceId={playspaceId}
+            />
+          ) : (
+            <HackPhoneHomeScreen
+              onAppOpen={handleAppOpen}
+            />
+          )}
+        </div>
 
             {/* iOS 4 Style Notifications on Home Screen */}
       {notification && !currentApp && (
@@ -211,6 +208,21 @@ const HackPhoneDesktop = () => {
           />
         </>
       )}
+
+      {/* StealthViral random popup overlay (defensive clicking) */}
+      {teamId && (
+        // Use deviceId (MAC) as the StealthViral targetKey because the attack API
+        // spawns events keyed by the target device identifier (MAC). Previously
+        // we used teamId which never matched the spawn event targetKey, so the
+        // defender never saw popup nodes. Fallback to teamId if deviceId missing.
+        <>
+          {console.log('🎯 VirusPopups props:', { targetKey: deviceId || teamId, targetTeamId: teamId, deviceId, teamId })}
+          <VirusPopups targetKey={deviceId || teamId} targetTeamId={teamId} active />
+        </>
+      )}
+
+      {/* Game over listener for forced redirections */}
+      <GameOverListener teamId={teamId} deviceId={deviceId} enabled={true} />
 
       {/* Enhanced bottom navigation with haptic feedback */}
       <div
@@ -253,7 +265,8 @@ const HackPhoneDesktop = () => {
         />
         <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/90 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.5)]" />
       </button>
-    </div>
+      </div>
+    </DeviceStatusGuard>
   );
 };
 

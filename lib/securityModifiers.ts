@@ -28,14 +28,14 @@ export interface SuccessComputation {
   };
 }
 
-// Weight mapping per toggle – tweak central place
+// Weight mapping per toggle – reduced for better gameplay balance
 const TOGGLE_WEIGHTS: Record<string, number> = {
-  firewall: 0.08,
-  antiVirus: 0.07,
-  vpn: 0.05,
-  enc: 0.06,
-  ids: 0.05,
-  vulnerabilitiesClear: 0.08, // no vulns bonus for defenders (penalty to attacker)
+  firewall: 0.04,       // was 0.08
+  antiVirus: 0.04,      // was 0.07
+  vpn: 0.03,           // was 0.05
+  enc: 0.03,           // was 0.06
+  ids: 0.03,           // was 0.05
+  vulnerabilitiesClear: 0.04, // was 0.08 - no vulns bonus for defenders
 };
 
 export function computeSecurityPenalty(sec?: RawSecuritySettings | null): number {

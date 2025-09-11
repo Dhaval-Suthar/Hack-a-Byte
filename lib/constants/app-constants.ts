@@ -136,16 +136,17 @@ export const ROLE_GROUPS = {
 export const APP_ROLE_ACCESS: Record<string, string[]> = {
   // Economic / offensive tooling
   'appStore': [...ROLE_GROUPS.attackers],
-  'worm-phish': [...ROLE_GROUPS.attackers],
   'faucet': [...ROLE_GROUPS.attackers],
   'email-sms': [...ROLE_GROUPS.attackers],
+  'fakebank': [...ROLE_GROUPS.attackers],
+  'recon': [...ROLE_GROUPS.attackers],
+  'systrojan': [...ROLE_GROUPS.attackers],
+  'systemlock': [...ROLE_GROUPS.attackers],
+  'resolve': [...ROLE_GROUPS.attackers],
   // Strategic / unique
   'stocks': [...ROLE_GROUPS.strategist],
   // Defensive tooling
-  'def-stealth': [...ROLE_GROUPS.defenders],
-  'def-ransom': [...ROLE_GROUPS.defenders],
   'security': [...ROLE_GROUPS.defenders, ...ROLE_GROUPS.strategist],
-  'bank-status': [...ROLE_GROUPS.defenders, ...ROLE_GROUPS.strategist],
 };
 
 // Helper to format allowed roles for UI messaging

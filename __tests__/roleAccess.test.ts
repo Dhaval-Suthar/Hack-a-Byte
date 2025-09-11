@@ -35,11 +35,11 @@ describe('role access utilities', () => {
 
   it('assertRoleAccess passes for allowed team', async () => {
     mockFind([ { role: 'tokyo' } ]);
-    await expect(assertRoleAccess('tid','worm-phish')).resolves.toBeUndefined();
+    await expect(assertRoleAccess('tid','fakebank')).resolves.toBeUndefined();
   });
 
   it('assertRoleAccess throws for disallowed team', async () => {
     mockFind([ { role: 'berlin' } ]);
-    await expect(assertRoleAccess('tid','worm-phish')).rejects.toHaveProperty('message','FORBIDDEN_ROLE');
+    await expect(assertRoleAccess('tid','fakebank')).rejects.toHaveProperty('message','FORBIDDEN_ROLE');
   });
 });

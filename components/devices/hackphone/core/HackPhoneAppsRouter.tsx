@@ -36,10 +36,6 @@ const SettingsApp = lazy(() => import("../apps/SettingsApp"));
 const SentinelApp = lazy(() => import("../apps/SentinelApp"));
 const Calendar = lazy(() => import("../apps/Calendar/Calendar"));
 const MiningApp = lazy(() => import("../apps/MiningApp"));
-const DefenderStealthViral = lazy(() => import("../apps/DefenderStealthViral"));
-const DefenderRansomware = lazy(() => import("../apps/DefenderRansomware"));
-const BankStatusApp = lazy(() => import("../apps/BankStatusApp"));
-const WormPhishingApp = lazy(() => import("../apps/WormPhishingApp"));
 const EmailSmsExtractor = lazy(() => import("../apps/EmailSmsExtractor"));
 
 const LoadingSpinner = () => (
@@ -300,34 +296,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}> 
             <MiningApp />
-          </Suspense>,
-          appId
-        );
-      case "def-stealth":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <DefenderStealthViral />
-          </Suspense>,
-          appId
-        );
-      case "def-ransom":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <DefenderRansomware />
-          </Suspense>,
-          appId
-        );
-      case "bank-status":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <BankStatusApp />
-          </Suspense>,
-          appId
-        );
-      case "worm-phish":
-        return wrapWithErrorBoundary(
-          <Suspense fallback={<LoadingSpinner />}> 
-            <WormPhishingApp />
           </Suspense>,
           appId
         );

@@ -27,9 +27,10 @@ export function emitScoped(res: NextApiResponse, opts: EmitOptions) {
     const playspaceCookie = reqAny?.cookies?.playspaceId;
     const enriched = { ...payload, ts: Date.now(), playspaceId: playspaceCookie };
     let room: string | undefined;
-    if (scope === 'playspace' && id) room = `playspace:${id}`;
-    else if (scope === 'team' && id) room = `team:${id}`;
-    else if (playspaceCookie) room = `playspace:${playspaceCookie}`;
+  // Align with socket server: playspace rooms are joined by raw playspaceId; team rooms are `team-<teamId>`
+  if (scope === 'playspace' && id) room = id;
+  else if (scope === 'team' && id) room = `team-${id}`;
+  else if (playspaceCookie) room = playspaceCookie; // fallback broadcast to current playspace
     if (room) io.to(room).emit(event, enriched); else io.emit(event, enriched);
   } catch {}
 }

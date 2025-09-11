@@ -87,6 +87,22 @@ export const initSocket = (httpServer: NetServer) => {
       } catch {}
     });
 
+    // Leave team room
+    socket.on('leave-team', (teamId: string) => {
+      const roomName = `team-${teamId}`;
+      if ((socket.rooms as Set<string>).has(roomName)) {
+        socket.leave(roomName);
+        const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
+        console.log(`🔌 Client ${socket.id} left team: ${teamId} (clients: ${size})`);
+      }
+      // Update tracking map
+      const set = clientsByTeam.get(teamId);
+      if (set) {
+        set.delete(socket.id);
+        if (set.size === 0) clientsByTeam.delete(teamId);
+      }
+    });
+
     // Join user room for personal notifications
     socket.on('join-user', (userId: string) => {
       socket.join(`user-${userId}`);
@@ -132,20 +148,35 @@ export const initSocket = (httpServer: NetServer) => {
       console.log('Attack broadcasted to playspace:', data.attackerPlayspaceId);
     });
 
-    // Handle attack effects
+    // Handle attack effects (playspace-wide or team-scoped)
     socket.on('attack-effect', (data: {
-      playspaceId: string;
+      playspaceId?: string;
+      teamId?: string;
       effect: string;
       severity: 'low' | 'medium' | 'high' | 'critical';
       duration?: number;
     }) => {
       console.log('Attack effect triggered:', data);
 
-      // Broadcast effect to all clients in playspace
-      io.to(data.playspaceId).emit('global-effect', {
-        ...data,
-        timestamp: Date.now(),
-      });
+      if (data.teamId) {
+        // Team-scoped effect
+        const room = `team-${data.teamId}`;
+        io.to(room).emit('global-effect', {
+          ...data,
+          scope: 'team',
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
+      if (data.playspaceId) {
+        // Playspace-wide effect (legacy/default)
+        io.to(data.playspaceId).emit('global-effect', {
+          ...data,
+          scope: 'playspace',
+          timestamp: Date.now(),
+        });
+      }
     });
 
     // Handle tournament updates

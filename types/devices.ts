@@ -2,6 +2,7 @@
 export interface User {
   _id: string;
   username: string;
+  teamId?: string;
   role?: string;
   sessionId?: string;
   progress: {

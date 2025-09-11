@@ -14,7 +14,9 @@ export interface AttackData {
 }
 
 export interface AttackEffect {
-  playspaceId: string;
+  // One of these scopes will be present
+  playspaceId?: string;
+  teamId?: string;
   effect: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   duration?: number;
@@ -64,8 +66,9 @@ export interface NotificationData {
 
 // Stealth viral + ransomware realtime events
 export interface StealthViralSpawn { targetKey: string; clicksRequired: number; ts: number; }
-export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; ts: number; }
+export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; coveragePercent: number; progressPercent: number; message: string; ts: number; }
 export interface StealthViralDefeated { targetKey: string; ts: number; }
+export interface VirusNotification { targetKey: string; virusType: string; message: string; severity: 'info' | 'warning' | 'critical'; ts: number; }
 export interface RansomwareSpawn { targetKey: string; phrase: string; rewardDemand: number; ts: number; }
 export interface RansomwareProgress { targetKey: string; progress: number; total: number; ts: number; }
 export interface RansomwareNeutralized { targetKey: string; ts: number; }
@@ -115,6 +118,7 @@ export const useSocket = () => {
   const [stealthSpawns, setStealthSpawns] = useState<StealthViralSpawn[]>([]);
   const [stealthProgress, setStealthProgress] = useState<StealthViralProgress[]>([]);
   const [stealthDefeated, setStealthDefeated] = useState<StealthViralDefeated[]>([]);
+  const [virusNotifications, setVirusNotifications] = useState<VirusNotification[]>([]);
   const [ransomSpawns, setRansomSpawns] = useState<RansomwareSpawn[]>([]);
   const [ransomProgress, setRansomProgress] = useState<RansomwareProgress[]>([]);
   const [ransomNeutralized, setRansomNeutralized] = useState<RansomwareNeutralized[]>([]);
@@ -292,15 +296,37 @@ export const useSocket = () => {
         // Stealth viral events
         addHandler('malware-stealth-viral-spawn', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralSpawn;
+          console.log('🦠 Received stealth-viral-spawn:', data);
           setStealthSpawns(prev => [...prev, data]);
         });
         addHandler('malware-stealth-viral-progress', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralProgress;
+          console.log('📊 Received stealth-viral-progress:', data);
           setStealthProgress(prev => [...prev, data]);
         });
         addHandler('malware-stealth-viral-defeated', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralDefeated;
+          console.log('✅ Received stealth-viral-defeated:', data);
           setStealthDefeated(prev => [...prev, data]);
+        });
+
+        // Virus notifications
+        addHandler('virus-notification', (dataUnknown: unknown) => {
+          const data = dataUnknown as VirusNotification;
+          console.log('🚨 Received virus-notification:', data);
+          setVirusNotifications(prev => [...prev, data]);
+        });
+
+        // Private key compromised (DataMiner specific)
+        addHandler('private-key-compromised', (dataUnknown: unknown) => {
+          const data = dataUnknown as VirusNotification;
+          console.log('🔑 Received private-key-compromised:', data);
+          // Treat as a virus notification for UI display
+          setVirusNotifications(prev => [...prev, { 
+            ...data, 
+            severity: 'critical' as const,
+            virusType: data.virusType || 'DataMiner X'
+          }]);
         });
 
         // Ransomware events
@@ -560,7 +586,23 @@ export const useSocket = () => {
 
   // Function to join team room (memoized + idempotent per connection)
   const joinTeam = useCallback((teamId: string) => {
+    // If already joined, do nothing
     if (joinedTeamsGlobal.has(teamId)) return;
+
+    // If switching teams, leave previously joined ones on this connection to
+    // avoid receiving events for multiple teams in the same tab/window.
+    if (socket && isConnected && joinedTeamsGlobal.size > 0) {
+      for (const prev of Array.from(joinedTeamsGlobal)) {
+        if (prev !== teamId) {
+          try {
+            socket.emit('leave-team', prev);
+            joinedTeamsGlobal.delete(prev);
+            console.log('Left team room:', prev);
+          } catch {}
+        }
+      }
+    }
+
     joinedTeamsGlobal.add(teamId);
     if (socket && isConnected) {
       socket.emit('join-team', teamId);
@@ -657,6 +699,7 @@ export const useSocket = () => {
   stealthSpawns,
   stealthProgress,
   stealthDefeated,
+  virusNotifications,
   ransomSpawns,
   ransomProgress,
   ransomNeutralized,

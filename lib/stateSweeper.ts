@@ -1,17 +1,9 @@
 // Simple in-process sweeper for transient in-memory maps.
 // NOTE: For multi-instance deployments replace with Redis + key TTL.
 // Import attack modules lazily to avoid mongoose connection issues during instrumentation
-const getWormTokens = async () => {
-  const { wormTokens } = await import('@/pages/api/attack/worm');
-  return wormTokens;
-};
 const getActiveFakeBank = async () => {
   const { activeFakeBank } = await import('@/pages/api/attack/fakebank');
   return activeFakeBank;
-};
-const getActiveRansomDemands = async () => {
-  const { activeRansomDemands } = await import('@/pages/api/attack/ransomware');
-  return activeRansomDemands;
 };
 
 // Import random message functions lazily
@@ -40,21 +32,11 @@ if (!g.__sweeperStarted) {
   setInterval(async () => {
     const now = Date.now();
     try {
-      const wormTokens = await getWormTokens();
       const activeFakeBank = await getActiveFakeBank();
-      const activeRansomDemands = await getActiveRansomDemands();
       
-      // Worm tokens prune
-      for (const [id,t] of Object.entries(wormTokens)) {
-        if (t.expires < now) delete wormTokens[id];
-      }
       // Fake bank windows
       for (const [teamId, win] of Object.entries(activeFakeBank)) {
         if (win.expires < now) delete activeFakeBank[teamId];
-      }
-      // Ransom demands (shape: { [teamId]: { expires:number } })
-      for (const [key, demand] of Object.entries(activeRansomDemands)) {
-        if (demand.expires < now) delete activeRansomDemands[key];
       }
     } catch (err) {
       console.error('❌ Error in state sweeper cleanup:', err);

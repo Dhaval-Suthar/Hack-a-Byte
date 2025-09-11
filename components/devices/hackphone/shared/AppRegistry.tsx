@@ -203,39 +203,6 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "Mine bitcoins via skill-based mini-games",
     permissions: [{ type: "storage", required: false, description: "Persist mining progress" }],
   },
-  {
-    id: "def-stealth",
-    name: "Stealth Defense",
-    icon: "/hackphone/apps/sentinel/app-icon.png",
-    category: "security",
-    description: "Neutralize stealth viral infections via rapid taps",
-    permissions: [{ type: "network", required: true, description: "Poll infection status" }],
-  },
-  {
-    id: "def-ransom",
-    name: "Ransomware",
-    icon: "/hackphone/apps/sentinel/app-icon.png",
-    category: "security",
-    description: "Type code phrases to decrypt and stop ransomware",
-    permissions: [{ type: "network", required: true, description: "Send typing progress" }],
-  },
-  {
-    id: "bank-status",
-    name: "Bank",
-    icon: "/hackphone/apps/stocks/app-icon.png",
-    category: "finance",
-    description: "Monitor bank online/offline state and SystemLock",
-    permissions: [{ type: "network", required: true, description: "Receive bank state events" }],
-  },
-  {
-    id: "worm-phish",
-    name: "Worm Phish",
-  // Use a valid existing icon until a dedicated asset is added
-  icon: "/hackphone/apps/sentinel/app-icon.png",
-    category: "attack",
-    description: "Launch worm phishing reward exploit",
-    permissions: [{ type: "network", required: true, description: "Trigger worm phishing endpoint" }],
-  },
 ];
 
 // Dock apps (always visible)
