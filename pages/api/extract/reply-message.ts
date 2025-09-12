@@ -25,7 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { teamId, messageId, messageType, replyText } = req.body || {};
-  console.log('reply-message: invoked', { teamId, messageId, messageType });
     if (!teamId || !messageId || !messageType || !replyText) {
       return badRequest(res, 'teamId, messageId, messageType and replyText are required');
     }
@@ -56,7 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
       if (updated) {
         branch = 'reward';
-        console.log('reply-message: reward branch matched', { messageId });
       }
     }
 
@@ -74,7 +72,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (updatedScam) {
         updated = updatedScam;
     branch = 'scam';
-        console.log('reply-message: scam branch matched', { messageId });
       }
     }
 
@@ -116,7 +113,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               senderPhone: '+0 (relay)',
               content: baseContent,
             });
-            console.log('reply-message: SMS forward created (reward)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
             try {
               const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
@@ -127,7 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 sender: (createdForward as unknown as { sender: string }).sender,
                 timestamp: Date.now(),
               });
-              console.log('reply-message: emitted message-created SMS (reward)', { room: `team-${String(meta.attackerTeamId)}` });
             } catch {}
           } else {
             const createdForward = await (EmailModel as EmailModelType).createSystemEmail({
@@ -137,7 +132,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               subject: `Reply received on your message: ${meta.subject || 'No Subject'}`,
               content: baseContent,
             });
-            console.log('reply-message: email forward created (reward)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
             try {
               const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
@@ -149,7 +143,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 sender: (createdForward as unknown as { sender: string }).sender,
                 timestamp: Date.now(),
               });
-              console.log('reply-message: emitted message-created email (reward)', { room: `team-${String(meta.attackerTeamId)}` });
             } catch {}
           }
         }
@@ -196,7 +189,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               senderPhone: '+0 (relay)',
               content: baseContent,
             });
-            console.log('reply-message: SMS forward created (scam)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
             try {
               const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
@@ -207,7 +199,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 sender: (createdForward as unknown as { sender: string }).sender,
                 timestamp: Date.now(),
               });
-              console.log('reply-message: emitted message-created SMS (scam)', { room: `team-${String(meta.attackerTeamId)}` });
             } catch {}
           } else {
             const createdForward = await (EmailModel as EmailModelType).createSystemEmail({
@@ -217,7 +208,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               subject: `Victim reply received: ${meta.subject || 'No Subject'}`,
               content: baseContent,
             });
-            console.log('reply-message: email forward created (scam)', { attackerTeamId: meta.attackerTeamId, createdId: (createdForward as unknown as { _id: { toString: () => string } })._id.toString() });
             try {
               const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
@@ -229,7 +219,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 sender: (createdForward as unknown as { sender: string }).sender,
                 timestamp: Date.now(),
               });
-              console.log('reply-message: emitted message-created email (scam)', { room: `team-${String(meta.attackerTeamId)}` });
             } catch {}
           }
         }

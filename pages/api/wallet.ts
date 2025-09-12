@@ -2,10 +2,11 @@ import { NextApiRequest, NextApiResponse } from "next";
 import connectDb from "@/db/connectDb";
 import WalletTransactionModel from "@/models/WalletTransaction";
 import Team from "@/models/Team";
+import { createSuccessResponse, createErrorResponse, validateMethod, handleApiError } from "@/lib/api-response";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!['GET', 'POST'].includes(req.method || '')) {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (!validateMethod(res, req.method || '', ['GET', 'POST'])) {
+    return;
   }
 
   try {
@@ -16,7 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { teamId, limit = '50', offset = '0' } = req.query;
 
       if (!teamId || typeof teamId !== 'string') {
-        return res.status(400).json({ error: "Team ID is required" });
+        createErrorResponse(res, "Team ID is required", 400);
+        return;
       }
 
       const transactions = await WalletTransactionModel.find({ teamId })
@@ -31,11 +33,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const team = await Team.findById(teamId).select('wallet.bitcoinBalance');
       const balance = team?.wallet.bitcoinBalance || 0;
 
-      return res.status(200).json({
-        success: true,
+      createSuccessResponse(res, {
         transactions,
         balance
       });
+      return;
     }
 
     if (req.method === "POST") {
@@ -52,7 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } = req.body;
 
       if (!teamId || !type || typeof amount !== 'number') {
-        return res.status(400).json({ error: "Missing required fields" });
+        createErrorResponse(res, "Missing required fields: teamId, type, and amount are required", 400);
+        return;
       }
 
       const transaction = new WalletTransactionModel({
@@ -69,13 +72,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await transaction.save();
 
-      return res.status(201).json({
-        success: true,
+      createSuccessResponse(res, {
         transaction: transaction.toObject()
-      });
+      }, 201);
+      return;
     }
   } catch (error) {
-    console.error("Wallet API error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    handleApiError(res, error);
   }
 }

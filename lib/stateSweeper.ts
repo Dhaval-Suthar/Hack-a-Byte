@@ -15,7 +15,6 @@ const getRandomMessageFunctions = async () => {
 const g = global as unknown as { __sweeperStarted?: boolean };
 if (!g.__sweeperStarted) {
   g.__sweeperStarted = true;
-  console.log('🚀 StateSweeper starting up...');
   
   // Kick off random message system immediately once at startup
   (async () => {
@@ -61,7 +60,6 @@ if (!g.__sweeperStarted) {
     } catch {}
   }, 60_000);
   
-  console.log('✅ StateSweeper fully initialized');
 }
 
 // Export empty object to make this a proper module

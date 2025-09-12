@@ -87,8 +87,6 @@ export default function DeviceSelectionPage() {
         setSelectedInstances(newSelectedInstances);
 
         // Log the available devices for debugging
-        console.log("Available devices:", result.devices);
-        console.log("Auto-selected instances:", newSelectedInstances);
       }
 
       setLoading(false);
@@ -301,7 +299,6 @@ export default function DeviceSelectionPage() {
       // Store the device MAC address in localStorage
       if (specificDeviceId) {
         localStorage.setItem("device_mac_address", specificDeviceId);
-        console.log("Device MAC address stored in localStorage:", specificDeviceId);
       }
 
       // Small delay to show selection effect before navigating

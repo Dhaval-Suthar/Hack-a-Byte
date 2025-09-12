@@ -36,7 +36,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
     if (persistentPayment) {
       setHasLocalStorageData(true);
       const data = JSON.parse(persistentPayment);
-      console.log('💰 Restoring persistent payment from localStorage:', data);
       if (Date.now() < data.deadline) {
         setActiveDemand(data);
         setTimeLeft(data.deadline - Date.now());
@@ -65,7 +64,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
 
     const latestDemand = cryptoLockerPaymentDemands[cryptoLockerPaymentDemands.length - 1];
     if (latestDemand && Date.now() - latestDemand.ts < 30000) { // Recent demand
-      console.log('💰 CryptoLocker payment demand:', latestDemand);
       const deadline = Date.now() + (5 * 60 * 1000); // 5 minutes to pay
       const demandWithDeadline = { ...latestDemand, deadline };
       
@@ -84,7 +82,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
 
     const latestGameOver = cryptoLockerGameOvers[cryptoLockerGameOvers.length - 1];
     if (latestGameOver && Date.now() - latestGameOver.ts < 10000) {
-      console.log('💀 CryptoLocker game over:', latestGameOver);
       setGameOver(latestGameOver);
       setActiveDemand(null);
       setShowPersistentScreen(false);
@@ -99,7 +96,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
 
     const latestPaymentSent = cryptoLockerPaymentSents[cryptoLockerPaymentSents.length - 1];
     if (latestPaymentSent && Date.now() - latestPaymentSent.ts < 10000) {
-      console.log('💸 CryptoLocker payment successful:', latestPaymentSent);
       setActiveDemand(null);
       setShowPersistentScreen(false);
       setGameOver(null);
@@ -144,7 +140,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
   const handlePayment = useCallback(async () => {
     if (!activeDemand || !teamId || isProcessing) return;
 
-    console.log('💰 CryptoLockerPayment: Making payment request', {
       activeDemand,
       teamId,
       attackerTeamId: activeDemand.attackerTeamId,
@@ -160,7 +155,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
         amount: activeDemand.demand
       };
       
-      console.log('💰 CryptoLockerPayment: Sending request body:', requestBody);
       
       const response = await fetch('/api/attack/cryptolocker-payment', {
         method: 'POST',
@@ -168,10 +162,8 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
         body: JSON.stringify(requestBody)
       });
 
-      console.log('💰 CryptoLockerPayment: Response status:', response.status);
       
       const result = await response.json();
-      console.log('💰 CryptoLockerPayment: Response body:', result);
       
       if (result.success) {
         // Payment successful - clear persistent storage and close
@@ -213,7 +205,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
 
     const latestPaymentSent = cryptoLockerPaymentSents[cryptoLockerPaymentSents.length - 1];
     if (latestPaymentSent && Date.now() - latestPaymentSent.ts < 10000) {
-      console.log('💸 CryptoLocker payment successful:', latestPaymentSent);
       setActiveDemand(null);
       setShowPersistentScreen(false);
       setGameOver(null);
@@ -236,12 +227,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
   // Don't show anything if not active or no events
   // Always show if we have localStorage data or are in the process of restoring
   if (!active || (!activeDemand && !gameOver && !showPersistentScreen && !hasLocalStorageData && !isRestoring)) return null;
-
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
 
   const handleGameOverRedirect = () => {
     // Clear localStorage and redirect to game selection

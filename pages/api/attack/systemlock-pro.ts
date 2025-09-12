@@ -92,22 +92,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else {
       // Device has no team assigned - let's find any team in the same playspace
-      console.log('SystemLock Pro: device has no team, searching for teams in playspace', {
-        deviceMacAddress: targetDevice.deviceMacAddress,
-        deviceId: targetDevice._id?.toString?.(),
-        playspace: targetDevice.playspace
-      });
-      
       // Find any team in the same playspace as the target
       if (targetDevice.playspace) {
         targetTeam = await Team.findOne({ playspaceId: targetDevice.playspace });
         if (targetTeam) {
-          console.log('SystemLock Pro: Found team in same playspace', {
-            teamName: targetTeam.name,
-            teamId: targetTeam._id.toString(),
-            bitcoinBalance: targetTeam.wallet.bitcoinBalance
-          });
-        }
       }
     }
 
@@ -133,14 +121,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log('🔓 SystemLock Pro attack:', {
-  attackerTeamId,
-  targetMAC: normalizedMAC,
-      pinGuess,
-      hasPin,
-      actualPin: hasPin ? devicePin : 'NO PIN (any guess works)',
-      match: hasPin ? (pinGuess === devicePin) : true // Any guess works for devices without PIN
-    });
 
     // Check if PIN guess is correct
     // For devices without PIN, any guess works
@@ -162,22 +142,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         attackerTeam.wallet.bitcoinBalance += stolenAmount;
         await targetTeam.save();
         
-        console.log('🔓 SystemLock Pro: Team bitcoins stolen', {
-          targetTeam: targetTeam.name,
-          stolenAmount,
-          attackerTeam: attackerTeam.name,
-          deviceAssigned: !!targetDevice.teamId
-        });
       } else {
         // No team found anywhere - give a small reward for successful hack
         stolenAmount = 100;
         attackerTeam.wallet.bitcoinBalance += stolenAmount;
         
-        console.log('🔓 SystemLock Pro: No team found, giving reward', {
-          deviceMAC: normalizedMAC,
-          rewardAmount: stolenAmount
-        });
-      }
 
       // Save changes
       await attackerTeam.save();
@@ -220,12 +189,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         });
         
-        console.log('🚨 SystemLock Pro: Victim notification sent (no game over)', {
-          victimTeam: targetTeam.name,
-          attackerTeam: attackerTeam.name,
-          stolenAmount
-        });
-      }
 
       return res.status(200).json({
         success: true,

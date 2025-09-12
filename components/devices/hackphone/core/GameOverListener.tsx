@@ -31,7 +31,6 @@ const GameOverListener: React.FC<GameOverListenerProps> = ({
     );
 
     if (relevantGameOver) {
-      console.log('🎮 Game over/termination event detected, redirecting:', relevantGameOver);
       
       // Clear device data
       try {

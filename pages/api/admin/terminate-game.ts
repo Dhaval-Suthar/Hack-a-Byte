@@ -46,7 +46,6 @@ export default async function handler(
       }
     });
 
-    console.log(`Game terminated: ${devicesOfflined} devices set to offline`);
 
     res.status(200).json({
       success: true,

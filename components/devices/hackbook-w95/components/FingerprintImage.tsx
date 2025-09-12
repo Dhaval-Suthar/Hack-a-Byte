@@ -35,7 +35,6 @@ const FingerprintImage: React.FC<FingerprintImageProps> = ({
   };
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log(`Successfully loaded fingerprint image: ${src}`);
     setImageLoaded(true);
     onLoad?.(e);
   };

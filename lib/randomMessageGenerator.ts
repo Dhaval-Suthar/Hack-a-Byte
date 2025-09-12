@@ -21,7 +21,6 @@ export async function createSampleMessagesForDevice(deviceId: string, teamId?: s
       // If no team ID provided, find the team that owns this device
       const team = await Team.findOne({ deviceId: deviceId }).select('_id');
       if (!team) {
-        console.log('No team found for device:', deviceId);
         return false;
       }
       teamId = team._id.toString();
@@ -95,7 +94,6 @@ export async function createSampleMessagesForDevice(deviceId: string, teamId?: s
       });
     }
     
-    console.log(`Sample messages created for device ${deviceId} and team ${teamId}`);
     return true;
   } catch (error) {
     console.error('Error creating sample messages:', error);
@@ -321,7 +319,6 @@ export function scheduleRandomMessage(deviceId: string, teamId: string) {
 
   const eta = new Date(scheduledAt);
   const mins = Math.round((delay / 60_000) * 10) / 10;
-  console.log(`⏳ Queued ${template.type.toUpperCase()} for team ${teamId} device ${deviceId} in ~${mins}m at ${eta.toLocaleTimeString()}`);
 }
 
 export async function sendScheduledMessage(message: PendingMessage) {
@@ -397,7 +394,6 @@ export async function sendScheduledMessage(message: PendingMessage) {
       } catch {}
     }
     
-    console.log(`Random ${message.template.type} sent to team ${message.teamId}:`, message.template.subject || message.template.content.slice(0, 50));
     return true;
   } catch (error) {
     console.error('Error sending scheduled message:', error);
@@ -412,7 +408,6 @@ export async function processScheduledMessages(now = Date.now()) {
   if (readyMessages.length === 0) return;
   
   // Send ready messages
-  console.log(`📬 Delivering ${readyMessages.length} ready message(s) to DB`);
   for (const message of readyMessages) {
     await sendScheduledMessage(message);
     
@@ -420,7 +415,6 @@ export async function processScheduledMessages(now = Date.now()) {
     const index = pendingMessages.indexOf(message);
     if (index > -1) {
       pendingMessages.splice(index, 1);
-      console.log(`✅ Removed delivered message from pending. Remaining=${pendingMessages.length}`);
     }
   }
 }
@@ -429,18 +423,15 @@ export async function processScheduledMessages(now = Date.now()) {
 export async function scheduleMessagesForOnlineDevices() {
   const onlineDevices = await getOnlineHackphoneDevices();
   
-  console.log(`📅 Scheduling messages for ${onlineDevices.length} online device(s). Pending=${g.__pendingMessages!.length}`);
   
   for (const device of onlineDevices) {
     // Ensure at most one pending message per device to avoid flooding
     const hasPendingForDevice = g.__pendingMessages!.some(p => p.deviceId === device.deviceId);
     if (hasPendingForDevice) {
-      console.log(`⏳ Already have a pending message for device ${device.deviceId}; skipping new schedule`);
       continue;
     }
     
     // Always schedule a message (no probability - 100% delivery)
-    console.log(`📧 Scheduling message for device ${device.deviceId}`);
     scheduleRandomMessage(device.deviceId, device.teamId);
   }
 }

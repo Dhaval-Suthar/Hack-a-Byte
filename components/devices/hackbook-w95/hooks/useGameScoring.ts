@@ -52,7 +52,6 @@ export class GameScoringManager {
     // Store in localStorage for persistence
     this.saveToStorage();
     
-    console.log(`Started tracking game: ${gameName} on ${difficulty} difficulty`);
   }
 
   /**
@@ -83,13 +82,6 @@ export class GameScoringManager {
     this.gameData.set(gameName, gameData);
     this.saveToStorage();
     
-    console.log(`Completed game: ${gameName}`, {
-      score,
-      attempts,
-      completionTime: completionTime / 1000 + 's',
-      difficulty: gameData.metrics.difficulty
-    });
-  }
 
   /**
    * Update game progress (for attempt tracking)
@@ -307,7 +299,6 @@ export class GameScoringManager {
     this.gameData.clear();
     this.sessionStartTime = Date.now();
     this.clearStorage();
-    console.log("Game scoring data reset");
   }
 
   /**

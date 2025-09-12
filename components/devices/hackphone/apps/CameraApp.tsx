@@ -118,7 +118,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
   }, [getLatestPhoto, generateVideoThumbnail]);
 
   const initializeCamera = useCallback(async () => {
-    console.log('Initializing camera with facing mode:', facingMode);
     
     try {
       // Check if getUserMedia is supported
@@ -129,7 +128,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       // First try with specific constraints
       let stream;
       try {
-        console.log('Requesting camera with constraints...');
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facingMode,
@@ -138,7 +136,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
           },
           audio: true // Enable audio for video recording
         });
-        console.log('Got stream with specific constraints');
       } catch (firstError) {
         console.warn('Failed with specific constraints, trying fallback:', firstError);
         // Fallback with basic video constraints
@@ -146,12 +143,9 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
           video: true,
           audio: true // Enable audio for video recording
         });
-        console.log('Got stream with fallback constraints');
       }
       
       const videoElement = videoRef.current;
-      console.log('Video element:', videoElement);
-      console.log('Stream:', stream);
       
       if (!videoElement) {
         console.error('Video element not found');
@@ -167,23 +161,19 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
         return;
       }
       
-      console.log('Setting video source...');
       videoElement.srcObject = stream;
       
       // Wait for the video to be ready
       videoElement.onloadedmetadata = () => {
-        console.log('Video metadata loaded');
         setIsStreaming(true);
         setHasPermission(true);
       };
       
       // Add more event listeners for debugging
       videoElement.oncanplay = () => {
-        console.log('Video can play');
       };
       
       videoElement.onplaying = () => {
-        console.log('Video is playing');
       };
       
       // Add error handler for video
@@ -195,9 +185,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       
       // Handle video play
       try {
-        console.log('Attempting to play video...');
         await videoElement.play();
-        console.log('Video play successful');
       } catch (playError) {
         console.error('Play error:', playError);
         // Still set streaming as true if we got the stream
@@ -217,10 +205,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
     
     // Small delay to ensure component is fully mounted
     const mountDelay = setTimeout(() => {
-      console.log('Component mounted, checking video element...');
-      console.log('Video element exists:', !!videoRef.current);
       if (videoRef.current) {
-        console.log('Video element found, initializing camera...');
         initializeCamera();
       } else {
         console.error('Video element not found after mount delay');
@@ -255,7 +240,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
   // Separate effect for facingMode changes
   useEffect(() => {
     if (isStreaming) {
-      console.log('Facing mode changed to:', facingMode);
       // Re-initialize camera when facing mode changes
       initializeCamera();
     }
@@ -295,7 +279,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
     const updatedPhotos = [photo, ...existingPhotos];
     localStorage.setItem('hackphone_photos', JSON.stringify(updatedPhotos));
     
-    console.log('Photo saved to gallery:', photo.name);
     
     // Update thumbnail with the new photo
     updateLatestPhotoThumbnail();
@@ -341,7 +324,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
         const updatedPhotos = [video, ...existingPhotos];
         localStorage.setItem('hackphone_photos', JSON.stringify(updatedPhotos));
         
-        console.log('Video saved to gallery:', video.name);
         
         // Update thumbnail with the new video
         updateLatestPhotoThumbnail();
@@ -493,8 +475,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
               )}
               <button
                 onClick={() => {
-                  console.log('Manual retry clicked');
-                  console.log('Video ref current:', videoRef.current);
                   setHasPermission(null);
                   setIsStreaming(false);
                   initializeCamera();
@@ -505,11 +485,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
               </button>
               <button
                 onClick={() => {
-                  console.log('Debug info:');
-                  console.log('videoRef.current:', videoRef.current);
-                  console.log('hasPermission:', hasPermission);
-                  console.log('isStreaming:', isStreaming);
-                  console.log('facingMode:', facingMode);
                 }}
                 className="mt-2 px-4 py-2 bg-gray-500 text-white rounded text-sm"
               >
@@ -594,7 +569,6 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
           {/* Gallery thumbnail */}
           <button 
             onClick={() => {
-              console.log('Opening gallery from camera');
               onOpenGallery?.();
             }}
             className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-lg active:scale-95 transition-transform"

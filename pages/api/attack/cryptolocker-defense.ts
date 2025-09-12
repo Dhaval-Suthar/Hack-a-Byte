@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
-import Team from '@/models/Team';
 import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { activeSessions } from './cryptolocker';

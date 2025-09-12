@@ -51,7 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       event: 'malware-stealth-viral-spawn',
       payload: { targetKey, clicksRequired }
     });
-    console.log('🦠 StealthViral spawn emitted to target team:', { targetTeamId, targetKey, clicksRequired });
     if (attackerTeamId) {
       emitScoped(res, {
         scope: 'team',
@@ -59,7 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         event: 'malware-stealth-viral-spawn',
         payload: { targetKey, clicksRequired, role: 'attacker' }
       });
-      console.log('🦠 StealthViral spawn emitted to attacker team:', { attackerTeamId, targetKey, clicksRequired });
     }
 
     // Kick off periodic random popup emission (server-driven) for first 60s
@@ -79,7 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Defender notification
   emitScoped(res, { scope: 'team', id: targetTeamId, event: 'virus-notification', payload: { targetKey, virusType: 'StealthViral', message: 'StealthViral detected! Neutralize before spread!', severity: 'warning' } });
-  console.log('🚨 StealthViral virus-notification emitted to target team:', { targetTeamId, targetKey });
 
     // Auto-progress if defender doesn't act
     setTimeout(() => {

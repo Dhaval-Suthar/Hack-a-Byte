@@ -562,7 +562,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
           newFileSystem[cDriveIndex].children[documentsIndex].children.push(oldFilesDir);
         }
 
-        if (debugMode) console.log('Migrated file system: Added Old_Files directory with ZIP file');
         return newFileSystem;
       }
 
@@ -580,7 +579,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
       localStorage.removeItem(storageKey);
       setFileSystem(getFilteredFileSystem());
       setCurrentDirectory('C:');
-      console.log('File system reset to initial state');
     } catch (error) {
       console.error('Failed to reset file system:', error);
     }
@@ -647,7 +645,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
                   console.error("Error saving migrated file system:", saveError);
                 }
                 
-                if (debugMode) console.log(`Successfully loaded and migrated file system for ${storageKey}`);
               } else {
                 throw new Error("Invalid file system format");
               }
@@ -664,7 +661,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             }
           } else {
             // For new users, use the filtered file system (respects E95 mode)
-            if (debugMode) console.log(`No saved file system found for ${storageKey}, using filtered default`);
             setFileSystem(getFilteredFileSystem());
             
             // Defer saving the filtered file system to avoid immediate write after read
@@ -704,7 +700,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
           try {
             const serializedData = JSON.stringify(fileSystem);
             localStorage.setItem(storageKey, serializedData);
-            if (debugMode) console.log(`File system saved for ${storageKey}`);
           } catch (serializeError) {
             console.error("Error serializing file system:", serializeError);
           }
@@ -735,8 +730,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
     
     // Debug information (only shown when debug mode is enabled)
     if (debugMode) {
-      console.log(`Finding directory by path: ${path} (normalized: ${normalizedPath})`);
-      console.log('Available root items:', items.map(item => ({ path: item.path, name: item.name, type: item.type })));
     }
     
     // Special handling for root drives - handle with or without colon
@@ -754,7 +747,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
         if ((lookingForC && (itemPath === 'c:' || itemPath === 'c')) || 
             (lookingForD && (itemPath === 'd:' || itemPath === 'd'))) {
           if (debugMode) {
-            console.log(`Root drive found: ${path} => `, item);
           }
           return item;
         }
@@ -768,7 +760,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
     for (const item of items) {
       if (item.path.toLowerCase() === normalizedPath) {
         if (debugMode) {
-          console.log(`Path match found: ${path} => `, item);
         }
         return item;
       }
@@ -798,7 +789,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
   const navigateTo = (path: string) => {
     if (!path) {
       // For empty path, we're navigating to root view
-      if (debugMode) console.log("Navigating to root view");
       setCurrentDirectory("");
       return true;
     }
@@ -809,7 +799,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
       
       // Handle drive paths - normalize to uppercase with colon
       if (normalizedPath === "c" || normalizedPath === "c:") {
-        if (debugMode) console.log("Navigating to C: drive");
         
         try {
           // Look for C: drive in the file system
@@ -823,7 +812,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
           });
           
           if (cDrive && cDrive.type === 'directory') {
-            if (debugMode) console.log("Found C: drive");
             setCurrentDirectory("C:");
             return true;
           } else {
@@ -838,7 +826,6 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
         }
       } 
       else if (normalizedPath === "d" || normalizedPath === "d:") {
-        if (debugMode) console.log("Navigating to D: drive");
         
         try {
           // Look for D: drive in the file system
@@ -852,13 +839,11 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
           });
           
           if (dDrive && dDrive.type === 'directory') {
-            if (debugMode) console.log("Found D: drive");
             // Set current directory to D: with proper capitalization
             setCurrentDirectory("D:");
             
             // Make sure we're returning the correct directory with all its children
             if (!dDrive.children || dDrive.children.length === 0) {
-              if (debugMode) console.log("D: drive has no children, initializing with default content");
               // Initialize D: drive with default content if it's empty
               const updatedFileSystem = [...fileSystem];
               const dDriveIndex = updatedFileSystem.findIndex(item => 
@@ -951,12 +936,10 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             }
           }
           
-          if (debugMode) console.log(`Attempting to navigate to: ${formattedPath}`);
           
           // Find the directory using our helper function
           const directory = findDirectoryByPath(formattedPath);
           if (directory && directory.type === 'directory') {
-            if (debugMode) console.log(`Successfully navigated to ${formattedPath}`);
             setCurrentDirectory(directory.path);  // Use the actual path from the directory object
             return true;
           } else {

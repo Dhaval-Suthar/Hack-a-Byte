@@ -169,7 +169,6 @@ const SettingsApp: React.FC = () => {
         return;
       }
 
-      console.log("Updating PIN settings:", { deviceMacAddress, ...settings });
       const response = await fetch("/api/device/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +176,6 @@ const SettingsApp: React.FC = () => {
       });
 
       const result = await response.json();
-      console.log("PIN settings update result:", result);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}, message: ${result.error || 'Unknown error'}`);
@@ -206,7 +204,6 @@ const SettingsApp: React.FC = () => {
         return;
       }
 
-      console.log("Updating device settings:", { deviceMacAddress, ...settings });
       const response = await fetch("/api/device/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -214,7 +211,6 @@ const SettingsApp: React.FC = () => {
       });
 
       const result = await response.json();
-      console.log("Device settings update result:", result);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}, message: ${result.error || 'Unknown error'}`);

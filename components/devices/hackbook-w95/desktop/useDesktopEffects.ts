@@ -143,7 +143,6 @@ export const useDesktopEffects = (
         if (isMounted && mission2Complete) {
           // Mission 2 was completed previously, don't show the notification again
           // but make the firewall bypass available if needed
-          console.log('Mission 2 already completed');
         }
       } catch (error) {
         if (isMounted) {
@@ -190,7 +189,6 @@ export const useDesktopEffects = (
         // Check Mission 2 status
         const mission2Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission2');
         if (isMounted && mission2Result.success && mission2Result.mission?.completed) {
-          console.log('Mission 2 already completed (from database)');
         }
       } catch (error) {
         if (isMounted) {

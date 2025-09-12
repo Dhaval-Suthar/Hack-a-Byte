@@ -14,7 +14,6 @@ export const AttackEffects: React.FC<AttackEffectsProps> = ({ onEffectTriggered 
   useEffect(() => {
     if (globalEffects.length > 0) {
       const latestEffect = globalEffects[globalEffects.length - 1];
-      console.log('AttackEffects: Processing global effect:', latestEffect);
       setActiveEffects(prev => [...prev, latestEffect]);
 
       // Notify parent component

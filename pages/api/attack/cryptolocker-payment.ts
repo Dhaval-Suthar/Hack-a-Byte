@@ -8,12 +8,6 @@ import { emitScoped } from '@/lib/emitter';
 // POST body: { attackerTeamId, targetTeamId, amount }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('🔒 CryptoLocker payment request received:', {
-    method: req.method,
-    body: req.body,
-    contentType: req.headers['content-type'],
-    bodyType: typeof req.body,
-    bodyKeys: req.body ? Object.keys(req.body) : 'no body'
   });
   
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -25,15 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
   
   const parsed = schema.safeParse(req.body);
-  console.log('🔒 Schema validation result:', {
-    success: parsed.success,
-    errors: parsed.error?.issues,
-    data: parsed.data,
-    bodyString: JSON.stringify(req.body)
-  });
   
   if (!parsed.success) {
-    console.log('🔒 Validation failed with body:', req.body);
     return res.status(400).json({ success: false, error: 'Invalid body' });
   }
   

@@ -427,7 +427,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     const rewardSite = sites.find(site => site.url === url && site.isRewardSite);
     if (!rewardSite) return;
 
-    console.log('🎯 Attempting to claim reward site:', { url, teamId, rewardSite: rewardSite.title });
 
     try {
       const response = await fetch('/api/safari/claim-reward', {
@@ -437,7 +436,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
       });
 
       const result = await response.json();
-      console.log('🎯 Claim result:', result);
       
       if (result.success && result.claimed) {
         // Add event
@@ -777,7 +775,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
       try {
         // Get current playspace ID using the proper utility
         const playspaceId = getPlayspaceId();
-        console.log('🎯 Safari detected playspace:', { playspaceId });
 
         if (playspaceId && !teamId) {
           // Use /api/team with proper x-playspace-id header like other apps
@@ -789,12 +786,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           if (teamResponse.ok) {
             const teamData = await teamResponse.json();
             if (teamData.success && teamData.teamId) {
-              console.log('🎯 Safari found current team via /api/team:', { 
-                teamId: teamData.teamId,
-                teamName: teamData.teamName,
-                balance: teamData.bitcoinBalance
-              });
-              setTeamId(teamData.teamId.toString()); // Use the actual MongoDB _id
               return;
             }
           }
@@ -809,11 +800,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           const devices: DeviceMeta[] = js.devices;
           const pick = devices.find(d=> d.teamId && !d.isBank) || devices.find(d=>d.teamId);
           if (pick?.teamId && !teamId) {
-            console.log('🎯 Safari fallback to device teamId:', { 
-              deviceTeamId: pick.teamId, 
-              isBank: pick.isBank
-            });
-            setTeamId(pick.teamId);
           }
         }
       } catch (error) {

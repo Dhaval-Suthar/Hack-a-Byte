@@ -160,19 +160,15 @@ export const useSocket = () => {
   const [fakeBankAttackerEvents, setFakeBankAttackerEvents] = useState<FakeBankAttackerEvent[]>([]);
 
   useEffect(() => {
-    console.log('useSocket hook initialized');
     // Initialize socket connection
   let localHandlers: Array<[string, (...args: unknown[]) => void]> = [];
     const initSocket = async () => {
       if (typeof window === 'undefined') {
-        console.log('useSocket: Skipping server-side execution');
         return;
       }
 
-      console.log('useSocket: Initializing socket connection');
 
       try {
-        console.log('Initializing Socket.IO client connection to:', process.env.NODE_ENV === 'production' ? '' : window.location.origin);
 
         // Create the shared socket once per tab
         if (!sharedSocket) {
@@ -183,7 +179,6 @@ export const useSocket = () => {
               // Ensure the server-side Socket.IO is initialized before connecting
               try {
                 await fetch('/api/socketio', { method: 'GET', cache: 'no-store', keepalive: true });
-                console.log('Primed /api/socketio successfully');
               } catch (primeErr) {
                 console.warn('Failed to prime /api/socketio:', primeErr);
               }
@@ -207,13 +202,10 @@ export const useSocket = () => {
 
               // Attach one-time global connection lifecycle handlers
               s.on('connect', () => {
-                console.log('✅ Connected to Socket.IO server');
                 // On a fresh connection (or reconnect), join playspace and any tracked rooms
                 const playspaceId = getPlayspaceId();
-                console.log('Device playspace ID for room joining:', playspaceId);
                 if (playspaceId) {
                   s.emit('join-playspace', playspaceId);
-                  console.log('Joined playspace:', playspaceId);
                 } else {
                   console.warn('No playspace ID found, cannot join playspace room');
                 }
@@ -222,24 +214,20 @@ export const useSocket = () => {
                   for (const teamId of joinedTeamsGlobal) {
                     s.emit('join-team', teamId);
                   }
-                  console.log('Re-joined team rooms:', [...joinedTeamsGlobal]);
                 }
                 if (joinedUsersGlobal.size) {
                   for (const userId of joinedUsersGlobal) {
                     s.emit('join-user', userId);
                   }
-                  console.log('Re-joined user rooms:', [...joinedUsersGlobal]);
                 }
                 if (joinedTournamentsGlobal.size) {
                   for (const tid of joinedTournamentsGlobal) {
                     s.emit('join-tournament', tid);
                   }
-                  console.log('Re-joined tournament rooms:', [...joinedTournamentsGlobal]);
                 }
               });
 
               s.on('disconnect', (reason) => {
-                console.log('🔌 Socket.IO disconnected:', reason);
               });
 
               s.on('connect_error', (error) => {
@@ -247,7 +235,6 @@ export const useSocket = () => {
               });
 
               s.on('reconnect', (attemptNumber) => {
-                console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
               });
 
               s.on('reconnect_error', (error) => {
@@ -313,31 +300,26 @@ export const useSocket = () => {
         // Stealth viral events
         addHandler('malware-stealth-viral-spawn', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralSpawn;
-          console.log('🦠 Received stealth-viral-spawn:', data);
           setStealthSpawns(prev => [...prev, data]);
         });
         addHandler('malware-stealth-viral-progress', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralProgress;
-          console.log('📊 Received stealth-viral-progress:', data);
           setStealthProgress(prev => [...prev, data]);
         });
         addHandler('malware-stealth-viral-defeated', (dataUnknown: unknown) => {
           const data = dataUnknown as StealthViralDefeated;
-          console.log('✅ Received stealth-viral-defeated:', data);
           setStealthDefeated(prev => [...prev, data]);
         });
 
         // Virus notifications
         addHandler('virus-notification', (dataUnknown: unknown) => {
           const data = dataUnknown as VirusNotification;
-          console.log('🚨 Received virus-notification:', data);
           setVirusNotifications(prev => [...prev, data]);
         });
 
         // Private key compromised (DataMiner specific)
         addHandler('private-key-compromised', (dataUnknown: unknown) => {
           const data = dataUnknown as VirusNotification;
-          console.log('🔑 Received private-key-compromised:', data);
           // Treat as a virus notification for UI display
           setVirusNotifications(prev => [...prev, { 
             ...data, 
@@ -381,35 +363,30 @@ export const useSocket = () => {
         // Handle tournament updates
         addHandler('tournament-notification', (updateUnknown: unknown) => {
           const updateData = updateUnknown as TournamentUpdate;
-          console.log('Tournament update received:', updateData);
           setTournamentUpdates(prev => [...prev, updateData]);
         });
 
         // Handle new chat messages
         addHandler('new-message', (messageUnknown: unknown) => {
           const messageData = messageUnknown as ChatMessage;
-          console.log('New chat message received:', messageData);
           setChatMessages(prev => [...prev, messageData]);
         });
 
         // Handle achievement notifications
         addHandler('achievement-notification', (achievementUnknown: unknown) => {
           const achievementData = achievementUnknown as AchievementNotification;
-          console.log('Achievement notification received:', achievementData);
           setAchievementNotifications(prev => [...prev, achievementData]);
         });
 
         // Handle wallet updates
         addHandler('wallet-update', (walletUnknown: unknown) => {
           const walletData = walletUnknown as WalletUpdate;
-          console.log('Wallet update received:', walletData);
           setWalletUpdates(prev => [...prev, walletData]);
         });
 
         // Handle notifications
         addHandler('new-notification', (notificationUnknown: unknown) => {
           const notificationData = notificationUnknown as NotificationData;
-          console.log('Notification received:', notificationData);
           setNotifications(prev => [...prev, notificationData]);
         });
 
@@ -418,7 +395,6 @@ export const useSocket = () => {
         // Incoming attack stream (drives attack banner UI)
         addHandler('incoming-attack', (attackUnknown: unknown) => {
           const attackData = attackUnknown as AttackData;
-          console.log('Incoming attack received:', attackData);
           setIncomingAttacks(prev => [...prev, attackData]);
           setTimeout(() => {
             setIncomingAttacks(prev => prev.filter(attack => attack.timestamp !== attackData.timestamp));
@@ -427,13 +403,11 @@ export const useSocket = () => {
         // Attack sent confirmation
         addHandler('attack-sent', (attackUnknown: unknown) => {
           const attackData = attackUnknown as AttackData;
-          console.log('Attack sent confirmation:', attackData);
         });
 
         // Global effects
         addHandler('global-effect', (effectUnknown: unknown) => {
           const effectData = effectUnknown as AttackEffect;
-          console.log('Global effect triggered:', effectData);
           setGlobalEffects(prev => [...prev, effectData]);
           setTimeout(() => {
             setGlobalEffects(prev => prev.filter(effect => effect.timestamp !== effectData.timestamp));
@@ -475,22 +449,18 @@ export const useSocket = () => {
         // CryptoLocker Elite events
         addHandler('cryptolocker-spawn', (dataUnknown: unknown) => {
           const data = dataUnknown as CryptoLockerSpawn;
-          console.log('🔒 CryptoLocker spawn received:', data);
           setCryptoLockerSpawns(prev => [...prev, data]);
         });
         addHandler('cryptolocker-payment-demand', (dataUnknown: unknown) => {
           const data = dataUnknown as CryptoLockerPaymentDemand;
-          console.log('💰 CryptoLocker payment demand:', data);
           setCryptoLockerPaymentDemands(prev => [...prev, data]);
         });
         addHandler('cryptolocker-payment-sent', (dataUnknown: unknown) => {
           const data = dataUnknown as CryptoLockerPaymentSent;
-          console.log('💸 CryptoLocker payment sent:', data);
           setCryptoLockerPaymentSents(prev => [...prev, data]);
         });
         addHandler('cryptolocker-game-over', (dataUnknown: unknown) => {
           const data = dataUnknown as CryptoLockerGameOver;
-          console.log('💀 CryptoLocker game over:', data);
           setCryptoLockerGameOvers(prev => [...prev, data]);
         });
 
@@ -614,13 +584,9 @@ export const useSocket = () => {
 
   // Function to send malware attack
   const sendMalwareAttack = (attackData: Omit<AttackData, 'timestamp'>) => {
-    console.log('sendMalwareAttack called with:', attackData);
-    console.log('Socket connected:', isConnected);
-    console.log('Socket object:', socket);
 
     if (socket && isConnected) {
       socket.emit('malware-attack', attackData);
-      console.log('Malware attack sent:', attackData);
     } else {
       console.warn('Socket not connected, cannot send attack');
     }
@@ -630,7 +596,6 @@ export const useSocket = () => {
   const triggerAttackEffect = (effectData: Omit<AttackEffect, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('attack-effect', effectData);
-      console.log('Attack effect triggered:', effectData);
     } else {
       console.warn('Socket not connected, cannot trigger effect');
     }
@@ -649,7 +614,6 @@ export const useSocket = () => {
           try {
             socket.emit('leave-team', prev);
             joinedTeamsGlobal.delete(prev);
-            console.log('Left team room:', prev);
           } catch {}
         }
       }
@@ -658,7 +622,6 @@ export const useSocket = () => {
     joinedTeamsGlobal.add(teamId);
     if (socket && isConnected) {
       socket.emit('join-team', teamId);
-      console.log('Joined team room:', teamId);
     } else {
       console.warn('Queued team join until connected:', teamId);
     }
@@ -670,7 +633,6 @@ export const useSocket = () => {
     joinedUsersGlobal.add(userId);
     if (socket && isConnected) {
       socket.emit('join-user', userId);
-      console.log('Joined user room:', userId);
     } else {
       console.warn('Queued user join until connected:', userId);
     }
@@ -682,7 +644,6 @@ export const useSocket = () => {
     joinedTournamentsGlobal.add(tournamentId);
     if (socket && isConnected) {
       socket.emit('join-tournament', tournamentId);
-      console.log('Joined tournament room:', tournamentId);
     } else {
       console.warn('Queued tournament join until connected:', tournamentId);
     }
@@ -692,7 +653,6 @@ export const useSocket = () => {
   const sendMessage = (messageData: Omit<ChatMessage, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('send-message', messageData);
-      console.log('Chat message sent:', messageData);
     } else {
       console.warn('Socket not connected, cannot send message');
     }
@@ -702,7 +662,6 @@ export const useSocket = () => {
   const sendTournamentUpdate = (updateData: Omit<TournamentUpdate, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('tournament-update', updateData);
-      console.log('Tournament update sent:', updateData);
     } else {
       console.warn('Socket not connected, cannot send tournament update');
     }
@@ -712,7 +671,6 @@ export const useSocket = () => {
   const sendAchievementNotification = (achievementData: Omit<AchievementNotification, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('achievement-unlocked', achievementData);
-      console.log('Achievement notification sent:', achievementData);
     } else {
       console.warn('Socket not connected, cannot send achievement notification');
     }
@@ -722,7 +680,6 @@ export const useSocket = () => {
   const sendWalletUpdate = (walletData: Omit<WalletUpdate, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('wallet-transaction', walletData);
-      console.log('Wallet update sent:', walletData);
     } else {
       console.warn('Socket not connected, cannot send wallet update');
     }
@@ -732,7 +689,6 @@ export const useSocket = () => {
   const sendNotification = (notificationData: Omit<NotificationData, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('send-notification', notificationData);
-      console.log('Notification sent:', notificationData);
     } else {
       console.warn('Socket not connected, cannot send notification');
     }

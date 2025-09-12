@@ -6,7 +6,7 @@ interface MockDevice { configuration: { securitySettings: Record<string, unknown
 let mockDevice: MockDevice | null = null;
 jest.mock('@/models/Device', () => ({
   __esModule: true,
-  default: { findById: jest.fn().mockImplementation(() => ({ select: jest.fn().mockReturnValue(mockDevice) })) }
+  default: { findOne: jest.fn().mockImplementation(() => ({ select: jest.fn().mockReturnValue(mockDevice) })) }
 }));
 
 describe('device security toggle API', () => {
@@ -15,7 +15,6 @@ describe('device security toggle API', () => {
   const { req, res } = createMocks({ method:'PATCH', body: { deviceId: 'd1', toggles: { vpn: true, enc: true } } });
   await handler(req as unknown as import('next').NextApiRequest, res as unknown as import('next').NextApiResponse);
   const data = res._getJSONData();
-  // console.log('API response', data);
   if (!data.success) throw new Error('Unexpected failure: '+ JSON.stringify(data));
     expect(data.securitySettings.vpn).toBe(true);
     expect(data.securitySettings.enc).toBe(true);

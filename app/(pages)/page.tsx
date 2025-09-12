@@ -156,7 +156,6 @@ export default function Page() {
         // If there's a playspaceId in the result, store it in localStorage
         if (result.playspaceId) {
           localStorage.setItem("playspaceId", result.playspaceId);
-          console.log("Stored playspaceId in localStorage:", result.playspaceId);
         }
         router.push(result.redirect || "/device-selection");
         try {

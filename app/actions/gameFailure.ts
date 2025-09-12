@@ -40,7 +40,6 @@ export async function handleGameFailure(deviceId: string, deviceType: string) {
     // Clear the user's session cookie
     cookieStore.delete(`device_${deviceId}_${deviceType}`);
 
-    console.log(`User ${username} account deleted due to game failure on device ${deviceId}`);
 
     return { 
       success: true, 

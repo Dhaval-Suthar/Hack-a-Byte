@@ -25,7 +25,6 @@ export const getUserStorageKey = (baseKey: string, debug = false) => {
           
           if (cookieData && cookieData.username) {
             username = cookieData.username;
-            if (debug) console.log(`Found user ${username} for playspace ${playspaceId}`);
           }
         } catch (e) {
           console.error('Error parsing user cookie:', e);
@@ -66,7 +65,6 @@ export function useUserStorage<T>(
         const item = localStorage.getItem(fullKey);
         const value = item ? (serialize ? JSON.parse(item) : item) : initialValue;
         setStoredValue(value);
-        if (debug) console.log(`Loaded ${fullKey} from localStorage:`, value);
       }
     } catch (error) {
       console.error(`Error loading ${fullKey} from localStorage:`, error);
@@ -91,7 +89,6 @@ export function useUserStorage<T>(
               fullKey, 
               serialize ? JSON.stringify(valueToStore) : String(valueToStore)
             );
-            if (debug) console.log(`Saved ${fullKey} to localStorage:`, valueToStore);
           } catch (error) {
             console.error(`Error saving ${fullKey} to localStorage:`, error);
           }
@@ -134,7 +131,6 @@ function setUserStorageItem<T>(baseKey: string, value: T, options: { debug?: boo
 
     if (typeof window !== "undefined") {
       localStorage.setItem(fullKey, serialize ? JSON.stringify(value) : String(value));
-      if (debug) console.log(`Saved ${fullKey} to localStorage:`, value);
       return true;
     }
     return false;
@@ -151,7 +147,6 @@ function removeUserStorageItem(baseKey: string, options: { debug?: boolean } = {
 
     if (typeof window !== "undefined") {
       localStorage.removeItem(fullKey);
-      if (debug) console.log(`Removed ${fullKey} from localStorage`);
       return true;
     }
     return false;

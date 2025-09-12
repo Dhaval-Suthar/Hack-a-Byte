@@ -18,7 +18,6 @@ const ImageDebugger: React.FC = () => {
     const img = document.createElement('img');
     img.onload = () => {
       setTestResults(prev => ({ ...prev, [src]: true }));
-      console.log(`✅ Successfully loaded: ${src}`);
     };
     img.onerror = () => {
       setTestResults(prev => ({ ...prev, [src]: false }));
@@ -54,7 +53,6 @@ const ImageDebugger: React.FC = () => {
                 className="object-contain"
                 onLoad={() => {
                   setTestResults(prev => ({ ...prev, [src]: true }));
-                  console.log(`✅ Next.js Image loaded: ${src}`);
                 }}
                 onError={() => {
                   setTestResults(prev => ({ ...prev, [src]: false }));

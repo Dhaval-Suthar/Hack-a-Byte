@@ -411,7 +411,6 @@ export default async function seedSites() {
     // Insert sample sites
     await Site.insertMany(sampleSites);
     
-    console.log('Successfully seeded sites database');
     return { success: true, count: sampleSites.length };
   } catch (error) {
     console.error('Failed to seed sites:', error);

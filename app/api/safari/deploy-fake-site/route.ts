@@ -192,7 +192,6 @@ export async function POST(request: NextRequest) {
 
     await fakeSite.save();
 
-    console.log(`Team ${deployerTeam._id} (playspace: ${teamId}) deployed fake site ${targetUrl} with ${malwareType} malware, targeting ${randomStealAmount} BTC`);
 
     return NextResponse.json({
       success: true,

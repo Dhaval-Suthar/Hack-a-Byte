@@ -346,7 +346,6 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
           <Suspense fallback={<LoadingSpinner />}>
             <FileApp
               onClose={(info) => {
-                console.log('Files app closed:', info);
                 onClose();
               }}
               time={time.toLocaleTimeString()}
@@ -396,12 +395,10 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   return (
     <>
       <AttackReceiver onAttackReceived={(attack: AttackData) => {
-        console.log('HackPhoneAppsRouter: Attack received:', attack);
         // Here you could add additional attack handling logic
         // like triggering device-wide effects, notifications, etc.
       }} />
       <AttackEffects onEffectTriggered={(effect) => {
-        console.log('HackPhoneAppsRouter: Attack effect triggered:', effect);
         // Here you could add device-wide responses to effects
         // like screen shake, sound alerts, etc.
       }} />

@@ -56,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
   const io = getServerIo();
-  console.log('scam-broadcast: attackerTeamId resolved to', attackerTeamId);
 
     // Defaults if content not provided
     const defaultEmailSubject = emailSubject || 'Security Notice: Action Required';
@@ -105,7 +104,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             sender: email.sender,
             timestamp: Date.now(),
           });
-          console.log('scam-broadcast: emitted email message-created to', `team-${teamIdStr}`);
         } catch {}
       }
 
@@ -132,7 +130,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             sender: sms.sender,
             timestamp: Date.now(),
           });
-          console.log('scam-broadcast: emitted sms message-created to', `team-${teamIdStr}`);
         } catch {}
       }
     }

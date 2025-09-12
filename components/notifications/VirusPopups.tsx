@@ -51,15 +51,6 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
     }
     
     const activeSpawn = !!spawn;
-    console.log('🔍 VirusPopups Debug:', { 
-      targetKey, 
-      targetTeamId, 
-      stealthSpawns: stealthSpawns.map(s => (s as { targetKey?: string }).targetKey), 
-      hasActiveSpawn: activeSpawn,
-      clickCount,
-      clicksRequired,
-      message: activeSpawn ? 'MATCH FOUND!' : 'No matching spawn events'
-    });
     return activeSpawn;
   }, [stealthSpawns, targetKey, targetTeamId, clicksRequired, clickCount]);
 
@@ -103,7 +94,6 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
   // Auto-clear when enough clicks reached
   useEffect(() => {
     if (clicksRequired && clickCount >= clicksRequired && !defeated) {
-      console.log('🎉 StealthViral neutralized by clicks!', { clickCount, clicksRequired });
       setPopups([]);
       onAllCleared?.();
     }

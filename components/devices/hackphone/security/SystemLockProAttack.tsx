@@ -9,12 +9,6 @@ interface SystemLockProAttackProps {
 }
 
 const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClose, initialTargetMAC }) => {
-  console.log('🚫 SystemLock Pro Attack component rendered:', {
-    teamId,
-    initialTargetMAC,
-    hasTeamId: !!teamId
-  });
-  const [targetMAC, setTargetMAC] = useState(initialTargetMAC || '');
   const [pinGuess, setPinGuess] = useState('');
   const [isAttacking, setIsAttacking] = useState(false);
   const [attempts, setAttempts] = useState<{ pinGuess: string; timestamp: number }[]>([]);
@@ -109,7 +103,6 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
           </h2>
           <button
             onClick={() => {
-              console.log('🚫 SystemLock Pro close button clicked');
               onClose();
             }}
             className="text-gray-400 hover:text-white text-xl font-bold"

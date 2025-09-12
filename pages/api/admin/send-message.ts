@@ -113,7 +113,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             sender: email.sender,
             timestamp: Date.now(),
           });
-          console.log(`📧 Admin email notification sent to team ${teamIdStr}`);
         } catch (socketError) {
           console.warn('Failed to emit admin email notification:', socketError);
         }
@@ -143,7 +142,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             sender: sms.sender,
             timestamp: Date.now(),
           });
-          console.log(`📱 Admin SMS notification sent to team ${teamIdStr}`);
         } catch (socketError) {
           console.warn('Failed to emit admin SMS notification:', socketError);
         }

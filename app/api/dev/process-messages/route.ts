@@ -3,7 +3,6 @@ import { processScheduledMessages } from '@/lib/randomMessageGenerator';
 
 export async function POST() {
   try {
-    console.log('🔥 Manually triggering processScheduledMessages...');
     await processScheduledMessages();
     
     return NextResponse.json({ 

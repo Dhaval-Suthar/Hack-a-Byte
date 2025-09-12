@@ -7,9 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🧪 Manually triggering random message system...');
     await runRandomMessageSystem();
-    console.log('✅ Manual trigger completed');
 
     return res.status(200).json({
       success: true,

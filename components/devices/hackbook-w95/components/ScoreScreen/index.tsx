@@ -85,7 +85,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
         
         if (result.success) {
           setScoreSubmitted(true);
-          console.log("Score submitted to leaderboard:", result.entry);
         } else {
           console.error("Failed to submit score:", result.error);
         }
@@ -328,7 +327,6 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
                           try {
                             if (resetAllProgress) {
                               await resetAllProgress(deviceId, "hackbook-w95");
-                              console.log("Database progress reset successfully");
                             }
                           } catch (error) {
                             console.error("Error resetting database progress:", error);

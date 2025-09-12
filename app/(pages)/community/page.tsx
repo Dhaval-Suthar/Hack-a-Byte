@@ -273,11 +273,9 @@ useEffect(() => {
     if (socket && isConnected) {
       // Join community room
       socket.emit('join-team', 'community');
-      console.log('Joined community chat room');
 
       // Listen for new messages
       socket.on('new-message', (messageData: SocketMessage) => {
-        console.log('Received socket message:', messageData);
 
         // Only add messages from other users to avoid duplicates
         if (messageData.senderName !== userName) {
@@ -301,15 +299,12 @@ useEffect(() => {
             );
 
             if (!messageExists) {
-              console.log('Adding new socket message to chat');
               return [...prev, newMessage];
             } else {
-              console.log('Socket message already exists, skipping');
               return prev;
             }
           });
         } else {
-          console.log('Ignoring own message from socket');
         }
       });
     }

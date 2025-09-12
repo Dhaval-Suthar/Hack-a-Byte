@@ -146,12 +146,10 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           const teamData = await teamResponse.json();
           if (teamData.success) {
             const balance = Number(teamData.bitcoinBalance) || 0;
-            console.log('Fetched team balance:', balance);
             setTeamBalance(balance);
             
             // Load purchased malware from database
             const purchasedMalware = teamData.purchasedMalware || [];
-            console.log('Fetched purchased malware:', purchasedMalware);
             setPurchased(new Set(purchasedMalware));
           }
         }
@@ -300,13 +298,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     const itemPrice = Number(purchaseItem.price);
 
-    console.log('Purchase attempt:', {
-      currentBalance,
-      itemPrice,
-      itemName: purchaseItem.name,
-      hasEnough: currentBalance >= itemPrice
-    });
-
     // Check if team has enough bitcoins
     if (currentBalance < itemPrice) {
       alert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`);
@@ -332,12 +323,10 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         const data = await response.json();
         if (data.success) {
           const newBalance = Number(data.bitcoinBalance) || 0;
-          console.log('Purchase successful, new balance:', newBalance);
           setTeamBalance(newBalance);
           
           // Save purchased malware to database
           const malwarePlayspaceId = getPlayspaceId();
-          console.log('Saving malware purchase:', {
             malwareId: purchaseItem.id,
             playspaceId: malwarePlayspaceId
           });
@@ -357,7 +346,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           if (malwareResponse.ok) {
             const malwareData = await malwareResponse.json();
             if (malwareData.success) {
-              console.log('Malware purchase saved to database:', malwareData.purchasedMalware);
               setPurchased(prev => new Set(prev).add(purchaseItem.id));
               setShowPurchase(false);
               setPurchaseItem(null);
@@ -395,7 +383,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   }, []);
 
   const executeDeploy = useCallback(async () => {
-    console.log('🚫 executeDeploy called:', {
       deployItem: deployItem?.name,
       deployData,
       hasMacAddress: !!deployData.macAddress
@@ -459,7 +446,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           const trimmedMAC = deployData.macAddress.trim();
           isValidTarget = macRegex.test(trimmedMAC);
           targetInfo = trimmedMAC;
-          console.log('🚫 SystemLock Pro validation:', {
             macAddress: deployData.macAddress,
             trimmedMAC,
             isValidTarget,
@@ -468,7 +454,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         } else {
           isValidTarget = false;
           targetInfo = '';
-          console.log('🚫 SystemLock Pro validation failed: no MAC address provided');
         }
       } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
         // FakeBank Portal needs both URL and steal amount
@@ -626,14 +611,12 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       } else if (deployItem.name === 'SystemLock Pro' && deployData.macAddress) {
         // Launch SystemLock Pro PIN cracking interface
-        console.log('🚫 SystemLock Pro deployment triggered:', {
           macAddress: deployData.macAddress,
           teamId: attackerTeamIdProp || user?.teamId
         });
         setShowSystemLockProAttack(true);
         setSystemLockProTarget(deployData.macAddress);
         setDeployItem(null); // Close deployment modal
-        console.log('🚫 SystemLock Pro state updated:', {
           showSystemLockProAttack: true,
           systemLockProTarget: deployData.macAddress
         });
@@ -687,7 +670,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               alert('Could not resolve target team for StealthViral (missing mapping).');
               throw new Error('Target team resolution failed');
             }
-            console.log('🔍 StealthViral deployment:', { targetKey, targetTeamId, attackerTeamId, deployData });
             const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
               method: 'POST',
               headers: { 'x-team-id': attackerTeamId, 'x-target-team-id': targetTeamId }
@@ -749,7 +731,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
       // Remove the deployed malware from purchased list
       const deployPlayspaceId = getPlayspaceId();
-      console.log('Removing deployed malware from purchased list:', {
         malwareId: deployItem.id,
         playspaceId: deployPlayspaceId
       });
@@ -769,7 +750,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
       if (deployResponse.ok) {
         const deployDataResult = await deployResponse.json();
         if (deployDataResult.success) {
-          console.log('Malware removed from purchased list:', deployDataResult.purchasedMalware);
           // Update local state to remove the deployed malware
           setPurchased(prev => {
             const newSet = new Set(prev);
@@ -787,7 +767,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               malwareId: deployItem.id,
               attackerName: user?.username || 'Unknown Attacker',
             });
-            console.log('Real-time attack sent via Socket.IO');
 
             // Trigger attack effect based on malware type
             const effectSeverity = deployItem.category === 'ransomware' ? 'critical' :
@@ -1481,7 +1460,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               </button>
               <button
                 onClick={() => {
-                  console.log('🚫 Deploy Attack button clicked:', {
                     deployItem: deployItem?.name,
                     deployData,
                     isDisabled: (deployItem.category === "virus" && !deployData.macAddress) ||
@@ -1563,7 +1541,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           teamId={attackerTeamIdProp || user?.teamId || ''}
           initialTargetMAC={systemLockProTarget}
           onClose={() => {
-            console.log('🚫 SystemLock Pro onClose called');
             setShowSystemLockProAttack(false);
           }}
         />

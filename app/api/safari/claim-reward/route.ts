@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
   try {
     const { teamId, url } = await request.json();
 
-    console.log('🎯 [claim-reward] Request received:', { teamId, url });
 
     if (!teamId || !url) {
       return NextResponse.json(
@@ -27,15 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🎯 [claim-reward] Site found:', { 
-      siteId: site._id, 
-      title: site.title, 
-      isFake: site.isFakeSite,
-      deployedBy: site.deployedBy 
-    });
-
     // Check if this is a fake site deployed by an attacker
-  if (site.isFakeSite && site.fakeTargetAmount) {
+    if (site.isFakeSite && site.fakeTargetAmount) {
       // This is a fake site - steal bitcoins from the visitor
       // The incoming teamId could be either playspaceId OR the actual Mongo _id depending on caller
       let victimTeam = await Team.findOne({ playspaceId: teamId });
@@ -47,18 +39,13 @@ export async function POST(request: NextRequest) {
         }
       }
       if (!victimTeam) {
-        console.log('🎯 [fake-site] Victim team not found:', { teamId });
         return NextResponse.json(
           { success: false, error: 'Team not found (checked playspaceId and _id)' },
           { status: 404 }
         );
       }
 
-      console.log('🎯 [fake-site] Victim team found:', { 
-        victimId: victimTeam._id, 
-        victimPlayspaceId: victimTeam.playspaceId,
-        victimBalance: victimTeam.wallet?.bitcoinBalance || 0 
-      });  const stealAmount = site.fakeTargetAmount;
+      const stealAmount = site.fakeTargetAmount;
       // Ensure victim wallet exists
       if (!victimTeam.wallet) {
         victimTeam.wallet = {
@@ -74,7 +61,6 @@ export async function POST(request: NextRequest) {
 
       // Prevent self-theft (deployer visiting own fake site)
       if (site.deployedBy && victimTeam._id.equals(site.deployedBy)) {
-        console.log('[fake-site] Deployer visited own fake site - no transfer');
         return NextResponse.json({
           success: true,
           claimed: true,
@@ -140,9 +126,7 @@ export async function POST(request: NextRequest) {
           const attackerAfter = await Team.findById(site.deployedBy).select('wallet.bitcoinBalance');
           attackerNewBalance = attackerAfter?.wallet?.bitcoinBalance;
         }
-  console.log(`[fake-site] Transfer: victim ${victimTeam._id} -${actualStealAmount} BTC (pre=${victimPreBalance}) -> attacker ${site.deployedBy} (+) attackerPre=${attackerPreBalance} attackerPost=${attackerNewBalance}`);
       } else {
-  console.log(`[fake-site] No transferable balance (victim balance=${currentBalance}, target=${stealAmount})`);
       }
 
       // Increment victim count and only remove after 30 victims
@@ -150,10 +134,8 @@ export async function POST(request: NextRequest) {
       const victimCount = site.fakeVictimCount;
       if (victimCount >= 30) {
         await Site.deleteOne({ _id: site._id });
-        console.log(`Fake site ${url} deleted after reaching ${victimCount} victims.`);
       } else {
         await site.save();
-        console.log(`Fake site ${url} processed victim #${victimCount} (stolen: ${actualStealAmount}).`);
       }
 
       // Return minimal response (do NOT show reward gained message for fake sites)
@@ -233,7 +215,6 @@ export async function POST(request: NextRequest) {
         site.rewardClaimedBy = undefined;
         site.rewardClaimedAt = undefined;
         
-        console.log(`Site ${site.url} cooldown expired - refreshed with new title: "${randomTitle}"`);
       }
     }
 
@@ -247,19 +228,12 @@ export async function POST(request: NextRequest) {
       }
     }
     if (!team) {
-      console.log('🎯 [reward-claim] Team not found:', { teamId });
       return NextResponse.json(
         { success: false, error: 'Team not found (checked playspaceId and _id)' },
         { status: 404 }
       );
     }
 
-    console.log('🎯 [reward-claim] Team found:', { 
-      teamMongoId: team._id, 
-      teamPlayspaceId: team.playspaceId,
-      teamName: team.name,
-      currentBalance: team.wallet?.bitcoinBalance || 0 
-    });    // Claim the reward
     site.rewardClaimed = true;
     site.rewardClaimedBy = team._id; // Store the actual team ObjectId
     site.rewardClaimedAt = new Date();
@@ -300,13 +274,11 @@ export async function POST(request: NextRequest) {
         }
         fresh.wallet.bitcoinBalance = (fresh.wallet.bitcoinBalance || 0) + rewardNumeric;
         await fresh.save();
-        console.log('[claim-reward] Fallback manual wallet increment used', { team: team._id.toString(), add: rewardNumeric });
       }
     }
     // Re-fetch updated team wallet
     const updatedTeam = await Team.findById(team._id).select('wallet playspaceId');
 
-    console.log(`[reward-claim] Team ${teamId} claimed reward site ${url} for ${rewardNumeric} bitcoins (balance: ${(team.wallet?.bitcoinBalance || 0)} -> ${updatedTeam?.wallet?.bitcoinBalance || 0}) incResult:`, incResult);
 
     return NextResponse.json({
       success: true,

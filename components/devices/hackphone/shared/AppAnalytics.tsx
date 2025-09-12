@@ -21,7 +21,6 @@ class AppAnalyticsService {
 
     // In development, log to console
     if (process.env.NODE_ENV === 'development') {
-      console.log('📊 App Analytics:', analyticsEvent);
     }
 
     // In production, you would send to analytics service

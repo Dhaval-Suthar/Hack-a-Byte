@@ -48,12 +48,6 @@ const VirusDefenseCenter: React.FC = () => {
 
   // Track active virus threats
   useEffect(() => {
-    console.log('🛡️ VirusDefenseCenter state:', { 
-      virusNotifications: virusNotifications.length, 
-      playspaceId, 
-      teamId,
-      allNotifications: virusNotifications 
-    });
     
     // Add new virus notifications
     virusNotifications.forEach(notification => {
@@ -62,16 +56,6 @@ const VirusDefenseCenter: React.FC = () => {
       const n = notification as ExtendedNotif;
       // Match by playspaceId (legacy) or resolved teamId (current) or embedded targetTeamId
       const matches = n.targetKey === playspaceId || n.targetKey === teamId || (teamId && n.targetTeamId === teamId) || (deviceMac && n.targetKey === deviceMac);
-      console.log('🚨 VirusDefenseCenter notification check:', {
-        notification: n,
-        playspaceId,
-        teamId,
-        deviceMac,
-        matches,
-        targetKeyMatch: n.targetKey === playspaceId,
-        teamIdMatch: n.targetKey === teamId,
-        embeddedTeamMatch: teamId && n.targetTeamId === teamId,
-        deviceMacMatch: deviceMac && n.targetKey === deviceMac
       });
       if (matches) {
         const threat: VirusThreat = {

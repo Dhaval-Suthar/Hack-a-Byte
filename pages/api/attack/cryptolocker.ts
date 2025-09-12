@@ -78,12 +78,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const roll = Math.random();
     const success = roll < finalChance;
     
-    console.log('🔒 CryptoLocker Elite attack:', { 
-      targetIP, 
-      successChance: `${(finalChance * 100).toFixed(1)}%`, 
-      roll: roll.toFixed(3), 
-      success 
-    });
 
     if (success) {
       // Calculate ransom demand (use custom amount or 30-50% of target's balance, min 50 BTC)

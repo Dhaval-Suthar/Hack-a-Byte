@@ -252,7 +252,6 @@ const BlackMart: React.FC<BlackMartProps> = () => {
     let stepIndex = 0;
     const interval = setInterval(() => {
       if (stepIndex < purchaseSteps.length - 1) {
-        console.log(`[Purchase] ${purchaseSteps[stepIndex]}`);
         stepIndex++;
       } else {
         clearInterval(interval);

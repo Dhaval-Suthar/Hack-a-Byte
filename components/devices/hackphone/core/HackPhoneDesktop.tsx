@@ -91,7 +91,6 @@ const HackPhoneDesktop = () => {
           try {
             const storedMac = localStorage.getItem("device_mac_address");
             if (storedMac) {
-              console.log('🔍 Using stored MAC address (no URL deviceId):', storedMac);
               // Only set deviceId for convenience; do NOT override teamId here to avoid
               // accidentally joining the wrong team on unrelated devices.
               resolvedDeviceId = storedMac;
@@ -113,7 +112,6 @@ const HackPhoneDesktop = () => {
             if (resolveResponse.ok) {
               const resolveData = await resolveResponse.json();
               if (resolveData.success && resolveData.teamId) {
-                console.log('🎯 Resolved team for URL deviceId:', { deviceId: urlDeviceId, teamId: resolveData.teamId });
                 setTeamId(resolveData.teamId); // Override the playspace-based teamId
               }
             }
@@ -193,7 +191,6 @@ const HackPhoneDesktop = () => {
             {/* iOS 4 Style Notifications on Home Screen */}
       {notification && !currentApp && (
         <>
-          {console.log('🎯 Rendering notification on home screen:', notification)}
           <IOS4Notification
             message={notification.body}
             type={notification.type}
@@ -219,7 +216,6 @@ const HackPhoneDesktop = () => {
         // we used teamId which never matched the spawn event targetKey, so the
         // defender never saw popup nodes. Fallback to teamId if deviceId missing.
         <>
-          {console.log('🎯 VirusPopups props:', { targetKey: deviceId || teamId, targetTeamId: teamId, deviceId, teamId })}
           <VirusPopups targetKey={deviceId || teamId} targetTeamId={teamId} active />
           
           {/* CryptoLocker overlays */}

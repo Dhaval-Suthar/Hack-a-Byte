@@ -34,7 +34,6 @@ export default function GameOverPage() {
           }
         }
 
-        console.log("✅ All user data cleared");
       } catch (error) {
         console.error("Error clearing user data:", error);
       }

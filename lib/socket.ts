@@ -14,7 +14,6 @@ export type NextApiResponseServerIo = NextApiResponse & {
 };
 
 export const initSocket = (httpServer: NetServer) => {
-  console.log('🔌 Initializing Socket.IO server...');
   const io = new ServerIO(httpServer, {
     path: '/api/socketio',
     cors: {
@@ -25,7 +24,6 @@ export const initSocket = (httpServer: NetServer) => {
     pingInterval: 25000,
   });
 
-  console.log('🔌 Socket.IO server created with path: /api/socketio');
 
   // Expose server IO globally for internal emitters (e.g., background schedulers)
   (globalThis as unknown as { __serverIo?: ServerIO }).__serverIo = io;
@@ -38,8 +36,6 @@ export const initSocket = (httpServer: NetServer) => {
   const clientsByUser = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
-    console.log('🔌 Client connected:', socket.id);
-    console.log('🔌 Total connected clients:', io.sockets.sockets.size);
 
     // Helper: emit to a playspace room with standard envelope
     const emitToPlayspace = (playspaceId: string, event: string, payload: Record<string, unknown>) => {
@@ -50,7 +46,6 @@ export const initSocket = (httpServer: NetServer) => {
     socket.on('join-playspace', (playspaceId: string) => {
       socket.join(playspaceId);
       const size = io.sockets.adapter.rooms.get(playspaceId)?.size || 0;
-      console.log(`Client ${socket.id} joined playspace: ${playspaceId} (clients: ${size})`);
 
       // Track clients by playspace
       if (!clientsByPlayspace.has(playspaceId)) {
@@ -68,7 +63,6 @@ export const initSocket = (httpServer: NetServer) => {
       }
       socket.join(roomName);
       const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
-      console.log(`🔌 Client ${socket.id} joined team: ${teamId} (clients: ${size})`);
 
       // Track clients by team
       if (!clientsByTeam.has(teamId)) {
@@ -93,7 +87,6 @@ export const initSocket = (httpServer: NetServer) => {
       if ((socket.rooms as Set<string>).has(roomName)) {
         socket.leave(roomName);
         const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
-        console.log(`🔌 Client ${socket.id} left team: ${teamId} (clients: ${size})`);
       }
       // Update tracking map
       const set = clientsByTeam.get(teamId);
@@ -106,7 +99,6 @@ export const initSocket = (httpServer: NetServer) => {
     // Join user room for personal notifications
     socket.on('join-user', (userId: string) => {
       socket.join(`user-${userId}`);
-      console.log(`Client ${socket.id} joined user: ${userId}`);
 
       // Track clients by user
       if (!clientsByUser.has(userId)) {
@@ -118,7 +110,6 @@ export const initSocket = (httpServer: NetServer) => {
     // Join tournament room
     socket.on('join-tournament', (tournamentId: string) => {
       socket.join(`tournament-${tournamentId}`);
-      console.log(`Client ${socket.id} joined tournament: ${tournamentId}`);
     });
 
     // Handle malware attacks
@@ -129,9 +120,6 @@ export const initSocket = (httpServer: NetServer) => {
       malwareId: string;
       attackerName: string;
     }) => {
-      console.log('Malware attack received on server:', data);
-      console.log('Socket rooms:', Array.from(socket.rooms));
-      console.log('Clients in playspace:', clientsByPlayspace.get(data.attackerPlayspaceId)?.size || 0);
 
       // Broadcast attack to all clients in the same playspace (except attacker)
       socket.to(data.attackerPlayspaceId).emit('incoming-attack', {
@@ -145,7 +133,6 @@ export const initSocket = (httpServer: NetServer) => {
         timestamp: Date.now(),
       });
 
-      console.log('Attack broadcasted to playspace:', data.attackerPlayspaceId);
     });
 
     // Handle attack effects (playspace-wide or team-scoped)
@@ -156,7 +143,6 @@ export const initSocket = (httpServer: NetServer) => {
       severity: 'low' | 'medium' | 'high' | 'critical';
       duration?: number;
     }) => {
-      console.log('Attack effect triggered:', data);
 
       if (data.teamId) {
         // Team-scoped effect
@@ -186,7 +172,6 @@ export const initSocket = (httpServer: NetServer) => {
       message: string;
       data?: Record<string, unknown>;
     }) => {
-      console.log('Tournament update:', data);
 
       // Broadcast to all clients in tournament room
       io.to(`tournament-${data.tournamentId}`).emit('tournament-notification', {
@@ -203,8 +188,6 @@ export const initSocket = (httpServer: NetServer) => {
       senderName: string;
       type?: string;
     }) => {
-      console.log('📨 Team message received:', data);
-      console.log('📨 Broadcasting to room:', `team-${data.teamId}`);
 
       // Broadcast to all clients in team room (except sender)
       socket.to(`team-${data.teamId}`).emit('new-message', {
@@ -212,7 +195,6 @@ export const initSocket = (httpServer: NetServer) => {
         timestamp: Date.now(),
       });
 
-      console.log('📨 Message broadcast complete');
     });
 
     // Handle achievement unlocks
@@ -222,7 +204,6 @@ export const initSocket = (httpServer: NetServer) => {
       achievementName: string;
       points: number;
     }) => {
-      console.log('Achievement unlocked:', data);
 
       // Broadcast to user's personal room
       io.to(`user-${data.userId}`).emit('achievement-notification', {
@@ -241,7 +222,6 @@ export const initSocket = (httpServer: NetServer) => {
       amount: number;
       description: string;
     }) => {
-      console.log('Wallet transaction:', data);
 
       // Broadcast to all clients in team room
       io.to(`team-${data.teamId}`).emit('wallet-update', {
@@ -257,7 +237,6 @@ export const initSocket = (httpServer: NetServer) => {
       message: string;
       type: string;
     }) => {
-      console.log('Notification sent:', data);
 
       // Send to user's personal room
       io.to(`user-${data.userId}`).emit('new-notification', {
@@ -274,7 +253,6 @@ export const initSocket = (httpServer: NetServer) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
 
       // Remove from all playspace tracking
       clientsByPlayspace.forEach((clients, playspaceId) => {

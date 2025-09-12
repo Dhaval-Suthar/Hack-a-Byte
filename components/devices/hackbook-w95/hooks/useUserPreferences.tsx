@@ -54,7 +54,6 @@ export function useUserPreferences(options = { debug: false }) {
     try {
       const storedPrefs = userStorage.getItem('userPreferences', defaultPreferences) as UserPreferences;
       setPreferences(storedPrefs);
-      if (debug) console.log('Loaded user preferences:', storedPrefs);
     } catch (error) {
       console.error('Error loading user preferences:', error);
       setPreferences(defaultPreferences);
@@ -68,7 +67,6 @@ export function useUserPreferences(options = { debug: false }) {
       
       // Save to storage
       userStorage.setItem('userPreferences', updated);
-      if (debug) console.log('Saved user preferences:', updated);
       
       return updated;
     });
@@ -83,7 +81,6 @@ export function useUserPreferences(options = { debug: false }) {
 
         // Save to storage
         userStorage.setItem("userPreferences", updated);
-        if (debug) console.log(`Saved app data for ${appName}:`, data);
 
         return updated;
       });
@@ -103,7 +100,6 @@ export function useUserPreferences(options = { debug: false }) {
   const resetPreferences = useCallback(() => {
     setPreferences(defaultPreferences);
     userStorage.setItem('userPreferences', defaultPreferences);
-    if (debug) console.log('Reset user preferences to defaults');
   }, [debug]);
 
   return {

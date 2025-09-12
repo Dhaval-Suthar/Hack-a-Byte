@@ -59,7 +59,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       const data = JSON.parse(persistentAttack);
       // If failure modal was showing, restore it regardless of the defense timer expiry
       if (data.showFailureModal) {
-        console.log('💀 Restoring CryptoLocker failure modal from localStorage');
         setIsActive(false);
         setShowFailureModal(true);
         setSessionKey(data.sessionKey);
@@ -69,7 +68,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
         setPhrasesCompleted(data.phrasesCompleted ?? 0);
         setCompletedPhrases(data.completedPhrases ?? []);
       } else if (Date.now() < data.expires) {
-        console.log('🔒 Restoring CryptoLocker defense from localStorage:', data);
         setIsActive(true);
         setCurrentPhrase(data.currentPhrase);
         setUserInput(data.userInput);
@@ -110,13 +108,11 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
   }, [teamId, isActive, currentPhrase, userInput, timeLeft, sessionKey, targetIP, attackerTeamId, demand, phrasesCompleted, completedPhrases, showFailureModal]);
 
   const handleTimeUp = useCallback(async () => {
-    console.log('⏰ CryptoLocker defense failed - time up');
     setIsActive(false);
     setShowFailureModal(true);
   }, []);
 
   const handleQuitGame = useCallback(async () => {
-    console.log('💀 Player chose to quit game');
     setIsActive(false);
     setShowFailureModal(false);
     
@@ -140,7 +136,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
             status: 'offline'
           })
         });
-        console.log('📱 Device set to offline');
       }
     } catch (error) {
       console.error('Error setting device offline:', error);
@@ -162,7 +157,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       });
 
       if (response.ok) {
-        console.log('💀 Game over notification sent');
       }
     } catch (error) {
       console.error('Error sending game over notification:', error);
@@ -173,8 +167,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
   }, [sessionKey, targetIP, phrasesCompleted, phrasesRequired, teamId]);
 
   const handlePayRansom = useCallback(async () => {
-    console.log('💰 Player chose to pay ransom');
-    console.log('💰 Payment data:', { attackerTeamId, targetTeamId: teamId, amount: demand });
     
     // Validate required data before making API call
     if (!attackerTeamId || !teamId || !demand) {
@@ -211,7 +203,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
         }
         setShowFailureModal(false);
         setIsProcessingPayment(false);
-        console.log('💰 Ransom payment successful');
         // The payment component will handle the rest
       } else {
         console.error('Payment failed:', result);
@@ -225,7 +216,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
   }, [attackerTeamId, teamId, demand]);
 
   const handleSuccess = useCallback(async () => {
-    console.log('✅ CryptoLocker defense successful!');
     setIsActive(false);
     setShowFailureModal(false);
     
@@ -249,7 +239,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       });
 
       if (response.ok) {
-        console.log('🛡️ CryptoLocker successfully defended');
       }
     } catch (error) {
       console.error('Error reporting successful defense:', error);
@@ -262,8 +251,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
 
     const latestSpawn = cryptoLockerSpawns[cryptoLockerSpawns.length - 1];
     if (latestSpawn && Date.now() - latestSpawn.ts < 10000) { // Recent spawn
-      console.log('🔒 CryptoLocker spawn detected:', latestSpawn);
-      console.log('🔒 Spawn data validation:', {
         hasAttackerTeamId: !!latestSpawn.attackerTeamId,
         attackerTeamId: latestSpawn.attackerTeamId,
         hasSessionKey: !!latestSpawn.sessionKey,

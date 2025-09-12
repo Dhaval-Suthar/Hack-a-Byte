@@ -425,7 +425,6 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   };
 
   useEffect(() => {
-    console.log('SentinelApp mounted, fetching data...');
     // On mount we only fetch wallets & team balance; devices gated behind scan
     fetchWallets();
     fetchTeamBalance();
@@ -460,38 +459,28 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
       if (r.ok){ 
         const d= await r.json(); 
         if(d.success) {
-          console.log('Wallet data fetched:', d.wallets);
           setWalletData(d.wallets);
         }
       } else {
-        console.log('Wallet fetch failed with status:', r.status);
       }
     } catch (error) {
-      console.log('Wallet fetch error:', error);
     }
   };
   const fetchTeamBalance = async () => { 
     try { 
       const r = await fetch('/api/team', { credentials: 'include' }); 
-      console.log('Team balance fetch response status:', r.status);
       if(r.ok){ 
         const d = await r.json(); 
-        console.log('Team balance response data:', d);
         if(d.bitcoinBalance !== undefined) {
-          console.log('Setting team balance to:', d.bitcoinBalance);
           setOwnTeamBalance(d.bitcoinBalance);
         }
         if(d.teamId) {
-          console.log('Setting team ID to:', d.teamId);
           setOwnTeamId(d.teamId);
         } else {
-          console.log('bitcoinBalance not found in response');
         }
       } else {
-        console.log('Team balance fetch failed with status:', r.status);
       }
     } catch (error) {
-      console.log('Team balance fetch error:', error);
     }
   };
 

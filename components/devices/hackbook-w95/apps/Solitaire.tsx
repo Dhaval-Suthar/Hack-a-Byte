@@ -160,7 +160,6 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
   // Simplified move logic - in a real game, you'd have more complex rules
   const moveCard = (selected: {card: Card, source: string, index: number}, targetSource: string, targetIndex: number) => {
     // Placeholder for move logic
-    console.log(`Moving ${selected.card.id} from ${selected.source} to ${targetSource} at index ${targetIndex}`);
     
     // Increment moves
     setMoves(prev => prev + 1);

@@ -101,12 +101,10 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
   // Handle game failure - delete account
   useEffect(() => {
     if (gameFailed && wrongAttempts >= MAX_ATTEMPTS) {
-      console.log('Game failed after reaching max attempts, handling failure');
       setTimeout(() => {
         handleFailure();
       }, 3000); // 3 second delay to show failure message
     } else if (gameFailed && timeLeft <= 0) {
-      console.log('Game failed due to timeout, handling failure');
       setTimeout(() => {
         handleFailure();
       }, 3000); // 3 second delay to show failure message
@@ -137,16 +135,13 @@ const IPFinder: React.FC<IPFinderProps> = ({ onSuccess, onClose }) => {
           const newWrongAttempts = wrongAttempts + 1;
           setWrongAttempts(newWrongAttempts);
           
-          console.log(`Wrong attempt ${newWrongAttempts} of ${MAX_ATTEMPTS}`);
           
           // Only fail if we've reached MAX_ATTEMPTS (3)
           if (newWrongAttempts >= MAX_ATTEMPTS) {
-            console.log('Max attempts reached, game over');
             setGameFailed(true);
             setShowGameOver(true);
           } else {
             // Otherwise, show connection refused and reset for next attempt
-            console.log(`You have ${MAX_ATTEMPTS - newWrongAttempts} attempts remaining`);
             setShowConnectionRefused(true);
             setSelectedNumbers([]);
             setSelectedIndices([]);

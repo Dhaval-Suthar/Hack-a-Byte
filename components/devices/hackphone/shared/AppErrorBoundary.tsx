@@ -36,7 +36,6 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   private handleReport = () => {
     // Could open a feedback modal or send error report
-    console.log("Reporting error:", this.state.error);
   };
 
   public render() {

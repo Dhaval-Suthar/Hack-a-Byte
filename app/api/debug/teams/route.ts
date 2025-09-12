@@ -11,13 +11,6 @@ export async function GET() {
       .select('_id playspaceId name wallet.bitcoinBalance')
       .lean();
 
-    console.log('🎯 [debug-teams] All teams:', teams.map(t => ({
-      mongoId: t._id,
-      playspaceId: t.playspaceId,
-      name: t.name,
-      balance: t.wallet?.bitcoinBalance || 0
-    })));
-
     return NextResponse.json({
       success: true,
       teams: teams.map(t => ({

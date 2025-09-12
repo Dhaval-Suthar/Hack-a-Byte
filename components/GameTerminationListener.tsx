@@ -16,7 +16,6 @@ export default function GameTerminationListener() {
     if (!socket) return;
 
     const handleGameTermination = (data: GameTerminationData) => {
-      console.log('Game terminated:', data);
       
       // Show notification to user
       if (typeof window !== 'undefined') {

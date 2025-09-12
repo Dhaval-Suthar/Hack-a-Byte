@@ -32,7 +32,6 @@ export function useNotificationService(teamId: string | undefined) {
     if (!teamId || !isConnected) return;
     if (lastJoinedTeamRef.current === teamId) return; // avoid duplicate join attempts
     // Join the team room to receive scoped events
-    console.log('🏠 NotificationService: Joining team room:', teamId);
     joinTeam(teamId);
     lastJoinedTeamRef.current = teamId;
   }, [teamId, joinTeam, isConnected]);
@@ -40,7 +39,6 @@ export function useNotificationService(teamId: string | undefined) {
   useEffect(() => {
     if (!socket || !isConnected) return;
     const handler = (evt: { teamId: string; type: 'sms'|'email'; id: string; content: string; subject?: string; sender?: string; timestamp: number; }) => {
-      console.log('🔔 Notification received:', evt);
       if (teamId && evt.teamId !== teamId) return; // extra guard
       const isSms = evt.type === 'sms';
       setNotification({

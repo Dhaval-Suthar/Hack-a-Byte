@@ -170,7 +170,6 @@ export async function createDevice(
     if (deviceType === 'hackphone') {
       try {
         await createSampleMessagesForDevice(newDevice._id.toString());
-        console.log(`Sample messages created for hackphone device ${newDevice._id}`);
       } catch (error) {
         console.error('Error creating sample messages for hackphone:', error);
         // Don't fail device creation if sample message creation fails

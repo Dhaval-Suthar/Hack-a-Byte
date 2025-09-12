@@ -67,7 +67,6 @@ describe('Reward API', () => {
 
   it('credits valid reward', async () => {
     const json = await runReward(10, String(playspaceId));
-  console.log('credit response', json);
     expect(json.success).toBe(true);
     expect(json.bitcoinBalance).toBe(10);
   });
@@ -79,10 +78,8 @@ describe('Reward API', () => {
 
   it('rate limits rapid rewards', async () => {
     const first = await runReward(5, String(playspaceId));
-  console.log('first reward response', first);
     expect(first.success).toBe(true);
     const second = await runReward(5, String(playspaceId));
-  console.log('second reward response', second);
     expect(second.success).toBe(false);
   });
 });

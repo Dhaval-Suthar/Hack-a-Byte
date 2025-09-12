@@ -74,12 +74,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const roll = Math.random();
     const success = roll < successChance;
     
-    console.log('🎲 DataMiner X attack roll:', { 
-      targetKey, 
-      successChance: `${(successChance * 100).toFixed(1)}%`, 
-      roll: roll.toFixed(3), 
-      success 
-    });
     
     if (success) {
   // Start cooldown only on successful exfil
@@ -110,7 +104,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           severity: 'critical'
         } 
       });
-      console.log('🚨 DataMiner virus-notification emitted to target team:', { targetTeamId: String(targetTeam._id), targetKey });
 
       // Explicit notification that private key was exfiltrated
       emitScoped(res, {
@@ -125,7 +118,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           message: 'Your private key has been stolen by DataMiner X. Rotate keys immediately!'
         }
       });
-      console.log('🔑 DataMiner private-key-compromised emitted to target team:', { targetTeamId: String(targetTeam._id), targetKey });
 
       return res.status(200).json({ 
         success: true, 

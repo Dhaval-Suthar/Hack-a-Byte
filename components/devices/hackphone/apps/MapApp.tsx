@@ -114,7 +114,6 @@ const MapApp: React.FC<MapAppProps> = ({}) => {
           mapRef.current?.flyTo([newLocation.lat, newLocation.lng]);
         },
         async (error) => {
-          console.log("Geolocation error:", error);
           // Fallback to Borivali West, Mumbai
           const fallbackLocation = { lat: 19.2307, lng: 72.8567 };
           setUserLocation(fallbackLocation);
