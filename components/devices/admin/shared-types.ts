@@ -43,6 +43,7 @@ export interface EventItem {
   category?: string;
   isPublic?: boolean;
   capacity?: number;
+  registrationEnabled?: boolean;
   requiredDeviceTypes?: {
     mobile: boolean;
     desktop: boolean;

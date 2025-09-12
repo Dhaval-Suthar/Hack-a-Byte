@@ -11,6 +11,8 @@ export interface IEvent extends Document {
     capacity: number;
     registeredUsers?: mongoose.Schema.Types.ObjectId[];
     imageUrl?: string;
+    // Registration controls
+    registrationEnabled?: boolean;
     // New fields for enhanced event configuration
     requiredDeviceTypes: {
         mobile: boolean;
@@ -69,6 +71,9 @@ const EventSchema: Schema = new Schema(
         waitlistEnabled: { type: Boolean, default: false },
         waitlistCount: { type: Number, default: 0 },
 
+        // Registration controls
+        registrationEnabled: { type: Boolean, default: true },
+
         // Event settings
         settings: {
             allowLateRegistration: { type: Boolean, default: false },
@@ -124,12 +129,23 @@ EventSchema.methods.decrementRegistration = function() {
   return this.save();
 };
 
+EventSchema.methods.enableRegistration = function() {
+  this.registrationEnabled = true;
+  return this.save();
+};
+
+EventSchema.methods.disableRegistration = function() {
+  this.registrationEnabled = false;
+  return this.save();
+};
+
 EventSchema.methods.isFull = function() {
   return this.maxRegistrations > 0 && this.registrationCount >= this.maxRegistrations;
 };
 
 EventSchema.methods.canRegister = function() {
   return this.status === 'published' &&
+         this.registrationEnabled !== false && // Check registration is enabled
          !this.isFull() &&
          new Date() < this.endDate;
 };

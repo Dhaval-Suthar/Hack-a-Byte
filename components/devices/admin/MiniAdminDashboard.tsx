@@ -24,7 +24,7 @@ import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceTo
 import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
-import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 
 const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
@@ -113,6 +113,7 @@ export default function MiniAdminDashboard() {
         category: evt.category,
         isPublic: evt.isPublic,
         capacity: evt.capacity,
+        registrationEnabled: evt.registrationEnabled,
         requiredDeviceTypes: evt.requiredDeviceTypes ? {
           mobile: evt.requiredDeviceTypes.mobile || false,
           desktop: evt.requiredDeviceTypes.desktop || false,
@@ -566,6 +567,20 @@ export default function MiniAdminDashboard() {
     }
   };
 
+  const handleToggleEventRegistration = async (id: string) => {
+    try {
+      const result = await toggleEventRegistration(id, authKey());
+      if (result.success) {
+        note({ kind: "ok", msg: result.message || "Registration status updated" });
+        load();
+      } else {
+        note({ kind: "err", msg: result.error || "Toggle registration failed" });
+      }
+    } catch {
+      note({ kind: "err", msg: "Toggle registration failed" });
+    }
+  };
+
   // Access code management functions
   const handleUpdateAccessCode = async (id: string, updates: { code?: string; type?: string; priority?: number; description?: string; maxUsages?: number; isActive?: boolean }) => {
     try {
@@ -646,6 +661,7 @@ export default function MiniAdminDashboard() {
           onCreateEvent={handleCreateEvent}
           onUpdateEvent={handleUpdateEvent}
           onDeleteEvent={handleDeleteEvent}
+          onToggleRegistration={handleToggleEventRegistration}
         />;
       case "sessions":
         return <SessionsSection sess={sess} q={q} setQ={setQ} onAdjust={adjust} onEnd={end} />;

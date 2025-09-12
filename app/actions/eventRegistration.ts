@@ -62,6 +62,14 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
       };
     }
 
+    // Check if registration is enabled for this event
+    if (event.registrationEnabled === false) {
+      return {
+        success: false,
+        error: "Registration is currently disabled for this event"
+      };
+    }
+
     const minPlayers = event.minTeamMembers || 1;
     const maxPlayers = event.maxTeamMembers || 4;
 

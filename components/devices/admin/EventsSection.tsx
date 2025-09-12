@@ -39,6 +39,7 @@ interface EventsSectionProps {
     pricingExtended?: number;
   }) => Promise<void>;
   onDeleteEvent?: (id: string) => Promise<void>;
+  onToggleRegistration?: (id: string) => Promise<void>;
 }
 
 export default function EventsSection({
@@ -48,6 +49,7 @@ export default function EventsSection({
   onCreateEvent,
   onUpdateEvent,
   onDeleteEvent,
+  onToggleRegistration,
 }: EventsSectionProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
@@ -707,7 +709,8 @@ export default function EventsSection({
             <th className="p-2 text-left">Date</th>
             <th className="p-2 text-left">Location</th>
             <th className="p-2 text-left">Capacity</th>
-            {(onUpdateEvent || onDeleteEvent) && <th className="p-2 text-left">Actions</th>}
+            <th className="p-2 text-left">Registration</th>
+            {(onUpdateEvent || onDeleteEvent || onToggleRegistration) && <th className="p-2 text-left">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -718,9 +721,31 @@ export default function EventsSection({
               <td className="p-2">{event.startDate ? new Date(event.startDate).toLocaleString() : "TBD"}</td>
               <td className="p-2">{event.location || "TBD"}</td>
               <td className="p-2">{event.capacity || "Unlimited"}</td>
-              {(onUpdateEvent || onDeleteEvent) && (
+              <td className="p-2">
+                <span className={`px-2 py-1 rounded text-xs ${
+                  event.registrationEnabled !== false 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-red-600 text-white'
+                }`}>
+                  {event.registrationEnabled !== false ? 'Enabled' : 'Disabled'}
+                </span>
+              </td>
+              {(onUpdateEvent || onDeleteEvent || onToggleRegistration) && (
                 <td className="p-2">
                   <div className="flex gap-1">
+                    {onToggleRegistration && (
+                      <button
+                        onClick={() => onToggleRegistration(event._id)}
+                        className={`px-2 py-1 rounded text-xs ${
+                          event.registrationEnabled !== false 
+                            ? 'bg-red-600 hover:bg-red-700 text-white' 
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                        title={event.registrationEnabled !== false ? 'Disable Registration' : 'Enable Registration'}
+                      >
+                        {event.registrationEnabled !== false ? 'Disable' : 'Enable'}
+                      </button>
+                    )}
                     {onUpdateEvent && (
                       <button
                         onClick={() => startEdit(event)}

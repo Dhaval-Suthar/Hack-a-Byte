@@ -1252,7 +1252,7 @@ export async function getEvents(adminKey?: string) {
     await connectDb();
     const events = await Event.find({})
       .select(
-        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing"
+        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing registrationEnabled"
       )
       .lean() // Use lean() to get plain objects
       .sort({ startDate: 1, createdAt: -1 });
@@ -1270,6 +1270,7 @@ export async function getEvents(adminKey?: string) {
       category: event.category || "",
       isPublic: typeof event.isPublic === "boolean" ? event.isPublic : true,
       capacity: typeof event.capacity === "number" ? event.capacity : 0,
+      registrationEnabled: typeof event.registrationEnabled === "boolean" ? event.registrationEnabled : true,
       imageUrl: event.imageUrl || "",
       requiredDeviceTypes: event.requiredDeviceTypes ? {
         mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
@@ -1525,6 +1526,100 @@ export async function deleteEvent(eventId: string, adminKey?: string) {
   } catch (error) {
     console.error("Error deleting event:", error);
     return { error: "Failed to delete event" };
+  }
+}
+
+export async function toggleEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    // Toggle registration status
+    event.registrationEnabled = !event.registrationEnabled;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: `Event registration ${event.registrationEnabled ? 'enabled' : 'disabled'}`,
+      registrationEnabled: event.registrationEnabled
+    };
+  } catch (error) {
+    console.error("Error toggling event registration:", error);
+    return { error: "Failed to toggle event registration" };
+  }
+}
+
+export async function enableEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    event.registrationEnabled = true;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Event registration enabled",
+      registrationEnabled: true
+    };
+  } catch (error) {
+    console.error("Error enabling event registration:", error);
+    return { error: "Failed to enable event registration" };
+  }
+}
+
+export async function disableEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    event.registrationEnabled = false;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Event registration disabled",
+      registrationEnabled: false
+    };
+  } catch (error) {
+    console.error("Error disabling event registration:", error);
+    return { error: "Failed to disable event registration" };
   }
 }
 
@@ -2894,6 +2989,7 @@ export async function getPublicEvents() {
       type: event.category || "Event",
       capacity: event.capacity || 0,
       registered: 0, // This will be updated with registration counts
+      registrationEnabled: event.registrationEnabled !== false, // Default to true if not set
       difficulty: "Intermediate" as const,
       tags: event.category ? [event.category] : ["Event"],
       speakers: [],

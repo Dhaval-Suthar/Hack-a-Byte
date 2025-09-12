@@ -37,7 +37,7 @@ export async function getEvents(adminKey?: string) {
     await connectDb();
     const events = await Event.find({})
       .select(
-        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing"
+        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing registrationEnabled"
       )
       .lean() // Use lean() to get plain objects
       .sort({ startDate: 1, createdAt: -1 });
@@ -55,6 +55,7 @@ export async function getEvents(adminKey?: string) {
       category: event.category || "",
       isPublic: typeof event.isPublic === "boolean" ? event.isPublic : true,
       capacity: typeof event.capacity === "number" ? event.capacity : 0,
+      registrationEnabled: typeof event.registrationEnabled === "boolean" ? event.registrationEnabled : true,
       imageUrl: event.imageUrl || "",
       requiredDeviceTypes: event.requiredDeviceTypes ? {
         mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
@@ -316,6 +317,7 @@ export async function getPublicEvents() {
       type: event.category || "Event",
       capacity: event.capacity || 0,
       registered: 0, // This will be updated with registration counts
+      registrationEnabled: event.registrationEnabled !== false, // Default to true if not set
       difficulty: "Intermediate" as const,
       tags: event.category ? [event.category] : ["Event"],
       speakers: [],
