@@ -17,6 +17,9 @@ import dynamic from 'next/dynamic';
 
 // Lazy-load virus popups to avoid SSR issues
 const VirusPopups = dynamic(() => import('@/components/notifications/VirusPopups'), { ssr: false });
+const CryptoLockerDefense = dynamic(() => import('@/components/devices/hackphone/security/CryptoLockerDefense'), { ssr: false });
+const CryptoLockerPayment = dynamic(() => import('@/components/devices/hackphone/security/CryptoLockerPayment'), { ssr: false });
+const SystemLockProVictim = dynamic(() => import('@/components/devices/hackphone/security/SystemLockProVictim'), { ssr: false });
 
 const HackPhoneDesktop = () => {
   const router = useRouter();
@@ -218,6 +221,13 @@ const HackPhoneDesktop = () => {
         <>
           {console.log('🎯 VirusPopups props:', { targetKey: deviceId || teamId, targetTeamId: teamId, deviceId, teamId })}
           <VirusPopups targetKey={deviceId || teamId} targetTeamId={teamId} active />
+          
+          {/* CryptoLocker overlays */}
+          <CryptoLockerDefense teamId={teamId} active />
+          <CryptoLockerPayment teamId={teamId} active />
+          
+          {/* SystemLock Pro victim overlay */}
+          <SystemLockProVictim />
         </>
       )}
 

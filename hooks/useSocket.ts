@@ -69,6 +69,15 @@ export interface StealthViralSpawn { targetKey: string; clicksRequired: number; 
 export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; coveragePercent: number; progressPercent: number; message: string; ts: number; }
 export interface StealthViralDefeated { targetKey: string; ts: number; }
 export interface VirusNotification { targetKey: string; virusType: string; message: string; severity: 'info' | 'warning' | 'critical'; ts: number; }
+
+// CryptoLocker Elite events
+export interface CryptoLockerSpawn { sessionKey: string; targetIP: string; attackerTeamId: string; phrase: string; timeLimit: number; demand: number; expires: number; ts: number; }
+export interface CryptoLockerNeutralized { sessionKey: string; message: string; ts: number; }
+export interface CryptoLockerPaymentDemand { attackerTeamId: string; demand: number; targetIP: string; deadline: number; message: string; ts: number; }
+export interface CryptoLockerPaymentSent { amount: number; newBalance: number; message: string; ts: number; }
+export interface CryptoLockerGameOver { reason: string; demanded: number; available: number; message: string; ts: number; }
+
+// Legacy ransomware events
 export interface RansomwareSpawn { targetKey: string; phrase: string; rewardDemand: number; ts: number; }
 export interface RansomwareProgress { targetKey: string; progress: number; total: number; ts: number; }
 export interface RansomwareNeutralized { targetKey: string; ts: number; }
@@ -119,6 +128,14 @@ export const useSocket = () => {
   const [stealthProgress, setStealthProgress] = useState<StealthViralProgress[]>([]);
   const [stealthDefeated, setStealthDefeated] = useState<StealthViralDefeated[]>([]);
   const [virusNotifications, setVirusNotifications] = useState<VirusNotification[]>([]);
+  
+  // CryptoLocker events
+  const [cryptoLockerSpawns, setCryptoLockerSpawns] = useState<CryptoLockerSpawn[]>([]);
+  const [cryptoLockerPaymentDemands, setCryptoLockerPaymentDemands] = useState<CryptoLockerPaymentDemand[]>([]);
+  const [cryptoLockerPaymentSents, setCryptoLockerPaymentSents] = useState<CryptoLockerPaymentSent[]>([]);
+  const [cryptoLockerGameOvers, setCryptoLockerGameOvers] = useState<CryptoLockerGameOver[]>([]);
+  
+  // Legacy ransomware events
   const [ransomSpawns, setRansomSpawns] = useState<RansomwareSpawn[]>([]);
   const [ransomProgress, setRansomProgress] = useState<RansomwareProgress[]>([]);
   const [ransomNeutralized, setRansomNeutralized] = useState<RansomwareNeutralized[]>([]);
@@ -424,28 +441,57 @@ export const useSocket = () => {
         });
 
         // Ransomware events
-        newSocket.on('ransomware-spawn', (data: RansomwareSpawn) => {
+        addHandler('ransomware-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareSpawn;
           setRansomSpawns(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-progress', (data: RansomwareProgress) => {
+        addHandler('ransomware-progress', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareProgress;
           setRansomProgress(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-neutralized', (data: RansomwareNeutralized) => {
+        addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareNeutralized;
           setRansomNeutralized(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-expired', (data: RansomwareExpired) => {
+        addHandler('ransomware-expired', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareExpired;
           setRansomExpired(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-demand', (data: RansomwareDemand) => {
+        addHandler('ransomware-demand', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareDemand;
           setRansomDemands(prev => [...prev.filter(d=>d.targetKey!==data.targetKey), data]);
         });
-        newSocket.on('ransomware-paid', (data: RansomwarePaid) => {
+        addHandler('ransomware-paid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwarePaid;
           setRansomPaid(prev => [...prev, data]);
           setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
         });
-        newSocket.on('ransomware-unpaid', (data: RansomwareUnpaid) => {
+        addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareUnpaid;
           setRansomUnpaid(prev => [...prev, data]);
           setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+        });
+
+        // CryptoLocker Elite events
+        addHandler('cryptolocker-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerSpawn;
+          console.log('🔒 CryptoLocker spawn received:', data);
+          setCryptoLockerSpawns(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-payment-demand', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerPaymentDemand;
+          console.log('💰 CryptoLocker payment demand:', data);
+          setCryptoLockerPaymentDemands(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-payment-sent', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerPaymentSent;
+          console.log('💸 CryptoLocker payment sent:', data);
+          setCryptoLockerPaymentSents(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-game-over', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerGameOver;
+          console.log('💀 CryptoLocker game over:', data);
+          setCryptoLockerGameOvers(prev => [...prev, data]);
         });
 
         // SystemLock events
@@ -700,6 +746,10 @@ export const useSocket = () => {
   stealthProgress,
   stealthDefeated,
   virusNotifications,
+  cryptoLockerSpawns,
+  cryptoLockerPaymentDemands,
+  cryptoLockerPaymentSents,
+  cryptoLockerGameOvers,
   ransomSpawns,
   ransomProgress,
   ransomNeutralized,

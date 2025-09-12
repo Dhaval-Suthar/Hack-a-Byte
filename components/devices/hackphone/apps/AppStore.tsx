@@ -4,6 +4,7 @@ import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { User } from "@/types/devices";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { useSocket } from "@/hooks/useSocket";
+import SystemLockProAttack from "@/components/devices/hackphone/security/SystemLockProAttack";
 
 // Add custom styles for running malware animation
 const runningMalwareStyles = `
@@ -63,6 +64,7 @@ interface DeploymentData {
   domainName?: string;
   targetUrl?: string;
   stealAmount?: string;
+  demandAmount?: string; // For CryptoLocker Elite ransom amount
   customTitle?: string;
   customDescription?: string;
   targetDeviceId?: string;
@@ -80,9 +82,8 @@ const CATALOG: StoreItem[] = [
   { id: 'worm-001', name: 'EmailSpread Pro', category: 'worm', description: 'Self-propagating email worm. Harvests contact lists and spreads sophisticated phishing campaigns automatically across networks.', price: 200, icon: '📧', requirements: ['Target IP Address', 'SMTP Server'], rating: 4.7, downloadCount: '12.5K', version: '4.0.2', developer: 'NetCrawl Solutions', size: '15.8 MB', isPopular: true },
   { id: 'worm-002', name: 'NetCrawler', category: 'worm', description: 'Network-spreading worm that exploits vulnerabilities. Creates distributed botnet infrastructure for large-scale operations.', price: 300, icon: '🕷️', requirements: ['Target IP Range', 'Port Scanner'], rating: 4.9, downloadCount: '9.3K', version: '5.1.0', developer: 'Web Syndicate', size: '28.4 MB' },
   { id: 'worm-003', name: 'SocialHook', category: 'worm', description: 'Social media worm that spreads through messaging platforms. Advanced social engineering with contact harvesting.', price: 175, icon: '🪝', requirements: ['Target IP Address', 'Social Platform Access'], rating: 4.2, downloadCount: '18.9K', version: '2.7.1', developer: 'Social Breach LLC', size: '7.3 MB' },
-  { id: 'ransom-001', name: 'CryptoLocker Elite', category: 'ransomware', description: 'Military-grade file encryption ransomware. Deploys professional fake recovery sites with integrated payment systems.', price: 500, icon: '🔒', requirements: ['Domain Name', 'Web Hosting', 'Crypto Wallet'], rating: 4.9, downloadCount: '3.2K', version: '6.0.1', developer: 'Cipher Works', size: '45.2 MB', isPopular: true },
-  { id: 'ransom-002', name: 'FakeBank Portal', category: 'ransomware', description: 'Creates convincing banking site replicas. Advanced phishing with real-time credential capture and Bitcoin theft from visitors.', price: 350, icon: '🏦', requirements: ['Target URL', 'Steal Amount'], rating: 4.5, downloadCount: '7.8K', version: '1.9.8', developer: 'Financial Phantoms', size: '32.1 MB' },
-  { id: 'ransom-003', name: 'SystemLock Pro', category: 'ransomware', description: 'System-wide encryption with custom payment portal. Includes psychological pressure tactics and deadline enforcement.', price: 400, icon: '🚫', requirements: ['Domain Name', 'Payment Gateway'], rating: 4.6, downloadCount: '5.1K', version: '3.4.5', developer: 'Lock & Key Systems', size: '38.7 MB' },
+  { id: 'ransom-001', name: 'CryptoLocker Elite', category: 'ransomware', description: 'Military-grade file encryption ransomware. Deploys professional fake recovery sites with integrated payment systems.', price: 500, icon: '🔒', requirements: ['Target IP Address'], rating: 4.9, downloadCount: '3.2K', version: '6.0.1', developer: 'Cipher Works', size: '45.2 MB', isPopular: true },
+  { id: 'ransom-003', name: 'SystemLock Pro', category: 'ransomware', description: 'Advanced PIN cracking ransomware. Attempts to crack device PINs and steal all bitcoins. High risk, high reward malware.', price: 400, icon: '🚫', requirements: ['Target MAC Address'], rating: 4.6, downloadCount: '5.1K', version: '3.4.5', developer: 'Lock & Key Systems', size: '38.7 MB' },
   { id: 'ransom-004', name: 'SiteClone Pro', category: 'ransomware', description: 'Deploy convincing fake reward sites that steal Bitcoin from visitors. Creates realistic crypto portals with automatic fund siphoning (10-20 BTC per victim).', price: 280, icon: '🎭', requirements: ['Target URL'], rating: 4.7, downloadCount: '5.4K', version: '2.3.1', developer: 'Deception Labs', size: '22.8 MB', isPopular: true },
 ];
 
@@ -126,6 +127,8 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   const [teamBalance, setTeamBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [runningMalware, setRunningMalware] = useState<Map<string, { progress: number; target: string; startTime: number }>>(new Map());
+  const [showSystemLockProAttack, setShowSystemLockProAttack] = useState(false);
+  const [systemLockProTarget, setSystemLockProTarget] = useState<string>('');
 
   // Fetch team balance and devices on component mount
   useEffect(() => {
@@ -392,6 +395,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   }, []);
 
   const executeDeploy = useCallback(async () => {
+    console.log('🚫 executeDeploy called:', {
+      deployItem: deployItem?.name,
+      deployData,
+      hasMacAddress: !!deployData.macAddress
+    });
     if (!deployItem) return;
 
     // Validate deployment data based on malware type
@@ -426,12 +434,42 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         targetInfo = deployData.ipAddress.trim();
       }
     } else if (deployItem.category === 'ransomware') {
-      // Special handling for fake site malware
-      if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
+      // Special handling for ransomware malware
+      if (deployItem.name === 'CryptoLocker Elite') {
+        // CryptoLocker Elite needs IP address and optional demand amount
+        if (deployData.ipAddress) {
+          const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+          const validIP = ipRegex.test(deployData.ipAddress.trim());
+          const validDemand = !deployData.demandAmount || (!isNaN(parseFloat(deployData.demandAmount)) && parseFloat(deployData.demandAmount) > 0);
+          isValidTarget = validIP && validDemand;
+          targetInfo = deployData.ipAddress.trim();
+        } else {
+          isValidTarget = false;
+          targetInfo = '';
+        }
+      } else if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
         // SiteClone Pro only needs URL validation (steal amount is random)
         const urlRegex = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(\/.*)*/;
         isValidTarget = urlRegex.test(deployData.targetUrl.trim());
         targetInfo = deployData.targetUrl.trim();
+      } else if (deployItem.name === 'SystemLock Pro') {
+        // SystemLock Pro needs MAC address for PIN cracking
+        if (deployData.macAddress && deployData.macAddress.trim()) {
+          const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+          const trimmedMAC = deployData.macAddress.trim();
+          isValidTarget = macRegex.test(trimmedMAC);
+          targetInfo = trimmedMAC;
+          console.log('🚫 SystemLock Pro validation:', {
+            macAddress: deployData.macAddress,
+            trimmedMAC,
+            isValidTarget,
+            regexTest: macRegex.test(trimmedMAC)
+          });
+        } else {
+          isValidTarget = false;
+          targetInfo = '';
+          console.log('🚫 SystemLock Pro validation failed: no MAC address provided');
+        }
       } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
         // FakeBank Portal needs both URL and steal amount
         const urlRegex = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(\/.*)*/;
@@ -450,6 +488,8 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     if (!isValidTarget) {
       if (deployItem.category === 'virus' && (deployItem.name === 'SysTrojan Pro' || deployItem.name === 'StealthViral' || deployItem.name === 'DataMiner X')) {
         alert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.');
+      } else if (deployItem.name === 'SystemLock Pro') {
+        alert('Please enter a valid MAC address (format: XX:XX:XX:XX:XX:XX) to target the device for SystemLock Pro.');
       } else {
         alert('Please enter a valid target address in the correct format.');
       }
@@ -557,7 +597,48 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         } else {
           throw new Error('Failed to deploy fake site');
         }
-  } else {
+  } else if (deployItem.name === 'CryptoLocker Elite' && deployData.ipAddress) {
+        // Deploy CryptoLocker Elite ransomware
+        const attackerTeamId = attackerTeamIdProp || user?.teamId;
+        if (!attackerTeamId) {
+          throw new Error('Attacker team ID not found');
+        }
+
+        const response = await fetch('/api/attack/cryptolocker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            targetIP: deployData.ipAddress,
+            attackerTeamId,
+            ...(deployData.demandAmount && { demandAmount: parseFloat(deployData.demandAmount) })
+          })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+          if (result.outcome === 'success') {
+            effectMessage = `🔒 CryptoLocker Elite deployed on ${deployData.ipAddress}! Target team must complete typing challenge or face game-ending consequences.`;
+          } else {
+            effectMessage = `🔒 CryptoLocker Elite failed to penetrate target security defenses.`;
+          }
+        } else {
+          throw new Error(result.error || 'CryptoLocker deployment failed');
+        }
+      } else if (deployItem.name === 'SystemLock Pro' && deployData.macAddress) {
+        // Launch SystemLock Pro PIN cracking interface
+        console.log('🚫 SystemLock Pro deployment triggered:', {
+          macAddress: deployData.macAddress,
+          teamId: attackerTeamIdProp || user?.teamId
+        });
+        setShowSystemLockProAttack(true);
+        setSystemLockProTarget(deployData.macAddress);
+        setDeployItem(null); // Close deployment modal
+        console.log('🚫 SystemLock Pro state updated:', {
+          showSystemLockProAttack: true,
+          systemLockProTarget: deployData.macAddress
+        });
+        return; // Don't show regular deployment success message
+      } else {
         // Regular malware deployment
         if (deployItem.category === 'virus') {
           const attackerTeamId = attackerTeamIdProp || user?.teamId;
@@ -659,7 +740,10 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         } else if (deployItem.category === 'worm') {
           effectMessage = `🕷️ Worm spreading from ${targetInfo}. Network propagation initiated.`;
         } else if (deployItem.category === 'ransomware') {
-          effectMessage = `🔒 Ransomware deployed. Target systems encrypted. Payment portal active at ${targetInfo}.`;
+          // Only generic message for other ransomware (not CryptoLocker Elite)
+          if (deployItem.name !== 'CryptoLocker Elite') {
+            effectMessage = `🔒 Ransomware deployed. Target systems encrypted. Payment portal active at ${targetInfo}.`;
+          }
         }
       }
 
@@ -1321,9 +1405,43 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     </div>
                   </>
                 )}
+              {deployItem.category === "ransomware" && deployItem.name === "CryptoLocker Elite" && (
+                <div>
+                  <label className="block text-[12px] text-[#666] mb-1">Target IP Address</label>
+                  <input
+                    value={deployData.ipAddress || ""}
+                    onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
+                    placeholder="192.168.1.100"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">
+                    Enter the target&apos;s IP address (e.g., 192.168.1.100)
+                  </div>
+                  
+                  <label className="block text-[12px] text-[#666] mb-1 mt-3">Ransom Amount (₿)</label>
+                  <input
+                    value={deployData.demandAmount || ""}
+                    onChange={(e) => setDeployData({ ...deployData, demandAmount: e.target.value })}
+                    placeholder="100"
+                    type="number"
+                    min="1"
+                    step="1"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">
+                    Optional: Custom ransom amount in Bitcoin (leave empty for auto-calculation)
+                  </div>
+                  
+                  <div className="bg-red-50 border border-red-200 rounded p-2 text-[12px] text-red-700 mt-2">
+                    🔒 CryptoLocker Elite will deploy a typing defense challenge. Target team must complete it or face game-ending consequences.
+                  </div>
+                </div>
+              )}
               {deployItem.category === "ransomware" &&
                 deployItem.name !== "FakeBank Portal" &&
-                deployItem.name !== "SiteClone Pro" && (
+                deployItem.name !== "SiteClone Pro" &&
+                deployItem.name !== "CryptoLocker Elite" &&
+                deployItem.name !== "SystemLock Pro" && (
                   <div>
                     <label className="block text-[12px] text-[#666] mb-1">Domain Name</label>
                     <input
@@ -1335,6 +1453,18 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     <div className="text-[11px] text-[#888] mt-1">Enter the domain for the fake payment portal</div>
                   </div>
                 )}
+              {deployItem.name === "SystemLock Pro" && (
+                <div>
+                  <label className="block text-[12px] text-[#666] mb-1">Target MAC Address</label>
+                  <input
+                    value={deployData.macAddress || ""}
+                    onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
+                    placeholder="aa:bb:cc:dd:ee:ff"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                  />
+                  <div className="text-[11px] text-[#888] mt-1">Enter the MAC address of the target device</div>
+                </div>
+              )}
               <div className="bg-red-50 border border-red-200 rounded p-2 text-[12px] text-red-700">
                 Deploying malware without authorization is illegal. This is a simulation.
               </div>
@@ -1350,7 +1480,39 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                 Cancel
               </button>
               <button
-                onClick={executeDeploy}
+                onClick={() => {
+                  console.log('🚫 Deploy Attack button clicked:', {
+                    deployItem: deployItem?.name,
+                    deployData,
+                    isDisabled: (deployItem.category === "virus" && !deployData.macAddress) ||
+                      (deployItem.category === "worm" &&
+                        ((deployItem.name === 'EmailSpread Pro' && !(deployData.emailSubject && deployData.emailContent)) ||
+                         (deployItem.name === 'SocialHook' && !deployData.smsContent) ||
+                         (deployItem.name === 'NetCrawler' && !(deployData.emailSubject && deployData.emailContent && deployData.smsContent)) ||
+                         (!['EmailSpread Pro','SocialHook','NetCrawler'].includes(deployItem.name) && !deployData.ipAddress)
+                        )
+                      ) ||
+                      (deployItem.category === "ransomware" &&
+                        deployItem.name === "FakeBank Portal" &&
+                        (!deployData.targetUrl || !deployData.stealAmount)) ||
+                      (deployItem.category === "ransomware" &&
+                        deployItem.name === "SiteClone Pro" &&
+                        (!deployData.targetUrl || !deployData.customTitle || !deployData.customDescription)) ||
+                      (deployItem.category === "ransomware" &&
+                        deployItem.name === "CryptoLocker Elite" &&
+                        !deployData.ipAddress) ||
+                      (deployItem.category === "ransomware" &&
+                        deployItem.name === "SystemLock Pro" &&
+                        !deployData.macAddress) ||
+                      (deployItem.category === "ransomware" &&
+                        deployItem.name !== "FakeBank Portal" &&
+                        deployItem.name !== "SiteClone Pro" &&
+                        deployItem.name !== "CryptoLocker Elite" &&
+                        deployItem.name !== "SystemLock Pro" &&
+                        !deployData.domainName)
+                  });
+                  executeDeploy();
+                }}
                 disabled={
                   (deployItem.category === "virus" && !deployData.macAddress) ||
                   (deployItem.category === "worm" &&
@@ -1367,8 +1529,16 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     deployItem.name === "SiteClone Pro" &&
                     (!deployData.targetUrl || !deployData.customTitle || !deployData.customDescription)) ||
                   (deployItem.category === "ransomware" &&
+                    deployItem.name === "CryptoLocker Elite" &&
+                    !deployData.ipAddress) ||
+                  (deployItem.category === "ransomware" &&
+                    deployItem.name === "SystemLock Pro" &&
+                    !deployData.macAddress) ||
+                  (deployItem.category === "ransomware" &&
                     deployItem.name !== "FakeBank Portal" &&
                     deployItem.name !== "SiteClone Pro" &&
+                    deployItem.name !== "CryptoLocker Elite" &&
+                    deployItem.name !== "SystemLock Pro" &&
                     !deployData.domainName)
                 }
                 className="flex-1 py-2 rounded text-white text-[13px] font-semibold bg-gradient-to-b from-[#4CD964] to-[#2B7BE8] border border-[#19943A] disabled:opacity-50"
@@ -1386,6 +1556,18 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           <RunningMalwareIndicator malwareId={malwareId} data={data} />
         </div>
       ))}
+
+      {/* SystemLock Pro Attack Interface */}
+      {showSystemLockProAttack && (
+        <SystemLockProAttack
+          teamId={attackerTeamIdProp || user?.teamId || ''}
+          initialTargetMAC={systemLockProTarget}
+          onClose={() => {
+            console.log('🚫 SystemLock Pro onClose called');
+            setShowSystemLockProAttack(false);
+          }}
+        />
+      )}
     </div>
   );
 };

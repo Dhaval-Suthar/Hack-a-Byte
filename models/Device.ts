@@ -7,6 +7,9 @@ export interface Device extends Document {
   deviceType: string; // e.g., 'hackbook-w95', 'hackdroid', 'hackphone'
   status: "online" | "offline" | "maintenance";
   playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to
+  teamId?: mongoose.Schema.Types.ObjectId; // Reference to the team that owns this device
+  ipAddress?: string; // Shortcut to the device's IP address (for easier queries)
+  lastSeen?: Date; // When the device was last seen online
 
   // Currently logged in users
   currentUsers: {
@@ -76,6 +79,9 @@ const DeviceSchema = new Schema<Device>(
     deviceType: { type: String, required: true },
     status: { type: String, enum: ["online", "offline", "maintenance"], default: "offline" },
     playspace: { type: mongoose.Schema.Types.ObjectId, ref: "Playspace" },
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+    ipAddress: { type: String },
+    lastSeen: { type: Date, default: Date.now },
 
     currentUsers: [
       {
