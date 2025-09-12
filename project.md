@@ -5,7 +5,7 @@
 Hack-A-Byte is a comprehensive cybersecurity education platform featuring two distinct gaming experiences:
 
 1. **Base Game**: A free-to-play experience with 6 mini-games on the hackbook-w95 device
-2. **CryptoHeist**: A premium, event-based competitive game played on hackbook-e95 (PC/laptop) and hackphone (mobile) devices
+2. **CryptoHeist**: A premium, event-based competitive game played on hackbook-w95 (PC/laptop) and hackphone (mobile) devices
 
 ## 1. Base Game (hackbook-w95)
 
@@ -34,7 +34,7 @@ CryptoHeist is a competitive, team-based cybersecurity simulation game where pla
 ### Game Structure
 - **Event-Based**: Requires registration and payment
 - **Team Play**: 1-6 players per team
-- **Devices**: hackbook-e95 (PC/laptop) or hackphone (mobile)
+- **Devices**: hackbook-w95 (PC/laptop) or hackphone (mobile)
 - **Objective**: Achieve the highest cryptocurrency wallet balance
 
 ### Registration Process

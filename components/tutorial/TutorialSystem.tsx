@@ -18,7 +18,7 @@ interface TutorialSequence {
   id: string;
   title: string;
   description: string;
-  deviceType: 'hackbook-w95' | 'hackbook-e95' | 'hackphone';
+  deviceType: 'hackbook-w95' | 'hackphone';
   steps: TutorialStep[];
 }
 
@@ -113,7 +113,7 @@ export const TUTORIAL_SEQUENCES: Record<string, TutorialSequence> = {
     id: 'cryptoheist-intro',
     title: 'CryptoHeist Tutorial',
     description: 'Learn team-based cryptocurrency hacking',
-    deviceType: 'hackbook-e95',
+    deviceType: 'hackbook-w95',
     steps: [
       {
         id: 'team-setup',

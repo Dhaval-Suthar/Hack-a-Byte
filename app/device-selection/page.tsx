@@ -155,14 +155,6 @@ export default function DeviceSelectionPage() {
   // All possible device options - memoized to prevent re-creation on every render
   const allDeviceOptions: DeviceOption[] = useMemo(() => [
     {
-      id: "hackbook-e95",
-      name: "HackBook E95",
-      icon: "/hackbook-W95/app-icon/windows-logo.png",
-      description: "Essential Windows 95 interface with core applications only - no mini games.",
-      path: "/hackbook-e95",
-      platform: "desktop",
-    },
-    {
       id: "hackbook-w95",
       name: "HackBook W95",
       icon: "/hackbook-W95/app-icon/windows-logo.png",

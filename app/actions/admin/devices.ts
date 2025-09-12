@@ -86,7 +86,7 @@ export async function createDevice(
     await connectDb();
 
     // Validate device type
-    const validDeviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+    const validDeviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
     if (!validDeviceTypes.includes(deviceType)) {
       return { error: "Invalid device type" };
     }
@@ -129,10 +129,6 @@ export async function createDevice(
       case "hackbook-w95":
         defaultConfig.osVersion = "Windows 95";
         defaultConfig.installedApps = ["Notepad", "Calculator", "Paint"];
-        break;
-      case "hackbook-e95":
-        defaultConfig.osVersion = "Windows 95 Essential";
-        defaultConfig.installedApps = ["Notepad", "Calculator", "Paint", "My Computer", "Internet Explorer"];
         break;
       case "hackbook-l":
         defaultConfig.osVersion = "Linux Ubuntu 22.04";
@@ -362,7 +358,7 @@ export async function updateDevice(
 
     // Validate device type if being updated
     if (updates.deviceType) {
-      const validDeviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+      const validDeviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
       if (!validDeviceTypes.includes(updates.deviceType)) {
         return { error: "Invalid device type" };
       }

@@ -53,7 +53,7 @@ function generateUniqueCode(prefix?: string): string {
 async function createPlayspaceWithDevices(
   playspaceName: string, 
   playspaceDescription: string, 
-  deviceType: "hackphone" | "hackbook-e95"
+  deviceType: "hackphone" | "hackbook-w95"
 ): Promise<{
   success: boolean;
   playspaceId?: string;
@@ -160,11 +160,11 @@ export async function createAccessCodeAndPlayspace(
     }
 
     // Determine device type
-  const deviceType = playingDevice === "smartphone" ? "hackphone" : "hackbook-e95";
+  const deviceType = playingDevice === "smartphone" ? "hackphone" : "hackbook-w95";
     
     // Create playspace name and description
     const playspaceName = `${eventTitle} - Team ${accessCode}`;
-  const playspaceDescription = `Shared gaming environment for ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''} using one ${deviceType === "hackphone" ? "HackPhone (Smartphone)" : "HackBook E95 (PC/Laptop)"} device. Registration ID: ${registrationId}`;
+  const playspaceDescription = `Shared gaming environment for ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''} using one ${deviceType === "hackphone" ? "HackPhone (Smartphone)" : "HackBook W95 (PC/Laptop)"} device. Registration ID: ${registrationId}`;
 
     // Create playspace with one shared device
     const playspaceResult = await createPlayspaceWithDevices(

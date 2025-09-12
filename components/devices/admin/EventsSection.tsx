@@ -375,7 +375,7 @@ export default function EventsSection({
               <div>
                 <label className="text-xs text-neutral-300 font-medium">Desktop Devices:</label>
                 <div className="grid grid-cols-2 gap-1 mt-1">
-                  {['hackbook-e95', 'hackbook-w95'].map(device => (
+                  {['hackbook-w95'].map(device => (
                     <label key={device} className="flex items-center gap-1 text-xs">
                       <input
                         type="checkbox"
@@ -393,7 +393,7 @@ export default function EventsSection({
                           });
                         }}
                       />
-                      {device === 'hackbook-e95' ? 'HackBook E95' : 'HackBook W95'}
+                      'HackBook W95'
                     </label>
                   ))}
                 </div>
@@ -582,7 +582,7 @@ export default function EventsSection({
               <div>
                 <label className="text-xs text-neutral-300 font-medium">Desktop Devices:</label>
                 <div className="grid grid-cols-2 gap-1 mt-1">
-                  {['hackbook-e95', 'hackbook-w95'].map(device => (
+                  {['hackbook-w95'].map(device => (
                     <label key={device} className="flex items-center gap-1 text-xs">
                       <input
                         type="checkbox"
@@ -600,7 +600,7 @@ export default function EventsSection({
                           });
                         }}
                       />
-                      {device === 'hackbook-e95' ? 'HackBook E95' : 'HackBook W95'}
+                      'HackBook W95'
                     </label>
                   ))}
                 </div>

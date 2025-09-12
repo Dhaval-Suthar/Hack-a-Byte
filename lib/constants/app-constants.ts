@@ -8,7 +8,6 @@ export const APP_CONFIG = {
 // Device types
 export const DEVICE_TYPES = {
   HACKPHONE: 'hackphone',
-  HACKBOOK_E95: 'hackbook-e95',
   HACKBOOK_W95: 'hackbook-w95',
   HACKDROID: 'hackdroid',
 } as const;

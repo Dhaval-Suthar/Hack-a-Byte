@@ -40,7 +40,7 @@ export default function DevicesSection({
     (d.playspace && d.playspace.name.toLowerCase().includes(q.toLowerCase()))
   );
 
-  const deviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+  const deviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
   const statuses = ["online", "offline", "maintenance"];
 
   const handleCreate = async () => {

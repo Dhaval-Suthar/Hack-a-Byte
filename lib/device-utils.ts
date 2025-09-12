@@ -170,12 +170,6 @@ function getDefaultDeviceConfig(deviceType: string, ipAddress: string) {
         osVersion: "Windows 95",
         installedApps: ["Notepad", "Calculator", "Paint", "MyComputer", "Terminal", "Minesweeper", "CD Player"]
       };
-    case 'hackbook-e95':
-      return {
-        ...baseConfig,
-        osVersion: "Windows 95",
-        installedApps: ["Notepad", "Calculator", "Paint", "MyComputer", "Terminal", "Minesweeper", "CD Player"]
-      };
     case 'hackbook-l':
       return {
         ...baseConfig,
