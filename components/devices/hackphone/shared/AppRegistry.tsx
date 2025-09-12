@@ -185,7 +185,7 @@ export const APP_REGISTRY: AppConfig[] = [
   },
   {
     id: "sentinel",
-    name: "Security Center",
+    name: "Sentinel",
     icon: "/hackphone/apps/sentinel/app-icon.png",
     category: "security",
     description: "Security monitoring and defensive configuration",

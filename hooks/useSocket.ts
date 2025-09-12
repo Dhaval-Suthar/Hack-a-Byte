@@ -542,6 +542,12 @@ export const useSocket = () => {
           const data = dataUnknown as GameOverEvent;
           setGameOverEvents(prev => [...prev, data]);
         });
+        
+        // Game termination event (when admin terminates the game)
+        addHandler('game-terminated', (dataUnknown: unknown) => {
+          const data = dataUnknown as GameOverEvent;
+          setGameOverEvents(prev => [...prev, { ...data, sessionId: 'TERMINATED', ts: Date.now() }]);
+        });
 
         // Worm events
         addHandler('worm-payload', (dataUnknown: unknown) => {

@@ -56,7 +56,7 @@ const SecurityCenterApp: React.FC = () => {
 
   return (
     <AppContainer backgroundColor="bg-gray-950">
-      <AppHeader title="Security Center" />
+      <AppHeader title="Sentinel" />
       <div className="flex-1 p-4 space-y-4 text-white overflow-y-auto">
         <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-700">
           <div className="text-sm text-gray-300">Configure defenses to improve resistance against attacks. Higher security score increases automatic mitigation chance.</div>

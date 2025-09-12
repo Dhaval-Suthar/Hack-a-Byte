@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { useSocket } from "@/hooks/useSocket";
 
 interface DeviceInfo {
   id: string;
@@ -271,6 +272,13 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   const [scanCompleted, setScanCompleted] = useState(false);
   const [deviceLockedForScan, setDeviceLockedForScan] = useState<DeviceInfo | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
+  // Game termination state
+  const [isTerminating, setIsTerminating] = useState(false);
+  const [showTerminateConfirm, setShowTerminateConfirm] = useState(false);
+  const [gameTerminated, setGameTerminated] = useState(false);
+
+  // Socket connection
+  const { socket } = useSocket();
 
   // Tick every second to update cooldown display
   useEffect(() => {
@@ -299,11 +307,72 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
     }
   }, []);
 
+  // Game termination handler
+  const handleGameTerminated = useCallback(() => {
+    setGameTerminated(true);
+    addNotification("🚨 Game has been terminated by administrator");
+    addNotification("📱 All devices are now offline");
+    addNotification("🔄 Redirecting to game over screen...");
+    
+    // Redirect to game over after a short delay
+    setTimeout(() => {
+      window.location.href = '/game-over';
+    }, 3000);
+  }, []);
+
+  // Socket event listeners for game termination
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('game-terminated', handleGameTerminated);
+
+    return () => {
+      socket.off('game-terminated', handleGameTerminated);
+    };
+  }, [socket, handleGameTerminated]);
+
   const addNotification = (message: string) => {
     setNotifications(prev => [...prev.slice(-2), message]);
     setTimeout(() => {
       setNotifications(prev => prev.slice(1));
     }, 3000);
+  };
+
+  const terminateGame = async () => {
+    setIsTerminating(true);
+    addNotification("🚨 Initiating game termination sequence...");
+
+    try {
+      const response = await fetch('/api/admin/terminate-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        addNotification("✅ Game terminated successfully!");
+        addNotification("📱 All devices offline");
+        addNotification("👥 Teams redirected to game over");
+        
+        // Trigger local termination state
+        setGameTerminated(true);
+        
+        // Close the app after successful termination
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        addNotification(`❌ Termination failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Game termination error:', error);
+      addNotification("❌ Termination failed: Network error");
+    } finally {
+      setIsTerminating(false);
+      setShowTerminateConfirm(false);
+    }
   };
 
   const startScan = async () => {
@@ -456,6 +525,22 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
             >
               Return to Desktop
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if game has been terminated
+  if (gameTerminated) {
+    return (
+      <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-red-900/30 flex flex-col font-sans text-white overflow-hidden relative">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="text-6xl mb-4 animate-pulse">🚨</div>
+            <h3 className="text-xl font-bold text-red-400 mb-2">GAME TERMINATED</h3>
+            <p className="text-gray-400 text-sm">The game has been terminated by the administrator</p>
+            <p className="text-yellow-400 text-xs mt-2 animate-pulse">Redirecting to game over screen...</p>
           </div>
         </div>
       </div>
@@ -692,6 +777,47 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                         <p className="text-center text-xs text-cyan-400">Target locked. Re-scan to analyze another device.</p>
                       )}
                     </div>
+                  </div>
+                </div>
+                
+                {/* Game Termination Section */}
+                <div className="mt-6 pt-6 border-t border-red-500/20">
+                  <div className="text-center space-y-4">
+                    <div className="text-red-300 text-sm">
+                      <span className="text-yellow-400">⚠️</span> Game Administration
+                    </div>
+                    {!showTerminateConfirm ? (
+                      <button
+                        onClick={() => setShowTerminateConfirm(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-red-600 hover:from-yellow-500 hover:to-red-500 text-white font-bold rounded-xl text-sm transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-500/30"
+                      >
+                        🏁 TERMINATE GAME
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <div className="text-red-400 font-bold text-sm mb-2">⚠️ CONFIRM TERMINATION</div>
+                          <div className="text-gray-400 text-xs mb-4">
+                            This will set all devices offline and redirect teams to game over screen.
+                          </div>
+                        </div>
+                        <div className="flex space-x-3 justify-center">
+                          <button
+                            onClick={() => setShowTerminateConfirm(false)}
+                            className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg text-sm transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={terminateGame}
+                            disabled={isTerminating}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isTerminating ? 'Terminating...' : 'CONFIRM'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

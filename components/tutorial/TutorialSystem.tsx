@@ -56,7 +56,7 @@ export const TUTORIAL_SEQUENCES: Record<string, TutorialSequence> = {
       {
         id: 'security-apps',
         title: 'Security Tools 🔒',
-        content: 'Start with the Security Center app to learn about system protection.',
+        content: 'Start with the Sentinel app to learn about system protection.',
         targetElement: 'security-app',
         position: 'top',
         action: 'click'

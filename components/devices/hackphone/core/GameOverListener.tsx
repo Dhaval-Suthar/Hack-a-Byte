@@ -21,16 +21,17 @@ const GameOverListener: React.FC<GameOverListenerProps> = ({
   useEffect(() => {
     if (!enabled || !teamId) return;
 
-    // Check for game over events targeted at this team
+    // Check for game over events targeted at this team or global termination
     const relevantGameOver = gameOverEvents.find(event => 
       event.sessionId === teamId || 
       event.winner === teamId ||
+      event.sessionId === 'TERMINATED' || // Global game termination
       // Check if it's a recent event (within last 5 seconds)
       (Date.now() - event.ts < 5000)
     );
 
     if (relevantGameOver) {
-      console.log('🎮 Game over event detected, redirecting:', relevantGameOver);
+      console.log('🎮 Game over/termination event detected, redirecting:', relevantGameOver);
       
       // Clear device data
       try {
@@ -41,8 +42,10 @@ const GameOverListener: React.FC<GameOverListenerProps> = ({
         // localStorage not available
       }
 
-      // Redirect based on device status or to maintenance page
-      if (deviceId) {
+      // Redirect to game over page for termination or maintenance for device issues
+      if (relevantGameOver.sessionId === 'TERMINATED') {
+        router.push('/game-over');
+      } else if (deviceId) {
         router.push(`/device-maintenance?deviceId=${encodeURIComponent(deviceId)}&reason=maintenance`);
       } else {
         router.push('/device-selection');
