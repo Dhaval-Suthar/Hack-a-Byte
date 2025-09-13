@@ -181,7 +181,7 @@ export const useSocket = () => {
               try {
                 await fetch('/api/socketio', { method: 'GET', cache: 'no-store', keepalive: true });
               } catch (primeErr) {
-                logger.warn('Failed to prime /api/socketio:', { error: primeErr });
+                logger.warn('Failed to prime /api/socketio:', { error: primeErr instanceof Error ? primeErr.message : String(primeErr) });
               }
 
               // Add a small delay to ensure server is ready
@@ -284,7 +284,11 @@ export const useSocket = () => {
         });
         addHandler('connect_error', (errorUnknown: unknown) => {
           const error = errorUnknown as { message?: string };
-          logger.error('Socket.IO connection error:', { error: error?.message ?? String(error || 'Unknown error'), errorObject: error });
+          logger.error('Socket.IO connection error:', { 
+            error: error?.message ?? String(error || 'Unknown error'),
+            errorType: typeof error,
+            hasMessage: !!error?.message
+          });
           setIsConnected(false);
         });
         addHandler('connect_timeout', () => {
@@ -295,7 +299,7 @@ export const useSocket = () => {
         });
         addHandler('reconnect_error', (errorUnknown: unknown) => {
           const error = errorUnknown as { message?: string };
-          logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? error });
+          logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? String(error || 'Unknown error') });
         });
 
   // Also log timeouts with addHandler above; duplicate warning removed

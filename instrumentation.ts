@@ -8,43 +8,17 @@ export const runtime = 'nodejs';
 export async function register() {
   // Keep logs minimal but visible during debugging
   // Avoid running in Edge runtime where Node APIs are not available
-  if ((globalThis as unknown as { EdgeRuntime?: string }).EdgeRuntime) {
-    // Still try to run services in development
-    if (process.env.NODE_ENV === 'development') {
-      // Wait for database connection before importing services
-      setTimeout(async () => {
-        try {
-          // First establish database connection
-          const { ensureDatabaseConnection } = await import('@/lib/database');
-          await ensureDatabaseConnection();
-
-                    // Now safely import services that depend on models
-          // Use dynamic import to avoid bundling server-side code in client
-          // Temporarily disabled to fix build issues
-          // if (typeof window === 'undefined') {
-          //   await import('./lib/stateSweeper');
-          // }
-
-          // Try to initialize Socket.IO server
-          try {
-            await import('./lib/socket');
-          } catch (error) {
-            logger.warn('⚠️ Socket.IO initialization failed in instrumentation:', { error });
-          }
-        } catch (dbError) {
-          logger.error('❌ Database connection failed in instrumentation:', { error: dbError instanceof Error ? dbError.message : String(dbError || 'Unknown error'), errorObject: dbError });
-        }
-      }, 2000); // Increased delay to ensure database is ready
-    }
+  if (typeof window !== 'undefined' || (globalThis as unknown as { EdgeRuntime?: string }).EdgeRuntime) {
+    logger.info('Running in browser or Edge runtime, skipping database-dependent services');
     return;
   }
 
-    // For Node.js runtime, establish database connection first
+  // For Node.js runtime, establish database connection first
   try {
     const { ensureDatabaseConnection } = await import('@/lib/database');
     await ensureDatabaseConnection();
   } catch (dbError) {
-    logger.error('❌ Database connection failed in instrumentation:', { error: dbError instanceof Error ? dbError.message : String(dbError || 'Unknown error'), errorObject: dbError });
+    logger.error('❌ Database connection failed in instrumentation:', { error: dbError instanceof Error ? dbError.message : String(dbError || 'Unknown error') });
     return; // Don't proceed if database connection fails
   }
 

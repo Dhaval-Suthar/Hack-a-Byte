@@ -83,6 +83,10 @@ class DatabaseConnection {
   }
 
   private setupConnectionListeners(): void {
+    if (!mongoose.connection) {
+      logger.warn('Mongoose connection not available for listeners');
+      return;
+    }
     mongoose.connection.on('connected', () => {
       logger.info('MongoDB connected');
     });
@@ -109,6 +113,11 @@ class DatabaseConnection {
       return;
     }
 
+    if (!mongoose.connection) {
+      logger.warn('Mongoose connection not available for disconnect');
+      return;
+    }
+
     try {
       await mongoose.connection.close();
       this.isConnected = false;
@@ -126,12 +135,21 @@ class DatabaseConnection {
     port: number;
   } {
     const conn = mongoose.connection;
+    if (!conn) {
+      return {
+        isConnected: false,
+        readyState: 0,
+        name: '',
+        host: '',
+        port: 0,
+      };
+    }
     return {
       isConnected: this.isConnected,
-      readyState: conn.readyState,
-      name: conn.name,
-      host: conn.host,
-      port: conn.port,
+      readyState: conn.readyState ?? 0,
+      name: conn.name ?? '',
+      host: conn.host ?? '',
+      port: conn.port ?? 0,
     };
   }
 
@@ -144,7 +162,7 @@ class DatabaseConnection {
       const startTime = Date.now();
 
       // Simple ping to check if database is responsive
-      if (mongoose.connection.db) {
+      if (mongoose.connection && mongoose.connection.db) {
         await mongoose.connection.db.admin().ping();
       } else {
         throw new Error('Database connection not available');
@@ -157,8 +175,8 @@ class DatabaseConnection {
         status,
         details: {
           responseTime: `${responseTime}ms`,
-          readyState: mongoose.connection.readyState,
-          name: mongoose.connection.name,
+          readyState: mongoose.connection ? mongoose.connection.readyState : 0,
+          name: mongoose.connection ? mongoose.connection.name : '',
         },
       };
     } catch (error) {
@@ -166,7 +184,7 @@ class DatabaseConnection {
         status: 'unhealthy',
         details: {
           error: (error as Error).message,
-          readyState: mongoose.connection.readyState,
+          readyState: mongoose.connection ? mongoose.connection.readyState : 0,
         },
       };
     }

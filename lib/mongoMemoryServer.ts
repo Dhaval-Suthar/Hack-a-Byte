@@ -17,13 +17,16 @@ export async function startMemoryMongo() {
 
 export async function stopMemoryMongo() {
   if (mongo) {
-    await mongoose.connection.close().catch(() => {});
+    if (mongoose.connection) {
+      await mongoose.connection.close().catch(() => {});
+    }
     await mongo.stop();
     mongo = null;
   }
 }
 
 export async function cleanupMemoryMongo() {
+  if (!mongoose.connections) return;
   const { connections } = mongoose;
   for (const conn of connections) {
     const db = conn.db;
