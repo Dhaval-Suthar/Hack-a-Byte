@@ -190,7 +190,7 @@ export const useSocket = () => {
               const base = process.env.NODE_ENV === 'production' ? '' : window.location.origin;
               const s = io(base, {
                 path: '/api/socketio',
-                transports: ['websocket', 'polling'],
+                transports: process.env.NODE_ENV === 'production' ? ['polling', 'websocket'] : ['websocket', 'polling'],
                 timeout: 30000,
                 // Do NOT force new connections; reuse the single client
                 forceNew: false,

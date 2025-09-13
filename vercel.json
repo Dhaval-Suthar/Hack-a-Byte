@@ -14,5 +14,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/socketio",
+      "destination": "/api/socketio"
+    }
   ]
 }
