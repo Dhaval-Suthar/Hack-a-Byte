@@ -16,10 +16,10 @@ const envSchema = z.object({
 
   // Email
   EMAIL_FROM: z.string().email('EMAIL_FROM must be a valid email address'),
-  SMTP_HOST: z.string().min(1, 'SMTP_HOST is required'),
-  SMTP_PORT: z.string().transform(Number).pipe(z.number().int().positive()),
-  SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
-  SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
+  EMAIL_HOST: z.string().min(1, 'EMAIL_HOST is required'),
+  EMAIL_PORT: z.string().transform(Number).pipe(z.number().int().positive()),
+  EMAIL_USER: z.string().min(1, 'EMAIL_USER is required'),
+  EMAIL_PASS: z.string().min(1, 'EMAIL_PASS is required'),
 
   // Application
   NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL must be a valid URL'),

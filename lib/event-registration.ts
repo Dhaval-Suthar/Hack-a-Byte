@@ -148,6 +148,10 @@ export async function completeRegistrationPipeline(
     });
 
     // Step 3: Send access code email (idempotent-ish)
+    const team = await Team.findOne({ registrationId });
+    const walletAddress = team?.wallet?.walletAddress;
+    const privateKey = team?.wallet?.privateKey;
+    
     const emailResult = await sendAccessCodeEmail({
       email: email.toLowerCase(),
       eventTitle,
@@ -156,8 +160,8 @@ export async function completeRegistrationPipeline(
       playingDevice: playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
       maxUsages: numberOfPlayers,
       playspaceName: playspaceName || `${eventTitle} - Team ${accessCode}`,
-      instructions:
-        "Use your access code to enter your dedicated gaming environment and start your cybersecurity challenge!",
+      walletAddress,
+      privateKey
     });
 
     if (emailResult.success) {
