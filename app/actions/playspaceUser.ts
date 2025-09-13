@@ -20,7 +20,8 @@ export async function createDeviceUser(
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      console.warn('Device lookup by ObjectId failed, trying MAC address:', error);
       // If ObjectId lookup fails, try MAC address lookup
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }
@@ -244,7 +245,8 @@ export async function getUsersByDeviceId(deviceId: string) {
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      console.warn('Device lookup by ObjectId failed, trying MAC address:', error);
       // If ObjectId lookup fails, try MAC address lookup
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }

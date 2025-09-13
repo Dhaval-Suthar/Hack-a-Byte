@@ -171,7 +171,8 @@ export default function Page() {
         const firstInput = document.getElementById("code-0");
         if (firstInput) firstInput.focus();
       }
-    } catch {
+    } catch (error) {
+      console.error('Error during team registration:', error);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);

@@ -37,7 +37,7 @@ export async function register() {
     return;
   }
 
-  // For Node.js runtime, establish database connection first
+    // For Node.js runtime, establish database connection first
   try {
     const { ensureDatabaseConnection } = await import('@/lib/database');
     await ensureDatabaseConnection();

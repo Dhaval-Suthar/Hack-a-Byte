@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
     if (!team) {
       try {
         team = await Team.findById(teamId).select('_id wallet.bitcoinBalance');
-      } catch {
-        // Invalid ObjectId format
+      } catch (error) {
+        // Invalid ObjectId format - log but continue
+        console.warn('Invalid teamId format for findById:', teamId, error);
       }
     }
 

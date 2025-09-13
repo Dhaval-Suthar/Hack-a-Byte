@@ -15,8 +15,8 @@ const DeviceMaintenanceContent: React.FC = () => {
       localStorage.removeItem('device_mac_address');
       localStorage.removeItem('hackphone_password');
       localStorage.removeItem('device_user');
-    } catch {
-      // localStorage not available
+    } catch (error) {
+      console.warn('Failed to clear device data from localStorage:', error);
     }
     router.push('/device-selection');
   };

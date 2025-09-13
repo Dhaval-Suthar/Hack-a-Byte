@@ -217,7 +217,8 @@ export async function assignDeviceToPlayspace(
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      console.warn('Device lookup by ObjectId failed, trying MAC address:', error);
       // If ObjectId lookup fails, try finding by MAC address
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }

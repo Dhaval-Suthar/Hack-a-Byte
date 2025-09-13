@@ -44,7 +44,8 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
     if (eventObjectId) {
       try {
         event = await Event.findById(eventObjectId);
-      } catch {
+      } catch (error) {
+        console.error('Error finding event by ObjectId:', error);
         return { success: false, error: "Invalid event id" };
       }
     } else {
