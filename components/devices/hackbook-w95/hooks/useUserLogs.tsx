@@ -1,6 +1,7 @@
 "use client";
 
 import { userStorage } from './useUserStorage';
+import { logger } from '@/lib/logger';
 
 export interface LoginLog {
   timestamp: string;
@@ -39,7 +40,7 @@ export class UserLogManager {
       
       userStorage.setItem('win95LoginLogs', logs);
     } catch (error) {
-      console.error('Error adding login log:', error);
+      logger.error('Error adding login log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }
   
@@ -70,7 +71,7 @@ export class UserLogManager {
       
       userStorage.setItem('win95SystemLogs', logs);
     } catch (error) {
-      console.error('Error adding system log:', error);
+      logger.error('Error adding system log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }
   
@@ -105,7 +106,7 @@ export class UserLogManager {
       
       return logs;
     } catch (error) {
-      console.error('Error retrieving system logs:', error);
+      logger.error('Error retrieving system logs:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return [];
     }
   }

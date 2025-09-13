@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import connectDb from "@/db/connectDb";
 import NotificationModel from "@/models/Notification";
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method || '')) {
@@ -111,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error("Notification API error:", error);
+    logger.error('Notification API error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

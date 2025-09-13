@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { logger } from '@/lib/logger';
 
 // Type definitions
 interface DeviceSettings {
@@ -99,7 +100,7 @@ const SettingsApp: React.FC = () => {
     try {
       const deviceMacAddress = localStorage.getItem("device_mac_address");
       if (!deviceMacAddress) {
-        console.warn("No device MAC address found in localStorage");
+        logger.warn('No device MAC address found in localStorage');
         setIsLoading(false);
         return;
       }
@@ -133,7 +134,7 @@ const SettingsApp: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Failed to load settings from database:", error);
+      logger.error('Failed to load settings from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Fall back to default values if database loading fails
       setAirplaneModeEnabled(false);
       setWifiEnabled(true);
@@ -165,7 +166,7 @@ const SettingsApp: React.FC = () => {
     try {
       const deviceMacAddress = localStorage.getItem("device_mac_address");
       if (!deviceMacAddress) {
-        console.warn("No device MAC address found in localStorage");
+        logger.warn('No device MAC address found in localStorage');
         return;
       }
 
@@ -189,7 +190,7 @@ const SettingsApp: React.FC = () => {
         setPinEnabled(settings.pinEnabled);
       }
     } catch (error) {
-      console.error("Failed to update PIN settings:", error);
+      logger.error('Failed to update PIN settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     } finally {
       setIsUpdating(false);
     }
@@ -200,7 +201,7 @@ const SettingsApp: React.FC = () => {
     try {
       const deviceMacAddress = localStorage.getItem("device_mac_address");
       if (!deviceMacAddress) {
-        console.warn("No device MAC address found in localStorage");
+        logger.warn('No device MAC address found in localStorage');
         return;
       }
 
@@ -216,7 +217,7 @@ const SettingsApp: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}, message: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error("Failed to update device settings:", error);
+      logger.error('Failed to update device settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     } finally {
       setIsUpdating(false);
     }
@@ -375,7 +376,7 @@ const SettingsApp: React.FC = () => {
       // Reload settings to reflect the changes
       loadSettingsFromDatabase();
     } catch (error) {
-      console.error("Failed to update PIN:", error);
+      logger.error('Failed to update PIN:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setPinError("Failed to update PIN. Please try again.");
     }
   };

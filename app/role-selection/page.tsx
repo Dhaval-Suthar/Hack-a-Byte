@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { getAvailableRoles, validateAndUseAccessCode } from "@/app/actions/userProgress";
 import { CHARACTER_INFO, ROLE_LIMITS } from "@/lib/constants/app-constants";
+import { logger } from '@/lib/logger';
 
 function RoleSelectionClient() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function RoleSelectionClient() {
           if (limits) setAllRoles(Object.keys(limits));
       // Persist team size for later client-side role gating (hackphone apps)
       try { localStorage.setItem('teamSize', String(res.totalSlots)); } catch (error) {
-        console.warn('Failed to save team size to localStorage:', error);
+        logger.warn('Failed to save team size to localStorage:', { error });
       }
         }
       } else {
@@ -66,7 +67,7 @@ function RoleSelectionClient() {
         document.cookie = `playspaceId=${res.playspaceId}; path=/; SameSite=Lax`;
         localStorage.setItem('playspaceId', res.playspaceId);
       } catch (error) {
-        console.warn('Failed to save playspace data to localStorage/cookies:', error);
+        logger.warn('Failed to save playspace data to localStorage/cookies:', { error });
       }
     }
     // When all joined or not, continue to device selection (device will be online only after all joined)

@@ -2,6 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 const DeviceOfflineContent: React.FC = () => {
   const router = useRouter();
@@ -15,7 +16,7 @@ const DeviceOfflineContent: React.FC = () => {
       localStorage.removeItem('hackphone_password');
       localStorage.removeItem('device_user');
     } catch (error) {
-      console.warn('Failed to clear device data from localStorage:', error);
+      logger.warn('Failed to clear device data from localStorage:', { error });
     }
     router.push('/device-selection');
   };

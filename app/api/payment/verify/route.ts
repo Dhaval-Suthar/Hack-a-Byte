@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyEventPayment } from '@/app/actions/payment';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Payment verification API error:', error);
+    logger.error('Payment verification API error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error during payment verification'

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AppContainer, AppHeader } from "./AppContainer";
 import { AppPermission } from "@/types/devices";
+import { logger } from '@/lib/logger';
 
 interface PermissionRequestProps {
   appName: string;
@@ -38,19 +39,19 @@ export const PermissionRequest: React.FC<PermissionRequestProps> = ({
         try {
           await navigator.mediaDevices.getUserMedia({ video: true });
         } catch (error) {
-          console.warn('Camera permission denied:', error);
+          logger.warn('Camera permission denied:', { error });
         }
       } else if (permission.type === 'microphone') {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (error) {
-          console.warn('Microphone permission denied:', error);
+          logger.warn('Microphone permission denied:', { error });
         }
       } else if (permission.type === 'location') {
         try {
           await navigator.geolocation.getCurrentPosition(() => {});
         } catch (error) {
-          console.warn('Location permission denied:', error);
+          logger.warn('Location permission denied:', { error });
         }
       }
       // Handle other permission types...

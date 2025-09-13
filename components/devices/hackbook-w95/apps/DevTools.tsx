@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useDevToolsContext } from "../hooks/useDevToolsContext";
+import { logger } from '@/lib/logger';
 
 interface DevToolsProps {
   onClose: () => void;
@@ -78,7 +79,7 @@ const DevTools: React.FC<DevToolsProps> = ({ onClose }) => {
       }));
       
     } catch (error) {
-      console.error(`Error launching game ${gameName}:`, error);
+      logger.error(`Error launching game ${gameName}:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

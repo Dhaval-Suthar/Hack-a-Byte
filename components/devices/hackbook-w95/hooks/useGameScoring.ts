@@ -5,6 +5,8 @@
  * Tracks completion time, attempts, and calculates scores across all mini-games
  */
 
+import { logger } from '@/lib/logger';
+
 export interface GameMetrics {
   startTime: number;
   endTime?: number;
@@ -65,7 +67,7 @@ export class GameScoringManager {
   ): void {
     const gameData = this.gameData.get(gameName);
     if (!gameData) {
-      console.warn(`Game ${gameName} not found in tracking data`);
+      logger.warn(`Game ${gameName} not found in tracking data`);
       return;
     }
 
@@ -326,7 +328,7 @@ export class GameScoringManager {
           this.gameData = new Map(parsed.gameData);
           this.sessionStartTime = parsed.sessionStartTime || Date.now();
         } catch (error) {
-          console.warn('Failed to load game scoring data from storage:', error);
+          logger.warn('Failed to load game scoring data from storage:', { error });
         }
       }
     }

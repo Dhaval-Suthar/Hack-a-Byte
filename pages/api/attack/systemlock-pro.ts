@@ -4,6 +4,7 @@ import Team from '@/models/Team';
 import Device from '@/models/Device';
 import { emitScoped } from '@/lib/emitter';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // SystemLock Pro - PIN cracking attack on devices
 // POST /api/attack/systemlock-pro
@@ -54,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
     if (!targetDevice) {
-      console.warn('SystemLock Pro: target device not found', {
+      logger.warn('SystemLock Pro: target device not found', {
         requested: targetMAC,
         normalized: normalizedMAC,
       });
@@ -74,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (targetDevice.teamId) {
       targetTeam = await Team.findById(targetDevice.teamId);
       if (!targetTeam) {
-        console.warn('SystemLock Pro: target team not found for device', {
+        logger.warn('SystemLock Pro: target team not found for device', {
           deviceId: targetDevice._id?.toString?.(),
           deviceMacAddress: targetDevice.deviceMacAddress,
           deviceTeamId: targetDevice.teamId?.toString?.(),
@@ -100,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Find attacker team
     const attackerTeam = await Team.findById(attackerTeamId);
     if (!attackerTeam) {
-      console.warn('SystemLock Pro: attacker team not found', { attackerTeamId });
+      logger.warn('SystemLock Pro: attacker team not found', { attackerTeamId });
       return res.status(404).json({ 
         success: false, 
         error: 'Attacker team not found' 
@@ -109,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check if attacker owns SystemLock Pro
     if (!attackerTeam.purchasedMalware.includes('ransom-003')) {
-      console.warn('SystemLock Pro: purchase check failed', {
+      logger.warn('SystemLock Pro: purchase check failed', {
         attackerTeamId,
         purchasedMalware: attackerTeam.purchasedMalware,
       });

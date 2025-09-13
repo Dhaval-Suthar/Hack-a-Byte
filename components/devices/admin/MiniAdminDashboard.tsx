@@ -26,6 +26,7 @@ import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/a
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
+import { logger } from '@/lib/logger';
 
 const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
 
@@ -271,7 +272,7 @@ export default function MiniAdminDashboard() {
       });
       load();
     } catch (error) {
-      console.error("Error creating access code:", error);
+      logger.error('Error creating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Failed to create access code" });
     }
   };
@@ -301,7 +302,7 @@ export default function MiniAdminDashboard() {
       note({ kind: "ok", msg: "Team created" });
       load();
     } catch (error) {
-      console.error("Error creating team:", error);
+      logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Create team failed" });
     }
   };
@@ -340,7 +341,7 @@ export default function MiniAdminDashboard() {
       note({ kind: "ok", msg: "Sponsor created" });
       load();
     } catch (error) {
-      console.error("Error creating sponsor:", error);
+      logger.error('Error creating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Create sponsor failed" });
     }
   };

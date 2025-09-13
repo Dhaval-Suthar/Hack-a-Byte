@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Sponsor } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface SponsorsSectionProps {
   sponsors: Sponsor[];
@@ -81,7 +82,7 @@ export default function SponsorsSection({
       setBenefitsInput("");
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Failed to create sponsor:", error);
+      logger.error('Failed to create sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -110,7 +111,7 @@ export default function SponsorsSection({
       });
       setBenefitsInput("");
     } catch (error) {
-      console.error("Failed to update sponsor:", error);
+      logger.error('Failed to update sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

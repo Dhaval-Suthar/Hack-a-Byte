@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getPlayspaceId } from "@/lib/playspace-utils";
+import { logger } from '@/lib/logger';
 
 interface StockData {
   symbol: string;
@@ -186,7 +187,7 @@ const StockMarketApp: React.FC = () => {
         setError(data.error || 'Failed to fetch team data');
       }
     } catch (err) {
-      console.error('Error fetching team data:', err);
+      logger.error('Error fetching team data:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to connect to team service');
     } finally {
       setLoading(false);
@@ -216,7 +217,7 @@ const StockMarketApp: React.FC = () => {
         return false;
       }
     } catch (err) {
-      console.error('Error updating team balance:', err);
+      logger.error('Error updating team balance:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to connect to team service');
       return false;
     }
@@ -248,7 +249,7 @@ const StockMarketApp: React.FC = () => {
         return false;
       }
     } catch (err) {
-      console.error('Error updating team portfolio:', err);
+      logger.error('Error updating team portfolio:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to connect to team service');
       return false;
     }
@@ -580,7 +581,7 @@ const StockMarketApp: React.FC = () => {
       
       setTradeAmount("");
     } catch (err) {
-      console.error('Trading error:', err);
+      logger.error('Trading error:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Trading failed. Please try again.');
     } finally {
       setLoading(false);

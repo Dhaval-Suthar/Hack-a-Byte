@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { updateUserSettings, getUserProgress } from '@/app/actions/userProgress';
 import { userStorage } from '../hooks/useUserStorage';
+import { logger } from '@/lib/logger';
 
 interface UserSettings {
   soundEnabled: boolean;
@@ -71,7 +72,7 @@ export function DatabaseSettingsManager({ children }: DatabaseSettingsManagerPro
         
         setLoaded(true);
       } catch (error) {
-        console.error('Error loading settings:', error);
+        logger.error('Error loading settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         setLoaded(true);
       }
     };
@@ -102,7 +103,7 @@ export function DatabaseSettingsManager({ children }: DatabaseSettingsManagerPro
       try {
         await updateUserSettings(deviceId, deviceType, newSettings);
       } catch (error) {
-        console.error('Error updating settings in database:', error);
+        logger.error('Error updating settings in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         // Even if database update fails, we still have localStorage
       }
     }
@@ -155,7 +156,7 @@ export function useDatabaseSettings() {
         
         setLoaded(true);
       } catch (error) {
-        console.error('Error loading settings:', error);
+        logger.error('Error loading settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         setLoaded(true);
       }
     };
@@ -187,7 +188,7 @@ export function useDatabaseSettings() {
       try {
         await updateUserSettings(deviceId, deviceType, newSettings);
       } catch (error) {
-        console.error('Error updating settings in database:', error);
+        logger.error('Error updating settings in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
   };

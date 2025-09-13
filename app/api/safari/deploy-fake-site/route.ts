@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import Site from '@/models/Site';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error deploying fake site:', error);
+    logger.error('Error deploying fake site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

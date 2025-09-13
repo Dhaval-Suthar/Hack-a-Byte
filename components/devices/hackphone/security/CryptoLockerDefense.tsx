@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '@/hooks/useSocket';
+import { logger } from '@/lib/logger';
 
 interface CryptoLockerDefenseProps {
   teamId: string;
@@ -138,7 +139,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
         });
       }
     } catch (error) {
-      console.error('Error setting device offline:', error);
+      logger.error('Error setting device offline:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
     
     // Notify server about game over
@@ -159,7 +160,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       if (response.ok) {
       }
     } catch (error) {
-      console.error('Error sending game over notification:', error);
+      logger.error('Error sending game over notification:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
 
     // Redirect to game over page
@@ -170,7 +171,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
     
     // Validate required data before making API call
     if (!attackerTeamId || !teamId || !demand) {
-      console.error('Missing required payment data:', { attackerTeamId, teamId, demand });
+      logger.error('Missing required payment data:', { attackerTeamId, teamId, demand });
       setIsProcessingPayment(false);
       return;
     }
@@ -192,7 +193,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       try {
         result = await response.json();
       } catch (parseError) {
-        console.error('Failed to parse API response as JSON:', parseError);
+        logger.error('Failed to parse API response as JSON:', { error: parseError instanceof Error ? parseError.message : 'Unknown error' }, parseError as Error);
         throw new Error(`API returned non-JSON response: ${response.status} ${response.statusText}`);
       }
 
@@ -205,11 +206,11 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
         setIsProcessingPayment(false);
         // The payment component will handle the rest
       } else {
-        console.error('Payment failed:', result);
+        logger.error('Payment failed:', { error: result instanceof Error ? result.message : 'Unknown error' }, result as Error);
         throw new Error(result.error || 'Payment failed');
       }
     } catch (error) {
-      console.error('Error processing ransom payment:', error);
+      logger.error('Error processing ransom payment:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setIsProcessingPayment(false);
       // Could show error message here
     }
@@ -241,7 +242,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       if (response.ok) {
       }
     } catch (error) {
-      console.error('Error reporting successful defense:', error);
+      logger.error('Error reporting successful defense:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [sessionKey, targetIP, phrasesCompleted, phrasesRequired, teamId]);
 

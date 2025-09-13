@@ -75,7 +75,6 @@ const AccessCodeSchema = new Schema<AccessCode>(
 );
 
 // Create indexes for better query performance
-AccessCodeSchema.index({ code: 1 });
 AccessCodeSchema.index({ type: 1 });
 AccessCodeSchema.index({ isActive: 1 });
 AccessCodeSchema.index({ expiresAt: 1 });

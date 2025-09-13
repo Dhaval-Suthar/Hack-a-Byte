@@ -7,6 +7,7 @@ import clsx from "clsx";
 import Image from "next/image";
 import type { WindowPosition } from '@/components/devices/hackbook-w95/hooks/useWindowManager';
 import { SoundEvent } from '@/components/devices/hackbook-w95/SystemSounds';
+import { logger } from '@/lib/logger';
 
 interface WindowProps {
   id?: string; // Optional as it's not actually used in the component
@@ -53,7 +54,7 @@ const Win95Window: React.FC<WindowProps> = ({
           audioManager.playSound(`/hackbook-W95/sounds/${sound}.mp3`, 0.5);
         }
       } catch (error) {
-        console.error("Sound playback error:", error);
+        logger.error('Sound playback error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
   }, []);

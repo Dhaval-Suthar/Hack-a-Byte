@@ -3,6 +3,7 @@ import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
+import { logger } from '@/lib/logger';
 
 // CryptoLocker payment processing
 // POST body: { attackerTeamId, targetTeamId, amount }
@@ -98,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       newBalance: targetTeam.wallet.bitcoinBalance
     });
   } catch (error) {
-    console.error('CryptoLocker payment error:', error);
+    logger.error('CryptoLocker payment error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

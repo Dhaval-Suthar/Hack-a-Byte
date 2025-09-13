@@ -5,6 +5,7 @@ import AccessCode from "@/models/AccessCode";
 import Playspace from "@/models/Playspace";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -43,7 +44,7 @@ export async function verifyAdmin(adminKey?: string) {
     // Return admin status
     return { isAdmin: true };
   } catch (error) {
-    console.error("Error verifying admin status:", error);
+    logger.error('Error verifying admin status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       isAdmin: false,
       error: "Failed to verify admin status",
@@ -125,7 +126,7 @@ export async function assignPlayspaceToAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error assigning playspace to access code:", error);
+    logger.error('Error assigning playspace to access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign playspace to access code" };
   }
 }
@@ -162,7 +163,7 @@ export async function getAvailablePlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching available playspaces:", error);
+    logger.error('Error fetching available playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch available playspaces" };
   }
 }

@@ -6,6 +6,7 @@ import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import { badRequest, notFound, methodNotAllowed, internalError } from '@/lib/api-errors';
 import type { NextApiResponseServerIo } from '@/lib/socket';
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 // Deterministic parsing: accept either "<wallet> <privateKey>" or legacy "CLAIM REWARD <wallet> <privateKey>"
 // We intentionally avoid regex validation; just ensure tokens exist.
@@ -79,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Determine specific reason
       const existing = await model.findOne({ _id: messageId, recipient: teamId }).lean() as unknown as { processed?: boolean } | null;
       if (!existing) {
-        console.warn('reply-message: message not found or recipient mismatch', { messageId, teamId });
+        logger.warn('reply-message: message not found or recipient mismatch', { messageId, teamId });
         return notFound(res, 'Message not found');
       }
       if (existing?.processed) {
@@ -248,7 +249,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ success: true, outcome: 'neutral', balanceChange: 0, newBalance: team.wallet.bitcoinBalance });
     }
   } catch (error) {
-    console.error('Error processing reply-message:', error);
+    logger.error('Error processing reply-message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'unknown';
     return internalError(res, msg);
   }

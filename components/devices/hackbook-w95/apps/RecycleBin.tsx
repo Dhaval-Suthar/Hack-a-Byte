@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import clsx from "clsx";
 import useFileSystem, { FileSystemItem } from "@/components/devices/hackbook-w95/hooks/useFileSystem";
+import { logger } from '@/lib/logger';
 
 interface RecycleBinProps {
   onClose: () => void;
@@ -37,7 +38,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
         setStatusMessage(`${items.length} item${items.length !== 1 ? "s" : ""}`);
       }
     } catch (error) {
-      console.error("Error loading Recycle Bin contents:", error);
+      logger.error('Error loading Recycle Bin contents:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [fs]);
 
@@ -122,7 +123,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
           fs.navigateTo("C:\\Recycle Bin"); // Make sure we're back in recycle bin
         }
       } catch (error) {
-        console.error("Error restoring item:", error);
+        logger.error('Error restoring item:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
         fs.navigateTo("C:\\Recycle Bin"); // Make sure we're back in recycle bin
         
@@ -132,7 +133,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
         setSelectedItem(null);
       }
     } catch (error) {
-      console.error("Error restoring item:", error);
+      logger.error('Error restoring item:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStatusMessage("Error restoring item: " + (error instanceof Error ? error.message : String(error)));
       
       // Reload items and clear selection even on error
@@ -142,7 +143,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
         setDeletedItems(updatedItems);
         setSelectedItem(null);
       } catch (reloadError) {
-        console.error("Error reloading items:", reloadError);
+        logger.error('Error reloading items:', { error: reloadError instanceof Error ? reloadError.message : 'Unknown error' }, reloadError as Error);
         setSelectedItem(null);
       }
     }
@@ -172,7 +173,7 @@ const RecycleBin: React.FC<RecycleBinProps> = ({ onClose }) => {
         setStatusMessage(`${updatedItems.length} item${updatedItems.length !== 1 ? "s" : ""}`);
       }
     } catch (error) {
-      console.error("Error reloading Recycle Bin contents:", error);
+      logger.error('Error reloading Recycle Bin contents:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Fallback to manual state update
       setDeletedItems([]);
       setStatusMessage("The Recycle Bin is empty");

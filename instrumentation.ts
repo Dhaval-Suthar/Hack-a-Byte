@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { logger } from '@/lib/logger';
+
 export const runtime = 'nodejs';
 
 // Ensures background services start under `next dev` and `next start` without the custom server.
@@ -27,10 +29,10 @@ export async function register() {
           try {
             await import('./lib/socket');
           } catch (error) {
-            console.warn('⚠️ Socket.IO initialization failed in instrumentation:', error);
+            logger.warn('⚠️ Socket.IO initialization failed in instrumentation:', { error });
           }
         } catch (dbError) {
-          console.error('❌ Database connection failed in instrumentation:', dbError);
+          logger.error('❌ Database connection failed in instrumentation:', { error: dbError instanceof Error ? dbError.message : String(dbError || 'Unknown error'), errorObject: dbError });
         }
       }, 2000); // Increased delay to ensure database is ready
     }
@@ -42,7 +44,7 @@ export async function register() {
     const { ensureDatabaseConnection } = await import('@/lib/database');
     await ensureDatabaseConnection();
   } catch (dbError) {
-    console.error('❌ Database connection failed in instrumentation:', dbError);
+    logger.error('❌ Database connection failed in instrumentation:', { error: dbError instanceof Error ? dbError.message : String(dbError || 'Unknown error'), errorObject: dbError });
     return; // Don't proceed if database connection fails
   }
 

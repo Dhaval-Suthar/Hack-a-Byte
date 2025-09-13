@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { createChatMessage, getTeamMessages, markMessageAsRead } from "@/app/actions/chatMessage";
 import { useSocket } from "@/hooks/useSocket";
+import { logger } from '@/lib/logger';
 
 interface ChatMessage {
   _id: string;
@@ -83,7 +84,7 @@ export function ChatInterface({ roomId = 'general', height = '600px' }: ChatInte
         setMessages(result.messages as unknown as ChatMessage[]);
       }
     } catch (err) {
-      console.error('Failed to load messages:', err);
+      logger.error('Failed to load messages:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ export function ChatInterface({ roomId = 'general', height = '600px' }: ChatInte
         alert(result.error || 'Failed to send message');
       }
     } catch (err) {
-      console.error('Failed to send message:', err);
+      logger.error('Failed to send message:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to send message');
     } finally {
       setSending(false);
@@ -133,10 +134,10 @@ export function ChatInterface({ roomId = 'general', height = '600px' }: ChatInte
 
       const result = await markMessageAsRead(messageId, userId);
       if (!result.success) {
-        console.error('Failed to mark message as read');
+        logger.error('Failed to mark message as read', { error: 'Failed to mark message as read' });
       }
     } catch (err) {
-      console.error('Failed to mark message as read:', err);
+      logger.error('Failed to mark message as read:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
     }
   };
 

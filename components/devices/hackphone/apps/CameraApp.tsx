@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { logger } from '@/lib/logger';
 
 interface CameraAppProps {
   onClose: () => void;
@@ -137,7 +138,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
           audio: true // Enable audio for video recording
         });
       } catch (firstError) {
-        console.warn('Failed with specific constraints, trying fallback:', firstError);
+        logger.warn('Failed with specific constraints, trying fallback:', { error: firstError });
         // Fallback with basic video constraints
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
@@ -148,14 +149,14 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       const videoElement = videoRef.current;
       
       if (!videoElement) {
-        console.error('Video element not found');
+        logger.error('Video element not found', { error: 'Video element not found' });
         setHasPermission(false);
         setIsStreaming(false);
         return;
       }
       
       if (!stream) {
-        console.error('No stream available');
+        logger.error('No stream available', { error: 'No stream available' });
         setHasPermission(false);
         setIsStreaming(false);
         return;
@@ -178,7 +179,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       
       // Add error handler for video
       videoElement.onerror = (error) => {
-        console.error('Video error:', error);
+        logger.error('Video error:', { error: error instanceof Error ? error.message : String(error || 'Unknown error'), errorObject: error });
         setHasPermission(false);
         setIsStreaming(false);
       };
@@ -187,13 +188,13 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       try {
         await videoElement.play();
       } catch (playError) {
-        console.error('Play error:', playError);
+        logger.error('Play error:', { error: playError instanceof Error ? playError.message : 'Unknown error' }, playError as Error);
         // Still set streaming as true if we got the stream
         setIsStreaming(true);
         setHasPermission(true);
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      logger.error('Error accessing camera:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setHasPermission(false);
       setIsStreaming(false);
     }
@@ -208,7 +209,7 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, onOpenGallery }) => {
       if (videoRef.current) {
         initializeCamera();
       } else {
-        console.error('Video element not found after mount delay');
+        logger.error('Video element not found after mount delay', { error: 'Video element not found after mount delay' });
         setHasPermission(false);
       }
     }, 200);

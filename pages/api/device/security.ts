@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import { RawSecuritySettings } from '@/lib/securityModifiers';
+import { logger } from '@/lib/logger';
 
 /* PATCH /api/device/security
    Body: { deviceId, toggles: Partial<RawSecuritySettings> }
@@ -45,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     } catch (error) {
-      console.error('Error fetching security settings:', error);
+      logger.error('Error fetching security settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -99,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     } catch (error) {
-      console.error('Error updating security settings:', error);
+      logger.error('Error updating security settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return res.status(500).json({
         success: false,
         error: 'Internal server error',

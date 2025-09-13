@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { userStorage } from './useUserStorage';
 import { UserLogManager } from './useUserLogs';
+import { logger } from '@/lib/logger';
 
 interface Win95LoginEvent {
   timestamp: string;
@@ -88,7 +89,7 @@ export const useWin95Login = () => {
       
       return true;
     } catch (error) {
-      console.error('Error recording Windows 95 login:', error);
+      logger.error('Error recording Windows 95 login:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return false;
     }
   };

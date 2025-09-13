@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { runRandomMessageSystem } from '@/lib/randomMessageGenerator';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -14,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'Random message system triggered manually'
     });
   } catch (error) {
-    console.error('❌ Error triggering random message system:', error);
+    logger.error('Error triggering random message system', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({
       error: 'Failed to trigger random message system',
       details: error instanceof Error ? error.message : 'Unknown error'

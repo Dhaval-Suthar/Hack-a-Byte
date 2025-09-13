@@ -6,6 +6,7 @@ import { redisRateLimit } from '@/lib/redisRateLimit';
 import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
+import { logger } from '@/lib/logger';
 
 // Cooldown map to avoid repeated exfil by the same attacker against the same target
 const lastExfil: Record<string, number> = {};
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cooldownKey = `${attackerTeamId}:${targetKey}`;
   if (lastExfil[cooldownKey] && now - lastExfil[cooldownKey] < COOLDOWN_MS) {
     const resetIn = COOLDOWN_MS - (now - lastExfil[cooldownKey]);
-    console.warn('DataMiner cooldown hit', { attackerTeamId, targetKey, resetIn });
+    logger.warn('DataMiner cooldown hit', { attackerTeamId, targetKey, resetIn });
     return res.status(429).json({ success: false, error: 'Recent exfil detected. Try later.', reset: now + resetIn });
   }
 
@@ -147,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error('DataMiner attack error:', error);
+    logger.error('DataMiner attack error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

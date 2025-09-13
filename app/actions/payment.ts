@@ -5,6 +5,7 @@ import Event from "@/models/Event";
 import EventRegistration from "@/models/EventRegistration";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay";
 import { completeRegistrationPipeline } from "@/lib/event-registration";
+import { logger } from '@/lib/logger';
 
 export interface CreatePaymentOrderData {
   eventId: number;
@@ -52,7 +53,7 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData) {
       try {
         event = await Event.findById(eventObjectId);
       } catch (error) {
-        console.error('Error finding event by ObjectId:', error);
+        logger.error('Error finding event by ObjectId:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         return { success: false, error: "Invalid event id" };
       }
     } else {
@@ -146,7 +147,7 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData) {
     }
 
   } catch (error: unknown) {
-    console.error("Create payment order error:", error);
+    logger.error('Create payment order error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       success: false,
       error: "Failed to create payment order. Please try again."
@@ -226,7 +227,7 @@ export async function verifyEventPayment(
       playingDevice: updatedRegistration.playingDevice,
     });
     if (!pipelineResult.success) {
-      console.error("Registration completion pipeline failed:", pipelineResult.error);
+      logger.error('Registration completion pipeline failed:', { error: String(pipelineResult.error || 'Unknown error'), errorObject: pipelineResult.error });
     }
 
     return {
@@ -242,7 +243,7 @@ export async function verifyEventPayment(
     };
 
   } catch (error: unknown) {
-    console.error("Verify payment error:", error);
+    logger.error('Verify payment error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       success: false,
       error: "Failed to verify payment. Please try again."

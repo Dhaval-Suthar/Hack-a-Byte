@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import WalletTransactionModel from "@/models/WalletTransaction";
 import Team from "@/models/Team";
+import { logger } from '@/lib/logger';
 
 // Map action-layer legacy types to schema enum values
 const typeMap: Record<string, string> = {
@@ -74,7 +75,7 @@ export async function createWalletTransaction(data: {
 
     return { success: true, transaction: transaction.toObject() };
   } catch (error) {
-    console.error('Error creating wallet transaction:', error);
+    logger.error('Error creating wallet transaction:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: 'Failed to create transaction' };
   }
 }
@@ -92,7 +93,7 @@ export async function getTeamTransactions(teamId: string, limit: number = 50, of
 
     return { success: true, transactions };
   } catch (error) {
-    console.error("Error fetching transactions:", error);
+    logger.error('Error fetching transactions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch transactions" };
   }
 }
@@ -112,7 +113,7 @@ export async function getTransactionById(transactionId: string) {
 
     return { success: true, transaction };
   } catch (error) {
-    console.error("Error fetching transaction:", error);
+    logger.error('Error fetching transaction:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch transaction" };
   }
 }
@@ -133,7 +134,7 @@ export async function updateTransactionStatus(transactionId: string, status: 'pe
 
     return { success: true, transaction: transaction.toObject() };
   } catch (error) {
-    console.error("Error updating transaction status:", error);
+    logger.error('Error updating transaction status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to update transaction status" };
   }
 }
@@ -149,7 +150,7 @@ export async function getTeamBalance(teamId: string) {
 
     return { success: true, balance: team.wallet.bitcoinBalance };
   } catch (error) {
-    console.error("Error fetching team balance:", error);
+    logger.error('Error fetching team balance:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch team balance" };
   }
 }
@@ -216,7 +217,7 @@ export async function transferBitcoin(fromTeamId: string, toTeamId: string, amou
 
     return { success: true, message: 'Transfer completed successfully' };
   } catch (error) {
-    console.error('Error transferring bitcoin:', error);
+    logger.error('Error transferring bitcoin:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: 'Failed to transfer bitcoin' };
   }
 }

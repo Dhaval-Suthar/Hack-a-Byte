@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/actions/notification";
+import { logger } from '@/lib/logger';
 
 interface NotificationItem {
   _id: string;
@@ -93,7 +94,7 @@ export function NotificationCenter() {
         setError(result.error || 'Failed to load notifications');
       }
     } catch (err) {
-      console.error('Failed to load notifications:', err);
+      logger.error('Failed to load notifications:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
@@ -115,7 +116,7 @@ export function NotificationCenter() {
         alert(result.error || 'Failed to mark notification as read');
       }
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      logger.error('Failed to mark notification as read:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to mark notification as read');
     }
   };
@@ -131,7 +132,7 @@ export function NotificationCenter() {
         alert(result.error || 'Failed to mark all notifications as read');
       }
     } catch (err) {
-      console.error('Failed to mark all notifications as read:', err);
+      logger.error('Failed to mark all notifications as read:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to mark all notifications as read');
     }
   };

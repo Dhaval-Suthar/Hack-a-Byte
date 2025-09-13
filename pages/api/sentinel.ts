@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -40,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           wallets
         });
       } catch (error) {
-        console.error('Error fetching wallets:', error);
+        logger.error('Error fetching wallets:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch wallet data'

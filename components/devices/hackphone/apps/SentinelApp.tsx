@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
+import { logger } from '@/lib/logger';
 
 interface DeviceInfo {
   id: string;
@@ -157,7 +158,7 @@ const BankTransfersTab = ({
         addNotification(`❌ Transfer failed: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Transfer error:', error);
+      logger.error('Transfer error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       addNotification("❌ Transfer failed: Network error");
     }
     
@@ -367,7 +368,7 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         addNotification(`❌ Termination failed: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Game termination error:', error);
+      logger.error('Game termination error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       addNotification("❌ Termination failed: Network error");
     } finally {
       setIsTerminating(false);
@@ -449,7 +450,7 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         setDevices([]);
       }
     } catch (error) {
-      console.error('Failed to fetch devices:', error);
+      logger.error('Failed to fetch devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setDevices([]);
     }
   };

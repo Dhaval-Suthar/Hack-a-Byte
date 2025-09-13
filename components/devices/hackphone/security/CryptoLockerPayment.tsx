@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket, CryptoLockerPaymentDemand, CryptoLockerGameOver } from '@/hooks/useSocket';
+import { logger } from '@/lib/logger';
 
 interface CryptoLockerPaymentProps {
   teamId?: string;
@@ -180,7 +181,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
         localStorage.removeItem(`cryptolocker-payment-${teamId}`);
       }
     } catch (error) {
-      console.error('Payment failed:', error);
+      logger.error('Payment failed:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       alert('Payment failed. Please try again.');
     } finally {
       setIsProcessing(false);

@@ -3,6 +3,7 @@ import connectDb from '@/db/connectDb';
 import EmailModel from '@/models/Email';
 import SMSModel from '@/models/SMS';
 import { badRequest, methodNotAllowed, internalError } from '@/lib/api-errors';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return methodNotAllowed(res);
@@ -95,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       count: messages.length
     });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    logger.error('Error fetching messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'unknown';
     return internalError(res, msg);
   }

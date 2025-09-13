@@ -4,6 +4,7 @@ import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { logger } from '@/lib/logger';
 
 /**
  * Handle game failure - delete user account and logout
@@ -47,7 +48,7 @@ export async function handleGameFailure(deviceId: string, deviceType: string) {
       deletedUsername: username
     };
   } catch (error) {
-    console.error("Error handling game failure:", error);
+    logger.error('Error handling game failure:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to process account termination" };
   }
 }

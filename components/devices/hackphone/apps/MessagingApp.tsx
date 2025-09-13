@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSocket } from '@/hooks/useSocket';
+import { logger } from '@/lib/logger';
 
 interface MessageData {
   id: string;
@@ -83,7 +84,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         setTeamWallet(data.wallet);
       }
     } catch (error) {
-      console.error('Failed to fetch team wallet:', error);
+      logger.error('Failed to fetch team wallet:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [teamId]);
 
@@ -141,7 +142,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         setSystemConversations(systemConvs);
       }
     } catch (error) {
-      console.error('Failed to fetch system messages:', error);
+      logger.error('Failed to fetch system messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [teamId]);
 
@@ -205,7 +206,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
           setTimeout(() => setNotification(null), 2000);
         }
       } catch (error) {
-        console.error('Failed to process SMS open:', error);
+        logger.error('Failed to process SMS open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         setNotification('Error processing SMS');
         setTimeout(() => setNotification(null), 3000);
       } finally {
@@ -323,7 +324,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
             }
           }
         } catch (err) {
-          console.error('Reply claim failed:', err);
+          logger.error('Reply claim failed:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
           setNotification('Reply failed');
         } finally {
           setTimeout(() => setNotification(null), 2500);
@@ -347,7 +348,7 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
           });
         }
       } catch (e) {
-        console.error('Failed to delete messages from DB:', e);
+        logger.error('Failed to delete messages from DB:', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
       } finally {
         // Remove conversation from UI regardless
         setSystemConversations(prev => prev.filter(conv => conv.id !== selectedConversation.id));

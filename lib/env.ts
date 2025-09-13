@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Environment variables schema
 const envSchema = z.object({
@@ -34,16 +35,17 @@ type EnvSchema = z.infer<typeof envSchema>;
 function validateEnvironment(): EnvSchema {
   try {
     const env = envSchema.parse(process.env);
-    console.info('Environment variables validated successfully');
+    logger.info('Environment variables validated successfully');
     return env;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Environment validation failed', { errors: error.errors.map(err => ({ path: err.path.join('.'), message: err.message })) });
+      const errorDetails = error.errors.map(err => ({ path: err.path.join('.'), message: err.message }));
+      logger.error('Environment validation failed', { errors: errorDetails });
       error.errors.forEach((err) => {
-        console.error(`Environment validation error: ${err.path.join('.')}: ${err.message}`);
+        logger.error(`Environment validation error: ${err.path.join('.')}: ${err.message}`);
       });
     } else {
-      console.error('Unexpected error during environment validation', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('Unexpected error during environment validation', { error: error instanceof Error ? error.message : String(error), errorObject: error });
     }
   // Never exit the process in Edge/Next runtimes; always throw to let caller handle
   throw error;

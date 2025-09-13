@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { userStorage } from './useUserStorage';
+import { logger } from '@/lib/logger';
 
 export interface UserPreferences {
   // Appearance settings
@@ -55,7 +56,7 @@ export function useUserPreferences(options = { debug: false }) {
       const storedPrefs = userStorage.getItem('userPreferences', defaultPreferences) as UserPreferences;
       setPreferences(storedPrefs);
     } catch (error) {
-      console.error('Error loading user preferences:', error);
+      logger.error('Error loading user preferences:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setPreferences(defaultPreferences);
     }
   }, [debug]);

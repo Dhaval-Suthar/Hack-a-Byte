@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { io as rawIo, Socket } from 'socket.io-client';
 import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
+import { InputSanitizer } from "@/lib/security";
+import { logger } from '@/lib/logger';
 
 interface SafariAppProps {
   onClose?: () => void;
@@ -414,7 +416,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           setSites(data.sites);
         }
       } catch (error) {
-        console.error('Failed to load sites:', error);
+        logger.error('Failed to load sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
     loadSites();
@@ -483,7 +485,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
             }
           }
         } catch (error) {
-          console.error('Failed to reload sites:', error);
+          logger.error('Failed to reload sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       } else if (result.onCooldown) {
         addNotification({
@@ -506,7 +508,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to claim reward site:', error);
+      logger.error('Failed to claim reward site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       addNotification({
         type: 'error',
         message: 'Failed to claim reward site'
@@ -554,7 +556,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           setTabTitle(defaultSite.title);
         }
       } catch (error) {
-        console.error('Failed to load site:', error);
+        logger.error('Failed to load site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       } finally {
         setLoading(false);
       }
@@ -803,7 +805,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           }
         }
       } catch (error) {
-        console.error('🎯 Safari team detection error:', error);
+        logger.error('🎯 Safari team detection error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
     load();
@@ -817,10 +819,10 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     const s = rawIo('/', { path: '/api/socketio', transports:['websocket'], timeout: 20000 });
     s.on('connect', ()=>{/* noop */});
     s.on('connect_error', (error) => {
-      console.warn('SafariApp socket connection error:', error.message);
+      logger.warn('SafariApp socket connection error:', { error: error.message });
     });
     s.on('connect_timeout', () => {
-      console.warn('SafariApp socket connection timeout');
+      logger.warn('SafariApp socket connection timeout');
     });
     // Listen for faucet + generic extractor events
     s.on('extractor-faucet', (p: { teamId:string; reward:number; attempts:number; windowExpires:number; balance:number; ts:number })=>{
@@ -921,7 +923,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
                 backgroundColor: currentSite.backgroundColor || '#ffffff',
                 color: currentSite.textColor || '#000000'
               }}
-              dangerouslySetInnerHTML={{ __html: currentSite.content }}
+              dangerouslySetInnerHTML={{ __html: InputSanitizer.sanitizeHtml(currentSite.content) }}
               onClick={(e) => {
                 // Handle clicks on claim buttons within the site content
                 const target = e.target as HTMLElement;

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import audioManager from "./hooks/useAudioManager";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 
 
 const BootAnimation = () => {
@@ -26,7 +27,7 @@ const BootAnimation = () => {
           try {
             audioManager.playSound("/hackbook-W95/sounds/win95-startup.mp3", 0.7);
           } catch (error) {
-            console.error("Audio error:", error);
+            logger.error('Audio error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         }
       }, delay);

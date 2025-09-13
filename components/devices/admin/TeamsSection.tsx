@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Team } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface TeamsSectionProps {
   teams: Team[];
@@ -48,7 +49,7 @@ export default function TeamsSection({
       setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Failed to create team:", error);
+      logger.error('Failed to create team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -64,7 +65,7 @@ export default function TeamsSection({
       setEditingTeam(null);
       setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
     } catch (error) {
-      console.error("Failed to update team:", error);
+      logger.error('Failed to update team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

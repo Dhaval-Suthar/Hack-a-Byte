@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 const ImageDebugger: React.FC = () => {
   const [testResults, setTestResults] = useState<{ [key: string]: boolean }>({});
@@ -21,7 +22,7 @@ const ImageDebugger: React.FC = () => {
     };
     img.onerror = () => {
       setTestResults(prev => ({ ...prev, [src]: false }));
-      console.error(`❌ Failed to load: ${src}`);
+      logger.error(`❌ Failed to load: ${src}`);
     };
     img.src = src;
   };
@@ -56,7 +57,7 @@ const ImageDebugger: React.FC = () => {
                 }}
                 onError={() => {
                   setTestResults(prev => ({ ...prev, [src]: false }));
-                  console.error(`❌ Next.js Image failed: ${src}`);
+                  logger.error(`❌ Next.js Image failed: ${src}`);
                 }}
               />
             </div>

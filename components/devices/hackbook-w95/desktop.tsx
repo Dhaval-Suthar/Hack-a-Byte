@@ -203,7 +203,7 @@ const Desktop = () => {
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission status:', error);
+          logger.error('Error checking mission status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -262,7 +262,7 @@ const Desktop = () => {
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking neural network unlock status:', error);
+          logger.error('Error checking neural network unlock status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -296,7 +296,7 @@ const Desktop = () => {
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission 2 status:', error);
+          logger.error('Error checking mission 2 status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -358,7 +358,7 @@ const Desktop = () => {
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission statuses from database:', error);
+          logger.error('Error checking mission statuses from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           // Fall back to local storage checks if database fails
         }
       }
@@ -406,12 +406,12 @@ const Desktop = () => {
             const { updateUnlockedApplications } = await import('@/app/actions/userProgress');
             await updateUnlockedApplications(deviceId, 'hackbook-w95', defaultApps);
           } catch (error) {
-            console.error('Error saving default apps to database:', error);
+            logger.error('Error saving default apps to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error loading unlocked applications:', error);
+          logger.error('Error loading unlocked applications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           // Fallback to default apps
           const defaultApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
           setUnlockedApplications(defaultApps);
@@ -489,7 +489,7 @@ const Desktop = () => {
           router.push('/device-selection');
         }
       } catch (error) {
-        console.error("Error checking device user:", error);
+        logger.error('Error checking device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         // On error, redirect to device selection
         router.push('/device-selection');
       }
@@ -532,7 +532,7 @@ const Desktop = () => {
         setDevToolsUnlocked(result.unlockedApplications.includes('Dev Tools'));
       }
     } catch (error) {
-      console.error('Error unlocking applications:', error);
+      logger.error('Error unlocking applications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [deviceId]);
 
@@ -593,7 +593,7 @@ const Desktop = () => {
         router.push("/device-selection");
       }
     } catch (error) {
-      console.error("Error logging out:", error);
+      logger.error('Error logging out:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Even if logout fails, try to redirect to hackbook-w95 login with preserved IDs
       if (typeof window !== "undefined") {
         const storedPlayspaceId = localStorage.getItem("playspaceId") || playspaceId;
@@ -658,10 +658,10 @@ const Desktop = () => {
           });
           
           if (result.error) {
-            console.error("Database error:", result.error);
+            logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
           }
         } catch (error) {
-          console.error("Error saving network tool installation to database:", error);
+          logger.error('Error saving network tool installation to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         } finally {
           pendingDbOperations.current.delete(operationKey);
         }
@@ -703,10 +703,10 @@ const Desktop = () => {
           });
           
           if (result.error) {
-            console.error("Database error:", result.error);
+            logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
           }
         } catch (error) {
-          console.error("Error updating network tool removal in database:", error);
+          logger.error('Error updating network tool removal in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         } finally {
           pendingDbOperations.current.delete(operationKey);
         }
@@ -757,10 +757,10 @@ const Desktop = () => {
           });
           
           if (result.error) {
-            console.error("Database error:", result.error);
+            logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
           }
         } catch (error) {
-          console.error("Error saving neural network discovery to database:", error);
+          logger.error('Error saving neural network discovery to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         } finally {
           pendingDbOperations.current.delete(operationKey);
         }
@@ -807,10 +807,10 @@ const Desktop = () => {
           });
           
           if (result.error) {
-            console.error("Database error:", result.error);
+            logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
           }
         } catch (error) {
-          console.error("Error saving neural network completion to database:", error);
+          logger.error('Error saving neural network completion to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         } finally {
           pendingDbOperations.current.delete(operationKey);
         }
@@ -859,10 +859,10 @@ const Desktop = () => {
             });
             
             if (result.error) {
-              console.error("Database error:", result.error);
+              logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
             }
           } catch (error) {
-            console.error("Error saving mission completion to database:", error);
+            logger.error('Error saving mission completion to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           } finally {
             pendingDbOperations.current.delete(operationKey);
           }
@@ -934,10 +934,10 @@ const Desktop = () => {
           });
           
           if (result.error) {
-            console.error("Database error:", result.error);
+            logger.error('Database error:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
           }
         } catch (error) {
-          console.error("Error saving dev tools unlock to database:", error);
+          logger.error('Error saving dev tools unlock to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         } finally {
           pendingDbOperations.current.delete(operationKey);
         }
@@ -972,7 +972,7 @@ const Desktop = () => {
             });
           }
         } catch (error) {
-          console.error("Error saving final mission completion to database:", error);
+          logger.error('Error saving final mission completion to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -1004,7 +1004,7 @@ const Desktop = () => {
           const { updateUnlockedApplications } = await import('@/app/actions/userProgress');
           await updateUnlockedApplications(deviceId, 'hackbook-w95', defaultApps);
         } catch (error) {
-          console.error('Error resetting unlocked applications in database:', error);
+          logger.error('Error resetting unlocked applications in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
       
@@ -1331,7 +1331,7 @@ const Desktop = () => {
                   // For now, just close the app
                   handleCloseApp(app);
                 } catch (error) {
-                  console.error("Error in neural network success handler:", error);
+                  logger.error('Error in neural network success handler:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
                   handleCloseApp(app);
                 }
               }}
@@ -1388,7 +1388,7 @@ const Desktop = () => {
                       progress: 100
                     });
                   } catch (error) {
-                    console.error("Error saving final mission completion to database:", error);
+                    logger.error('Error saving final mission completion to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
                   }
                 }
                 
@@ -1958,6 +1958,7 @@ const Desktop = () => {
 // --- TerminalComponent: Functional Win95 Terminal ---
 // (No import needed here, already imported at top)
 import useFileSystem from "@/components/devices/hackbook-w95/hooks/useFileSystem";
+import { logger } from '@/lib/logger';
 
 const TerminalComponent: React.FC = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -1990,7 +1991,7 @@ const TerminalComponent: React.FC = () => {
           audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
       }
     } catch (error) {
-      console.error("Terminal sound error:", error);
+      logger.error('Terminal sound error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -2001,7 +2002,7 @@ const TerminalComponent: React.FC = () => {
         const showHidden = userStorage.getItem("showHiddenFiles", false) as boolean;
         setHiddenFilesEnabled(showHidden === true);
       } catch (error) {
-        console.error("Error reading hidden files setting:", error);
+        logger.error('Error reading hidden files setting:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
     checkHiddenFilesEnabled();

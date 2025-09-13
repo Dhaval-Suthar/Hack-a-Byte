@@ -3,6 +3,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import { RateLimiter } from '@/lib/redis';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
+import { logger } from '@/lib/logger';
 
 // Rate limiting store (simple in-memory implementation)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -66,7 +67,7 @@ export async function enhancedRateLimit(
     return await RateLimiter.checkLimit(key, maxRequests, windowSeconds);
   } catch {
     // Fallback to in-memory rate limiting
-    console.warn('Redis rate limiting failed, using in-memory fallback');
+    logger.warn('Redis rate limiting failed, using in-memory fallback');
     return inMemoryRateLimit(key, maxRequests, windowSeconds);
   }
 }

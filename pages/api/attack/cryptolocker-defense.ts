@@ -3,6 +3,7 @@ import connectDb from '@/db/connectDb';
 import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { activeSessions } from './cryptolocker';
+import { logger } from '@/lib/logger';
 
 // CryptoLocker typing defense endpoint
 // POST body: { sessionKey, phrase, teamId }
@@ -138,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
   } catch (error) {
-    console.error('CryptoLocker defense error:', error);
+    logger.error('CryptoLocker defense error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

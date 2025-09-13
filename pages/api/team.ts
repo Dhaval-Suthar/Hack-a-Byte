@@ -3,6 +3,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import connectDb from "@/db/connectDb";
 import Team from "@/models/Team";
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
@@ -122,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error("Team API error:", error);
+    logger.error('Team API error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { EventItem } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface EventsSectionProps {
   evts: EventItem[];
@@ -128,7 +129,7 @@ export default function EventsSection({
       });
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Failed to create event:", error);
+      logger.error('Failed to create event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -170,7 +171,7 @@ export default function EventsSection({
         pricingExtended: undefined,
       });
     } catch (error) {
-      console.error("Failed to update event:", error);
+      logger.error('Failed to update event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

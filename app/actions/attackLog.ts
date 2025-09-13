@@ -2,6 +2,7 @@
 
 import connectDb from "@/db/connectDb";
 import AttackLogModel from "@/models/AttackLog";
+import { logger } from '@/lib/logger';
 
 export async function createAttackLog(data: {
   attackerUserId: string;
@@ -40,7 +41,7 @@ export async function createAttackLog(data: {
     await attackLog.save();
     return { success: true, attackLog: attackLog.toObject() };
   } catch (error) {
-    console.error("Error creating attack log:", error);
+    logger.error('Error creating attack log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create attack log" };
   }
 }
@@ -61,7 +62,7 @@ export async function getUserAttackLogs(userId: string, limit: number = 50, offs
 
     return { success: true, attackLogs };
   } catch (error) {
-    console.error("Error fetching attack logs:", error);
+    logger.error('Error fetching attack logs:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch attack logs" };
   }
 }
@@ -81,7 +82,7 @@ export async function getAttackLogById(logId: string) {
 
     return { success: true, attackLog };
   } catch (error) {
-    console.error("Error fetching attack log:", error);
+    logger.error('Error fetching attack log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch attack log" };
   }
 }
@@ -146,7 +147,7 @@ export async function getAttackStatistics(userId: string, timeframe: 'day' | 'we
 
     return { success: true, stats: result };
   } catch (error) {
-    console.error("Error fetching attack statistics:", error);
+    logger.error('Error fetching attack statistics:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch attack statistics" };
   }
 }
@@ -164,7 +165,7 @@ export async function getRecentAttacks(limit: number = 20) {
 
     return { success: true, attacks };
   } catch (error) {
-    console.error("Error fetching recent attacks:", error);
+    logger.error('Error fetching recent attacks:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch recent attacks" };
   }
 }

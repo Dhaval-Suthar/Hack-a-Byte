@@ -2,6 +2,7 @@
 
 import connectDb from "@/db/connectDb";
 import NotificationModel from "@/models/Notification";
+import { logger } from '@/lib/logger';
 
 export async function createNotification(data: {
   recipient: string;
@@ -30,7 +31,7 @@ export async function createNotification(data: {
     await notification.save();
     return { success: true, notification: notification.toObject() };
   } catch (error) {
-    console.error("Error creating notification:", error);
+    logger.error('Error creating notification:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create notification" };
   }
 }
@@ -43,7 +44,7 @@ export async function getUserNotifications(userId: string, limit: number = 50, o
 
     return { success: true, notifications };
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    logger.error('Error fetching notifications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch notifications" };
   }
 }
@@ -64,7 +65,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 
     return { success: true, notification: notification.toObject() };
   } catch (error) {
-    console.error("Error marking notification as read:", error);
+    logger.error('Error marking notification as read:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to mark notification as read" };
   }
 }
@@ -80,7 +81,7 @@ export async function markAllNotificationsAsRead(userId: string) {
 
     return { success: true, updatedCount: result.modifiedCount };
   } catch (error) {
-    console.error("Error marking all notifications as read:", error);
+    logger.error('Error marking all notifications as read:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to mark notifications as read" };
   }
 }
@@ -96,7 +97,7 @@ export async function getUnreadNotificationCount(userId: string) {
 
     return { success: true, count };
   } catch (error) {
-    console.error("Error getting unread count:", error);
+    logger.error('Error getting unread count:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to get unread count" };
   }
 }
@@ -116,7 +117,7 @@ export async function deleteNotification(notificationId: string, userId: string)
 
     return { success: true };
   } catch (error) {
-    console.error("Error deleting notification:", error);
+    logger.error('Error deleting notification:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to delete notification" };
   }
 }

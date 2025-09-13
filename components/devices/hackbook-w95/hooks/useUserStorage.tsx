@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 // Function to get a unique storage key based on playspace and user
 export const getUserStorageKey = (baseKey: string) => {
@@ -27,7 +28,7 @@ export const getUserStorageKey = (baseKey: string) => {
             username = cookieData.username;
           }
         } catch (e) {
-          console.error('Error parsing user cookie:', e);
+          logger.error('Error parsing user cookie:', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
         }
       }
     }
@@ -67,7 +68,7 @@ export function useUserStorage<T>(
         setStoredValue(value);
       }
     } catch (error) {
-      console.error(`Error loading ${fullKey} from localStorage:`, error);
+      logger.error(`Error loading ${fullKey} from localStorage:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStoredValue(initialValue);
     }
   }, [fullKey, initialValue, serialize, debug]);
@@ -90,7 +91,7 @@ export function useUserStorage<T>(
               serialize ? JSON.stringify(valueToStore) : String(valueToStore)
             );
           } catch (error) {
-            console.error(`Error saving ${fullKey} to localStorage:`, error);
+            logger.error(`Error saving ${fullKey} to localStorage:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         };
         
@@ -99,7 +100,7 @@ export function useUserStorage<T>(
         return () => clearTimeout(timeout);
       }
     } catch (error) {
-      console.error(`Error in setValue for ${fullKey}:`, error);
+      logger.error(`Error in setValue for ${fullKey}:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [storedValue, fullKey, serialize]);
   
@@ -119,7 +120,7 @@ function getUserStorageItem<T>(baseKey: string, defaultValue: T | null = null, o
     }
     return defaultValue;
   } catch (error) {
-    console.error(`Error getting ${baseKey} from localStorage:`, error);
+    logger.error(`Error getting ${baseKey} from localStorage:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return defaultValue;
   }
 }
@@ -135,7 +136,7 @@ function setUserStorageItem<T>(baseKey: string, value: T, options: { debug?: boo
     }
     return false;
   } catch (error) {
-    console.error(`Error setting ${baseKey} in localStorage:`, error);
+    logger.error(`Error setting ${baseKey} in localStorage:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return false;
   }
 }
@@ -150,7 +151,7 @@ function removeUserStorageItem(baseKey: string): boolean {
     }
     return false;
   } catch (error) {
-    console.error(`Error removing ${baseKey} from localStorage:`, error);
+    logger.error(`Error removing ${baseKey} from localStorage:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return false;
   }
 }

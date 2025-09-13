@@ -5,6 +5,7 @@ import { User } from "@/types/devices";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { useSocket } from "@/hooks/useSocket";
 import SystemLockProAttack from "@/components/devices/hackphone/security/SystemLockProAttack";
+import { logger } from '@/lib/logger';
 
 // Add custom styles for running malware animation
 const runningMalwareStyles = `
@@ -154,7 +155,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           }
         }
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        logger.error('Failed to fetch data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       } finally {
         setLoading(false);
       }
@@ -293,7 +294,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       }
     } catch (error) {
-      console.error('Failed to refresh balance:', error);
+      logger.error('Failed to refresh balance:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
 
     const itemPrice = Number(purchaseItem.price);
@@ -348,14 +349,14 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               setPurchaseItem(null);
               alert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`);
             } else {
-              console.error('Failed to save malware purchase:', malwareData);
+              logger.error('Failed to save malware purchase:', { error: malwareData instanceof Error ? malwareData.message : 'Unknown error' }, malwareData as Error);
               alert('Purchase completed but item may not be saved properly. Please refresh the app.');
               setShowPurchase(false);
               setPurchaseItem(null);
             }
           } else {
             const errorText = await malwareResponse.text();
-            console.error('Malware purchase API failed:', malwareResponse.status, errorText);
+            logger.error('Malware purchase API failed', { status: malwareResponse.status, error: errorText });
             alert('Purchase completed but item may not be saved properly. Please refresh the app.');
             setShowPurchase(false);
             setPurchaseItem(null);
@@ -365,11 +366,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       } else {
         const errorText = await response.text();
-        console.error('Purchase failed:', response.status, errorText);
+        logger.error('Purchase failed', { status: response.status, errorText });
         alert('Failed to process purchase. Please try again.');
       }
     } catch (error) {
-      console.error('Purchase error:', error);
+      logger.error('Purchase error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       alert('Failed to process purchase. Please try again.');
     }
   }, [purchaseItem, teamBalance]);
@@ -485,7 +486,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               const j = await r.json();
               if (j?.success && j?.teamId) attackerTeamId = j.teamId as string;
             } catch (e) {
-              console.warn('Failed to resolve teamId from playspaceId:', e);
+              logger.warn('Failed to resolve teamId from playspaceId', { error: e });
             }
           }
         }
@@ -641,12 +642,12 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                   if (j?.success && j?.teamId) targetTeamId = j.teamId;
                 }
               }
-            } catch (e) { console.warn('Resolve target team failed (mac):', e); }
+            } catch (e) { logger.warn('Resolve target team failed (mac)', { error: e }); }
             if (!targetTeamId) {
               try {
                 const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
                 if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
-              } catch (e) { console.warn('Resolve target team failed (ip):', e); }
+              } catch (e) { logger.warn('Resolve target team failed (ip)', { error: e }); }
             }
             if (!targetTeamId) {
               alert('Could not resolve target team for StealthViral (missing mapping).');
@@ -809,20 +810,20 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           setDeployItem(null);
           setDeployData({});
         } else {
-          console.error('Failed to remove malware from purchased list:', deployDataResult);
+          logger.error('Failed to remove malware from purchased list:', { error: deployDataResult instanceof Error ? deployDataResult.message : 'Unknown error' }, deployDataResult as Error);
           alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
           setDeployItem(null);
           setDeployData({});
         }
       } else {
         const errorText = await deployResponse.text();
-        console.error('Deploy API failed:', deployResponse.status, errorText);
+        logger.error('Deploy API failed', { status: deployResponse.status, errorText });
         alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
         setDeployItem(null);
         setDeployData({});
       }
     } catch (error) {
-      console.error('Deployment error:', error);
+      logger.error('Deployment error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       alert('Deployment failed. Please try again.');
     }
 
@@ -911,7 +912,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     }
                   }
                 } catch (error) {
-                  console.error("Failed to refresh data:", error);
+                  logger.error('Failed to refresh data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
                 }
               }}
               className="text-white/70 text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20"

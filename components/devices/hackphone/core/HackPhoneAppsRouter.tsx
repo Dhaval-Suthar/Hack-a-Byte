@@ -12,6 +12,7 @@ import { AttackEffects } from "../shared/AttackEffects";
 import { APP_ROLE_ACCESS, formatAllowedRoles } from '@/lib/constants/app-constants';
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
+import { logger } from '@/lib/logger';
 
 // Lazy load complex app components
 const CalculatorApp = lazy(() => import("../apps/CalculatorApp"));
@@ -83,7 +84,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
             setTeamId(data.teamId);
           }
         } catch (error) {
-          console.error('Failed to fetch team ID:', error);
+          logger.error('Failed to fetch team ID:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };

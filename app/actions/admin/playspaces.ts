@@ -6,6 +6,7 @@ import AccessCode from "@/models/AccessCode";
 import Device from "@/models/Device";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -56,7 +57,7 @@ export async function getPlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching playspaces:", error);
+    logger.error('Error fetching playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspaces" };
   }
 }
@@ -105,7 +106,7 @@ export async function getPlayspaceDetails(playspaceId: string) {
       },
     };
   } catch (error) {
-    console.error("Error fetching playspace details:", error);
+    logger.error('Error fetching playspace details:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspace details" };
   }
 }
@@ -152,7 +153,7 @@ export async function createPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error creating playspace:", error);
+    logger.error('Error creating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create playspace" };
   }
 }
@@ -204,7 +205,7 @@ export async function deletePlayspace(playspaceId: string, adminKey?: string) {
       message: "Playspace and all associated resources deleted successfully"
     };
   } catch (error) {
-    console.error("Error deleting playspace:", error);
+    logger.error('Error deleting playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete playspace" };
   }
 }
@@ -271,7 +272,7 @@ export async function updatePlayspace(
       },
     };
   } catch (error) {
-    console.error("Error updating playspace:", error);
+    logger.error('Error updating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update playspace" };
   }
 }
@@ -313,7 +314,7 @@ export async function getDevicesByPlayspaceId(playspaceId: string) {
       })),
     };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       error: "Failed to fetch devices for playspace",
       details: error instanceof Error ? error.message : String(error),

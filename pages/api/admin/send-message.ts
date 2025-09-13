@@ -7,6 +7,7 @@ import Team from '@/models/Team';
 import { badRequest, methodNotAllowed, internalError, unauthorized } from '@/lib/api-errors';
 import mongoose from 'mongoose';
 import { getServerIo } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -114,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             timestamp: Date.now(),
           });
         } catch (socketError) {
-          console.warn('Failed to emit admin email notification:', socketError);
+          logger.warn('Failed to emit admin email notification:', { error: socketError });
         }
       } else {
         const sms = await (SMSModel as SMSModelType).createSystemSMS({
@@ -143,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             timestamp: Date.now(),
           });
         } catch (socketError) {
-          console.warn('Failed to emit admin SMS notification:', socketError);
+          logger.warn('Failed to emit admin SMS notification:', { error: socketError });
         }
       }
     }
@@ -156,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error) {
-    console.error('Error sending admin message:', error);
+    logger.error('Error sending admin message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return internalError(res, msg);
   }

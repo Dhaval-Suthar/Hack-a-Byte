@@ -1,5 +1,6 @@
 import connectDb from "@/db/connectDb";
 import Device from "@/models/Device";
+import { logger } from '@/lib/logger';
 
 interface NetworkSettings {
   ipAddress?: string;
@@ -122,7 +123,7 @@ export async function createDeviceWithUniqueNetworkConfig(
       macAddress: deviceMacAddress
     };
   } catch (error) {
-    console.error("Failed to create device with unique network config:", error);
+    logger.error('Failed to create device with unique network config:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"

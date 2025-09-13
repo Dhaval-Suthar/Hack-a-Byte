@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
         team = await Team.findById(teamId).select('_id wallet.bitcoinBalance');
       } catch (error) {
         // Invalid ObjectId format - log but continue
-        console.warn('Invalid teamId format for findById:', teamId, error);
+        logger.warn('Invalid teamId format for findById:', { teamId, error });
       }
     }
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching team balance:', error);
+    logger.error('Error fetching team balance:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

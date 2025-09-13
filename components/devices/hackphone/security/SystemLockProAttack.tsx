@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 interface SystemLockProAttackProps {
   teamId: string;
@@ -65,7 +66,7 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
         });
       }
     } catch (error) {
-      console.error('SystemLock Pro attack error:', error);
+      logger.error('SystemLock Pro attack error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setLastResult({
         success: false,
         message: 'Network error. Please try again.'

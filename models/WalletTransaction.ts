@@ -60,14 +60,12 @@ const WalletTransactionSchema = new Schema<WalletTransaction>(
   {
     walletAddress: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Team',
-      required: true,
-      index: true
+      required: true
     },
     gameSessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'GameSession' },
     tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament' },

@@ -5,6 +5,7 @@ import Team from '@/models/Team';
 import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
+import { logger } from '@/lib/logger';
 
 // CryptoLocker Elite ransomware
 // POST body: { targetIP, attackerTeamId }
@@ -158,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error('CryptoLocker Elite error:', error);
+    logger.error('CryptoLocker Elite error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

@@ -3,6 +3,7 @@ import connectDb from '@/db/connectDb';
 import EmailModel from '@/models/Email';
 import SMSModel from '@/models/SMS';
 import { badRequest, methodNotAllowed, internalError } from '@/lib/api-errors';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await model.deleteMany({ _id: { $in: validIds }, recipient: teamId });
     return res.status(200).json({ success: true, deletedCount: result.deletedCount || 0 });
   } catch (error) {
-    console.error('Error deleting messages:', error);
+    logger.error('Error deleting messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'unknown';
     return internalError(res, msg);
   }

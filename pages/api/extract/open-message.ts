@@ -5,6 +5,7 @@ import EmailModel from '@/models/Email';
 import SMSModel from '@/models/SMS';
 import { badRequest, notFound, methodNotAllowed, internalError } from '@/lib/api-errors';
 import type { NextApiResponseServerIo } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -89,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
     } catch (socketError) {
-      console.warn('Socket emit failed:', socketError);
+      logger.warn('Socket emit failed:', { error: socketError });
     }
     
     return res.status(200).json({ 
@@ -102,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     
   } catch (error) {
-    console.error('Error processing message open:', error);
+    logger.error('Error processing message open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'unknown';
     return internalError(res, msg);
   }

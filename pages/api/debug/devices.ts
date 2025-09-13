@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
+import { logger } from '@/lib/logger';
 
 // Debug endpoint to list device MAC addresses
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
     });
   } catch (error) {
-    console.error('Debug devices error:', error);
+    logger.error('Debug devices error', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error',

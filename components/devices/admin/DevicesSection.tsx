@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Device } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface DevicesSectionProps {
   devs: Device[];
@@ -51,7 +52,7 @@ export default function DevicesSection({
       setFormData({ deviceType: "", status: "", playspaceId: "" });
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Failed to create device:", error);
+      logger.error('Failed to create device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -68,7 +69,7 @@ export default function DevicesSection({
       setEditingDevice(null);
       setFormData({ deviceType: "", status: "", playspaceId: "" });
     } catch (error) {
-      console.error("Failed to update device:", error);
+      logger.error('Failed to update device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -84,7 +85,7 @@ export default function DevicesSection({
       setLinkingDevice(null);
       setFormData({ deviceType: "", status: "", playspaceId: "" });
     } catch (error) {
-      console.error("Failed to link device:", error);
+      logger.error('Failed to link device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

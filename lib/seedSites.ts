@@ -1,5 +1,6 @@
 import connectDb from '@/db/connectDb';
 import Site from '@/models/Site';
+import { logger } from '@/lib/logger';
 
 const sampleSites = [
   {
@@ -413,7 +414,7 @@ export default async function seedSites() {
     
     return { success: true, count: sampleSites.length };
   } catch (error) {
-    console.error('Failed to seed sites:', error);
+    logger.error('Failed to seed sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

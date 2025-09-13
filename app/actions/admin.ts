@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
 import { generateUniqueIPAddress, generateDeviceMacAddress } from "@/lib/device-utils";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -78,7 +79,7 @@ export async function getAccessCodes(adminKey?: string) {
 
     return { accessCodes: safeAccessCodes };
   } catch (error) {
-    console.error("Error fetching access codes:", error);
+    logger.error('Error fetching access codes:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch access codes" };
   }
 }
@@ -154,7 +155,7 @@ export async function generateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error generating access code:", error);
+    logger.error('Error generating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to generate access code" };
   }
 }
@@ -236,7 +237,7 @@ export async function createCustomAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error creating custom access code:", error);
+    logger.error('Error creating custom access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create custom access code" };
   }
 }
@@ -281,7 +282,7 @@ export async function toggleAccessCodeStatus(codeId: string, isActive: boolean, 
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
   }
 }
@@ -309,7 +310,7 @@ export async function deleteAccessCode(codeId: string, adminKey?: string) {
       message: "Access code deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting access code:", error);
+    logger.error('Error deleting access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete access code" };
   }
 }
@@ -339,7 +340,7 @@ export async function getTeams(adminKey?: string) {
 
     return { teams: teamsWithMemberCount };
   } catch (error) {
-    console.error("Error fetching teams:", error);
+    logger.error('Error fetching teams:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch teams" };
   }
 }
@@ -438,11 +439,11 @@ export async function createTeam(name: string, description: string, numberOfPlay
         }
         await newTeam.save();
       } else {
-        console.warn("Failed to create playspace and device for team:", playspaceResult.error);
+        logger.warn('Failed to create playspace and device for team:', { error: playspaceResult.error });
         // Don't fail the team creation, just log the warning
       }
     } catch (error) {
-      console.error("Error creating playspace and device for team:", error);
+      logger.error('Error creating playspace and device for team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Don't fail the team creation, just log the error
     }
 
@@ -466,7 +467,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
       },
     };
   } catch (error) {
-    console.error("Error creating team:", error);
+    logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create team" };
   }
 }
@@ -534,7 +535,7 @@ export async function updateTeam(teamId: string, updates: { name?: string; descr
       },
     };
   } catch (error) {
-    console.error("Error updating team:", error);
+    logger.error('Error updating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update team" };
   }
 }
@@ -568,7 +569,7 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
       message: "Team deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting team:", error);
+    logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete team" };
   }
 }
@@ -601,7 +602,7 @@ export async function getSponsors(adminKey?: string) {
 
     return { sponsors: sponsorsWithFormattedData };
   } catch (error) {
-    console.error("Error fetching sponsors:", error);
+    logger.error('Error fetching sponsors:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch sponsors" };
   }
 }
@@ -673,7 +674,7 @@ export async function createSponsor(
       },
     };
   } catch (error) {
-    console.error("Error creating sponsor:", error);
+    logger.error('Error creating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create sponsor" };
   }
 }
@@ -743,7 +744,7 @@ export async function updateSponsor(
       },
     };
   } catch (error) {
-    console.error("Error updating sponsor:", error);
+    logger.error('Error updating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update sponsor" };
   }
 }
@@ -772,7 +773,7 @@ export async function deleteSponsor(sponsorId: string, adminKey?: string) {
       message: "Sponsor deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting sponsor:", error);
+    logger.error('Error deleting sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete sponsor" };
   }
 }
@@ -805,7 +806,7 @@ export async function getPlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching playspaces:", error);
+    logger.error('Error fetching playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspaces" };
   }
 }
@@ -854,7 +855,7 @@ export async function getPlayspaceDetails(playspaceId: string) {
       },
     };
   } catch (error) {
-    console.error("Error fetching playspace details:", error);
+    logger.error('Error fetching playspace details:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspace details" };
   }
 }
@@ -901,7 +902,7 @@ export async function createPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error creating playspace:", error);
+    logger.error('Error creating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create playspace" };
   }
 }
@@ -953,7 +954,7 @@ export async function deletePlayspace(playspaceId: string, adminKey?: string) {
       message: "Playspace and all associated resources deleted successfully"
     };
   } catch (error) {
-    console.error("Error deleting playspace:", error);
+    logger.error('Error deleting playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete playspace" };
   }
 }
@@ -1020,7 +1021,7 @@ export async function updatePlayspace(
       },
     };
   } catch (error) {
-    console.error("Error updating playspace:", error);
+    logger.error('Error updating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update playspace" };
   }
 }
@@ -1062,7 +1063,7 @@ export async function getDevicesByPlayspaceId(playspaceId: string) {
       })),
     };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       error: "Failed to fetch devices for playspace",
       details: error instanceof Error ? error.message : String(error),
@@ -1086,7 +1087,7 @@ export async function verifyAdmin(adminKey?: string) {
     // Return admin status
     return { isAdmin: true };
   } catch (error) {
-    console.error("Error verifying admin status:", error);
+    logger.error('Error verifying admin status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       isAdmin: false,
       error: "Failed to verify admin status",
@@ -1178,7 +1179,7 @@ export async function updateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
   }
 }
@@ -1235,7 +1236,7 @@ export async function linkAccessCodeToPlayspace(codeId: string, playspaceId: str
       },
     };
   } catch (error) {
-    console.error("Error linking access code to playspace:", error);
+    logger.error('Error linking access code to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to link access code to playspace" };
   }
 }
@@ -1292,7 +1293,7 @@ export async function getEvents(adminKey?: string) {
 
     return { events: safeEvents };
   } catch (error) {
-    console.error("Error fetching events:", error);
+    logger.error('Error fetching events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch events" };
   }
 }
@@ -1385,7 +1386,7 @@ export async function createEvent(
       },
     };
   } catch (error) {
-    console.error("Error creating event:", error);
+    logger.error('Error creating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create event" };
   }
 }
@@ -1502,7 +1503,7 @@ export async function updateEvent(
       },
     };
   } catch (error) {
-    console.error("Error updating event:", error);
+    logger.error('Error updating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update event" };
   }
 }
@@ -1524,7 +1525,7 @@ export async function deleteEvent(eventId: string, adminKey?: string) {
       message: "Event deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting event:", error);
+    logger.error('Error deleting event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete event" };
   }
 }
@@ -1556,7 +1557,7 @@ export async function toggleEventRegistration(eventId: string, adminKey?: string
       registrationEnabled: event.registrationEnabled
     };
   } catch (error) {
-    console.error("Error toggling event registration:", error);
+    logger.error('Error toggling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to toggle event registration" };
   }
 }
@@ -1587,7 +1588,7 @@ export async function enableEventRegistration(eventId: string, adminKey?: string
       registrationEnabled: true
     };
   } catch (error) {
-    console.error("Error enabling event registration:", error);
+    logger.error('Error enabling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to enable event registration" };
   }
 }
@@ -1618,7 +1619,7 @@ export async function disableEventRegistration(eventId: string, adminKey?: strin
       registrationEnabled: false
     };
   } catch (error) {
-    console.error("Error disabling event registration:", error);
+    logger.error('Error disabling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to disable event registration" };
   }
 }
@@ -1659,7 +1660,7 @@ export async function getAllDevices(adminKey?: string) {
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices:", error);
+    logger.error('Error fetching devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices" };
   }
 }
@@ -1775,7 +1776,7 @@ export async function createDevice(
       },
     };
   } catch (error) {
-    console.error("Error creating device:", error);
+    logger.error('Error creating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create device" };
   }
 }
@@ -1846,7 +1847,7 @@ export async function assignDeviceToPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error assigning device to playspace:", error);
+    logger.error('Error assigning device to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign device to playspace" };
   }
 }
@@ -1905,7 +1906,7 @@ export async function unassignDeviceFromPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error unassigning device from playspace:", error);
+    logger.error('Error unassigning device from playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to unassign device from playspace" };
   }
 }
@@ -2000,7 +2001,7 @@ export async function updateDevice(
       },
     };
   } catch (error) {
-    console.error("Error updating device:", error);
+    logger.error('Error updating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update device" };
   }
 }
@@ -2038,7 +2039,7 @@ export async function getDevicesByPlayspace(
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices for playspace" };
   }
 }
@@ -2095,7 +2096,7 @@ export async function deleteDevice(
       message: "Device deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting device:", error);
+    logger.error('Error deleting device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete device" };
   }
 }
@@ -2154,7 +2155,7 @@ export async function updateDeviceStatus(
       device: serializedDevice,
     };
   } catch (error) {
-    console.error("Error updating device status:", error);
+    logger.error('Error updating device status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update device status" };
   }
 }
@@ -2233,7 +2234,7 @@ export async function assignPlayspaceToAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error assigning playspace to access code:", error);
+    logger.error('Error assigning playspace to access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign playspace to access code" };
   }
 }
@@ -2270,7 +2271,7 @@ export async function getAvailablePlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching available playspaces:", error);
+    logger.error('Error fetching available playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch available playspaces" };
   }
 }
@@ -2311,7 +2312,7 @@ export async function getAnalyticsData(adminKey?: string) {
     try {
       totalSponsors = await Sponsor.countDocuments({});
     } catch (error) {
-      console.warn("Could not fetch sponsor count:", error);
+      logger.warn('Could not fetch sponsor count:', { error });
     }
 
     // Get recent activity (last 10 activities across all collections)
@@ -2379,7 +2380,7 @@ export async function getAnalyticsData(adminKey?: string) {
       systemHealth
     };
   } catch (error) {
-    console.error("Error fetching analytics data:", error);
+    logger.error('Error fetching analytics data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch analytics data" };
   }
 }
@@ -2425,7 +2426,7 @@ export async function getDeviceStats(adminKey?: string) {
       statusStats
     };
   } catch (error) {
-    console.error("Error fetching device stats:", error);
+    logger.error('Error fetching device stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch device stats" };
   }
 }
@@ -2464,7 +2465,7 @@ export async function getAccessCodeStats(adminKey?: string) {
       usageStats: usageStats[0] || { totalUsage: 0, avgUsage: 0, maxUsage: 0 }
     };
   } catch (error) {
-    console.error("Error fetching access code stats:", error);
+    logger.error('Error fetching access code stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch access code stats" };
   }
 }
@@ -2555,7 +2556,7 @@ export async function getTournaments(adminKey?: string) {
 
     return { tournaments: mockTournaments };
   } catch (error) {
-    console.error("Error fetching tournaments:", error);
+    logger.error('Error fetching tournaments:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch tournaments" };
   }
 }
@@ -2612,7 +2613,7 @@ export async function createTournament(
       tournament: newTournament
     };
   } catch (error) {
-    console.error("Error creating tournament:", error);
+    logger.error('Error creating tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create tournament" };
   }
 }
@@ -2656,7 +2657,7 @@ export async function updateTournament(
       tournament: updatedTournament
     };
   } catch (error) {
-    console.error("Error updating tournament:", error);
+    logger.error('Error updating tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update tournament" };
   }
 }
@@ -2681,7 +2682,7 @@ export async function deleteTournament(tournamentId: string, adminKey?: string) 
       message: "Tournament deleted successfully"
     };
   } catch (error) {
-    console.error("Error deleting tournament:", error);
+    logger.error('Error deleting tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete tournament" };
   }
 }
@@ -2702,7 +2703,7 @@ export async function getGameSessions(adminKey?: string) {
 
     return { sessions };
   } catch (error) {
-    console.error("Error fetching game sessions:", error);
+    logger.error('Error fetching game sessions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch game sessions" };
   }
 }
@@ -2747,7 +2748,7 @@ export async function createGameSession(
       session: newSession
     };
   } catch (error) {
-    console.error("Error creating game session:", error);
+    logger.error('Error creating game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create game session" };
   }
 }
@@ -2786,7 +2787,7 @@ export async function updateGameSessionScore(
       session
     };
   } catch (error) {
-    console.error("Error updating game session:", error);
+    logger.error('Error updating game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update game session" };
   }
 }
@@ -2827,7 +2828,7 @@ export async function endGameSession(
       session
     };
   } catch (error) {
-    console.error("Error ending game session:", error);
+    logger.error('Error ending game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to end game session" };
   }
 }
@@ -2870,7 +2871,7 @@ export async function getTournamentTeams(adminKey?: string) {
 
     return { teams: mockTeams };
   } catch (error) {
-    console.error("Error fetching tournament teams:", error);
+    logger.error('Error fetching tournament teams:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch tournament teams" };
   }
 }
@@ -2908,7 +2909,7 @@ export async function getLeaderboards(adminKey?: string) {
       currentTournamentLeaderboard
     };
   } catch (error) {
-    console.error("Error fetching leaderboards:", error);
+    logger.error('Error fetching leaderboards:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch leaderboards" };
   }
 }
@@ -2958,7 +2959,7 @@ export async function getWalletStats(adminKey?: string) {
 
     return { walletStats };
   } catch (error) {
-    console.error("Error fetching wallet stats:", error);
+    logger.error('Error fetching wallet stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch wallet stats" };
   }
 }
@@ -3011,7 +3012,7 @@ export async function getPublicEvents() {
 
     return { events: transformedEvents };
   } catch (error) {
-    console.error("Error fetching public events:", error);
+    logger.error('Error fetching public events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch events" };
   }
 }

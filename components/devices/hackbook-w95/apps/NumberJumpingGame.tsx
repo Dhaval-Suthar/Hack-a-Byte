@@ -6,6 +6,7 @@ import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
 import Win95Alert from "../Win95Alert";
+import { logger } from '@/lib/logger';
 
 interface NumberJumpingGameProps {
   onClose: () => void;
@@ -92,7 +93,7 @@ const NumberJumpingGame: React.FC<NumberJumpingGameProps> = ({ onClose }) => {
     try {
       audioManager.playSound(`/hackbook-W95/sounds/${sound}.mp3`, 0.5);
     } catch (error) {
-      console.error("Sound error:", error);
+      logger.error('Sound error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, []);
 

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { getDevicesByPlayspaceId } from "@/app/actions/admin";
 import { CHARACTER_INFO } from "@/lib/constants/app-constants";
+import { logger } from '@/lib/logger';
 
 interface DeviceOption {
   id: string;
@@ -91,7 +92,7 @@ export default function DeviceSelectionPage() {
 
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching devices:", err);
+      logger.error('Error fetching devices:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError("Failed to load available devices");
       setLoading(false);
     }
@@ -141,11 +142,11 @@ export default function DeviceSelectionPage() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        logger.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
   } else {
     document.exitFullscreen().catch((err) => {
-      console.error(`Error attempting to exit fullscreen: ${err.message}`);
+      logger.error(`Error attempting to exit fullscreen: ${err.message}`);
     });
   }
 };

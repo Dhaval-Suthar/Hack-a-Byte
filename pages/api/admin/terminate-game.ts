@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import { emitScoped } from '@/lib/emitter';
+import { logger } from '@/lib/logger';
 
 interface TerminateGameResponse {
   success: boolean;
@@ -54,7 +55,7 @@ export default async function handler(
     });
 
   } catch (error) {
-    console.error('Game termination error:', error);
+    logger.error('Game termination error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     res.status(500).json({
       success: false,
       error: 'Failed to terminate game'

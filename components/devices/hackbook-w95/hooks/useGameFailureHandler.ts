@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { handleGameFailure, getDeviceSelectionUrl } from "@/app/actions/gameFailure";
+import { logger } from '@/lib/logger';
 
 /**
  * Custom hook to handle game failures
@@ -60,13 +61,13 @@ export const useGameFailureHandler = () => {
         const redirectUrl = await getDeviceSelectionUrl(deviceId, playspaceId || undefined);
         router.push(redirectUrl);
       } else {
-        console.error('Failed to handle game failure:', result.error);
+        logger.error('Failed to handle game failure:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
         // Still redirect to device selection as fallback
         const redirectUrl = await getDeviceSelectionUrl(deviceId, playspaceId || undefined);
         router.push(redirectUrl);
       }
     } catch (error) {
-      console.error('Error processing game failure:', error);
+      logger.error('Error processing game failure:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Fallback - still redirect to device selection
       const deviceId = searchParams?.get('device') || 'unknown';
       const playspaceId = searchParams?.get('playspace');

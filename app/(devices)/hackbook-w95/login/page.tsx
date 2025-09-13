@@ -9,6 +9,7 @@ import { createDeviceUser, getDeviceUser, loginDeviceUser } from "@/app/actions/
 import BootAnimation from "@/components/devices/hackbook-w95/boot-animation";
 import LoginAnimation from "@/components/devices/hackbook-w95/login-animation";
 import { getPlayspaceId } from "@/lib/playspace-utils";
+import { logger } from '@/lib/logger';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -116,14 +117,14 @@ const LoginPage = () => {
               'Auto-login from saved session'
             );
           }).catch(error => {
-            console.error('Error importing UserLogManager:', error);
+            logger.error('Error importing UserLogManager:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           });
           
           // Auto-login with saved playspace user
           navigateToDesktop(deviceId);
         }
       } catch (error) {
-        console.error('Error checking device login:', error);
+        logger.error('Error checking device login:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       } finally {
         isCheckingLogin.current = false;
       }
@@ -180,7 +181,7 @@ const LoginPage = () => {
       setShowLoginAnimation(true);
       setIsLoading(false);
     } catch (err) {
-      console.error("Login error:", err);
+      logger.error('Login error:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError("An error occurred during login");
       setIsLoading(false);
     }
@@ -229,7 +230,7 @@ const LoginPage = () => {
       setIsLoading(false);
       return;
     } catch (err) {
-      console.error("Signup error:", err);
+      logger.error('Signup error:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError("An error occurred during sign up");
       setIsLoading(false);
     }

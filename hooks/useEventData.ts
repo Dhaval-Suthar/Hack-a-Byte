@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { getPublicEvents } from '../app/actions/admin';
 import { getAllEventsWithRegistrationCounts } from '../app/actions/eventRegistration';
 import { Event } from '../types/event';
+import { logger } from '@/lib/logger';
 
 interface UseEventDataReturn {
   events: Event[];
@@ -44,7 +45,7 @@ export function useEventData(): UseEventDataReturn {
 
       setEvents(eventsWithCounts);
     } catch (err) {
-      console.error('Error fetching events:', err);
+      logger.error('Error fetching events:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError(err instanceof Error ? err.message : 'Failed to fetch events');
     } finally {
       setLoading(false);

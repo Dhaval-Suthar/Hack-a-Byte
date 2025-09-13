@@ -7,6 +7,7 @@ import connectDb from "@/db/connectDb";
 import ChatMessageModel from "@/models/ChatMessage";
 import DeviceUser from "@/models/DeviceUser";
 import Team from "@/models/Team";
+import { logger } from '@/lib/logger';
 
 interface Reaction {
   emoji: string;
@@ -46,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             query.teamId = communityTeam._id;
           }
         } catch (error) {
-          console.error('Error finding community team:', error);
+          logger.error('Error finding community team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
 
@@ -127,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             userId = new mongoose.Types.ObjectId(senderId);
           }
         } catch {
-          console.error('Invalid senderId provided:', senderId);
+          logger.error('Invalid senderId provided:', { error: senderId instanceof Error ? senderId.message : 'Unknown error' }, senderId as Error);
         }
       }
 
@@ -167,7 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           userId = anonymousUser._id;
           userName = anonymousUser.username;
         } catch (userError) {
-          console.error('Error creating/finding user:', userError);
+          logger.error('Error creating/finding user:', { error: userError instanceof Error ? userError.message : 'Unknown error' }, userError as Error);
           return res.status(500).json({ error: "Failed to create user" });
         }
       }
@@ -199,7 +200,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         teamId = communityTeam._id;
       } catch (teamError) {
-        console.error('Error creating/finding community team:', teamError);
+        logger.error('Error creating/finding community team:', { error: teamError instanceof Error ? teamError.message : 'Unknown error' }, teamError as Error);
         return res.status(500).json({ error: "Failed to create team" });
       }
 
@@ -303,7 +304,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error("Chat Message API error:", error);
+    logger.error('Chat Message API error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

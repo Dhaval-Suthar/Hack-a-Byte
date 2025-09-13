@@ -6,6 +6,7 @@ import { useEffect, useRef, useMemo } from "react";
 import { handleAccessCode } from "@/lib/access-code";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 export default function Page() {
   const router = useRouter();
@@ -161,7 +162,7 @@ export default function Page() {
         try {
           await document.documentElement.requestFullscreen();
         } catch (error) {
-          console.error("Failed to enter fullscreen mode:", error);
+          logger.error('Failed to enter fullscreen mode:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       } else {
         setError(result.error || "Invalid access code. Please try again.");
@@ -172,7 +173,7 @@ export default function Page() {
         if (firstInput) firstInput.focus();
       }
     } catch (error) {
-      console.error('Error during team registration:', error);
+      logger.error('Error during team registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -239,7 +240,7 @@ export default function Page() {
       alert("All session data, localStorage, and cookies have been cleared. Please refresh the page if needed.");
       
     } catch (error) {
-      console.error("Error clearing session data:", error);
+      logger.error('Error clearing session data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       alert("Error clearing session data. Check console for details.");
     }
   };

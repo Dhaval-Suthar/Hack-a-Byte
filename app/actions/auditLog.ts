@@ -2,6 +2,7 @@
 
 import connectDb from "@/db/connectDb";
 import AuditLogModel from "@/models/AuditLog";
+import { logger } from '@/lib/logger';
 
 export async function createAuditLog(data: {
   eventType: string;
@@ -43,7 +44,7 @@ export async function createAuditLog(data: {
     await auditLog.save();
     return { success: true, auditLog: auditLog.toObject() };
   } catch (error) {
-    console.error("Error creating audit log:", error);
+    logger.error('Error creating audit log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create audit log" };
   }
 }
@@ -84,7 +85,7 @@ export async function getAuditLogs(filters: {
 
     return { success: true, auditLogs };
   } catch (error) {
-    console.error("Error fetching audit logs:", error);
+    logger.error('Error fetching audit logs:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch audit logs" };
   }
 }
@@ -105,7 +106,7 @@ export async function getAuditLogById(logId: string) {
 
     return { success: true, auditLog };
   } catch (error) {
-    console.error("Error fetching audit log:", error);
+    logger.error('Error fetching audit log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch audit log" };
   }
 }
@@ -157,7 +158,7 @@ export async function updateAuditLogStatus(logId: string, updates: {
 
     return { success: true, auditLog: auditLog.toObject() };
   } catch (error) {
-    console.error("Error updating audit log:", error);
+    logger.error('Error updating audit log:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to update audit log" };
   }
 }
@@ -212,7 +213,7 @@ export async function getAuditStatistics(filters: {
 
     return { success: true, stats };
   } catch (error) {
-    console.error("Error fetching audit statistics:", error);
+    logger.error('Error fetching audit statistics:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch audit statistics" };
   }
 }

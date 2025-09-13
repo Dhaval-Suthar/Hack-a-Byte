@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendScheduledMessage } from '@/lib/randomMessageGenerator';
 import connectDb from '@/db/connectDb';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Test message error:', error);
+    logger.error('Test message error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

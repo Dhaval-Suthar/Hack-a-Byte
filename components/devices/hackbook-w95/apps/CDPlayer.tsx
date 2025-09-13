@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { logger } from '@/lib/logger';
 
 interface Track {
   artist: string;
@@ -34,7 +35,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
           if (cdPlayerSettings.lastTrack !== undefined) setSelectedTrack(cdPlayerSettings.lastTrack);
         }
       } catch (error) {
-        console.error('Error loading CD Player preferences:', error);
+        logger.error('Error loading CD Player preferences:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
     
@@ -90,7 +91,7 @@ const CDPlayer: React.FC<CDPlayerProps> = ({ onClose }) => {
 
     if (isPlaying) {
       audio.play().catch(err => {
-        console.error("Failed to play audio:", err);
+        logger.error('Failed to play audio:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
         setIsPlaying(false);
       });
     } else {

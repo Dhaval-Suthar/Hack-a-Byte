@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 
 export default function GameOverPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function GameOverPage() {
         }
 
       } catch (error) {
-        console.error("Error clearing user data:", error);
+        logger.error('Error clearing user data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 
@@ -84,7 +85,7 @@ export default function GameOverPage() {
       // Redirect to event page
       router.push('/event');
     } catch (error) {
-      console.error("Error during cleanup:", error);
+      logger.error('Error during cleanup:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Still redirect even if cleanup fails
       router.push('/event');
     }

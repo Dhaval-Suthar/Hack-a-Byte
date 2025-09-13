@@ -8,6 +8,7 @@ import EmailModel, { type EmailModel as EmailModelType } from '@/models/Email';
 import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import mongoose from 'mongoose';
 import { getServerIo } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 /**
  * Create sample emails and SMS for a new hackphone device
@@ -96,7 +97,7 @@ export async function createSampleMessagesForDevice(deviceId: string, teamId?: s
     
     return true;
   } catch (error) {
-    console.error('Error creating sample messages:', error);
+    logger.error('Error creating sample messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return false;
   }
 }
@@ -299,7 +300,7 @@ export async function getOnlineHackphoneDevices(): Promise<Array<{deviceId: stri
     
     return onlineHackphones;
   } catch (error) {
-    console.error('Error getting online hackphone devices:', error);
+    logger.error('Error getting online hackphone devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return [];
   }
 }
@@ -394,7 +395,7 @@ export async function sendScheduledMessage(message: PendingMessage) {
     
     return true;
   } catch (error) {
-    console.error('Error sending scheduled message:', error);
+    logger.error('Error sending scheduled message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return false;
   }
 }

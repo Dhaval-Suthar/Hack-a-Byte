@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 interface FingerprintImageProps {
   src: string;
@@ -29,7 +30,7 @@ const FingerprintImage: React.FC<FingerprintImageProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error(`Failed to load fingerprint image: ${src}`);
+    logger.error(`Failed to load fingerprint image: ${src}`);
     setImageError(true);
     onError?.(e);
   };

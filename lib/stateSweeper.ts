@@ -1,6 +1,8 @@
 // Simple in-process sweeper for transient in-memory maps.
 // NOTE: For multi-instance deployments replace with Redis + key TTL.
 // Import attack modules lazily to avoid mongoose connection issues during instrumentation
+
+import { logger } from '@/lib/logger';
 const getActiveFakeBank = async () => {
   const { activeFakeBank } = await import('@/pages/api/attack/fakebank');
   return activeFakeBank;
@@ -24,7 +26,7 @@ if (!g.__sweeperStarted) {
       await processScheduledMessages();
       await scheduleMessagesForOnlineDevices();
     } catch (err) {
-      console.error('❌ Initial random message run failed:', err);
+      logger.error('❌ Initial random message run failed:', { error: err instanceof Error ? err.message : String(err || 'Unknown error'), errorObject: err });
     }
   })();
 
@@ -38,7 +40,7 @@ if (!g.__sweeperStarted) {
         if (win.expires < now) delete activeFakeBank[teamId];
       }
     } catch (err) {
-      console.error('❌ Error in state sweeper cleanup:', err);
+      logger.error('❌ Error in state sweeper cleanup:', { error: err instanceof Error ? err.message : String(err || 'Unknown error'), errorObject: err });
     }
   }, 30_000);
 
@@ -48,7 +50,7 @@ if (!g.__sweeperStarted) {
       const { scheduleMessagesForOnlineDevices } = await getRandomMessageFunctions();
       await scheduleMessagesForOnlineDevices();
     } catch (error) {
-      console.error('❌ Error scheduling messages:', error);
+      logger.error('❌ Error scheduling messages:', { error: error instanceof Error ? error.message : String(error || 'Unknown error'), errorObject: error });
     }
     }, 2 * 60 * 1000);
 

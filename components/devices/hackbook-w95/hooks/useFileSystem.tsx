@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getUserStorageKey } from './useUserStorage';
+import { logger } from '@/lib/logger';
 
 // Define types for our virtual file system
 export interface FileSystemItem {
@@ -567,7 +568,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
 
       return savedFileSystem; // No migration needed
     } catch (error) {
-      console.error('Migration failed, using filtered file system:', error);
+      logger.error('Migration failed, using filtered file system:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return getFilteredFileSystem();
     }
   }, [getFilteredFileSystem, options.isE95]);
@@ -580,7 +581,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
       setFileSystem(getFilteredFileSystem());
       setCurrentDirectory('C:');
     } catch (error) {
-      console.error('Failed to reset file system:', error);
+      logger.error('Failed to reset file system:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [getFilteredFileSystem, options.isE95]);
 
@@ -612,7 +613,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
           try {
             savedFileSystem = localStorage.getItem(storageKey);
           } catch (storageError) {
-            if (debugMode) console.warn("Failed to access localStorage:", storageError);
+            if (debugMode) logger.warn('Failed to access localStorage:', { error: storageError });
             setFileSystem(getFilteredFileSystem());
             return;
           }
@@ -642,14 +643,14 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
                 try {
                   localStorage.setItem(storageKey, JSON.stringify(migratedFileSystem));
                 } catch (saveError) {
-                  console.error("Error saving migrated file system:", saveError);
+                  logger.error('Error saving migrated file system:', { error: saveError instanceof Error ? saveError.message : 'Unknown error' }, saveError as Error);
                 }
                 
               } else {
                 throw new Error("Invalid file system format");
               }
             } catch (parseError) {
-              console.error("Error parsing saved file system:", parseError);
+              logger.error('Error parsing saved file system:', { error: parseError instanceof Error ? parseError.message : 'Unknown error' }, parseError as Error);
               setFileSystem(getFilteredFileSystem());
               
               // Clear corrupted data
@@ -669,18 +670,18 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
                 const fileSystemToSave = getFilteredFileSystem();
                 localStorage.setItem(storageKey, JSON.stringify(fileSystemToSave));
               } catch (saveError) {
-                console.error("Error saving initial file system:", saveError);
+                logger.error('Error saving initial file system:', { error: saveError instanceof Error ? saveError.message : 'Unknown error' }, saveError as Error);
               }
             }, 500);
           }
         } catch (error) {
-          console.error("Error in file system initialization:", error);
+          logger.error('Error in file system initialization:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           // Fallback to filtered file system
           setFileSystem(getFilteredFileSystem());
         }
       } catch (fatalError) {
         // Last resort error handling
-        console.error("Fatal error during file system initialization:", fatalError);
+        logger.error('Fatal error during file system initialization:', { error: fatalError instanceof Error ? fatalError.message : 'Unknown error' }, fatalError as Error);
         setFileSystem(getFilteredFileSystem());
       }
     }, 100);
@@ -701,15 +702,15 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             const serializedData = JSON.stringify(fileSystem);
             localStorage.setItem(storageKey, serializedData);
           } catch (serializeError) {
-            console.error("Error serializing file system:", serializeError);
+            logger.error('Error serializing file system:', { error: serializeError instanceof Error ? serializeError.message : 'Unknown error' }, serializeError as Error);
           }
         }
       } catch (error) {
         // Handle specific DOMException for aborted operations
         if (error instanceof DOMException && error.name === 'AbortError') {
-          console.warn("Storage operation was aborted, will retry on next change");
+          logger.warn('Storage operation was aborted, will retry on next change');
         } else {
-          console.error("Error saving file system to localStorage:", error);
+          logger.error('Error saving file system to localStorage:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     }, 300); // 300ms debounce time
@@ -721,7 +722,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
   // Helper function to find a directory by path
   const findDirectoryByPath = (path: string, items = fileSystem): FileSystemItem | null => {
     if (!path) {
-      console.warn('Empty path provided to findDirectoryByPath');
+      logger.warn('Empty path provided to findDirectoryByPath');
       return null;
     }
 
@@ -752,7 +753,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
         }
       }
       
-      console.warn(`Root drive not found: ${path}`);
+      logger.warn(`Root drive not found: ${path}`);
       return null;
     }
     
@@ -774,7 +775,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
     }
     
     if (debugMode) {
-      console.warn(`Path not found: ${path}`);
+      logger.warn(`Path not found: ${path}`);
     }
     return null;
   };
@@ -816,12 +817,12 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             return true;
           } else {
             if (debugMode) {
-              console.warn("C: drive not found in fileSystem");
+              logger.warn('C: drive not found in fileSystem');
             }
             return false;
           }
         } catch (error) {
-          console.error("Error finding C: drive:", error);
+          logger.error('Error finding C: drive:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           return false;
         }
       } 
@@ -886,7 +887,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             return true;
           } else {
             if (debugMode) {
-              console.warn("D: drive not found in fileSystem");
+              logger.warn('D: drive not found in fileSystem');
               
               // If D: drive isn't found, create it
               const newDDrive: FileSystemItem = {
@@ -916,7 +917,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             return false;
           }
         } catch (error) {
-          console.error("Error finding D: drive:", error);
+          logger.error('Error finding D: drive:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           return false;
         }
       }
@@ -944,17 +945,17 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
             return true;
           } else {
             if (debugMode) {
-              console.warn(`Navigation failed: Directory not found - ${formattedPath}`);
+              logger.warn(`Navigation failed: Directory not found - ${formattedPath}`);
             }
             return false;
           }
         } catch (error) {
-          console.error("Error during path navigation:", error);
+          logger.error('Error during path navigation:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           return false;
         }
       }
     } catch (fatalError) {
-      console.error("Fatal error during navigation:", fatalError);
+      logger.error('Fatal error during navigation:', { error: fatalError instanceof Error ? fatalError.message : 'Unknown error' }, fatalError as Error);
       return false;
     }
   };

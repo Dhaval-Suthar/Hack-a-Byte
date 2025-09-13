@@ -6,6 +6,7 @@ import DeviceUser from "@/models/DeviceUser";
 import { revalidatePath } from "next/cache";
 import { Difficulty, LeaderboardEntryLite, ScoreSubmission } from "@/lib/games/types";
 import type { Types } from "mongoose";
+import { logger } from '@/lib/logger';
 
 export async function submitScore(payload: ScoreSubmission) {
   try {
@@ -34,7 +35,7 @@ export async function submitScore(payload: ScoreSubmission) {
 
     return { success: true, id: String(entry._id) };
   } catch (error) {
-    console.error("submitScore error", error);
+    logger.error('submitScore error', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to submit score" };
   }
 }
@@ -76,7 +77,7 @@ export async function getLeaderboard(
 
     return { success: true, entries };
   } catch (error) {
-    console.error("getLeaderboard error", error);
+    logger.error('getLeaderboard error', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, entries: [], error: "Failed to load leaderboard" };
   }
 }

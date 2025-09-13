@@ -6,6 +6,7 @@ import Leaderboard from "../Leaderboard";
 import { addLeaderboardEntry } from "@/app/actions/leaderboard";
 import GameDifficultyManager from "../../hooks/useGameDifficulty";
 import audioManager from "../../hooks/useAudioManager";
+import { logger } from '@/lib/logger';
 import './styles.css';
 
 interface ScoreScreenProps {
@@ -86,10 +87,10 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
         if (result.success) {
           setScoreSubmitted(true);
         } else {
-          console.error("Failed to submit score:", result.error);
+          logger.error('Failed to submit score:', { error: String(result.error || 'Unknown error'), errorObject: result.error });
         }
       } catch (error) {
-        console.error("Error submitting score:", error);
+        logger.error('Error submitting score:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
   }, [deviceId, scoreSubmitted, score, difficulty, timeRemaining, completedEvents]);
@@ -329,7 +330,7 @@ const ScoreScreen: React.FC<ScoreScreenProps> = ({
                               await resetAllProgress(deviceId, "hackbook-w95");
                             }
                           } catch (error) {
-                            console.error("Error resetting database progress:", error);
+                            logger.error('Error resetting database progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
                           }
                         });
                       }

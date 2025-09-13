@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { registerForEvent } from '../app/actions/eventRegistration';
 import { createEventPaymentOrder } from '../app/actions/payment';
+import { logger } from '@/lib/logger';
 
 interface RegistrationData {
   eventId: number;
@@ -89,7 +90,7 @@ export function useEventRegistration(): UseEventRegistrationReturn {
                     resolve({ success: false, message: verifyResult.error || 'Payment verification failed' });
                   }
                 } catch (error) {
-                  console.error('Payment verification error:', error);
+                  logger.error('Payment verification error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
                   resolve({ success: false, message: 'Payment verification failed. Please contact support.' });
                 }
               },

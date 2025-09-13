@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import Team from '@/models/Team';
+import { logger } from '@/lib/logger';
 
 /* Resolve a teamId by device MAC or IP.
    GET /api/device/resolve-team?mac=XX:XX:... or ?ip=1.2.3.4
@@ -22,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!team) return res.status(404).json({ success: false, error: 'Team not found for device' });
     return res.status(200).json({ success: true, teamId: String(team._id) });
   } catch (e) {
-    console.error('resolve-team error', e);
+    logger.error('resolve-team error', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

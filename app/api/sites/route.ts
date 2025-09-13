@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDb from '@/db/connectDb';
 import Site from '@/models/Site';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ success: true, sites: shuffledSites });
   } catch (error) {
-    console.error('Error fetching sites:', error);
+    logger.error('Error fetching sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch sites' },
       { status: 500 }
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true, site });
   } catch (error) {
-    console.error('Error creating site:', error);
+    logger.error('Error creating site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to create site' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Sponsor from '@/models/Sponsor';
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -18,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'Sponsors retrieved successfully'
     });
   } catch (error) {
-    console.error('Error fetching sponsors:', error);
+    logger.error('Error fetching sponsors:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     res.status(500).json({
       success: false,
       message: 'Error fetching sponsors'

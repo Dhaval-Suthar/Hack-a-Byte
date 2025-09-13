@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import React, { Dispatch, SetStateAction, useState, useEffect, useCallback } from "react";
+import { logger } from '@/lib/logger';
 
 interface Bookmark {
   title: string;
@@ -47,7 +48,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
         setBookmarks(savedBookmarks);
         setBrowserHistory(savedHistory);
       } catch (error) {
-        console.error('Error loading Internet Explorer data:', error);
+        logger.error('Error loading Internet Explorer data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
     
@@ -548,7 +549,7 @@ const InternetExplorer: React.FC<InternetExplorerProps> = ({ link, setLink, onCl
                 }
               }
             } catch (e) {
-              console.error('Error getting page title:', e);
+              logger.error('Error getting page title:', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
             }
             setLoadingStatus("Done");
           }}

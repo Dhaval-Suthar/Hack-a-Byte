@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getTopLeaderboardEntries } from "@/app/actions/leaderboard";
+import { logger } from '@/lib/logger';
 
 interface LeaderboardProps {
   game: string;
@@ -48,7 +49,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           }
         }
       } catch (error) {
-        console.error("Error loading leaderboard:", error);
+        logger.error('Error loading leaderboard:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       } finally {
         setLoading(false);
       }

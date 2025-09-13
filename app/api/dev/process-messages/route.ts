@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { processScheduledMessages } from '@/lib/randomMessageGenerator';
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -12,7 +13,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('Manual process error:', error);
+    logger.error('Manual process error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import seedSites from '@/lib/seedSites';
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -17,7 +18,7 @@ export async function POST() {
       );
     }
   } catch (error) {
-    console.error('Error seeding sites:', error);
+    logger.error('Error seeding sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to seed sites' },
       { status: 500 }

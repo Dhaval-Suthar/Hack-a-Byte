@@ -1,4 +1,5 @@
 import type { NextApiResponse } from 'next';
+import { logger } from '@/lib/logger';
 
 export interface RoleForbiddenMeta { allowed?: string[]; appId?: string }
 
@@ -71,7 +72,7 @@ export function formatErrorResponse(error: unknown) {
   }
 
   // Handle unexpected errors
-  console.error('Unexpected error:', error);
+  logger.error('Unexpected error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
   return {
     success: false,
     error: {
@@ -87,12 +88,12 @@ export async function handleApiError(error: unknown, context?: string) {
 
   // Log error with context
   if (error instanceof Error) {
-    console.error(`API Error${context ? ` in ${context}` : ''}:`, {
+    logger.error(`API Error${context ? ` in ${context}` : ''}`, {
       message: error.message,
       stack: error.stack,
       code: (error as GameError).code,
       statusCode: (error as GameError).statusCode,
-    });
+    }, error);
   }
 
   return response;

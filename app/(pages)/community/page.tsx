@@ -26,6 +26,7 @@ import {
 } from "@/components/community";
 import { useSocket } from "@/hooks/useSocket";
 import leoProfanity from "leo-profanity";
+import { logger } from '@/lib/logger';
 
 interface Message {
   id: number;
@@ -187,7 +188,7 @@ export default function Page() {
         });
       }
     } catch (error) {
-      console.error('Failed to fetch chat messages:', error);
+      logger.error('Failed to fetch chat messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -212,7 +213,7 @@ export default function Page() {
         setActiveMembers([]);
       }
     } catch (error) {
-      console.error('Failed to fetch online members:', error);
+      logger.error('Failed to fetch online members:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Show empty list on error
       setActiveMembers([]);
     }
@@ -332,10 +333,10 @@ useEffect(() => {
           messageType: 'text'
         }),
       }).catch(error => {
-        console.error('Failed to send message to API:', error);
+        logger.error('Failed to send message to API:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -400,7 +401,7 @@ useEffect(() => {
         });
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

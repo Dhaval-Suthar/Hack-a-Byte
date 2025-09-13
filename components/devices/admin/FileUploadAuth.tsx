@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 interface FileUploadAuthProps {
   onAuthSuccess: (authKey: string) => void;
@@ -81,7 +82,7 @@ export default function FileUploadAuth({ onAuthSuccess, onAuthFailed }: FileUplo
     } catch (error) {
       setUploadStatus('error');
       const errorMessage = error instanceof Error ? error.message : 'File upload failed';
-      console.error('File upload error:', errorMessage);
+      logger.error('File upload error:', { error: errorMessage, errorObject: error });
       onAuthFailed(errorMessage);
     } finally {
       setIsUploading(false);

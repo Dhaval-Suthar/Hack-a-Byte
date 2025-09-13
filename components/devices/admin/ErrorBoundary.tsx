@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, ReactNode } from 'react';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Admin panel error boundary caught an error:', error, errorInfo);
+    logger.error('Admin panel error boundary caught an error', { error: error.message, errorInfo }, error);
   }
 
   render() {

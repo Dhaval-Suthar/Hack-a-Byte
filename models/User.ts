@@ -138,8 +138,6 @@ const UserSchema = new Schema<User>(
 );
 
 // Indexes for performance
-UserSchema.index({ email: 1 });
-UserSchema.index({ username: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1 });
 UserSchema.index({ 'stats.totalScore': -1 });

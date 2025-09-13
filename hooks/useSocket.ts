@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getPlayspaceId } from '@/lib/playspace-utils';
+import { logger } from '@/lib/logger';
 
 export interface AttackData {
   attackerPlayspaceId: string;
@@ -180,7 +181,7 @@ export const useSocket = () => {
               try {
                 await fetch('/api/socketio', { method: 'GET', cache: 'no-store', keepalive: true });
               } catch (primeErr) {
-                console.warn('Failed to prime /api/socketio:', primeErr);
+                logger.warn('Failed to prime /api/socketio:', { error: primeErr });
               }
 
               // Add a small delay to ensure server is ready
@@ -207,7 +208,7 @@ export const useSocket = () => {
                 if (playspaceId) {
                   s.emit('join-playspace', playspaceId);
                 } else {
-                  console.warn('No playspace ID found, cannot join playspace room');
+                  logger.warn('No playspace ID found, cannot join playspace room');
                 }
                 // Re-join all remembered rooms (teams/users/tournaments)
                 if (joinedTeamsGlobal.size) {
@@ -232,7 +233,7 @@ export const useSocket = () => {
               });
 
               s.on('connect_error', (error) => {
-                console.warn('❌ Socket.IO connection error:', error.message);
+                logger.warn('❌ Socket.IO connection error:', { error: error.message });
               });
 
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -240,7 +241,7 @@ export const useSocket = () => {
               });
 
               s.on('reconnect_error', (error) => {
-                console.warn('❌ Socket.IO reconnection error:', error.message);
+                logger.warn('❌ Socket.IO reconnection error:', error.message);
               });
 
               sharedSocket = s;
@@ -283,7 +284,7 @@ export const useSocket = () => {
         });
         addHandler('connect_error', (errorUnknown: unknown) => {
           const error = errorUnknown as { message?: string };
-          console.error('Socket.IO connection error:', error?.message ?? error);
+          logger.error('Socket.IO connection error:', { error: error?.message ?? String(error || 'Unknown error'), errorObject: error });
           setIsConnected(false);
         });
         addHandler('connect_timeout', () => {
@@ -294,7 +295,7 @@ export const useSocket = () => {
         });
         addHandler('reconnect_error', (errorUnknown: unknown) => {
           const error = errorUnknown as { message?: string };
-          console.warn('❌ Socket.IO reconnection error:', error?.message ?? error);
+          logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? error });
         });
 
   // Also log timeouts with addHandler above; duplicate warning removed
@@ -552,7 +553,7 @@ export const useSocket = () => {
         });
 
       } catch (error) {
-        console.error('Failed to initialize socket:', error);
+        logger.error('Failed to initialize socket:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 
@@ -591,7 +592,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('malware-attack', attackData);
     } else {
-      console.warn('Socket not connected, cannot send attack');
+      logger.warn('Socket not connected, cannot send attack');
     }
   };
 
@@ -600,7 +601,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('attack-effect', effectData);
     } else {
-      console.warn('Socket not connected, cannot trigger effect');
+      logger.warn('Socket not connected, cannot trigger effect');
     }
   };
 
@@ -626,7 +627,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('join-team', teamId);
     } else {
-      console.warn('Queued team join until connected:', teamId);
+      logger.warn('Queued team join until connected:', { teamId });
     }
   }, [socket, isConnected]);
 
@@ -637,7 +638,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('join-user', userId);
     } else {
-      console.warn('Queued user join until connected:', userId);
+      logger.warn('Queued user join until connected:', { userId });
     }
   };
 
@@ -648,7 +649,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('join-tournament', tournamentId);
     } else {
-      console.warn('Queued tournament join until connected:', tournamentId);
+      logger.warn('Queued tournament join until connected:', { tournamentId });
     }
   };
 
@@ -657,7 +658,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('send-message', messageData);
     } else {
-      console.warn('Socket not connected, cannot send message');
+      logger.warn('Socket not connected, cannot send message');
     }
   };
 
@@ -666,7 +667,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('tournament-update', updateData);
     } else {
-      console.warn('Socket not connected, cannot send tournament update');
+      logger.warn('Socket not connected, cannot send tournament update');
     }
   };
 
@@ -675,7 +676,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('achievement-unlocked', achievementData);
     } else {
-      console.warn('Socket not connected, cannot send achievement notification');
+      logger.warn('Socket not connected, cannot send achievement notification');
     }
   };
 
@@ -684,7 +685,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('wallet-transaction', walletData);
     } else {
-      console.warn('Socket not connected, cannot send wallet update');
+      logger.warn('Socket not connected, cannot send wallet update');
     }
   };
 
@@ -693,7 +694,7 @@ export const useSocket = () => {
     if (socket && isConnected) {
       socket.emit('send-notification', notificationData);
     } else {
-      console.warn('Socket not connected, cannot send notification');
+      logger.warn('Socket not connected, cannot send notification');
     }
   };
 

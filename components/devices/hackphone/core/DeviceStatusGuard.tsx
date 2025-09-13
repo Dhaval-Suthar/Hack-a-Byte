@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 interface DeviceStatusGuardProps {
   deviceId?: string;
@@ -71,7 +72,7 @@ const DeviceStatusGuard: React.FC<DeviceStatusGuardProps> = ({
         }
 
       } catch (err) {
-        console.error('Device status check failed:', err);
+        logger.error('Device status check failed:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
         setError(err instanceof Error ? err.message : 'Status check failed');
       } finally {
         setIsChecking(false);

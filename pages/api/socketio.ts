@@ -1,5 +1,6 @@
 import { NextApiRequest } from 'next';
 import { NextApiResponseServerIo, initSocket } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 export default function handler(req: NextApiRequest, res: NextApiResponseServerIo) {
 
@@ -8,7 +9,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseServerI
     try {
       // Ensure we have the server object
       if (!res.socket?.server) {
-        console.error('❌ No server object available in response');
+        logger.error('❌ No server object available in response', { error: '❌ No server object available in response' });
         res.status(500).end();
         return;
       }
@@ -16,7 +17,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseServerI
       const io = initSocket(res.socket.server);
       res.socket.server.io = io;
     } catch (error) {
-      console.error('❌ Failed to initialize Socket.IO:', error);
+      logger.error('❌ Failed to initialize Socket.IO:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       res.status(500).end();
       return;
     }

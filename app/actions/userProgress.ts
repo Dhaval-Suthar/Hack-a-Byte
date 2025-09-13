@@ -9,6 +9,7 @@ import DeviceUser, { MissionProgress, UserGameState } from "@/models/DeviceUser"
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
 import { ROLE_LIMITS } from "@/lib/constants/app-constants";
+import { logger } from '@/lib/logger';
 
 export async function getAvailableRoles(accessCode: string) {
   try {
@@ -47,7 +48,7 @@ export async function getAvailableRoles(accessCode: string) {
     });
     return { success: true, teamId: team._id.toString(), availableRoles, totalSlots: team.numberOfPlayers };
   } catch (error) {
-    console.error("Error getting available roles:", error);
+    logger.error('Error getting available roles:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch roles" };
   }
 }
@@ -120,7 +121,7 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
       allJoined,
     };
   } catch (error) {
-    console.error("Error validating access code:", error);
+    logger.error('Error validating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to use access code" };
   }
 }
@@ -207,7 +208,7 @@ export async function getUserProgress(deviceId: string, deviceType: string) {
       }
     };
   } catch (error) {
-    console.error("Error getting user progress:", error);
+    logger.error('Error getting user progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get user progress" };
   }
 }
@@ -318,7 +319,7 @@ export async function updateMissionProgress(
       mission: serializedMission
     };
   } catch (error) {
-    console.error("Error updating mission progress:", error);
+    logger.error('Error updating mission progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     // Return a safe, serializable error response
     return { 
@@ -382,7 +383,7 @@ export async function updateUserSettings(
       settings: user.gameState.settings
     };
   } catch (error) {
-    console.error("Error updating user settings:", error);
+    logger.error('Error updating user settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update user settings" };
   }
 }
@@ -420,7 +421,7 @@ export async function getUnlockedApplications(deviceId: string, deviceType: stri
       unlockedApplications: user.gameState.unlockedApplications || []
     };
   } catch (error) {
-    console.error("Error getting unlocked applications:", error);
+    logger.error('Error getting unlocked applications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get unlocked applications" };
   }
 }
@@ -465,7 +466,7 @@ export async function updateUnlockedApplications(
       unlockedApplications: newApps
     };
   } catch (error) {
-    console.error("Error updating unlocked applications:", error);
+    logger.error('Error updating unlocked applications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update unlocked applications" };
   }
 }
@@ -524,7 +525,7 @@ export async function updateGameStats(
       }
     };
   } catch (error) {
-    console.error("Error updating game stats:", error);
+    logger.error('Error updating game stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update game stats" };
   }
 }
@@ -584,7 +585,7 @@ export async function getMissionStatus(
       completed: mission?.completed || false
     };
   } catch (error) {
-    console.error("Error getting mission status:", error);
+    logger.error('Error getting mission status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get mission status" };
   }
 }
@@ -637,7 +638,7 @@ export async function bulkUpdateMissions(
       updatedCount: Object.keys(missions).length
     };
   } catch (error) {
-    console.error("Error bulk updating missions:", error);
+    logger.error('Error bulk updating missions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to bulk update missions" };
   }
 }
@@ -681,7 +682,7 @@ export async function resetAllProgress(deviceId: string, deviceType: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error resetting user progress:", error);
+    logger.error('Error resetting user progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to reset progress" };
   }
 }

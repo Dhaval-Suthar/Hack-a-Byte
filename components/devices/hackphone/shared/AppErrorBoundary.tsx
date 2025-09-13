@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AppContainer, AppHeader } from "./AppContainer";
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -24,7 +25,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("App Error Boundary caught an error:", error, errorInfo);
+    logger.error('App Error Boundary caught an error', { error: error.message, errorInfo }, error);
 
     // You could also log to an error reporting service here
     // logErrorToService(error, errorInfo);
@@ -96,7 +97,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 // Hook version for functional components
 export const useErrorHandler = () => {
   return (error: Error, errorInfo?: ErrorInfo) => {
-    console.error("Error caught by hook:", error, errorInfo);
+    logger.error('Error caught by hook', { error: error.message, errorInfo }, error);
     // Could dispatch to error reporting service
   };
 };

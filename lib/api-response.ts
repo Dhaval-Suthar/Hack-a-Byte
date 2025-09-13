@@ -1,5 +1,6 @@
 import { NextApiResponse } from 'next';
 import { ApiResponse } from '@/types/global';
+import { logger } from '@/lib/logger';
 
 /**
  * Standardized API response utilities
@@ -49,11 +50,12 @@ export const createErrorResponse = (
 
   // Log error for debugging
   if (statusCode >= 500) {
-    console.error('API Error:', {
+    logger.error('API Error:', { 
       message,
       statusCode,
       details,
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      errorObject: error
     });
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -22,7 +23,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Error fetching teams debug info:', error);
+    logger.error('Error fetching teams debug info:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

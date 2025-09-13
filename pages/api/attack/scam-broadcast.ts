@@ -6,6 +6,7 @@ import { getOnlineHackphoneDevices } from '@/lib/randomMessageGenerator';
 import EmailModel, { type EmailModel as EmailModelType } from '@/models/Email';
 import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import { getServerIo } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 /*
   Broadcast scam messages to all online hackphone devices.
@@ -136,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true, recipients: devices.length, emails: emailCount, sms: smsCount });
   } catch (error) {
-    console.error('scam-broadcast error:', error);
+    logger.error('scam-broadcast error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return internalError(res, msg);
   }

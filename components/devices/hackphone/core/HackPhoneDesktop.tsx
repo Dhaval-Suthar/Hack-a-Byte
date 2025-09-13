@@ -14,6 +14,7 @@ import { User } from "@/types/devices";
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
 import dynamic from 'next/dynamic';
+import { logger } from '@/lib/logger';
 
 // Lazy-load virus popups to avoid SSR issues
 const VirusPopups = dynamic(() => import('@/components/notifications/VirusPopups'), { ssr: false });
@@ -80,7 +81,7 @@ const HackPhoneDesktop = () => {
               setTeamId(teamData.teamId);
             }
           } catch (error) {
-            console.error('Failed to fetch team ID:', error);
+            logger.error('Failed to fetch team ID:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         }
 
@@ -96,7 +97,7 @@ const HackPhoneDesktop = () => {
               resolvedDeviceId = storedMac;
             }
           } catch (error) {
-            console.error('Failed to read stored MAC address:', error);
+            logger.error('Failed to read stored MAC address:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         }
         
@@ -116,7 +117,7 @@ const HackPhoneDesktop = () => {
               }
             }
           } catch (error) {
-            console.error('Failed to resolve URL device team:', error);
+            logger.error('Failed to resolve URL device team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           }
         }
 
@@ -139,7 +140,7 @@ const HackPhoneDesktop = () => {
           }
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        logger.error('Auth check error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         // Fail open to home; lock screen handles passcode
       } finally {
         setIsLoading(false);

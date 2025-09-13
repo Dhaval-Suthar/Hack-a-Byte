@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEventRegistration } from "../../hooks/useEventRegistration";
 import { RegistrationModalProps } from "../../types/event";
+import { logger } from '@/lib/logger';
 
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
   const { registerForEvent, loading } = useEventRegistration();
@@ -68,7 +69,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         setFormError(result.message);
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      logger.error('Registration error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setFormError("An unexpected error occurred");
     } finally {
       // Loading state is managed by the hook

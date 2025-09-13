@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSocket } from '@/hooks/useSocket';
+import { logger } from '@/lib/logger';
 
 interface Email {
   id: string;
@@ -68,7 +69,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
         setTeamWallet(data.wallet);
       }
     } catch (error) {
-      console.error('Failed to fetch team wallet:', error);
+      logger.error('Failed to fetch team wallet:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [teamId]);
   
@@ -100,7 +101,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
         setSystemEmails(formattedEmails);
       }
     } catch (error) {
-      console.error('Failed to fetch system emails:', error);
+      logger.error('Failed to fetch system emails:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [teamId]);
 
@@ -175,7 +176,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
           setTimeout(() => setNotification(null), 3000);
         }
       } catch (error) {
-        console.error('Failed to process email open:', error);
+        logger.error('Failed to process email open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         setNotification('Error processing email');
         setTimeout(() => setNotification(null), 3000);
       } finally {
@@ -262,7 +263,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
               });
             }
           } catch (e) {
-            console.error('Failed to delete email from DB:', e);
+            logger.error('Failed to delete email from DB:', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
           } finally {
             setSystemEmails(prev => prev.filter(email => email.id !== id));
             setCurrentView("inbox");

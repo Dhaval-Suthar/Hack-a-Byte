@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 /**
  * Database query optimization utilities
@@ -131,7 +132,7 @@ export async function ensureIndexes(model: mongoose.Model<unknown>, indexes: Arr
         ...index.options,
       });
     } catch (error) {
-      console.warn(`Failed to create index on ${model.modelName}:`, error);
+      logger.warn(`Failed to create index on ${model.modelName}:`, { error });
     }
   }
 }
