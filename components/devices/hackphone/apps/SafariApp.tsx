@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { io as rawIo, Socket } from 'socket.io-client';
 import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
-import { InputSanitizer } from "@/lib/security";
+import { InputSanitizer } from "@/lib/client-security";
 import { logger } from '@/lib/logger';
 
 interface SafariAppProps {
