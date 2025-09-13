@@ -184,7 +184,8 @@ export interface AccessCodeEmailParams {
   playingDevice: string;
   maxUsages: number;
   playspaceName: string;
-  instructions?: string;
+  walletAddress?: string;
+  privateKey?: string;
 }
 
 export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
@@ -199,7 +200,8 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
       playingDevice,
       maxUsages,
       playspaceName,
-      instructions = "Visit the Hack-a-Byte platform and enter your access code to begin your gaming experience."
+      walletAddress,
+      privateKey
     } = params;
 
     const mailOptions = {
@@ -214,518 +216,227 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Your Access Code - Hack-a-Byte</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
-            
-            * { 
-              margin: 0; 
-              padding: 0; 
-              box-sizing: border-box; 
-            }
-            
-            body { 
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            body {
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
               background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-              color: #ffffff; 
-              line-height: 1.6;
+              color: #ffffff;
               margin: 0;
-              padding: 0;
+              padding: 20px;
+              line-height: 1.6;
             }
-            
-            .email-wrapper {
-              background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-              min-height: 100vh;
-              padding: 20px 10px;
-            }
-            
-            .container { 
-              max-width: 650px; 
-              margin: 0 auto; 
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
               background: rgba(26, 26, 46, 0.95);
-              backdrop-filter: blur(20px);
               border: 1px solid rgba(0, 255, 136, 0.3);
-              border-radius: 20px; 
+              border-radius: 16px;
               overflow: hidden;
-              box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.5),
-                0 0 80px rgba(0, 255, 136, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+              box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             }
-            
-            .header { 
+            .header {
               background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
-              padding: 40px 30px;
+              padding: 30px 20px;
               text-align: center;
-              position: relative;
-              overflow: hidden;
             }
-            
-            .header::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background: 
-                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
-            }
-            
-            .header h1 { 
-              color: #000000; 
-              font-size: 32px; 
-              font-weight: 700; 
-              margin-bottom: 8px;
+            .header h1 {
+              color: #000000;
+              font-size: 28px;
+              font-weight: 700;
+              margin: 0;
               text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-              position: relative;
-              z-index: 1;
             }
-            
-            .header h2 { 
-              color: #000000; 
-              font-size: 18px; 
-              font-weight: 500; 
-              opacity: 0.8;
-              position: relative;
-              z-index: 1;
-            }
-            
-            .content { 
-              padding: 40px 30px; 
-            }
-            
-            .welcome-text {
-              text-align: center;
-              margin-bottom: 30px;
-            }
-            
-            .welcome-text p {
+            .header h2 {
+              color: #000000;
               font-size: 16px;
-              color: #e0e6ed;
-              margin-bottom: 12px;
-            }
-            
-            .access-code-section { 
-              background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
-              color: #000000; 
-              padding: 40px 30px;
-              margin: 30px 0; 
-              border-radius: 16px; 
-              text-align: center;
-              position: relative;
-              overflow: hidden;
-              box-shadow: 
-                0 10px 30px rgba(0, 255, 136, 0.3),
-                0 0 60px rgba(0, 255, 136, 0.1);
-            }
-            
-            .access-code-section::before {
-              content: '';
-              position: absolute;
-              top: -50%;
-              left: -50%;
-              width: 200%;
-              height: 200%;
-              background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-              animation: shine 3s infinite;
-            }
-            
-            @keyframes shine {
-              0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-              100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-            }
-            
-            .access-code-label { 
-              font-size: 14px; 
-              font-weight: 600; 
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              margin-bottom: 15px;
+              font-weight: 500;
+              margin: 8px 0 0 0;
               opacity: 0.8;
-              position: relative;
-              z-index: 1;
             }
-            
-            .access-code { 
-              font-family: 'JetBrains Mono', 'Courier New', monospace;
-              font-size: 52px; 
-              font-weight: 700; 
-              letter-spacing: 12px; 
+            .content {
+              padding: 30px 20px;
+            }
+            .access-code-section {
+              background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+              color: #000000;
+              padding: 30px 20px;
               margin: 20px 0;
-              text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-              position: relative;
-              z-index: 1;
-              animation: pulse-glow 2s ease-in-out infinite;
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
             }
-            
-            @keyframes pulse-glow {
-              0%, 100% { 
-                transform: scale(1);
-                text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-              }
-              50% { 
-                transform: scale(1.02);
-                text-shadow: 3px 3px 6px rgba(0,0,0,0.4), 0 0 20px rgba(0,0,0,0.2);
-              }
+            .access-code {
+              font-family: 'JetBrains Mono', 'Courier New', monospace;
+              font-size: 42px;
+              font-weight: 700;
+              letter-spacing: 8px;
+              margin: 15px 0;
+              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             }
-            
-            .access-code-info { 
-              font-size: 16px; 
-              font-weight: 600;
-              margin-top: 15px;
-              position: relative;
-              z-index: 1;
+            .wallet-section {
+              background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+              color: #000000;
+              padding: 20px;
+              margin: 20px 0;
+              border-radius: 12px;
+              font-family: 'JetBrains Mono', monospace;
+              font-size: 12px;
+              word-break: break-all;
             }
-            
-            .details-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin: 30px 0;
-            }
-            
-            .detail-card {
+            .details {
               background: rgba(42, 42, 58, 0.7);
               border: 1px solid rgba(0, 255, 136, 0.2);
               border-radius: 12px;
               padding: 20px;
-              backdrop-filter: blur(10px);
+              margin: 20px 0;
             }
-            
-            .detail-card h4 {
-              color: #00ff88;
-              font-size: 14px;
-              font-weight: 600;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              margin-bottom: 8px;
-            }
-            
-            .detail-card p {
-              color: #ffffff;
-              font-size: 16px;
-              font-weight: 500;
-            }
-            
-            .event-details { 
-              background: rgba(42, 42, 58, 0.7); 
-              border: 1px solid rgba(0, 255, 136, 0.3); 
-              border-radius: 16px; 
-              padding: 25px; 
-              margin: 25px 0;
-              backdrop-filter: blur(10px);
-            }
-            
-            .event-details h3 { 
-              color: #00ff88; 
-              font-size: 18px; 
-              font-weight: 600; 
-              margin-bottom: 20px;
+            .detail-row {
               display: flex;
-              align-items: center;
-              gap: 10px;
-            }
-            
-            .detail-row { 
-              display: flex; 
-              justify-content: space-between; 
-              align-items: center;
-              margin: 15px 0; 
-              padding: 12px 0; 
+              justify-content: space-between;
+              margin: 8px 0;
+              padding: 8px 0;
               border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
-            
             .detail-row:last-child {
               border-bottom: none;
             }
-            
-            .detail-label { 
-              font-weight: 500; 
-              color: #00ccff; 
+            .detail-label {
+              font-weight: 500;
+              color: #00ccff;
               font-size: 14px;
             }
-            
-            .detail-value { 
-              color: #ffffff; 
+            .detail-value {
+              color: #ffffff;
               font-weight: 600;
               font-size: 14px;
             }
-            
-            .instructions-box { 
-              background: linear-gradient(135deg, rgba(0, 204, 255, 0.1) 0%, rgba(0, 255, 136, 0.1) 100%);
-              border: 1px solid rgba(0, 204, 255, 0.3); 
-              border-radius: 16px; 
-              padding: 25px; 
-              margin: 25px 0;
+            .instructions {
+              background: rgba(0, 204, 255, 0.1);
+              border: 1px solid rgba(0, 204, 255, 0.3);
+              border-radius: 12px;
+              padding: 20px;
+              margin: 20px 0;
             }
-            
-            .instructions-box h3 { 
-              color: #00ccff; 
-              font-size: 18px; 
-              font-weight: 600; 
-              margin-bottom: 20px;
-              display: flex;
-              align-items: center;
-              gap: 10px;
+            .instructions ol {
+              margin: 0;
+              padding-left: 20px;
             }
-            
-            .instructions-list {
-              list-style: none;
-              padding: 0;
-            }
-            
-            .instructions-list li {
-              display: flex;
-              align-items: flex-start;
-              gap: 15px;
-              margin: 15px 0;
+            .instructions li {
+              margin: 8px 0;
               color: #e0e6ed;
-              font-size: 15px;
-              line-height: 1.6;
             }
-            
-            .step-number {
-              background: linear-gradient(135deg, #00ff88, #00ccff);
-              color: #000;
-              width: 24px;
-              height: 24px;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: 700;
-              font-size: 12px;
-              flex-shrink: 0;
-              margin-top: 2px;
+            .warning {
+              background: rgba(255, 107, 107, 0.1);
+              border: 1px solid rgba(255, 107, 107, 0.3);
+              border-radius: 12px;
+              padding: 15px;
+              margin: 20px 0;
             }
-            
-            .warning-box { 
-              background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
-              border: 1px solid rgba(255, 107, 107, 0.3); 
-              border-radius: 16px; 
-              padding: 25px; 
-              margin: 25px 0;
+            .warning strong {
+              color: #ff6b6b;
             }
-            
-            .warning-box h4 { 
-              color: #ff6b6b; 
-              font-size: 16px; 
-              font-weight: 600; 
-              margin-bottom: 15px;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            }
-            
-            .warning-list {
-              list-style: none;
-              padding: 0;
-            }
-            
-            .warning-list li {
-              display: flex;
-              align-items: flex-start;
-              gap: 12px;
-              margin: 12px 0;
-              color: #e0e6ed;
-              font-size: 14px;
-              line-height: 1.5;
-            }
-            
-            .warning-icon {
-              color: #ffa500;
-              font-weight: bold;
-              flex-shrink: 0;
-              margin-top: 2px;
-            }
-            
-            .cta-section {
+            .footer {
+              background: rgba(20, 20, 35, 0.8);
+              padding: 20px;
               text-align: center;
-              margin: 40px 0 30px;
-              padding: 30px 20px;
-              background: rgba(0, 255, 136, 0.05);
-              border-radius: 16px;
-              border: 1px solid rgba(0, 255, 136, 0.1);
-            }
-            
-            .cta-button {
-              display: inline-block;
-              background: linear-gradient(135deg, #00ff88, #00ccff);
-              color: #000000;
-              padding: 15px 30px;
-              border-radius: 50px;
-              text-decoration: none;
-              font-weight: 700;
-              font-size: 16px;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3);
-              transition: all 0.3s ease;
-            }
-            
-            .footer { 
-              background: rgba(20, 20, 35, 0.8); 
-              padding: 30px; 
-              text-align: center; 
-              font-size: 13px; 
-              color: #888; 
+              font-size: 12px;
+              color: #888;
               border-top: 1px solid rgba(255, 255, 255, 0.1);
             }
-            
-            .footer p {
-              margin: 8px 0;
-            }
-            
-            .cyber-text { 
+            .cyber-text {
               background: linear-gradient(135deg, #00ff88, #00ccff);
               background-clip: text;
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               font-weight: 700;
             }
-            
-            .highlight {
-              background: rgba(0, 255, 136, 0.2);
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-weight: 600;
-            }
-            
             @media (max-width: 600px) {
-              .email-wrapper { padding: 10px 5px; }
-              .container { border-radius: 16px; }
-              .header { padding: 30px 20px; }
-              .content { padding: 30px 20px; }
-              .access-code { font-size: 40px; letter-spacing: 8px; }
-              .details-grid { grid-template-columns: 1fr; gap: 15px; }
-              .detail-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+              .container { margin: 10px; }
+              .header { padding: 20px 15px; }
+              .content { padding: 20px 15px; }
+              .access-code { font-size: 32px; letter-spacing: 4px; }
+              .detail-row { flex-direction: column; gap: 4px; }
             }
           </style>
         </head>
         <body>
-          <div class="email-wrapper">
-            <div class="container">
-              <div class="header">
-                <h1>🚀 ACCESS GRANTED</h1>
-                <h2>${eventTitle}</h2>
-              </div>
-              
-              <div class="content">
-                <div class="welcome-text">
-                  <p>🎉 <strong>Congratulations!</strong> Your registration has been processed successfully.</p>
-                  <p>You now have access to your dedicated <span class="cyber-text">${playspaceName}</span> gaming environment.</p>
-                </div>
-                
-                <div class="access-code-section">
-                  <div class="access-code-label">Your Access Code</div>
-                  <div class="access-code">${accessCode}</div>
-                  <div class="access-code-info">
-                    Valid for <strong>${maxUsages} use${maxUsages > 1 ? 's' : ''}</strong> • Team Size: ${numberOfPlayers}
-                  </div>
-                </div>
+          <div class="container">
+            <div class="header">
+              <h1>🚀 ACCESS GRANTED</h1>
+              <h2>${eventTitle}</h2>
+            </div>
 
-                <div class="details-grid">
-                  <div class="detail-card">
-                    <h4>🎮 Gaming Device</h4>
-                    <p>${playingDevice === 'smartphone' ? '📱 HackPhone' : '💻 HackBook E95'}</p>
-                  </div>
-                  <div class="detail-card">
-                    <h4>👥 Team Size</h4>
-                    <p>${numberOfPlayers} Player${numberOfPlayers > 1 ? 's' : ''}</p>
-                  </div>
-                </div>
+            <div class="content">
+              <p style="text-align: center; font-size: 16px; margin-bottom: 20px;">
+                🎉 <strong>Welcome!</strong> Your registration is confirmed.
+              </p>
 
-                <div class="event-details">
-                  <h3>📋 Session Information</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Event</span>
-                    <span class="detail-value">${eventTitle}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Email</span>
-                    <span class="detail-value">${email}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Environment</span>
-                    <span class="detail-value">${playspaceName}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Access Limit</span>
-                    <span class="detail-value">${maxUsages} use${maxUsages > 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-
-                <div class="instructions-box">
-                  <h3>🎯 How to Access Your Gaming Environment</h3>
-                  <ol class="instructions-list">
-                    <li>
-                      <span class="step-number">1</span>
-                      <span>Visit the <strong class="cyber-text">Hack-a-Byte platform</strong></span>
-                    </li>
-                    <li>
-                      <span class="step-number">2</span>
-                      <span>Enter your access code: <span class="highlight">${accessCode}</span></span>
-                    </li>
-                    <li>
-                      <span class="step-number">3</span>
-                      <span>Select <strong>${playingDevice === 'smartphone' ? 'HackPhone' : 'HackBook E95'}</strong> as your device</span>
-                    </li>
-                    <li>
-                      <span class="step-number">4</span>
-                      <span>Start your <strong class="cyber-text">cybersecurity adventure!</strong></span>
-                    </li>
-                  </ol>
-                  <p style="color: #e0e6ed; margin-top: 20px; font-style: italic;">
-                    ${instructions}
-                  </p>
-                </div>
-
-                <div class="warning-box">
-                  <h4>⚠️ Important Security Notes</h4>
-                  <ul class="warning-list">
-                    <li>
-                      <span class="warning-icon">🔐</span>
-                      <span><strong>Keep secure:</strong> Anyone with this code can access your environment</span>
-                    </li>
-                    <li>
-                      <span class="warning-icon">🎯</span>
-                      <span><strong>Usage limit:</strong> Code works exactly ${maxUsages} time${maxUsages > 1 ? 's' : ''}</span>
-                    </li>
-                    <li>
-                      <span class="warning-icon">👥</span>
-                      <span><strong>Shared device:</strong> Your team of ${numberOfPlayers} will share one device</span>
-                    </li>
-                    <li>
-                      <span class="warning-icon">📱</span>
-                      <span><strong>Device type:</strong> ${playingDevice === 'smartphone' ? 'HackPhone (Mobile Interface)' : 'HackBook E95 (Desktop Interface)'}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div class="cta-section">
-                  <p style="color: #e0e6ed; margin-bottom: 20px; font-size: 16px;">
-                    🚀 Ready to dive into the world of cybersecurity?<br>
-                    Your personalized gaming environment is waiting!
-                  </p>
-                </div>
-
-                <div style="text-align: center; margin-top: 40px;">
-                  <p style="color: #e0e6ed; font-size: 16px; margin-bottom: 10px;">
-                    Good luck and happy hacking! 🎮
-                  </p>
-                  <p>
-                    <strong class="cyber-text">— The Hack-a-Byte Team</strong>
-                  </p>
+              <div class="access-code-section">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">YOUR ACCESS CODE</div>
+                <div class="access-code">${accessCode}</div>
+                <div style="font-size: 14px; margin-top: 10px;">
+                  Valid for ${maxUsages} use${maxUsages > 1 ? 's' : ''} • ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''}
                 </div>
               </div>
-              
-              <div class="footer">
-                <p>🤖 This is an automated email containing your access credentials.</p>
-                <p>📧 Please do not reply to this email. For support, contact our team through official channels.</p>
-                <p style="margin-top: 15px; font-family: 'JetBrains Mono', monospace; color: #666;">
-                  Code: <strong>${accessCode}</strong> • Uses: ${maxUsages} • Device: ${playingDevice === 'smartphone' ? 'Mobile' : 'Desktop'}
-                </p>
+
+              ${walletAddress && privateKey ? `
+              <div class="wallet-section">
+                <div style="font-weight: 700; margin-bottom: 15px;">🔐 YOUR WALLET CREDENTIALS</div>
+                <div style="margin-bottom: 10px;">
+                  <strong>Address:</strong><br>
+                  ${walletAddress}
+                </div>
+                <div>
+                  <strong>Private Key:</strong><br>
+                  ${privateKey}
+                </div>
+                <div style="margin-top: 15px; font-weight: 700; color: #000;">
+                  ⚠️ KEEP THESE CREDENTIALS SECURE!
+                </div>
               </div>
+              ` : ''}
+
+              <div class="details">
+                <div class="detail-row">
+                  <span class="detail-label">Device:</span>
+                  <span class="detail-value">${playingDevice === 'smartphone' ? '📱 Smartphone' : '💻 PC/Laptop'}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Environment:</span>
+                  <span class="detail-value">${playspaceName}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Email:</span>
+                  <span class="detail-value">${email}</span>
+                </div>
+              </div>
+
+              <div class="instructions">
+                <h3 style="color: #00ccff; margin: 0 0 15px 0;">🎯 Quick Start:</h3>
+                <ol>
+                  <li>Visit the Hack-a-Byte platform</li>
+                  <li>Enter your access code: <strong class="cyber-text">${accessCode}</strong></li>
+                  <li>Select your device type</li>
+                  <li>Start your cybersecurity challenge!</li>
+                </ol>
+              </div>
+
+              <div class="warning">
+                <strong>⚠️ Important:</strong> Keep your access code secure. Anyone with this code can access your gaming environment.
+              </div>
+
+              <p style="text-align: center; margin: 30px 0 10px 0; color: #e0e6ed;">
+                Good luck and happy hacking! 🎮
+              </p>
+              <p style="text-align: center; margin: 0;">
+                <strong class="cyber-text">— Hack-a-Byte Team</strong>
+              </p>
+            </div>
+
+            <div class="footer">
+              <p>🤖 Automated email • Do not reply</p>
+              <p style="font-family: 'JetBrains Mono', monospace; margin-top: 10px;">
+                Code: ${accessCode} • ${maxUsages} use${maxUsages > 1 ? 's' : ''}
+              </p>
             </div>
           </div>
         </body>

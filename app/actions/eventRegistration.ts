@@ -291,8 +291,7 @@ export async function resendAccessCode(registrationId: string): Promise<EventReg
       numberOfPlayers: registration.numberOfPlayers,
       playingDevice: registration.playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
       maxUsages: accessCode.maxUsages || registration.numberOfPlayers,
-      playspaceName: playspace?.name || `Event ${registration.eventId} - Team ${accessCode.code}`,
-      instructions: "This is a resent access code. Use it to enter your gaming environment."
+      playspaceName: playspace?.name || `Event ${registration.eventId} - Team ${accessCode.code}`
     });
     
     if (emailResult.success) {
