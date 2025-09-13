@@ -22,6 +22,10 @@ export const initSocket = (httpServer: NetServer) => {
     },
     pingTimeout: 60000,
     pingInterval: 25000,
+    // Allow both polling and websocket transports
+    transports: ['polling', 'websocket'],
+    // Allow EIO=3 and EIO=4
+    allowEIO3: true,
   });
 
 
