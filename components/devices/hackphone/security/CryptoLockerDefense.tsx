@@ -251,12 +251,6 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
 
     const latestSpawn = cryptoLockerSpawns[cryptoLockerSpawns.length - 1];
     if (latestSpawn && Date.now() - latestSpawn.ts < 10000) { // Recent spawn
-        hasAttackerTeamId: !!latestSpawn.attackerTeamId,
-        attackerTeamId: latestSpawn.attackerTeamId,
-        hasSessionKey: !!latestSpawn.sessionKey,
-        hasTargetIP: !!latestSpawn.targetIP,
-        demand: latestSpawn.demand
-      });
       
       setIsActive(true);
       setCurrentPhrase(generateNewPhrase());

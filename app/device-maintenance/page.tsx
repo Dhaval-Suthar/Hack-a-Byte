@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const DeviceMaintenancePage: React.FC = () => {
+const DeviceMaintenanceContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deviceId = searchParams?.get('deviceId');
@@ -88,6 +88,14 @@ const DeviceMaintenancePage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const DeviceMaintenancePage: React.FC = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DeviceMaintenanceContent />
+    </Suspense>
   );
 };
 

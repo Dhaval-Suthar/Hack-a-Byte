@@ -43,16 +43,17 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
     });
     
     // Update clicksRequired when spawn is found
-    if (spawn && !clicksRequired) {
+    if (spawn) {
       const spawnData = spawn as { clicksRequired?: number };
-      if (spawnData.clicksRequired) {
+      if (spawnData.clicksRequired && spawnData.clicksRequired !== clicksRequired) {
         setClicksRequired(spawnData.clicksRequired);
       }
     }
     
     const activeSpawn = !!spawn;
     return activeSpawn;
-  }, [stealthSpawns, targetKey, targetTeamId, clicksRequired, clickCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stealthSpawns, targetKey]);
 
   // Spawn new popup periodically while active
   useEffect(() => {

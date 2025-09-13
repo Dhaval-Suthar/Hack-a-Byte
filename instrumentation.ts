@@ -1,3 +1,5 @@
+import 'server-only';
+
 export const runtime = 'nodejs';
 
 // Ensures background services start under `next dev` and `next start` without the custom server.
@@ -14,8 +16,12 @@ export async function register() {
           const { ensureDatabaseConnection } = await import('@/lib/database');
           await ensureDatabaseConnection();
 
-          // Now safely import services that depend on models
-          await import('./lib/stateSweeper');
+                    // Now safely import services that depend on models
+          // Use dynamic import to avoid bundling server-side code in client
+          // Temporarily disabled to fix build issues
+          // if (typeof window === 'undefined') {
+          //   await import('./lib/stateSweeper');
+          // }
 
           // Try to initialize Socket.IO server
           try {
@@ -41,7 +47,10 @@ export async function register() {
   }
 
   // Initialize the in-process state sweeper (idempotent via global guard)
-  await import('./lib/stateSweeper');
+  // Temporarily disabled to fix build issues
+  // if (typeof window === 'undefined') {
+  //   eval('import("./lib/stateSweeper")');
+  // }
 
   // Do not import Socket.IO directly here; primed from /api/socketio when client connects
   // This avoids importing heavy models in the Edge instrumentation context.

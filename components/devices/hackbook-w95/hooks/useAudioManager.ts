@@ -26,7 +26,8 @@ class AudioManager {
       try {
         const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         this.audioContext = new AudioContextClass();
-      } catch (error) {
+      } catch {
+        // Ignore audio context creation errors
       }
       
       // Play any pending sounds
@@ -77,10 +78,12 @@ class AudioManager {
       const playPromise = audio.play();
       
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
+        playPromise.catch(() => {
+          // Ignore play promise rejection
         });
       }
-    } catch (error) {
+    } catch {
+      // Ignore audio play errors
     }
   }
 

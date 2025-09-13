@@ -34,8 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Normalize MAC address to standard uppercase colon-separated format
   const normalizedMAC = targetMAC.replace(/-/g, ':').toUpperCase().trim();
 
-  try {
-    await connectDb();
+  await connectDb();
 
     // Find target device by MAC address (normalized)
     let targetDevice = await Device.findOne({ deviceMacAddress: normalizedMAC });
@@ -95,7 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Find any team in the same playspace as the target
       if (targetDevice.playspace) {
         targetTeam = await Team.findOne({ playspaceId: targetDevice.playspace });
-        if (targetTeam) {
       }
     }
 
@@ -146,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // No team found anywhere - give a small reward for successful hack
         stolenAmount = 100;
         attackerTeam.wallet.bitcoinBalance += stolenAmount;
-        
+      }
 
       // Save changes
       await attackerTeam.save();
@@ -161,13 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           targetMAC: normalizedMAC,
           stolenAmount,
           targetTeam: targetTeam?.name || 'Unassigned',
-          message: targetTeam 
-            ? (hasPin 
-                ? `SystemLock Pro successful! Cracked PIN ${devicePin} on team "${targetTeam.name}" device and stole ₿${stolenAmount}!`
-                : `SystemLock Pro successful! Team "${targetTeam.name}" device had no PIN protection - stole ₿${stolenAmount}!`)
-            : (hasPin 
-                ? `SystemLock Pro successful! Cracked PIN ${devicePin} and earned ₿${stolenAmount}`
-                : `SystemLock Pro successful! Device had no PIN protection - earned ₿${stolenAmount}`),
+          message: "Success",
           ts: Date.now()
         }
       });
@@ -188,19 +180,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ts: Date.now()
           }
         });
-        
+      }
 
       return res.status(200).json({
         success: true,
         pinCracked: true,
         stolenAmount,
-        message: targetTeam 
-          ? (hasPin 
-              ? `PIN cracked! Stole ₿${stolenAmount} from team "${targetTeam.name}"`
-              : `Device had no PIN! Stole ₿${stolenAmount} from team "${targetTeam.name}"`)
-          : (hasPin 
-              ? `PIN cracked! Earned ₿${stolenAmount} from unassigned device`
-              : `Device had no PIN! Earned ₿${stolenAmount} from unassigned device`)
+        message: "Success"
       });
 
     } else {
@@ -224,12 +210,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: `PIN guess ${pinGuess} incorrect`
       });
     }
-
-  } catch (error) {
-    console.error('SystemLock Pro error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
-  }
 }

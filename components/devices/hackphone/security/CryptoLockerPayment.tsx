@@ -140,13 +140,6 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
   const handlePayment = useCallback(async () => {
     if (!activeDemand || !teamId || isProcessing) return;
 
-      activeDemand,
-      teamId,
-      attackerTeamId: activeDemand.attackerTeamId,
-      targetTeamId: teamId,
-      amount: activeDemand.demand
-    });
-
     setIsProcessing(true);
     try {
       const requestBody = {

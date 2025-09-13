@@ -227,6 +227,7 @@ export const useSocket = () => {
                 }
               });
 
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               s.on('disconnect', (reason) => {
               });
 
@@ -234,6 +235,7 @@ export const useSocket = () => {
                 console.warn('❌ Socket.IO connection error:', error.message);
               });
 
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               s.on('reconnect', (attemptNumber) => {
               });
 
@@ -401,8 +403,9 @@ export const useSocket = () => {
           }, 10000);
         });
         // Attack sent confirmation
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         addHandler('attack-sent', (attackUnknown: unknown) => {
-          const attackData = attackUnknown as AttackData;
+          // Attack sent confirmation received
         });
 
         // Global effects

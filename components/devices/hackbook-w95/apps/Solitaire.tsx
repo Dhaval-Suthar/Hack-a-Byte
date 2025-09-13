@@ -133,7 +133,7 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
     // Handle click on empty spot
     if (card === null) {
       if (selectedCard) {
-        moveCard(selectedCard, source, index);
+        moveCard();
       }
       return;
     }
@@ -154,11 +154,11 @@ const Solitaire: React.FC<SolitaireProps> = ({ onClose }) => {
     }
     
     // Try to move the selected card to the clicked location
-    moveCard(selectedCard, source, index);
+    moveCard();
   };
   
   // Simplified move logic - in a real game, you'd have more complex rules
-  const moveCard = (selected: {card: Card, source: string, index: number}, targetSource: string, targetIndex: number) => {
+  const moveCard = () => {
     // Placeholder for move logic
     
     // Increment moves

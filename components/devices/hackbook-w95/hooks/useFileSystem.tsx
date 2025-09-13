@@ -27,9 +27,9 @@ export interface FileSystemItem {
 
 // Generate a unique storage key based on playspace and user info
 // This uses the shared getUserStorageKey function but keeps original key format for backward compatibility
-const getStorageKey = (debug = false, isE95 = false) => {
+const getStorageKey = (isE95 = false) => {
   const baseKey = isE95 ? 'e95FileSystem' : 'win95FileSystem';
-  return getUserStorageKey(baseKey, debug);
+  return getUserStorageKey(baseKey);
 };
 
 // Example initial file system structure
@@ -570,19 +570,19 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
       console.error('Migration failed, using filtered file system:', error);
       return getFilteredFileSystem();
     }
-  }, [debugMode, getFilteredFileSystem, options.isE95]);
+  }, [getFilteredFileSystem, options.isE95]);
 
   // Debug function to reset file system (for development/testing)
   const resetFileSystem = useCallback(() => {
     try {
-      const storageKey = getStorageKey(debugMode, options.isE95);
+      const storageKey = getStorageKey(options.isE95);
       localStorage.removeItem(storageKey);
       setFileSystem(getFilteredFileSystem());
       setCurrentDirectory('C:');
     } catch (error) {
       console.error('Failed to reset file system:', error);
     }
-  }, [debugMode, getFilteredFileSystem, options.isE95]);
+  }, [getFilteredFileSystem, options.isE95]);
 
   // Expose reset function globally for development
   useEffect(() => {
@@ -605,7 +605,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
         }
         
         try {
-          const storageKey = getStorageKey(debugMode, options.isE95);
+          const storageKey = getStorageKey(options.isE95);
           let savedFileSystem = null;
           
           // Safe localStorage access with try-catch
@@ -695,7 +695,7 @@ export default function useFileSystem(options = { debug: false, isE95: false }) 
       try {
         // Check if localStorage is available and the operation is not aborting
         if (typeof localStorage !== 'undefined') {
-          const storageKey = getStorageKey(debugMode, options.isE95);
+          const storageKey = getStorageKey(options.isE95);
           // Serialize with try-catch to handle circular references
           try {
             const serializedData = JSON.stringify(fileSystem);

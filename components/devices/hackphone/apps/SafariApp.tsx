@@ -288,7 +288,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [sites, setSites] = useState<Site[]>([]);
   
   // Extraction additions
-  const [teamId, setTeamId] = useState<string>('');
+  const teamId = '';
   const [events, setEvents] = useState<ExtractorEvent[]>([]);
   const [socket, setSocket] = useState<Socket|null>(null);
   const [phishWarning, setPhishWarning] = useState<string|null>(null);
@@ -809,7 +809,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     load();
     const id = setInterval(load, 20000);
     return ()=>{ cancelled = true; clearInterval(id); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Socket connect for extractor events

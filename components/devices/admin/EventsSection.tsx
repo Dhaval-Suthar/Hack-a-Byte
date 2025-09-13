@@ -393,7 +393,7 @@ export default function EventsSection({
                           });
                         }}
                       />
-                      'HackBook W95'
+                      &apos;HackBook W95&apos;
                     </label>
                   ))}
                 </div>
@@ -600,7 +600,7 @@ export default function EventsSection({
                           });
                         }}
                       />
-                      'HackBook W95'
+                      &apos;HackBook W95&apos;
                     </label>
                   ))}
                 </div>

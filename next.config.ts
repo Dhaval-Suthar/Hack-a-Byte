@@ -12,6 +12,45 @@ const nextConfig: NextConfig = {
       allowedOrigins: ['*'],
   },
   },
+  // Configure webpack to handle Node.js modules properly
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  webpack: (config: any, { isServer }: any) => {
+    // Only run on client-side builds
+    if (!isServer) {
+      // Exclude server-side modules from client bundle
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        path: false,
+        os: false,
+        util: false,
+        http: false,
+        https: false,
+        zlib: false,
+        querystring: false,
+        url: false,
+      };
+
+      // Exclude instrumentation.ts and related server files from client bundle
+      config.externals = config.externals || [];
+      config.externals.push((context: { context?: string }, request: string, callback: (error?: Error | null, result?: string | boolean) => void) => {
+        if (request.includes('instrumentation') ||
+            request.includes('stateSweeper') ||
+            request.includes('randomMessageGenerator') ||
+            request.includes('socket') ||
+            request.includes('redis')) {
+          return callback(null, '{}');
+        }
+        callback();
+      });
+    }
+
+    return config;
+  },
   // Configure image domains and optimization
   images: {
     remotePatterns: [

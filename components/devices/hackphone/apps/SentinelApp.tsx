@@ -463,7 +463,8 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         }
       } else {
       }
-    } catch (error) {
+    } catch {
+      // Ignore fetch wallet data errors
     }
   };
   const fetchTeamBalance = async () => { 
@@ -480,7 +481,8 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
         }
       } else {
       }
-    } catch (error) {
+    } catch {
+      // Ignore fetch team balance errors
     }
   };
 

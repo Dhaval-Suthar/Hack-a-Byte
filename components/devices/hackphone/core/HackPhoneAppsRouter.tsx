@@ -9,7 +9,6 @@ import { AppErrorBoundary } from "../shared/AppErrorBoundary";
 import { useAppAnalytics } from "../shared/AppAnalytics";
 import { AttackReceiver } from "../shared/AttackReceiver";
 import { AttackEffects } from "../shared/AttackEffects";
-import { AttackData } from "@/hooks/useSocket";
 import { APP_ROLE_ACCESS, formatAllowedRoles } from '@/lib/constants/app-constants';
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
@@ -345,7 +344,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
             <FileApp
-              onClose={(info) => {
+              onClose={() => {
                 onClose();
               }}
               time={time.toLocaleTimeString()}
@@ -394,14 +393,20 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
 
   return (
     <>
-      <AttackReceiver onAttackReceived={(attack: AttackData) => {
-        // Here you could add additional attack handling logic
-        // like triggering device-wide effects, notifications, etc.
-      }} />
-      <AttackEffects onEffectTriggered={(effect) => {
-        // Here you could add device-wide responses to effects
-        // like screen shake, sound alerts, etc.
-      }} />
+      <AttackReceiver onAttackReceived={
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (info: unknown) => {
+          // Here you could add additional attack handling logic
+          // like triggering device-wide effects, notifications, etc.
+        }
+      } />
+      <AttackEffects onEffectTriggered={
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (attack: unknown) => {
+          // Here you could add device-wide responses to effects
+          // like screen shake, sound alerts, etc.
+        }
+      } />
       {renderApp()}
       
       {/* iOS 4 Style Notifications */}

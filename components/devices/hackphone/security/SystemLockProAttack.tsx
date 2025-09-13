@@ -13,6 +13,7 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
   const [isAttacking, setIsAttacking] = useState(false);
   const [attempts, setAttempts] = useState<{ pinGuess: string; timestamp: number }[]>([]);
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [targetMAC, setTargetMAC] = useState(initialTargetMAC || '');
 
   const handleAttack = useCallback(async () => {
     if (!targetMAC || !pinGuess || isAttacking) return;

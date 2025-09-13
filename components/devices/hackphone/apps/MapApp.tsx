@@ -113,6 +113,7 @@ const MapApp: React.FC<MapAppProps> = ({}) => {
           // Fly to the new location if map is available
           mapRef.current?.flyTo([newLocation.lat, newLocation.lng]);
         },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async (error) => {
           // Fallback to Borivali West, Mumbai
           const fallbackLocation = { lat: 19.2307, lng: 72.8567 };

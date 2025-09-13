@@ -70,7 +70,7 @@ export function useUserPreferences(options = { debug: false }) {
       
       return updated;
     });
-  }, [debug]);
+  }, []);
   
   // Set application-specific data
   const setAppData = useCallback(
@@ -85,7 +85,7 @@ export function useUserPreferences(options = { debug: false }) {
         return updated;
       });
     },
-    [debug]
+    []
   );
   
   // Get application-specific data
@@ -100,7 +100,7 @@ export function useUserPreferences(options = { debug: false }) {
   const resetPreferences = useCallback(() => {
     setPreferences(defaultPreferences);
     userStorage.setItem('userPreferences', defaultPreferences);
-  }, [debug]);
+  }, []);
 
   return {
     preferences,

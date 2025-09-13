@@ -45,7 +45,6 @@ export const initSocket = (httpServer: NetServer) => {
     // Join playspace room
     socket.on('join-playspace', (playspaceId: string) => {
       socket.join(playspaceId);
-      const size = io.sockets.adapter.rooms.get(playspaceId)?.size || 0;
 
       // Track clients by playspace
       if (!clientsByPlayspace.has(playspaceId)) {
@@ -62,7 +61,6 @@ export const initSocket = (httpServer: NetServer) => {
         return;
       }
       socket.join(roomName);
-      const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
 
       // Track clients by team
       if (!clientsByTeam.has(teamId)) {
@@ -86,7 +84,6 @@ export const initSocket = (httpServer: NetServer) => {
       const roomName = `team-${teamId}`;
       if ((socket.rooms as Set<string>).has(roomName)) {
         socket.leave(roomName);
-        const size = io.sockets.adapter.rooms.get(roomName)?.size || 0;
       }
       // Update tracking map
       const set = clientsByTeam.get(teamId);

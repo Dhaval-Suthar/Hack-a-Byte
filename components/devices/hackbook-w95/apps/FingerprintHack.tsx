@@ -92,11 +92,9 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       
       // Debug logging for image paths
       
-      // Test image loading
-      testImageLoad(mainImagePath).then(loaded => {
-      });
-      testImageLoad(correctPatternPath).then(loaded => {
-      });
+      // Test image loading (preload images)
+      testImageLoad(mainImagePath);
+      testImageLoad(correctPatternPath);
       
       newSegments.push({
         id: i,

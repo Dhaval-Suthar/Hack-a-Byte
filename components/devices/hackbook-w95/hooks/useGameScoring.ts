@@ -81,7 +81,7 @@ export class GameScoringManager {
 
     this.gameData.set(gameName, gameData);
     this.saveToStorage();
-    
+  }
 
   /**
    * Update game progress (for attempt tracking)

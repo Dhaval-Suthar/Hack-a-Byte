@@ -3,19 +3,14 @@
 import { useEffect } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 
-interface GameTerminationData {
-  message: string;
-  timestamp: string;
-  devicesOfflined: number;
-}
-
 export default function GameTerminationListener() {
   const { socket } = useSocket();
 
   useEffect(() => {
     if (!socket) return;
 
-    const handleGameTermination = (data: GameTerminationData) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handleGameTermination = (data: unknown) => {
       
       // Show notification to user
       if (typeof window !== 'undefined') {

@@ -327,9 +327,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           
           // Save purchased malware to database
           const malwarePlayspaceId = getPlayspaceId();
-            malwareId: purchaseItem.id,
-            playspaceId: malwarePlayspaceId
-          });
           
           const malwareResponse = await fetch('/api/team', {
             method: 'POST',
@@ -383,10 +380,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   }, []);
 
   const executeDeploy = useCallback(async () => {
-      deployItem: deployItem?.name,
-      deployData,
-      hasMacAddress: !!deployData.macAddress
-    });
     if (!deployItem) return;
 
     // Validate deployment data based on malware type
@@ -446,11 +439,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           const trimmedMAC = deployData.macAddress.trim();
           isValidTarget = macRegex.test(trimmedMAC);
           targetInfo = trimmedMAC;
-            macAddress: deployData.macAddress,
-            trimmedMAC,
-            isValidTarget,
-            regexTest: macRegex.test(trimmedMAC)
-          });
         } else {
           isValidTarget = false;
           targetInfo = '';
@@ -611,15 +599,9 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       } else if (deployItem.name === 'SystemLock Pro' && deployData.macAddress) {
         // Launch SystemLock Pro PIN cracking interface
-          macAddress: deployData.macAddress,
-          teamId: attackerTeamIdProp || user?.teamId
-        });
         setShowSystemLockProAttack(true);
         setSystemLockProTarget(deployData.macAddress);
         setDeployItem(null); // Close deployment modal
-          showSystemLockProAttack: true,
-          systemLockProTarget: deployData.macAddress
-        });
         return; // Don't show regular deployment success message
       } else {
         // Regular malware deployment
@@ -731,9 +713,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
       // Remove the deployed malware from purchased list
       const deployPlayspaceId = getPlayspaceId();
-        malwareId: deployItem.id,
-        playspaceId: deployPlayspaceId
-      });
 
       const deployResponse = await fetch('/api/team', {
         method: 'POST',
@@ -1460,35 +1439,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               </button>
               <button
                 onClick={() => {
-                    deployItem: deployItem?.name,
-                    deployData,
-                    isDisabled: (deployItem.category === "virus" && !deployData.macAddress) ||
-                      (deployItem.category === "worm" &&
-                        ((deployItem.name === 'EmailSpread Pro' && !(deployData.emailSubject && deployData.emailContent)) ||
-                         (deployItem.name === 'SocialHook' && !deployData.smsContent) ||
-                         (deployItem.name === 'NetCrawler' && !(deployData.emailSubject && deployData.emailContent && deployData.smsContent)) ||
-                         (!['EmailSpread Pro','SocialHook','NetCrawler'].includes(deployItem.name) && !deployData.ipAddress)
-                        )
-                      ) ||
-                      (deployItem.category === "ransomware" &&
-                        deployItem.name === "FakeBank Portal" &&
-                        (!deployData.targetUrl || !deployData.stealAmount)) ||
-                      (deployItem.category === "ransomware" &&
-                        deployItem.name === "SiteClone Pro" &&
-                        (!deployData.targetUrl || !deployData.customTitle || !deployData.customDescription)) ||
-                      (deployItem.category === "ransomware" &&
-                        deployItem.name === "CryptoLocker Elite" &&
-                        !deployData.ipAddress) ||
-                      (deployItem.category === "ransomware" &&
-                        deployItem.name === "SystemLock Pro" &&
-                        !deployData.macAddress) ||
-                      (deployItem.category === "ransomware" &&
-                        deployItem.name !== "FakeBank Portal" &&
-                        deployItem.name !== "SiteClone Pro" &&
-                        deployItem.name !== "CryptoLocker Elite" &&
-                        deployItem.name !== "SystemLock Pro" &&
-                        !deployData.domainName)
-                  });
                   executeDeploy();
                 }}
                 disabled={

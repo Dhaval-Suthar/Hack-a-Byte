@@ -56,7 +56,6 @@ const VirusDefenseCenter: React.FC = () => {
       const n = notification as ExtendedNotif;
       // Match by playspaceId (legacy) or resolved teamId (current) or embedded targetTeamId
       const matches = n.targetKey === playspaceId || n.targetKey === teamId || (teamId && n.targetTeamId === teamId) || (deviceMac && n.targetKey === deviceMac);
-      });
       if (matches) {
         const threat: VirusThreat = {
           id: `${notification.virusType}-${notification.ts}`,
@@ -69,7 +68,9 @@ const VirusDefenseCenter: React.FC = () => {
         
         setActiveThreats(prev => {
           // Avoid duplicates
-          if (prev.find(t => t.id === threat.id)) return prev;
+          if (prev.find(t => t.id === threat.id)) {
+            return prev;
+          }
           return [...prev, threat];
         });
       }

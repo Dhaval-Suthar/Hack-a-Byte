@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // Function to get a unique storage key based on playspace and user
-export const getUserStorageKey = (baseKey: string, debug = false) => {
+export const getUserStorageKey = (baseKey: string) => {
   // Get playspace ID and user ID from localStorage or cookie
   let playspaceId = null;
   let username = null;
@@ -56,7 +56,7 @@ export function useUserStorage<T>(
   const [storedValue, setStoredValue] = useState<T>(initialValue);
   
   // Get the full storage key with user context
-  const fullKey = getUserStorageKey(baseKey, debug);
+  const fullKey = getUserStorageKey(baseKey);
   
   // Initialize from localStorage
   useEffect(() => {
@@ -101,7 +101,7 @@ export function useUserStorage<T>(
     } catch (error) {
       console.error(`Error in setValue for ${fullKey}:`, error);
     }
-  }, [storedValue, fullKey, serialize, debug]);
+  }, [storedValue, fullKey, serialize]);
   
   return [storedValue, setValue];
 }
@@ -109,8 +109,8 @@ export function useUserStorage<T>(
 // Helper functions for simple get/set operations without React state
 function getUserStorageItem<T>(baseKey: string, defaultValue: T | null = null, options: { debug?: boolean; serialize?: boolean } = {}): T | null {
   try {
-    const { debug = false, serialize = true } = options;
-    const fullKey = getUserStorageKey(baseKey, debug);
+    const { serialize = true } = options;
+    const fullKey = getUserStorageKey(baseKey);
 
     if (typeof window !== "undefined") {
       const item = localStorage.getItem(fullKey);
@@ -126,8 +126,8 @@ function getUserStorageItem<T>(baseKey: string, defaultValue: T | null = null, o
 
 function setUserStorageItem<T>(baseKey: string, value: T, options: { debug?: boolean; serialize?: boolean } = {}): boolean {
   try {
-    const { debug = false, serialize = true } = options;
-    const fullKey = getUserStorageKey(baseKey, debug);
+    const { serialize = true } = options;
+    const fullKey = getUserStorageKey(baseKey);
 
     if (typeof window !== "undefined") {
       localStorage.setItem(fullKey, serialize ? JSON.stringify(value) : String(value));
@@ -140,10 +140,9 @@ function setUserStorageItem<T>(baseKey: string, value: T, options: { debug?: boo
   }
 }
 
-function removeUserStorageItem(baseKey: string, options: { debug?: boolean } = {}): boolean {
+function removeUserStorageItem(baseKey: string): boolean {
   try {
-    const { debug = false } = options;
-    const fullKey = getUserStorageKey(baseKey, debug);
+    const fullKey = getUserStorageKey(baseKey);
 
     if (typeof window !== "undefined") {
       localStorage.removeItem(fullKey);

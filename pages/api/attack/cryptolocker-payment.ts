@@ -8,7 +8,6 @@ import { emitScoped } from '@/lib/emitter';
 // POST body: { attackerTeamId, targetTeamId, amount }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  });
   
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   

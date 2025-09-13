@@ -317,8 +317,6 @@ export function scheduleRandomMessage(deviceId: string, teamId: string) {
     scheduledAt
   });
 
-  const eta = new Date(scheduledAt);
-  const mins = Math.round((delay / 60_000) * 10) / 10;
 }
 
 export async function sendScheduledMessage(message: PendingMessage) {

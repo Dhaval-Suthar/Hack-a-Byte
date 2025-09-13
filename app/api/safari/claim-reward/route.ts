@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
 
       let attackerNewBalance: number | undefined = undefined;
       let attackerPreBalance: number | undefined = undefined;
-  const victimPreBalance = currentBalance;
 
       // Ensure attacker wallet exists BEFORE updates (needed if legacy missing)
       if (site.deployedBy) {
