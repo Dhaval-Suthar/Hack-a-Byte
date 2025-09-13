@@ -117,31 +117,78 @@ export function generateCSRFToken(): string {
   return crypto.randomUUID();
 }
 
-// File upload validation
-export const ALLOWED_FILE_TYPES = {
-  images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  documents: ['application/pdf', 'text/plain', 'application/msword'],
-  archives: ['application/zip', 'application/x-rar-compressed'],
-};
+// API request validation schemas
+export const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectId format');
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const walletTransactionSchema = z.object({
+  teamId: objectIdSchema,
+  type: z.enum(['credit', 'debit', 'transfer', 'mining', 'attack', 'defense']),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().max(500).optional(),
+  attackerId: objectIdSchema.optional(),
+  defenderId: objectIdSchema.optional(),
+  transactionHash: z.string().optional(),
+  status: z.enum(['pending', 'completed', 'failed']).optional().default('completed'),
+});
 
-export function validateFile(file: File, allowedTypes: string[] = []): { valid: boolean; error?: string } {
-  // Check file size
-  if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: 'File size exceeds 5MB limit' };
+export const deviceSecuritySchema = z.object({
+  deviceId: z.string(),
+  toggles: z.record(z.boolean()).optional(),
+});
+
+export const teamCreationSchema = z.object({
+  name: z.string().min(1).max(100),
+  maxPlayers: z.number().int().min(1).max(6).optional().default(6),
+  gameMode: z.enum(['cryptoheist', 'base']).optional().default('cryptoheist'),
+});
+
+export const userRegistrationSchema = z.object({
+  username: usernameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const userLoginSchema = z.object({
+  username: usernameSchema,
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+// Enhanced validation helper functions
+export function validateInput<T>(schema: z.ZodSchema<T>, data: unknown): {
+  success: true;
+  data: T;
+} | {
+  success: false;
+  errors: z.ZodError['errors'];
+} {
+  const result = schema.safeParse(data);
+
+  if (result.success) {
+    return { success: true, data: result.data };
+  } else {
+    return { success: false, errors: result.error.errors };
+  }
+}
+
+export function validateQueryParams<T>(schema: z.ZodSchema<T>, query: Record<string, unknown>): T {
+  const result = schema.safeParse(query);
+
+  if (!result.success) {
+    // For query params, we'll use defaults and ignore invalid values
+    // This prevents breaking existing functionality
+    return schema.parse({});
   }
 
-  // Check file type
-  if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
-    return { valid: false, error: `File type ${file.type} is not allowed` };
-  }
-
-  // Check filename
-  const sanitizedName = sanitizeFilename(file.name);
-  if (sanitizedName !== file.name) {
-    return { valid: false, error: 'Filename contains invalid characters' };
-  }
-
-  return { valid: true };
+  return result.data;
 }

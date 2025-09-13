@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import Event from "@/models/Event";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -37,7 +38,7 @@ export async function getEvents(adminKey?: string) {
     await connectDb();
     const events = await Event.find({})
       .select(
-        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing"
+        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing registrationEnabled"
       )
       .lean() // Use lean() to get plain objects
       .sort({ startDate: 1, createdAt: -1 });
@@ -55,6 +56,7 @@ export async function getEvents(adminKey?: string) {
       category: event.category || "",
       isPublic: typeof event.isPublic === "boolean" ? event.isPublic : true,
       capacity: typeof event.capacity === "number" ? event.capacity : 0,
+      registrationEnabled: typeof event.registrationEnabled === "boolean" ? event.registrationEnabled : true,
       imageUrl: event.imageUrl || "",
       requiredDeviceTypes: event.requiredDeviceTypes ? {
         mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
@@ -76,7 +78,7 @@ export async function getEvents(adminKey?: string) {
 
     return { events: safeEvents };
   } catch (error) {
-    console.error("Error fetching events:", error);
+    logger.error('Error fetching events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch events" };
   }
 }
@@ -160,7 +162,7 @@ export async function createEvent(
       },
     };
   } catch (error) {
-    console.error("Error creating event:", error);
+    logger.error('Error creating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create event" };
   }
 }
@@ -268,7 +270,7 @@ export async function updateEvent(
       },
     };
   } catch (error) {
-    console.error("Error updating event:", error);
+    logger.error('Error updating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update event" };
   }
 }
@@ -290,7 +292,7 @@ export async function deleteEvent(eventId: string, adminKey?: string) {
       message: "Event deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting event:", error);
+    logger.error('Error deleting event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete event" };
   }
 }
@@ -316,6 +318,7 @@ export async function getPublicEvents() {
       type: event.category || "Event",
       capacity: event.capacity || 0,
       registered: 0, // This will be updated with registration counts
+      registrationEnabled: event.registrationEnabled !== false, // Default to true if not set
       difficulty: "Intermediate" as const,
       tags: event.category ? [event.category] : ["Event"],
       speakers: [],
@@ -332,7 +335,7 @@ export async function getPublicEvents() {
 
     return { events: transformedEvents };
   } catch (error) {
-    console.error("Error fetching public events:", error);
+    logger.error('Error fetching public events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch events" };
   }
 }

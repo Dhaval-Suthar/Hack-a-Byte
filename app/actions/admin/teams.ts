@@ -5,6 +5,7 @@ import Team from "@/models/Team";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -52,7 +53,7 @@ export async function getTeams(adminKey?: string) {
 
     return { teams: teamsWithMemberCount };
   } catch (error) {
-    console.error("Error fetching teams:", error);
+    logger.error('Error fetching teams:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch teams" };
   }
 }
@@ -151,11 +152,11 @@ export async function createTeam(name: string, description: string, numberOfPlay
         }
         await newTeam.save();
       } else {
-        console.warn("Failed to create playspace and device for team:", playspaceResult.error);
+        logger.warn('Failed to create playspace and device for team:', { error: playspaceResult.error });
         // Don't fail the team creation, just log the warning
       }
     } catch (error) {
-      console.error("Error creating playspace and device for team:", error);
+      logger.error('Error creating playspace and device for team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Don't fail the team creation, just log the error
     }
 
@@ -179,7 +180,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
       },
     };
   } catch (error) {
-    console.error("Error creating team:", error);
+    logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create team" };
   }
 }
@@ -247,7 +248,7 @@ export async function updateTeam(teamId: string, updates: { name?: string; descr
       },
     };
   } catch (error) {
-    console.error("Error updating team:", error);
+    logger.error('Error updating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update team" };
   }
 }
@@ -281,7 +282,7 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
       message: "Team deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting team:", error);
+    logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete team" };
   }
 }

@@ -10,6 +10,7 @@ import EventsSection from "./EventsSection";
 import SessionsSection from "./SessionsSection";
 import TeamsSection from "./TeamsSection";
 import SponsorsSection from "./SponsorsSection";
+import MessagingSection from "./MessagingSection";
 import Notifications from "./Notifications";
 import BulkDeleteModal from "./BulkDeleteModal";
 
@@ -23,10 +24,11 @@ import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceTo
 import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
-import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
+import { logger } from '@/lib/logger';
 
-const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors"];
+const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
 
 const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
 
@@ -112,6 +114,7 @@ export default function MiniAdminDashboard() {
         category: evt.category,
         isPublic: evt.isPublic,
         capacity: evt.capacity,
+        registrationEnabled: evt.registrationEnabled,
         requiredDeviceTypes: evt.requiredDeviceTypes ? {
           mobile: evt.requiredDeviceTypes.mobile || false,
           desktop: evt.requiredDeviceTypes.desktop || false,
@@ -269,7 +272,7 @@ export default function MiniAdminDashboard() {
       });
       load();
     } catch (error) {
-      console.error("Error creating access code:", error);
+      logger.error('Error creating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Failed to create access code" });
     }
   };
@@ -299,7 +302,7 @@ export default function MiniAdminDashboard() {
       note({ kind: "ok", msg: "Team created" });
       load();
     } catch (error) {
-      console.error("Error creating team:", error);
+      logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Create team failed" });
     }
   };
@@ -338,7 +341,7 @@ export default function MiniAdminDashboard() {
       note({ kind: "ok", msg: "Sponsor created" });
       load();
     } catch (error) {
-      console.error("Error creating sponsor:", error);
+      logger.error('Error creating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       note({ kind: "err", msg: "Create sponsor failed" });
     }
   };
@@ -565,6 +568,20 @@ export default function MiniAdminDashboard() {
     }
   };
 
+  const handleToggleEventRegistration = async (id: string) => {
+    try {
+      const result = await toggleEventRegistration(id, authKey());
+      if (result.success) {
+        note({ kind: "ok", msg: result.message || "Registration status updated" });
+        load();
+      } else {
+        note({ kind: "err", msg: result.error || "Toggle registration failed" });
+      }
+    } catch {
+      note({ kind: "err", msg: "Toggle registration failed" });
+    }
+  };
+
   // Access code management functions
   const handleUpdateAccessCode = async (id: string, updates: { code?: string; type?: string; priority?: number; description?: string; maxUsages?: number; isActive?: boolean }) => {
     try {
@@ -645,6 +662,7 @@ export default function MiniAdminDashboard() {
           onCreateEvent={handleCreateEvent}
           onUpdateEvent={handleUpdateEvent}
           onDeleteEvent={handleDeleteEvent}
+          onToggleRegistration={handleToggleEventRegistration}
         />;
       case "sessions":
         return <SessionsSection sess={sess} q={q} setQ={setQ} onAdjust={adjust} onEnd={end} />;
@@ -657,6 +675,8 @@ export default function MiniAdminDashboard() {
           onUpdateSponsor={handleUpdateSponsor}
           onDeleteSponsor={handleDeleteSponsor}
         />;
+      case "messaging":
+        return <MessagingSection devs={devs} teams={teams} q={q} setQ={setQ} />;
     }
   };
 

@@ -10,6 +10,7 @@ export interface Event {
   type: string;
   capacity: number;
   registered: number;
+  registrationEnabled?: boolean; // Field to control registration availability
   difficulty: "Beginner" | "Intermediate" | "Advanced" | "Expert";
   tags: string[];
   speakers?: {

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import audioManager from "../hooks/useAudioManager";
+import { logger } from '@/lib/logger';
 
 export const useDesktopEffects = (
   isClient: boolean,
@@ -53,7 +54,7 @@ export const useDesktopEffects = (
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission status:', error);
+          logger.error('Error checking mission status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -112,7 +113,7 @@ export const useDesktopEffects = (
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking neural network unlock status:', error);
+          logger.error('Error checking neural network unlock status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -143,11 +144,10 @@ export const useDesktopEffects = (
         if (isMounted && mission2Complete) {
           // Mission 2 was completed previously, don't show the notification again
           // but make the firewall bypass available if needed
-          console.log('Mission 2 already completed');
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission 2 status:', error);
+          logger.error('Error checking mission 2 status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };
@@ -190,11 +190,10 @@ export const useDesktopEffects = (
         // Check Mission 2 status
         const mission2Result = await getMissionStatus(deviceId, 'hackbook-w95', 'mission2');
         if (isMounted && mission2Result.success && mission2Result.mission?.completed) {
-          console.log('Mission 2 already completed (from database)');
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking mission statuses from database:', error);
+          logger.error('Error checking mission statuses from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
           // Fall back to local storage checks if database fails
         }
       }
@@ -235,7 +234,7 @@ export const useDesktopEffects = (
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error loading unlocked applications:', error);
+          logger.error('Error loading unlocked applications:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       }
     };

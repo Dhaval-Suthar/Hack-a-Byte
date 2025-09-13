@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import audioManager from "./hooks/useAudioManager";
+import { logger } from '@/lib/logger';
 
 interface LoginAnimationProps {
   username: string;
@@ -27,7 +28,7 @@ const LoginAnimation: React.FC<LoginAnimationProps> = ({ username, onComplete })
     try {
       audioManager.playSound("/hackbook-W95/sounds/win95-startup.mp3", 0.7);
     } catch (error) {
-      console.error("Audio error:", error);
+      logger.error('Audio error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
 
     loginSequence.forEach(({ delay, stage }) => {

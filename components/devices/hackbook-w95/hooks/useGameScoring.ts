@@ -5,6 +5,8 @@
  * Tracks completion time, attempts, and calculates scores across all mini-games
  */
 
+import { logger } from '@/lib/logger';
+
 export interface GameMetrics {
   startTime: number;
   endTime?: number;
@@ -52,7 +54,6 @@ export class GameScoringManager {
     // Store in localStorage for persistence
     this.saveToStorage();
     
-    console.log(`Started tracking game: ${gameName} on ${difficulty} difficulty`);
   }
 
   /**
@@ -66,7 +67,7 @@ export class GameScoringManager {
   ): void {
     const gameData = this.gameData.get(gameName);
     if (!gameData) {
-      console.warn(`Game ${gameName} not found in tracking data`);
+      logger.warn(`Game ${gameName} not found in tracking data`);
       return;
     }
 
@@ -82,13 +83,6 @@ export class GameScoringManager {
 
     this.gameData.set(gameName, gameData);
     this.saveToStorage();
-    
-    console.log(`Completed game: ${gameName}`, {
-      score,
-      attempts,
-      completionTime: completionTime / 1000 + 's',
-      difficulty: gameData.metrics.difficulty
-    });
   }
 
   /**
@@ -307,7 +301,6 @@ export class GameScoringManager {
     this.gameData.clear();
     this.sessionStartTime = Date.now();
     this.clearStorage();
-    console.log("Game scoring data reset");
   }
 
   /**
@@ -335,7 +328,7 @@ export class GameScoringManager {
           this.gameData = new Map(parsed.gameData);
           this.sessionStartTime = parsed.sessionStartTime || Date.now();
         } catch (error) {
-          console.warn('Failed to load game scoring data from storage:', error);
+          logger.warn('Failed to load game scoring data from storage:', { error });
         }
       }
     }

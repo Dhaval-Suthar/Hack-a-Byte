@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getUserAchievements } from "@/app/actions/achievement";
+import { logger } from '@/lib/logger';
 
 interface Achievement {
   _id: string;
@@ -147,7 +148,7 @@ export function AchievementGallery() {
         setError(result.error || 'Failed to load achievements');
       }
     } catch (err) {
-      console.error('Failed to load achievements:', err);
+      logger.error('Failed to load achievements:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to load achievements');
     } finally {
       setLoading(false);
@@ -298,7 +299,7 @@ export function AchievementProgress({ userId }: { userId: string }) {
           });
         }
       } catch (err) {
-        console.error('Failed to load achievement stats:', err);
+        logger.error('Failed to load achievement stats:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       }
     };
 

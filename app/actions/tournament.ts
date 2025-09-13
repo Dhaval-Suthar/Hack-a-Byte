@@ -4,6 +4,7 @@ import connectDb from "@/db/connectDb";
 import TournamentModel from "@/models/Tournament";
 import Team from "@/models/Team";
 import { Types } from 'mongoose';
+import { logger } from '@/lib/logger';
 
 interface LegacyTournamentInput { [k: string]: unknown }
 function mapLegacyTournamentInput(data: LegacyTournamentInput) {
@@ -77,7 +78,7 @@ export async function createTournament(data: {
   const tournament = await TournamentModel.create(mapped);
     return { success: true, tournament: tournament.toObject() };
   } catch (error) {
-    console.error("Error creating tournament:", error);
+    logger.error('Error creating tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create tournament" };
   }
 }
@@ -94,7 +95,7 @@ export async function getTournaments(status?: string) {
 
     return { success: true, tournaments };
   } catch (error) {
-    console.error("Error fetching tournaments:", error);
+    logger.error('Error fetching tournaments:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch tournaments" };
   }
 }
@@ -144,7 +145,7 @@ export async function registerTeamForTournament(tournamentId: string, teamId: st
 
     return { success: true, message: "Team registered successfully" };
   } catch (error) {
-    console.error("Error registering team:", error);
+    logger.error('Error registering team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to register team" };
   }
 }
@@ -177,7 +178,7 @@ export async function startTournament(tournamentId: string, adminKey?: string) {
 
     return { success: true, tournament: tournament.toObject() };
   } catch (error) {
-    console.error("Error starting tournament:", error);
+    logger.error('Error starting tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to start tournament" };
   }
 }
@@ -204,7 +205,7 @@ export async function updateMatchResult(tournamentId: string, matchId: string, w
     await tournament.save();
     return { success: true, tournament: tournament.toObject() };
   } catch (error) {
-    console.error("Error updating match result:", error);
+    logger.error('Error updating match result:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to update match result" };
   }
 }

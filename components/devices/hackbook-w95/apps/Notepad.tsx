@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { logger } from '@/lib/logger';
 
 interface NotepadProps {
   onClose: () => void;
@@ -57,7 +58,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
           UserPreferences.setAppData(`notepad_${filePath}`, text);
         }
       } catch (error) {
-        console.error("Error saving notepad content:", error);
+        logger.error('Error saving notepad content:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 
@@ -82,7 +83,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
           }
         }
       } catch (error) {
-        console.error("Error loading notepad text content:", error);
+        logger.error('Error loading notepad text content:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 
@@ -302,7 +303,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
         setModified(false);
       }
     } catch (error) {
-      console.error("Error saving file:", error);
+      logger.error('Error saving file:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStatusMessage("Error saving file");
     }
   };
@@ -346,7 +347,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       setStatusMessage(`New file created in a new window: ${newFileName}`);
       
     } catch (error) {
-      console.error("Error creating new file:", error);
+      logger.error('Error creating new file:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStatusMessage("Error creating new file");
       
       // Fallback to simple new document in current window
@@ -393,7 +394,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       // Note: In a real implementation, you might want to update the filePath prop
       
     } catch (error) {
-      console.error("Error saving file as:", error);
+      logger.error('Error saving file as:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStatusMessage(`Error saving file as: ${filename}`);
     }
   };
@@ -416,7 +417,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       const allFiles = [...new Set([...files, ...sampleFiles])];
       setAvailableFiles(allFiles);
     } catch (error) {
-      console.error("Error loading available files:", error);
+      logger.error('Error loading available files:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setAvailableFiles(["Welcome.txt", "README.txt", "Notes.txt", "Document.txt"]);
     }
   };
@@ -487,7 +488,7 @@ const Notepad: React.FC<NotepadProps> & { windowTitle?: string } = ({ filePath, 
       setSelectedFile("");
       
     } catch (error) {
-      console.error("Error opening file:", error);
+      logger.error('Error opening file:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setStatusMessage(`Error opening file: ${selectedFile}`);
     }
   };

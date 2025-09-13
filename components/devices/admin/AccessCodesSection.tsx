@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { AccessCode } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface AccessCodesSectionProps {
   codes: AccessCode[];
@@ -55,7 +56,7 @@ export default function AccessCodesSection({
       setEditingCode(null);
       setFormData({ code: "", type: "", priority: "", description: "", maxUsages: "", playspaceId: "" });
     } catch (error) {
-      console.error("Failed to update access code:", error);
+      logger.error('Failed to update access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -67,7 +68,7 @@ export default function AccessCodesSection({
       setLinkingCode(null);
       setFormData({ code: "", type: "", priority: "", description: "", maxUsages: "", playspaceId: "" });
     } catch (error) {
-      console.error("Failed to link access code:", error);
+      logger.error('Failed to link access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

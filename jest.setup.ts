@@ -5,7 +5,8 @@ import { TextEncoder, TextDecoder } from 'util';
 
 import '@testing-library/jest-dom';
 // Memory Mongo bootstrap (only if tests actually touch DB)
-import { startMemoryMongo, stopMemoryMongo } from './__tests__/testMongoMemory';
+import { startMemoryMongo, stopMemoryMongo } from './lib/mongoMemoryServer';
+import { logger } from '@/lib/logger';
 
 beforeAll(async () => {
   // Start memory mongo once; suites that mock connectDb won't be affected

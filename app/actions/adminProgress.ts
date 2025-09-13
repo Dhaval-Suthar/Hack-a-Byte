@@ -2,6 +2,7 @@
 
 import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status (simplified)
 async function checkAdminStatus(adminKey?: string) {
@@ -104,7 +105,7 @@ export async function getAllDeviceUsersProgress(adminKey?: string) {
       users: processedUsers
     };
   } catch (error) {
-    console.error("Error getting all device users progress:", error);
+    logger.error('Error getting all device users progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get device users progress" };
   }
 }
@@ -190,7 +191,7 @@ export async function getProgressSummaryStats(adminKey?: string) {
       }
     };
   } catch (error) {
-    console.error("Error getting progress summary stats:", error);
+    logger.error('Error getting progress summary stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get progress summary stats" };
   }
 }
@@ -242,7 +243,7 @@ export async function resetUserProgress(
       message: `Progress reset for user ${user.username}`
     };
   } catch (error) {
-    console.error("Error resetting user progress:", error);
+    logger.error('Error resetting user progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to reset user progress" };
   }
 }

@@ -1,25 +1,69 @@
 // Simple in-process sweeper for transient in-memory maps.
 // NOTE: For multi-instance deployments replace with Redis + key TTL.
-import { wormTokens } from '@/pages/api/attack/worm';
-import { activeFakeBank } from '@/pages/api/attack/fakebank';
-import { activeRansomDemands } from '@/pages/api/attack/ransomware';
+// Import attack modules lazily to avoid mongoose connection issues during instrumentation
+
+import { logger } from '@/lib/logger';
+const getActiveFakeBank = async () => {
+  const { activeFakeBank } = await import('@/pages/api/attack/fakebank');
+  return activeFakeBank;
+};
+
+// Import random message functions lazily
+const getRandomMessageFunctions = async () => {
+  const { processScheduledMessages, scheduleMessagesForOnlineDevices } = await import('@/lib/randomMessageGenerator');
+  return { processScheduledMessages, scheduleMessagesForOnlineDevices };
+};
 
 const g = global as unknown as { __sweeperStarted?: boolean };
 if (!g.__sweeperStarted) {
   g.__sweeperStarted = true;
-  setInterval(() => {
+  
+  // Kick off random message system immediately once at startup
+  (async () => {
+    try {
+      const { processScheduledMessages, scheduleMessagesForOnlineDevices } = await getRandomMessageFunctions();
+      // Initial pass: process any ready items, then schedule new ones
+      await processScheduledMessages();
+      await scheduleMessagesForOnlineDevices();
+    } catch (err) {
+      logger.error('❌ Initial random message run failed:', { error: err instanceof Error ? err.message : String(err || 'Unknown error'), errorObject: err });
+    }
+  })();
+
+  setInterval(async () => {
     const now = Date.now();
-    // Worm tokens prune
-    for (const [id,t] of Object.entries(wormTokens)) {
-      if (t.expires < now) delete wormTokens[id];
+    try {
+      const activeFakeBank = await getActiveFakeBank();
+      
+      // Fake bank windows
+      for (const [teamId, win] of Object.entries(activeFakeBank)) {
+        if (win.expires < now) delete activeFakeBank[teamId];
+      }
+    } catch (err) {
+      logger.error('❌ Error in state sweeper cleanup:', { error: err instanceof Error ? err.message : String(err || 'Unknown error'), errorObject: err });
     }
-    // Fake bank windows
-    for (const [teamId, win] of Object.entries(activeFakeBank)) {
-      if (win.expires < now) delete activeFakeBank[teamId];
+  }, 30_000);
+
+    // Schedule new messages every 2 minutes (more frequent now that probability is removed)
+    setInterval(async () => {
+    try {
+      const { scheduleMessagesForOnlineDevices } = await getRandomMessageFunctions();
+      await scheduleMessagesForOnlineDevices();
+    } catch (error) {
+      logger.error('❌ Error scheduling messages:', { error: error instanceof Error ? error.message : String(error || 'Unknown error'), errorObject: error });
     }
-    // Ransom demands (shape: { [teamId]: { expires:number } })
-    for (const [key, demand] of Object.entries(activeRansomDemands)) {
-      if (demand.expires < now) delete activeRansomDemands[key];
-    }
-  }, 30_000).unref();
+    }, 2 * 60 * 1000);
+
+  // Process ready scheduled messages moderately (every 60s)
+  setInterval(async () => {
+    try {
+      const { processScheduledMessages } = await getRandomMessageFunctions();
+      await processScheduledMessages();
+    } catch {}
+  }, 60_000);
+  
 }
+
+// Export empty object to make this a proper module
+const stateSweeper = {};
+export default stateSweeper;

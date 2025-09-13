@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getTeamTransactions, getTeamBalance, transferBitcoin } from "@/app/actions/wallet";
+import { logger } from '@/lib/logger';
 
 interface Transaction {
   _id: string;
@@ -53,7 +54,7 @@ export function WalletDashboard() {
         setTransactions(transactionsResult.transactions as unknown as Transaction[]);
       }
     } catch (err) {
-      console.error('Failed to load wallet data:', err);
+      logger.error('Failed to load wallet data:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to load wallet data');
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ export function WalletDashboard() {
         alert(result.error || 'Failed to send bitcoin');
       }
     } catch (err) {
-      console.error('Failed to send bitcoin:', err);
+      logger.error('Failed to send bitcoin:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to send bitcoin');
     }
   };

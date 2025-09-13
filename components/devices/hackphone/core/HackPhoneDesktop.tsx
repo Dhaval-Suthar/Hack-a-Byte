@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -6,11 +6,21 @@ import { getDeviceUser } from "@/app/actions/deviceUser";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import HackPhoneBootScreen from "@/components/devices/hackphone/core/HackPhoneBootScreen";
 import HackPhoneHomeScreen from "@/components/devices/hackphone/core/HackPhoneHomeScreen";
-import AlertHub from "@/components/devices/hackphone/apps/AlertHub";
-import StealthViralProgressPanel from "@/components/devices/hackphone/apps/StealthViralProgress";
 import HackPhoneAppsRouter from "@/components/devices/hackphone/core/HackPhoneAppsRouter";
+import DeviceStatusGuard from "@/components/devices/hackphone/core/DeviceStatusGuard";
+import GameOverListener from "@/components/devices/hackphone/core/GameOverListener";
 import { useAppNavigation } from "../shared/useAppNavigation";
 import { User } from "@/types/devices";
+import { useNotificationService } from "@/hooks/useNotificationService";
+import IOS4Notification from "@/components/ui/IOS4Notification";
+import dynamic from 'next/dynamic';
+import { logger } from '@/lib/logger';
+
+// Lazy-load virus popups to avoid SSR issues
+const VirusPopups = dynamic(() => import('@/components/notifications/VirusPopups'), { ssr: false });
+const CryptoLockerDefense = dynamic(() => import('@/components/devices/hackphone/security/CryptoLockerDefense'), { ssr: false });
+const CryptoLockerPayment = dynamic(() => import('@/components/devices/hackphone/security/CryptoLockerPayment'), { ssr: false });
+const SystemLockProVictim = dynamic(() => import('@/components/devices/hackphone/security/SystemLockProVictim'), { ssr: false });
 
 const HackPhoneDesktop = () => {
   const router = useRouter();
@@ -19,14 +29,15 @@ const HackPhoneDesktop = () => {
   const [user, setUser] = useState<User | null>(null);
   const [time, setTime] = useState(new Date());
   const [hasPasscode, setHasPasscode] = useState(false);
-  // Panel visibility state
-  const [showAlerts, setShowAlerts] = useState(false);
-  const [showStealthOps, setShowStealthOps] = useState(false);
-  const [alertCount, setAlertCount] = useState(0);
-  const [stealthCount, setStealthCount] = useState(0);
+  const [deviceId, setDeviceId] = useState<string | undefined>();
+  const [playspaceId, setPlayspaceId] = useState<string | undefined>();
+  const [teamId, setTeamId] = useState<string | undefined>();
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
+
+  // Notification system for home screen
+  const { notification, dismissNotification } = useNotificationService(teamId);
 
   // Update time every second
   useEffect(() => {
@@ -52,31 +63,84 @@ const HackPhoneDesktop = () => {
         const urlPlayspaceId = searchParams?.get("playspaceId");
         const urlDeviceId = searchParams?.get("deviceId");
         
-        let playspaceId = urlPlayspaceId;
-        if (!playspaceId) {
-          playspaceId = getPlayspaceId();
+        let currentPlayspaceId = urlPlayspaceId;
+        if (!currentPlayspaceId) {
+          currentPlayspaceId = getPlayspaceId();
+        }
+
+        // Store playspaceId and deviceId for passing to apps
+        setPlayspaceId(currentPlayspaceId || undefined);
+        setDeviceId(urlDeviceId || undefined);
+
+        // Get teamId from playspaceId for notifications
+        if (currentPlayspaceId) {
+          try {
+            const teamResponse = await fetch(`/api/team/get-team-id?playspaceId=${currentPlayspaceId}`);
+            const teamData = await teamResponse.json();
+            if (teamData.success) {
+              setTeamId(teamData.teamId);
+            }
+          } catch (error) {
+            logger.error('Failed to fetch team ID:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+          }
+        }
+
+        // If no deviceId in URL, try to get it from localStorage and resolve correct team
+        let resolvedDeviceId = urlDeviceId;
+        
+        if (!urlDeviceId) {
+          try {
+            const storedMac = localStorage.getItem("device_mac_address");
+            if (storedMac) {
+              // Only set deviceId for convenience; do NOT override teamId here to avoid
+              // accidentally joining the wrong team on unrelated devices.
+              resolvedDeviceId = storedMac;
+            }
+          } catch (error) {
+            logger.error('Failed to read stored MAC address:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+          }
+        }
+        
+        setDeviceId(resolvedDeviceId || undefined);
+
+        // Store device MAC address in localStorage if available
+        if (urlDeviceId) {
+          localStorage.setItem("device_mac_address", urlDeviceId);
+          
+          // Also resolve the correct team for this device
+          try {
+            const resolveResponse = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(urlDeviceId)}`);
+            if (resolveResponse.ok) {
+              const resolveData = await resolveResponse.json();
+              if (resolveData.success && resolveData.teamId) {
+                setTeamId(resolveData.teamId); // Override the playspace-based teamId
+              }
+            }
+          } catch (error) {
+            logger.error('Failed to resolve URL device team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+          }
         }
 
         // On iPhone 4 UX, we allow home without playspace; only require auth for deviceId flow
 
         if (urlDeviceId) {
-          if (!playspaceId) {
+          if (!currentPlayspaceId) {
             router.push(`/hackphone/login?deviceId=${urlDeviceId}`);
             return;
           }
-          const result = await getDeviceUser(playspaceId, urlDeviceId);
+          const result = await getDeviceUser(currentPlayspaceId, urlDeviceId);
           if (result.isLoggedIn && result.user) {
             setUser(result.user);
           } else {
             // If there is no device passcode, allow guest access instead of redirecting
             if (hasPasscode) {
-              router.push(`/hackphone/login?playspaceId=${playspaceId}&deviceId=${urlDeviceId}`);
+              router.push(`/hackphone/login?playspaceId=${currentPlayspaceId}&deviceId=${urlDeviceId}`);
               return;
             }
           }
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        logger.error('Auth check error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         // Fail open to home; lock screen handles passcode
       } finally {
         setIsLoading(false);
@@ -103,100 +167,113 @@ const HackPhoneDesktop = () => {
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
-      {currentApp ? (
-        <HackPhoneAppsRouter
-          appId={currentApp}
-          onClose={handleAppClose}
-          user={user}
-          time={time}
-          onAppSwitch={handleAppSwitch}
-          onOpenApp={handleAppOpen}
-        />
-      ) : (
-        <HackPhoneHomeScreen
-          onAppOpen={handleAppOpen}
-        />
-      )}
-
-      {/* Toggle buttons (collapsed state) */}
-      {!showAlerts && (
-        <button
-          aria-label="Open Alerts"
-          onClick={() => setShowAlerts(true)}
-          className="absolute top-2 left-2 z-[60] px-3 py-1.5 rounded-md bg-black/70 border border-white/10 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wide text-gray-300 hover:bg-black/80 shadow"
-        >
-          Alerts{alertCount>0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] text-[10px] rounded-full bg-red-600/80 text-white px-1">{alertCount}</span>}
-        </button>
-      )}
-      {!showStealthOps && (
-        <button
-          aria-label="Open Stealth Ops"
-          onClick={() => setShowStealthOps(true)}
-          className="absolute top-2 right-2 z-[60] px-3 py-1.5 rounded-md bg-purple-950/70 border border-purple-500/30 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wide text-purple-200 hover:bg-purple-950/80 shadow"
-        >
-          Stealth Ops{stealthCount>0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] text-[10px] rounded-full bg-fuchsia-600/80 text-white px-1">{stealthCount}</span>}
-        </button>
-      )}
-
-      {/* Unified Alert Hub (top overlay) */}
-      {showAlerts && (
-        <div className="absolute top-2 left-2 w-[min(320px,80vw)] max-h-[50vh] rounded-lg bg-black/70 border border-white/10 backdrop-blur-md shadow-lg overflow-hidden z-[60] flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-gray-300 bg-white/5 border-b border-white/10">
-            <span>Alerts</span>
-            <button
-              aria-label="Collapse Alerts"
-              onClick={() => setShowAlerts(false)}
-              className="text-gray-400 hover:text-white transition text-xs px-1 py-0.5"
-            >✕</button>
-          </div>
-          <AlertHub onCountChange={setAlertCount} />
+    <DeviceStatusGuard deviceId={deviceId} playspaceId={playspaceId}>
+      <div className="relative w-screen h-screen overflow-hidden touch-pan-y">
+        {/* Main content area with improved touch handling */}
+        <div className="relative w-full h-full">
+          {currentApp ? (
+            <HackPhoneAppsRouter
+              appId={currentApp}
+              onClose={handleAppClose}
+              user={user}
+              time={time}
+              onAppSwitch={handleAppSwitch}
+              onOpenApp={handleAppOpen}
+              deviceId={deviceId}
+              playspaceId={playspaceId}
+            />
+          ) : (
+            <HackPhoneHomeScreen
+              onAppOpen={handleAppOpen}
+            />
+          )}
         </div>
+
+            {/* iOS 4 Style Notifications on Home Screen */}
+      {notification && !currentApp && (
+        <>
+          <IOS4Notification
+            message={notification.body}
+            type={notification.type}
+            isVisible={!!notification}
+            onDismiss={dismissNotification}
+            onOpen={() => {
+              // Open the appropriate app when notification is tapped
+              if (notification.type === 'sms') {
+                handleAppOpen('messages');
+              } else if (notification.type === 'email') {
+                handleAppOpen('mail');
+              }
+              dismissNotification();
+            }}
+          />
+        </>
       )}
 
-      {/* StealthViral Attacker Progress (right side) */}
-      {showStealthOps && (
-        <div className="absolute top-2 right-2 w-[min(260px,70vw)] max-h-[40vh] rounded-lg bg-purple-950/60 border border-purple-500/30 backdrop-blur-md shadow-lg overflow-hidden z-[60] flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-purple-200/90 bg-purple-900/40 border-b border-purple-500/30">
-            <span>Stealth Ops</span>
-            <button
-              aria-label="Collapse Stealth Ops"
-              onClick={() => setShowStealthOps(false)}
-              className="text-purple-300 hover:text-white transition text-xs px-1 py-0.5"
-            >✕</button>
-          </div>
-          <div className="p-2 flex-1 overflow-auto"><StealthViralProgressPanel onCountChange={setStealthCount} /></div>
-        </div>
+      {/* StealthViral random popup overlay (defensive clicking) */}
+      {teamId && (
+        // Use deviceId (MAC) as the StealthViral targetKey because the attack API
+        // spawns events keyed by the target device identifier (MAC). Previously
+        // we used teamId which never matched the spawn event targetKey, so the
+        // defender never saw popup nodes. Fallback to teamId if deviceId missing.
+        <>
+          <VirusPopups targetKey={deviceId || teamId} targetTeamId={teamId} active />
+          
+          {/* CryptoLocker overlays */}
+          <CryptoLockerDefense teamId={teamId} active />
+          <CryptoLockerPayment teamId={teamId} active />
+          
+          {/* SystemLock Pro victim overlay */}
+          <SystemLockProVictim />
+        </>
       )}
 
-      {/* Persistent bottom overlay: bezel + home button */}
+      {/* Game over listener for forced redirections */}
+      <GameOverListener teamId={teamId} deviceId={deviceId} enabled={true} />
+
+      {/* Enhanced bottom navigation with haptic feedback */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black border-t border-white/10 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.7)] overflow-hidden z-[40]"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/90 border-t border-white/20 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[40] supports-[backdrop-filter]:backdrop-blur-md"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/50" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-black/80" />
       </div>
 
+      {/* Enhanced home button with improved touch target */}
       <button
         aria-label="Home"
-        onClick={() => closeApp()}
-        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/70 border border-white/10 ring-1 ring-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.65)] active:translate-y-[1px] transition-transform duration-100 supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50]"
+        onClick={() => {
+          // Add haptic feedback for supported devices
+          if ('vibrate' in navigator) {
+            navigator.vibrate(50);
+          }
+          closeApp();
+        }}
+        onTouchStart={(e) => {
+          // Improve touch responsiveness
+          e.currentTarget.style.transform = 'translate(-50%, 0) scale(0.95)';
+        }}
+        onTouchEnd={(e) => {
+          e.currentTarget.style.transform = 'translate(-50%, 0) scale(1)';
+        }}
+        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/80 border border-white/20 ring-1 ring-white/30 shadow-[0_14px_30px_rgba(0,0,0,0.7)] transition-all duration-150 ease-out supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50] active:scale-95 hover:ring-white/40"
       >
-        <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/18 via-transparent to-transparent" />
-        <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.55)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.04),inset_0_-6px_10px_rgba(0,0,0,0.55)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/20 via-transparent to-transparent" />
+        <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.6)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.05),inset_0_-6px_10px_rgba(0,0,0,0.6)]" />
         <div
-          className="pointer-events-none absolute -top-1 left-0 w-[65%] h-[65%] opacity-45"
+          className="pointer-events-none absolute -top-1 left-0 w-[65%] h-[65%] opacity-50"
           style={{
             background:
-              "radial-gradient(120px 80px at 30% 20%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 55%, transparent 60%)",
+              "radial-gradient(120px 80px at 30% 20%, rgba(255,255,255,0.4), rgba(255,255,255,0.08) 55%, transparent 60%)",
             borderTopLeftRadius: 9999,
           }}
         />
-        <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/85 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.4)]" />
+        <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/90 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.5)]" />
       </button>
-    </div>
+      </div>
+    </DeviceStatusGuard>
   );
 };
 

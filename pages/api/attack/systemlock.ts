@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { attackerTeamId } = parse.data;
   const rl = await redisRateLimit(`systemlock:${attackerTeamId}`, 1, 60_000);
   if (!rl.allowed) return res.status(429).json({ success: false, error: 'Rate limit', reset: rl.reset });
-  try { await assertRoleAccess(attackerTeamId, 'worm-phish'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'worm-phish' }); }
+  try { await assertRoleAccess(attackerTeamId, 'systemlock'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'systemlock' }); }
   const now = Date.now();
   if (bankState.forcedOfflineUntil && now < bankState.forcedOfflineUntil) {
     return res.status(409).json({ success: false, error: 'Bank forced offline', offlineUntil: bankState.forcedOfflineUntil });

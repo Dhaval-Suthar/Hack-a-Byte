@@ -6,6 +6,7 @@ import clsx from "clsx";
 import Image from "next/image";
 import { getSessionCreds } from "@/lib/creds";
 import audioManager from "../hooks/useAudioManager";
+import { logger } from '@/lib/logger';
 
 interface Message {
   id: string;
@@ -68,7 +69,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
         setConversationSent(new Set(state.conversationSent || []));
       }
     } catch (error) {
-      console.error('Error loading WinTalk95 state:', error);
+      logger.error('Error loading WinTalk95 state:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Reset to default state if there's an error
       setIsConnected(false);
       setShowLogin(true);
@@ -110,7 +111,7 @@ const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
           return;
       }
     } catch (error) {
-      console.error("Sound error:", error);
+      logger.error('Sound error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, []);
 

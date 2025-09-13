@@ -14,7 +14,6 @@ export const AttackReceiver: React.FC<AttackReceiverProps> = ({ onAttackReceived
   useEffect(() => {
     if (incomingAttacks.length > 0) {
       const latestAttack = incomingAttacks[incomingAttacks.length - 1];
-      console.log('AttackReceiver: Processing incoming attack:', latestAttack);
       setVisibleAttacks(prev => [...prev, latestAttack]);
 
       // Notify parent component

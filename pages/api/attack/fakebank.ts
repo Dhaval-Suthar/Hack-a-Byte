@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!attackerTeamId || !targetTeamId) return badRequest(res, 'attackerTeamId and targetTeamId required');
   const rl = await redisRateLimit(`fakebank:${attackerTeamId}`, 3, 60_000);
   if (!rl.allowed) return res.status(429).json({ success: false, error: 'Rate limit', reset: rl.reset });
-  try { await assertRoleAccess(attackerTeamId, 'worm-phish'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res,{ allowed: err.allowed, appId: 'worm-phish' }); }
+  try { await assertRoleAccess(attackerTeamId, 'fakebank'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res,{ allowed: err.allowed, appId: 'fakebank' }); }
   try {
     await connectDb();
     const target = await Team.findById(targetTeamId).select('_id');

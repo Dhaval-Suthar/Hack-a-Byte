@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEventRegistration } from "../../hooks/useEventRegistration";
 import { RegistrationModalProps } from "../../types/event";
+import { logger } from '@/lib/logger';
 
 const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
   const { registerForEvent, loading } = useEventRegistration();
   const [email, setEmail] = useState("");
-  const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("pc_laptop");
+  const [playingDevice, setPlayingDevice] = useState<"smartphone" | "pc_laptop">("smartphone");
   const [numberOfPlayers, setNumberOfPlayers] = useState(1);
   const [selectedPricing, setSelectedPricing] = useState<"normal" | "extended">("normal");
   const [formError, setFormError] = useState("");
@@ -21,7 +22,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
       setNumberOfPlayers(minPlayers);
 
       setSelectedPricing("normal");
-      setPlayingDevice("pc_laptop");
+      setPlayingDevice("smartphone");
       setEmail("");
       setFormError("");
     }
@@ -60,7 +61,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         onClose();
         // Reset form
         setEmail("");
-        setPlayingDevice("pc_laptop");
+        setPlayingDevice("smartphone");
         setNumberOfPlayers(1);
         // Redirect user to home page to enter access code
         window.location.href = "/";
@@ -68,7 +69,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         setFormError(result.message);
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      logger.error('Registration error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setFormError("An unexpected error occurred");
     } finally {
       // Loading state is managed by the hook
@@ -292,6 +293,18 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
               </div>
             )}
 
+            {/* Registration disabled warning */}
+            {event.registrationEnabled === false && (
+              <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-md">
+                <p className="text-yellow-400 text-sm">
+                  <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  Registration has not started yet.
+                </p>
+              </div>
+            )}
+
             <div className="flex space-x-3">
               <button
                 type="button"
@@ -303,10 +316,16 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-cyber-primary hover:bg-cyber-primary/80 text-black text-sm font-bold rounded transition-colors disabled:opacity-50"
-                disabled={loading}
+                className={`flex-1 px-4 py-2 text-sm font-bold rounded transition-colors disabled:opacity-50 ${
+                  event.registrationEnabled === false 
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                    : 'bg-cyber-primary hover:bg-cyber-primary/80 text-black'
+                }`}
+                disabled={loading || event.registrationEnabled === false}
               >
-                {loading ? "Processing..." : event.pricing ? "Pay & Register" : "Register"}
+                {loading ? "Processing..." : 
+                 event.registrationEnabled === false ? "Registration Not Started" :
+                 event.pricing ? "Pay & Register" : "Register"}
               </button>
             </div>
           </form>

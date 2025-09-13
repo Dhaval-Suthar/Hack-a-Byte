@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!attackerTeamId) return unauthorized(res);
   if (!targetDeviceId) return badRequest(res, 'targetDeviceId required');
   await connectDb();
-  try { if (attackerTeamId) await assertRoleAccess(attackerTeamId, 'worm-phish'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'worm-phish' }); }
+  try { if (attackerTeamId) await assertRoleAccess(attackerTeamId, 'recon'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'recon' }); }
     const target = await Device.findById(targetDeviceId).select('securitySettings teamId');
   if (!target) return notFound(res, 'Device not found');
   if (String(target.teamId) === String(attackerTeamId)) return badRequest(res, 'Cannot recon own device');

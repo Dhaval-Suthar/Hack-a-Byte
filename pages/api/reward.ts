@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const playspaceId = req.cookies?.playspaceId || (req.headers['x-playspace-id'] as string);
     if (!playspaceId) return res.status(400).json({ success: false, error: 'Missing playspace id' });
     if (process.env.NODE_ENV === 'test') {
-      console.log('reward.debug: playspaceId header', playspaceId);
     }
 
     const { amount, reason } = req.body as { amount?: number; reason?: string };

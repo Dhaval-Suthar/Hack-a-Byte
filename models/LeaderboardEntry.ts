@@ -27,8 +27,13 @@ const LeaderboardEntrySchema = new Schema<LeaderboardEntryDocument>(
   { timestamps: true }
 );
 
-// Create compound index for faster leaderboard queries
-LeaderboardEntrySchema.index({ game: 1, score: -1 });
+// Enhanced indexing for better query performance
+LeaderboardEntrySchema.index({ game: 1, score: -1 }); // Main leaderboard queries
+LeaderboardEntrySchema.index({ game: 1, difficulty: 1, score: -1 }); // Difficulty-filtered leaderboards  
+LeaderboardEntrySchema.index({ deviceId: 1, game: 1, date: -1 }); // User's game history
+LeaderboardEntrySchema.index({ username: 1, score: -1 }); // User-specific leaderboards
+LeaderboardEntrySchema.index({ date: -1 }); // Recent entries
+LeaderboardEntrySchema.index({ deviceType: 1, game: 1, score: -1 }); // Device-specific leaderboards
 
 export default mongoose.models.LeaderboardEntry ||
   mongoose.model<LeaderboardEntryDocument>("LeaderboardEntry", LeaderboardEntrySchema);

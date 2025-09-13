@@ -91,15 +91,10 @@ const FingerprintHack: React.FC<FingerprintHackProps> = ({ onClose, onSuccess })
       const correctPatternPath = getRightPatternPath(segmentNumber, correctPatternIndex);
       
       // Debug logging for image paths
-      console.log(`Creating segment ${i}: mainImage=${mainImagePath}, correctPattern=${correctPatternPath}`);
       
-      // Test image loading
-      testImageLoad(mainImagePath).then(loaded => {
-        console.log(`Main image ${mainImagePath} loaded: ${loaded}`);
-      });
-      testImageLoad(correctPatternPath).then(loaded => {
-        console.log(`Correct pattern ${correctPatternPath} loaded: ${loaded}`);
-      });
+      // Test image loading (preload images)
+      testImageLoad(mainImagePath);
+      testImageLoad(correctPatternPath);
       
       newSegments.push({
         id: i,

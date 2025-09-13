@@ -3,6 +3,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import connectDb from "@/db/connectDb";
 import Team from "@/models/Team";
+import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
@@ -15,30 +16,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get playspaceId from cookies or headers
     const playspaceId = req.cookies?.playspaceId || req.headers['x-playspace-id'] as string;
     
-    console.log('Team API request:', {
-      playspaceId,
-      cookies: req.cookies,
-      headers: req.headers,
-      method: req.method,
-      url: req.url
-    });
-    
     if (!playspaceId) {
       return res.status(400).json({ error: "No playspace ID found" });
     }
 
     const team = await Team.findOne({ playspaceId });
     if (!team) {
-      console.log('Team not found for playspaceId:', playspaceId);
       return res.status(404).json({ error: "Team not found" });
     }
-
-    console.log('Found team:', {
-      teamId: team._id,
-      teamName: team.name,
-      bitcoinBalance: team.wallet.bitcoinBalance,
-      purchasedMalware: team.purchasedMalware || []
-    });
 
     if (req.method === "GET") {
       // Get team bitcoin balance, portfolio, and purchased malware
@@ -47,7 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bitcoinBalance: team.wallet.bitcoinBalance,
         stockPortfolio: team.stockPortfolio || [],
         purchasedMalware: team.purchasedMalware || [],
-        teamName: team.name
+        teamName: team.name,
+        teamId: team._id.toString()
       });
     }
 
@@ -69,10 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Handle malware purchases
       if (operation === "purchaseMalware" && malwareId) {
-        console.log('Processing malware purchase:', {
-          malwareId,
-          currentPurchasedMalware: team.purchasedMalware || []
-        });
         
         if (!team.purchasedMalware) {
           team.purchasedMalware = [];
@@ -81,12 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!team.purchasedMalware.includes(malwareId)) {
           team.purchasedMalware.push(malwareId);
           await team.save();
-          console.log('Malware purchased and saved:', {
-            malwareId,
-            updatedPurchasedMalware: team.purchasedMalware
-          });
-        } else {
-          console.log('Malware already purchased:', malwareId);
         }
         
         return res.status(200).json({
@@ -98,10 +74,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Handle malware deployment (removal after use)
       if (operation === "deployMalware" && malwareId) {
-        console.log('Processing malware deployment:', {
-          malwareId,
-          currentPurchasedMalware: team.purchasedMalware || []
-        });
         
         if (!team.purchasedMalware) {
           team.purchasedMalware = [];
@@ -111,12 +83,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (malwareIndex !== -1) {
           team.purchasedMalware.splice(malwareIndex, 1);
           await team.save();
-          console.log('Malware deployed and removed:', {
-            malwareId,
-            updatedPurchasedMalware: team.purchasedMalware
-          });
-        } else {
-          console.log('Malware not found in purchased list:', malwareId);
         }
         
         return res.status(200).json({
@@ -138,24 +104,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const currentBalance = team.wallet.bitcoinBalance;
       let newBalance = currentBalance;
 
-      console.log('Team API operation:', {
-        operation,
-        amount,
-        currentBalance: currentBalance,
-        currentBalanceType: typeof currentBalance,
-        amountType: typeof amount,
-        willHaveEnough: currentBalance >= amount
-      });
-
       if (operation === "add") {
         newBalance = currentBalance + amount;
       } else if (operation === "subtract") {
         if (currentBalance < amount) {
-          console.log('Insufficient balance detected:', {
-            currentBalance,
-            amount,
-            difference: currentBalance - amount
-          });
           return res.status(400).json({ error: "Insufficient bitcoin balance" });
         }
         newBalance = currentBalance - amount;
@@ -171,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
   } catch (error) {
-    console.error("Team API error:", error);
+    logger.error('Team API error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

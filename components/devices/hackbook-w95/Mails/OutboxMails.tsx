@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 
 interface Mail {
   id: string;
@@ -59,7 +60,7 @@ P.S. - The recovered password was: zebra`,
           }
         });
       } catch (error) {
-        console.error("Error checking mission status:", error);
+        logger.error('Error checking mission status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 

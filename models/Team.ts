@@ -99,14 +99,6 @@ const TeamSchema = new Schema<EventTeam>(
   { timestamps: true }
 );
 
-// Create indexes for better query performance
-TeamSchema.index({ leaderUserId: 1 });
-TeamSchema.index({ accessCodeId: 1 });
-TeamSchema.index({ playspaceId: 1 });
-TeamSchema.index({ deviceId: 1 });
-TeamSchema.index({ 'wallet.walletAddress': 1 });
-TeamSchema.index({ 'wallet.bitcoinBalance': -1 });
-
 // Instance methods
 TeamSchema.methods.addMember = function(username: string, role?: string) {
   // Find first available slot
@@ -247,5 +239,15 @@ TeamSchema.statics.getLeaderboard = function(options: {
 TeamSchema.statics.getActiveTeams = function() {
   return this.find({ 'timer.isActive': true });
 };
+
+// Performance indexes for Team queries
+TeamSchema.index({ accessCodeId: 1 }); // findByAccessCode queries
+TeamSchema.index({ 'wallet.walletAddress': 1 }); // findByWalletAddress queries
+TeamSchema.index({ 'wallet.bitcoinBalance': -1 }); // Leaderboard by bitcoin balance
+TeamSchema.index({ 'timer.elapsedTime': 1 }); // Leaderboard by time
+TeamSchema.index({ 'timer.isActive': 1 }); // Active teams queries
+TeamSchema.index({ createdAt: -1 }); // Recent teams
+TeamSchema.index({ numberOfPlayers: 1 }); // Team size queries
+TeamSchema.index({ playingDevice: 1 }); // Device type queries
 
 export default mongoose.models.Team || mongoose.model<EventTeam>("Team", TeamSchema);

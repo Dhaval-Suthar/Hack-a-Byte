@@ -6,6 +6,8 @@ import Playspace from "@/models/Playspace";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 import { generateMacAddress } from "@/lib/utils";
+import { createSampleMessagesForDevice } from "@/lib/randomMessageGenerator";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -60,7 +62,7 @@ export async function getAllDevices(adminKey?: string) {
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices:", error);
+    logger.error('Error fetching devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices" };
   }
 }
@@ -85,7 +87,7 @@ export async function createDevice(
     await connectDb();
 
     // Validate device type
-    const validDeviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+    const validDeviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
     if (!validDeviceTypes.includes(deviceType)) {
       return { error: "Invalid device type" };
     }
@@ -129,10 +131,6 @@ export async function createDevice(
         defaultConfig.osVersion = "Windows 95";
         defaultConfig.installedApps = ["Notepad", "Calculator", "Paint"];
         break;
-      case "hackbook-e95":
-        defaultConfig.osVersion = "Windows 95 Essential";
-        defaultConfig.installedApps = ["Notepad", "Calculator", "Paint", "My Computer", "Internet Explorer"];
-        break;
       case "hackbook-l":
         defaultConfig.osVersion = "Linux Ubuntu 22.04";
         defaultConfig.installedApps = ["bash", "vim", "gcc"];
@@ -165,6 +163,16 @@ export async function createDevice(
 
     await newDevice.save();
 
+    // If this is a hackphone device, create sample messages
+    if (deviceType === 'hackphone') {
+      try {
+        await createSampleMessagesForDevice(newDevice._id.toString());
+      } catch (error) {
+        logger.error('Error creating sample messages for hackphone:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+        // Don't fail device creation if sample message creation fails
+      }
+    }
+
     revalidatePath("/admin");
 
     return {
@@ -180,7 +188,7 @@ export async function createDevice(
       },
     };
   } catch (error) {
-    console.error("Error creating device:", error);
+    logger.error('Error creating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create device" };
   }
 }
@@ -210,7 +218,8 @@ export async function assignDeviceToPlayspace(
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      logger.warn('Device lookup by ObjectId failed, trying MAC address:', { error });
       // If ObjectId lookup fails, try finding by MAC address
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }
@@ -251,7 +260,7 @@ export async function assignDeviceToPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error assigning device to playspace:", error);
+    logger.error('Error assigning device to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign device to playspace" };
   }
 }
@@ -310,7 +319,7 @@ export async function unassignDeviceFromPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error unassigning device from playspace:", error);
+    logger.error('Error unassigning device from playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to unassign device from playspace" };
   }
 }
@@ -351,7 +360,7 @@ export async function updateDevice(
 
     // Validate device type if being updated
     if (updates.deviceType) {
-      const validDeviceTypes = ["hackbook-w95", "hackbook-e95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+      const validDeviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
       if (!validDeviceTypes.includes(updates.deviceType)) {
         return { error: "Invalid device type" };
       }
@@ -405,7 +414,7 @@ export async function updateDevice(
       },
     };
   } catch (error) {
-    console.error("Error updating device:", error);
+    logger.error('Error updating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update device" };
   }
 }
@@ -443,7 +452,7 @@ export async function getDevicesByPlayspace(
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices for playspace" };
   }
 }
@@ -500,7 +509,7 @@ export async function deleteDevice(
       message: "Device deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting device:", error);
+    logger.error('Error deleting device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete device" };
   }
 }
@@ -559,7 +568,7 @@ export async function updateDeviceStatus(
       device: serializedDevice,
     };
   } catch (error) {
-    console.error("Error updating device status:", error);
+    logger.error('Error updating device status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update device status" };
   }
 }

@@ -9,6 +9,7 @@ import {
   bulkUpdateMissions 
 } from '@/app/actions/userProgress';
 import { MissionProgress } from '@/models/DeviceUser';
+import { logger } from '@/lib/logger';
 
 export interface Mission {
   id: string;
@@ -133,7 +134,7 @@ export function useDatabaseMissionTracker() {
         
         setLoaded(true);
       } catch (error) {
-        console.error('Error loading missions from database:', error);
+        logger.error('Error loading missions from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         // Fall back to localStorage only
         const localMissions = userStorage.getItem('win95Missions', {}) as Record<string, Mission>;
         setMissions(localMissions);
@@ -157,7 +158,7 @@ export function useDatabaseMissionTracker() {
       // Save to database (async)
       await bulkUpdateMissions(deviceId, deviceType, missionsToMissionProgress(updatedMissions));
     } catch (error) {
-      console.error('Error syncing missions to database:', error);
+      logger.error('Error syncing missions to database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Even if database sync fails, we still have localStorage
     }
   }, [loaded, deviceId, deviceType]);
@@ -243,7 +244,7 @@ export function useDatabaseMissionTracker() {
       try {
         await updateMissionProgress(deviceId, deviceType, missionId, missionToMissionProgress(updatedMission));
       } catch (error) {
-        console.error('Error updating mission in database:', error);
+        logger.error('Error updating mission in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
 
@@ -278,7 +279,7 @@ export function useDatabaseMissionTracker() {
       const result = await getMissionStatus(deviceId, deviceType, missionId);
       return result.success && result.mission ? missionProgressToMission(result.mission) : null;
     } catch (error) {
-      console.error('Error getting mission from database:', error);
+      logger.error('Error getting mission from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return null;
     }
   }, [deviceId, deviceType]);
@@ -331,7 +332,7 @@ export const DatabaseMissionTracker = {
           progress: 100
         });
       } catch (error) {
-        console.error('Error updating mission in database:', error);
+        logger.error('Error updating mission in database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
   }

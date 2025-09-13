@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import ChatMessageModel from "@/models/ChatMessage";
 import DeviceUser from "@/models/DeviceUser";
+import { logger } from '@/lib/logger';
 
 export async function createChatMessage(data: {
   senderId: string;
@@ -56,7 +57,7 @@ export async function createChatMessage(data: {
 
     return { success: true, message: message.toObject() };
   } catch (error) {
-    console.error("Error creating chat message:", error);
+    logger.error('Error creating chat message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create chat message" };
   }
 }
@@ -78,7 +79,7 @@ export async function getTeamMessages(teamId: string, limit: number = 50, offset
 
     return { success: true, messages: messages.reverse() }; // Reverse to get chronological order
   } catch (error) {
-    console.error("Error fetching team messages:", error);
+    logger.error('Error fetching team messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch team messages" };
   }
 }
@@ -102,7 +103,7 @@ export async function getPrivateMessages(userId: string, otherUserId: string, li
 
     return { success: true, messages: messages.reverse() };
   } catch (error) {
-    console.error("Error fetching private messages:", error);
+    logger.error('Error fetching private messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch private messages" };
   }
 }
@@ -139,7 +140,7 @@ export async function markMessageAsRead(messageId: string, userId: string) {
 
     return { success: true, message: message.toObject() };
   } catch (error) {
-    console.error("Error marking message as read:", error);
+    logger.error('Error marking message as read:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to mark message as read" };
   }
 }
@@ -166,7 +167,7 @@ export async function deleteMessage(messageId: string, userId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error deleting message:", error);
+    logger.error('Error deleting message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to delete message" };
   }
 }
@@ -209,7 +210,7 @@ export async function addReaction(messageId: string, userId: string, emoji: stri
 
     return { success: true, message: message.toObject() };
   } catch (error) {
-    console.error("Error adding reaction:", error);
+    logger.error('Error adding reaction:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to add reaction" };
   }
 }
@@ -227,7 +228,7 @@ export async function getUnreadMessageCount(userId: string, teamId: string) {
 
     return { success: true, count };
   } catch (error) {
-    console.error("Error getting unread count:", error);
+    logger.error('Error getting unread count:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to get unread count" };
   }
 }

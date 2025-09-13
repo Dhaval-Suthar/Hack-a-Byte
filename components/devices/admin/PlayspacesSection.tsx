@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Playspace } from "./shared-types";
+import { logger } from '@/lib/logger';
 
 interface PlayspacesSectionProps {
   plays: Playspace[];
@@ -39,7 +40,7 @@ export default function PlayspacesSection({
       setFormData({ name: "", description: "" });
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Failed to create playspace:", error);
+      logger.error('Failed to create playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -51,7 +52,7 @@ export default function PlayspacesSection({
       setEditingPlayspace(null);
       setFormData({ name: "", description: "" });
     } catch (error) {
-      console.error("Failed to update playspace:", error);
+      logger.error('Failed to update playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

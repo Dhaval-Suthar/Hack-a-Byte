@@ -12,3 +12,5 @@ export function generateMacAddress() {
 
   return macAddress;
 }
+
+

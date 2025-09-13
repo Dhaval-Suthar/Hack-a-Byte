@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap } from "leaflet";
+import { logger } from '@/lib/logger';
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {
@@ -85,7 +86,7 @@ const MapApp: React.FC<MapAppProps> = ({}) => {
       }
       return "Unknown Location";
     } catch (error) {
-      console.error("Reverse geocoding error:", error);
+      logger.error('Reverse geocoding error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       return "Unknown Location";
     }
   };
@@ -113,8 +114,8 @@ const MapApp: React.FC<MapAppProps> = ({}) => {
           // Fly to the new location if map is available
           mapRef.current?.flyTo([newLocation.lat, newLocation.lng]);
         },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async (error) => {
-          console.log("Geolocation error:", error);
           // Fallback to Borivali West, Mumbai
           const fallbackLocation = { lat: 19.2307, lng: 72.8567 };
           setUserLocation(fallbackLocation);

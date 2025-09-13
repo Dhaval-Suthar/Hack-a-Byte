@@ -2,7 +2,7 @@ import handler from '@/pages/api/game/end';
 import GameSession from '@/models/GameSession';
 import connectDb from '@/db/connectDb';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.setTimeout(30000);

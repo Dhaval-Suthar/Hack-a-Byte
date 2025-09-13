@@ -14,16 +14,19 @@ export type NextApiResponseServerIo = NextApiResponse & {
 };
 
 export const initSocket = (httpServer: NetServer) => {
-  console.log('🔌 Initializing Socket.IO server...');
   const io = new ServerIO(httpServer, {
     path: '/api/socketio',
     cors: {
       origin: '*',
       methods: ['GET', 'POST'],
     },
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
-  console.log('🔌 Socket.IO server created with path: /api/socketio');
+
+  // Expose server IO globally for internal emitters (e.g., background schedulers)
+  (globalThis as unknown as { __serverIo?: ServerIO }).__serverIo = io;
 
   // Store connected clients by playspaceId
   const clientsByPlayspace = new Map<string, Set<string>>();
@@ -33,8 +36,6 @@ export const initSocket = (httpServer: NetServer) => {
   const clientsByUser = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
-    console.log('🔌 Client connected:', socket.id);
-    console.log('🔌 Total connected clients:', io.sockets.sockets.size);
 
     // Helper: emit to a playspace room with standard envelope
     const emitToPlayspace = (playspaceId: string, event: string, payload: Record<string, unknown>) => {
@@ -44,8 +45,6 @@ export const initSocket = (httpServer: NetServer) => {
     // Join playspace room
     socket.on('join-playspace', (playspaceId: string) => {
       socket.join(playspaceId);
-      console.log(`Client ${socket.id} joined playspace: ${playspaceId}`);
-      console.log('Clients in room', playspaceId, ':', io.sockets.adapter.rooms.get(playspaceId)?.size || 0);
 
       // Track clients by playspace
       if (!clientsByPlayspace.has(playspaceId)) {
@@ -56,9 +55,12 @@ export const initSocket = (httpServer: NetServer) => {
 
     // Join team room for team-based features
     socket.on('join-team', async (teamId: string) => {
-      socket.join(`team-${teamId}`);
-      console.log(`🔌 Client ${socket.id} joined team: ${teamId}`);
-      console.log(`🔌 Clients in team-${teamId}:`, io.sockets.adapter.rooms.get(`team-${teamId}`)?.size || 0);
+      const roomName = `team-${teamId}`;
+      // If already in the room, skip noisy re-joins
+      if ((socket.rooms as Set<string>).has(roomName)) {
+        return;
+      }
+      socket.join(roomName);
 
       // Track clients by team
       if (!clientsByTeam.has(teamId)) {
@@ -72,15 +74,28 @@ export const initSocket = (httpServer: NetServer) => {
         const team = await Team.findById(teamId).select('teamMembers.role');
         if (team) {
           const roles = team.teamMembers.map((m: { role?: string }) => m.role).filter(Boolean);
-          io.to(`team-${teamId}`).emit('role-metadata', { teamId, roles, ts: Date.now() });
+          io.to(roomName).emit('role-metadata', { teamId, roles, ts: Date.now() });
         }
       } catch {}
+    });
+
+    // Leave team room
+    socket.on('leave-team', (teamId: string) => {
+      const roomName = `team-${teamId}`;
+      if ((socket.rooms as Set<string>).has(roomName)) {
+        socket.leave(roomName);
+      }
+      // Update tracking map
+      const set = clientsByTeam.get(teamId);
+      if (set) {
+        set.delete(socket.id);
+        if (set.size === 0) clientsByTeam.delete(teamId);
+      }
     });
 
     // Join user room for personal notifications
     socket.on('join-user', (userId: string) => {
       socket.join(`user-${userId}`);
-      console.log(`Client ${socket.id} joined user: ${userId}`);
 
       // Track clients by user
       if (!clientsByUser.has(userId)) {
@@ -92,7 +107,6 @@ export const initSocket = (httpServer: NetServer) => {
     // Join tournament room
     socket.on('join-tournament', (tournamentId: string) => {
       socket.join(`tournament-${tournamentId}`);
-      console.log(`Client ${socket.id} joined tournament: ${tournamentId}`);
     });
 
     // Handle malware attacks
@@ -103,9 +117,6 @@ export const initSocket = (httpServer: NetServer) => {
       malwareId: string;
       attackerName: string;
     }) => {
-      console.log('Malware attack received on server:', data);
-      console.log('Socket rooms:', Array.from(socket.rooms));
-      console.log('Clients in playspace:', clientsByPlayspace.get(data.attackerPlayspaceId)?.size || 0);
 
       // Broadcast attack to all clients in the same playspace (except attacker)
       socket.to(data.attackerPlayspaceId).emit('incoming-attack', {
@@ -119,23 +130,36 @@ export const initSocket = (httpServer: NetServer) => {
         timestamp: Date.now(),
       });
 
-      console.log('Attack broadcasted to playspace:', data.attackerPlayspaceId);
     });
 
-    // Handle attack effects
+    // Handle attack effects (playspace-wide or team-scoped)
     socket.on('attack-effect', (data: {
-      playspaceId: string;
+      playspaceId?: string;
+      teamId?: string;
       effect: string;
       severity: 'low' | 'medium' | 'high' | 'critical';
       duration?: number;
     }) => {
-      console.log('Attack effect triggered:', data);
 
-      // Broadcast effect to all clients in playspace
-      io.to(data.playspaceId).emit('global-effect', {
-        ...data,
-        timestamp: Date.now(),
-      });
+      if (data.teamId) {
+        // Team-scoped effect
+        const room = `team-${data.teamId}`;
+        io.to(room).emit('global-effect', {
+          ...data,
+          scope: 'team',
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
+      if (data.playspaceId) {
+        // Playspace-wide effect (legacy/default)
+        io.to(data.playspaceId).emit('global-effect', {
+          ...data,
+          scope: 'playspace',
+          timestamp: Date.now(),
+        });
+      }
     });
 
     // Handle tournament updates
@@ -145,7 +169,6 @@ export const initSocket = (httpServer: NetServer) => {
       message: string;
       data?: Record<string, unknown>;
     }) => {
-      console.log('Tournament update:', data);
 
       // Broadcast to all clients in tournament room
       io.to(`tournament-${data.tournamentId}`).emit('tournament-notification', {
@@ -162,8 +185,6 @@ export const initSocket = (httpServer: NetServer) => {
       senderName: string;
       type?: string;
     }) => {
-      console.log('📨 Team message received:', data);
-      console.log('📨 Broadcasting to room:', `team-${data.teamId}`);
 
       // Broadcast to all clients in team room (except sender)
       socket.to(`team-${data.teamId}`).emit('new-message', {
@@ -171,7 +192,6 @@ export const initSocket = (httpServer: NetServer) => {
         timestamp: Date.now(),
       });
 
-      console.log('📨 Message broadcast complete');
     });
 
     // Handle achievement unlocks
@@ -181,7 +201,6 @@ export const initSocket = (httpServer: NetServer) => {
       achievementName: string;
       points: number;
     }) => {
-      console.log('Achievement unlocked:', data);
 
       // Broadcast to user's personal room
       io.to(`user-${data.userId}`).emit('achievement-notification', {
@@ -200,7 +219,6 @@ export const initSocket = (httpServer: NetServer) => {
       amount: number;
       description: string;
     }) => {
-      console.log('Wallet transaction:', data);
 
       // Broadcast to all clients in team room
       io.to(`team-${data.teamId}`).emit('wallet-update', {
@@ -216,7 +234,6 @@ export const initSocket = (httpServer: NetServer) => {
       message: string;
       type: string;
     }) => {
-      console.log('Notification sent:', data);
 
       // Send to user's personal room
       io.to(`user-${data.userId}`).emit('new-notification', {
@@ -233,7 +250,6 @@ export const initSocket = (httpServer: NetServer) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
 
       // Remove from all playspace tracking
       clientsByPlayspace.forEach((clients, playspaceId) => {
@@ -262,4 +278,9 @@ export const initSocket = (httpServer: NetServer) => {
   });
 
   return io;
+};
+
+// Helper to access the Socket.IO server instance outside API routes (may be undefined until /api/socketio initializes)
+export const getServerIo = (): ServerIO | undefined => {
+  return (globalThis as unknown as { __serverIo?: ServerIO }).__serverIo;
 };

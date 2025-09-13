@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import SponsorContact from "@/models/SponsorContact";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 export interface SponsorContactFormData {
   companyName: string;
@@ -86,7 +87,7 @@ export async function submitSponsorContact(
       },
     };
   } catch (error) {
-    console.error("Error submitting sponsor contact:", error);
+    logger.error('Error submitting sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -132,7 +133,7 @@ export async function getSponsorContacts(
       data: serializedContacts,
     };
   } catch (error) {
-    console.error("Error fetching sponsor contacts:", error);
+    logger.error('Error fetching sponsor contacts:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -195,7 +196,7 @@ export async function updateSponsorContactStatus(
       },
     };
   } catch (error) {
-    console.error("Error updating sponsor contact:", error);
+    logger.error('Error updating sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -247,7 +248,7 @@ export async function deleteSponsorContact(
       },
     };
   } catch (error) {
-    console.error("Error deleting sponsor contact:", error);
+    logger.error('Error deleting sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,

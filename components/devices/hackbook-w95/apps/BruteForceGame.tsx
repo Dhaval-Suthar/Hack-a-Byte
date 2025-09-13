@@ -7,6 +7,7 @@ import GameDifficultyManager from "../hooks/useGameDifficulty";
 import gameScoring, { GameScoringManager } from "../hooks/useGameScoring";
 import { useGameFailureHandler } from "../hooks/useGameFailureHandler";
 import Win95Alert from "../Win95Alert";
+import { logger } from '@/lib/logger';
 
 interface BruteForceGameProps {
   onSuccess: (password: string) => void;
@@ -131,7 +132,7 @@ const BruteForceGame: React.FC<BruteForceGameProps> = ({
           return;
       }
     } catch (error) {
-      console.error("Sound error:", error);
+      logger.error('Sound error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, []);
 

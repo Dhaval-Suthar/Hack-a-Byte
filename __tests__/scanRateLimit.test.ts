@@ -3,13 +3,13 @@ import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import Device from '@/models/Device';
 import { createMocks } from 'node-mocks-http';
-import { cleanupMemoryMongo } from './testMongoMemory';
+import { cleanupMemoryMongo } from '../lib/mongoMemoryServer';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.setTimeout(30000);
 
 describe('professor scan rate limit', () => {
-  let teamId: string; let deviceId: string;
+  let teamId: string;
   beforeAll(async () => {
     await connectDb();
     const dev = await Device.create({
@@ -35,7 +35,7 @@ describe('professor scan rate limit', () => {
       }
     });
     const team = await Team.create({ name:'ProfTeam', description:'p', numberOfPlayers:1, deviceId: dev._id, wallet:{ walletAddress:'wp', privateKey:'kp', bitcoinBalance:0 }, teamMembers:[{ username:'prof', role:'professor', accessCodeUsed:true }] });
-    teamId = team._id.toString(); deviceId = dev._id.toString();
+    teamId = team._id.toString();
   });
   afterAll(async () => { await cleanupMemoryMongo(); });
   it('allows first two scans then rate limits third', async () => {

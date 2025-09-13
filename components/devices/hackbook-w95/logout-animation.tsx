@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import audioManager from "./hooks/useAudioManager";
+import { logger } from '@/lib/logger';
 
 interface LogoutAnimationProps {
   username: string;
@@ -23,7 +24,7 @@ const LogoutAnimation: React.FC<LogoutAnimationProps> = ({ username, onComplete 
     try {
       audioManager.playSound("/hackbook-W95/sounds/shutdown.mp3", 0.7);
     } catch (error) {
-      console.error("Audio error:", error);
+      logger.error('Audio error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
 
     // Start the sequence

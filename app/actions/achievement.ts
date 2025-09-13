@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import AchievementModel, { UserAchievementModel } from "@/models/Achievement";
 import DeviceUser from "@/models/DeviceUser";
+import { logger } from '@/lib/logger';
 
 // Backwards-compat mapping from legacy test shape -> current canonical schema
 // Tests supply: { name, description, icon, category, rarity, requirements: { wins: 1 }, rewards: { bitcoin }, isActive }
@@ -47,7 +48,7 @@ export async function createAchievement(data: LegacyAchievementInput) {
   const achievement = await AchievementModel.create(normalized as Record<string, unknown>);
   return { success: true, achievement: achievement.toObject() };
   } catch (error) {
-    console.error("Error creating achievement:", error);
+    logger.error('Error creating achievement:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to create achievement" };
   }
 }
@@ -72,7 +73,7 @@ export async function getAchievements(category?: string, isActive: boolean = tru
     }));
     return { success: true, achievements: mapped };
   } catch (error) {
-    console.error("Error fetching achievements:", error);
+    logger.error('Error fetching achievements:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch achievements" };
   }
 }
@@ -131,7 +132,7 @@ export async function unlockAchievement(userId: string, achievementId: string) {
   const plain = userAchievement.toObject();
   return { success: true, achievement: { ...plain, userId: plain.userId?.toString(), achievementId: plain.achievementId?.toString() } };
   } catch (error) {
-    console.error("Error unlocking achievement:", error);
+    logger.error('Error unlocking achievement:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to unlock achievement" };
   }
 }
@@ -161,7 +162,7 @@ export async function getUserAchievements(userId: string) {
       };
     }) };
   } catch (error) {
-    console.error("Error fetching user achievements:", error);
+    logger.error('Error fetching user achievements:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch user achievements" };
   }
 }
@@ -210,7 +211,7 @@ export async function checkAchievementProgress(userId: string, achievementId: st
       achievement: achievement.toObject()
     };
   } catch (error) {
-    console.error("Error checking achievement progress:", error);
+    logger.error('Error checking achievement progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to check achievement progress" };
   }
 }
@@ -224,7 +225,7 @@ export async function getAchievementStats() {
 
     return { success: true, stats };
   } catch (error) {
-    console.error("Error fetching achievement stats:", error);
+    logger.error('Error fetching achievement stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to fetch achievement stats" };
   }
 }

@@ -5,6 +5,7 @@ import DeviceUser from "@/models/DeviceUser";
 import Device from "@/models/Device";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { logger } from '@/lib/logger';
 
 // Create a new device user
 export async function createDeviceUser(
@@ -20,7 +21,8 @@ export async function createDeviceUser(
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      logger.warn('Device lookup by ObjectId failed, trying MAC address:', { error });
       // If ObjectId lookup fails, try MAC address lookup
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }
@@ -93,7 +95,7 @@ export async function createDeviceUser(
       }
     };
   } catch (error) {
-    console.error("Error creating device user:", error);
+    logger.error('Error creating device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create device user" };
   }
 }
@@ -163,7 +165,7 @@ export async function loginDeviceUser(
       }
     };
   } catch (error) {
-    console.error("Error logging in device user:", error);
+    logger.error('Error logging in device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to log in device user" };
   }
 }
@@ -211,7 +213,7 @@ export async function getDeviceUser(
       }
     };
   } catch (error) {
-    console.error("Error getting device user:", error);
+    logger.error('Error getting device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { isLoggedIn: false, error: "Failed to verify user session" };
   }
 }
@@ -244,7 +246,8 @@ export async function getUsersByDeviceId(deviceId: string) {
     let device;
     try {
       device = await Device.findById(deviceId);
-    } catch {
+    } catch (error) {
+      logger.warn('Device lookup by ObjectId failed, trying MAC address:', { error });
       // If ObjectId lookup fails, try MAC address lookup
       device = await Device.findOne({ deviceMacAddress: deviceId });
     }
@@ -267,7 +270,7 @@ export async function getUsersByDeviceId(deviceId: string) {
       }))
     };
   } catch (error) {
-    console.error("Error fetching users for device:", error);
+    logger.error('Error fetching users for device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       error: "Failed to fetch users for device",
       details: error instanceof Error ? error.message : String(error)

@@ -296,7 +296,6 @@ const UntangleNeuralNetwork: React.FC<UntangleNeuralNetworkProps> = ({
     setCompletionTime(null);
     
     // Debug: Log puzzle generation info
-    console.log(`Generated puzzle with ${nodeCount} nodes, ${newConnections.length} connections, hasIntersections: ${hasIntersections}`);
   }, [getDifficultyConfig]);
 
   // Listen for difficulty changes

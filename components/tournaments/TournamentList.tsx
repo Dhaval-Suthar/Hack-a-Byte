@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getTournaments, registerTeamForTournament, createTournament } from "@/app/actions/tournament";
+import { logger } from '@/lib/logger';
 
 interface TournamentResponse {
   _id: string;
@@ -104,7 +105,7 @@ export function TournamentList() {
         setError(result.error || 'Failed to load tournaments');
       }
     } catch (err) {
-      console.error('Failed to load tournaments:', err);
+      logger.error('Failed to load tournaments:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError('Failed to load tournaments');
     } finally {
       setLoading(false);
@@ -123,7 +124,7 @@ export function TournamentList() {
         alert(result.error || 'Failed to join tournament');
       }
     } catch (err) {
-      console.error('Failed to join tournament:', err);
+      logger.error('Failed to join tournament:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to join tournament');
     }
   };
@@ -227,7 +228,7 @@ function CreateTournamentForm({ onClose, onSuccess }: CreateTournamentFormProps)
         alert(result.error || 'Failed to create tournament');
       }
     } catch (err) {
-      console.error('Failed to create tournament:', err);
+      logger.error('Failed to create tournament:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       alert('Failed to create tournament');
     } finally {
       setLoading(false);

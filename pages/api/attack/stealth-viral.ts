@@ -1,77 +1,233 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { assertRoleAccess } from '@/lib/role-access';
-import { emitRoom } from '@/lib/emitter';
-import { roleForbidden, methodNotAllowed, badRequest, notFound } from '@/lib/api-errors';
+import { redisRateLimit } from '@/lib/redisRateLimit';
+import { emitScoped } from '@/lib/emitter';
 
-// In-memory active virus instances keyed by playspace or device
-interface ViralInstance { spawned: number; clicksRequired: number; clicks: number; expires: number; }
-const active: Record<string, ViralInstance> = {};
-
-// Helper to emit socket events if socket server available
-// Lightweight emitter with loose typing (payload kept generic)
-// Debounce map for progress events
-const lastProgressEmit: Record<string, number> = {};
-function progressEmit(res: NextApiResponse, targetKey: string, event: string, payload: Record<string, unknown>) {
-  const now = Date.now();
-  const key = `${targetKey}:${event}`;
-  if (event.includes('progress')) {
-    if (lastProgressEmit[key] && now - lastProgressEmit[key] < 300) return; // 300ms throttle
-    lastProgressEmit[key] = now;
-  }
-  emitRoom(res, event, payload);
+// In-memory state for StealthViral attacks
+interface StealthViralState {
+  targetKey: string;
+  clicksRequired: number;
+  clicks: number;
+  spawned: number;
+  defeated: boolean;
+  attackerTeamId?: string;
+  lastProgress: number;
 }
+
+const stealthStates: Record<string, StealthViralState> = {};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { targetKey } = req.query as { targetKey?: string };
-  if (!targetKey) return badRequest(res, 'Missing targetKey');
+  if (!targetKey) return res.status(400).json({ success: false, error: 'Missing targetKey' });
 
-  // GET: Fetch current infection status (for defender polling / initial UI load)
-  if (req.method === 'GET') {
-    const inst = active[targetKey];
-  if (!inst) return notFound(res, 'No active infection');
-    if (Date.now() > inst.expires) {
-      delete active[targetKey];
-      return res.status(410).json({ success: false, error: 'Expired' });
+  if (req.method === 'POST') {
+    // Launch StealthViral attack
+    const attackerTeamId = req.headers['x-team-id'] as string;
+    const targetTeamId = req.headers['x-target-team-id'] as string | undefined;
+    if (!targetTeamId) return res.status(400).json({ success: false, error: 'Missing x-target-team-id header' });
+    const redisRL = await redisRateLimit(`stealth-viral:${attackerTeamId || 'anon'}`, 3, 120_000);
+    if (!redisRL.allowed) return res.status(429).json({ success: false, error: 'Rate limit', reset: redisRL.reset });
+
+    // Check if already active
+    if (stealthStates[targetKey] && !stealthStates[targetKey].defeated) {
+      return res.status(409).json({ success: false, error: 'StealthViral already active on target' });
     }
-    return res.status(200).json({ success: true, clicks: inst.clicks, clicksRequired: inst.clicksRequired, remainingMs: inst.expires - Date.now() });
-  }
 
-    if (req.method === 'POST') {
-      const teamId = req.headers['x-team-id'] as string | undefined;
-      if (teamId) {
-        try { await assertRoleAccess(teamId, 'worm-phish'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'worm-phish' }); }
-      }
-    // Start a new stealth viral mini-game instance
-    active[targetKey] = {
-      spawned: Date.now(),
-      clicksRequired: 6 + Math.floor(Math.random() * 5),
+    // Create new attack
+    const clicksRequired = Math.floor(Math.random() * 50) + 30; // 30-80 clicks
+    stealthStates[targetKey] = {
+      targetKey,
+      clicksRequired,
       clicks: 0,
-      expires: Date.now() + 10_000, // 10s to defeat
+      spawned: Date.now(),
+      defeated: false,
+      attackerTeamId,
+      lastProgress: Date.now()
     };
-  emitRoom(res, 'malware-stealth-viral-spawn', { targetKey, clicksRequired: active[targetKey].clicksRequired });
-  return res.status(200).json({ success: true, instance: active[targetKey] });
+
+    // Emit spawn event to target team only (defenders) and attacker team
+    emitScoped(res, {
+      scope: 'team',
+      id: targetTeamId,
+      event: 'malware-stealth-viral-spawn',
+      payload: { targetKey, clicksRequired }
+    });
+    if (attackerTeamId) {
+      emitScoped(res, {
+        scope: 'team',
+        id: attackerTeamId,
+        event: 'malware-stealth-viral-spawn',
+        payload: { targetKey, clicksRequired, role: 'attacker' }
+      });
+    }
+
+    // Kick off periodic random popup emission (server-driven) for first 60s
+    const popupInterval = setInterval(() => {
+      const state = stealthStates[targetKey];
+      if (!state || state.defeated) { clearInterval(popupInterval); return; }
+      // Emit a batch of 1-3 popup nodes with random positions (client clamps to viewport)
+      const batch = Array.from({ length: 1 + Math.floor(Math.random()*3) }).map(() => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+        x: Math.random(), // normalized 0-1
+        y: Math.random(),
+        size: 40 + Math.floor(Math.random()*70)
+      }));
+  emitScoped(res, { scope: 'team', id: targetTeamId, event: 'stealth-viral-popups', payload: { targetKey, batch } });
+    }, 2500);
+    setTimeout(() => clearInterval(popupInterval), 60_000);
+
+  // Defender notification
+  emitScoped(res, { scope: 'team', id: targetTeamId, event: 'virus-notification', payload: { targetKey, virusType: 'StealthViral', message: 'StealthViral detected! Neutralize before spread!', severity: 'warning' } });
+
+    // Auto-progress if defender doesn't act
+    setTimeout(() => {
+      const state = stealthStates[targetKey];
+      if (state && !state.defeated) {
+        // Virus wins if no defender action within 2 minutes
+        state.defeated = true;
+        emitScoped(res, { 
+          scope: 'team', 
+          id: state.attackerTeamId!, 
+          event: 'stealth-viral-victory', 
+          payload: { targetKey, outcome: 'timeout' } 
+        });
+        delete stealthStates[targetKey];
+      }
+    }, 120_000); // 2 minutes timeout
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'StealthViral deployed successfully', 
+      targetKey, 
+      clicksRequired 
+    });
+
+  } else if (req.method === 'GET') {
+    // Get current state
+    const state = stealthStates[targetKey];
+    if (!state) {
+      return res.status(200).json({ success: true, active: false });
+    }
+
+    const coveragePercent = Math.min(100, Math.floor((state.clicks / state.clicksRequired) * 100));
+    const progressPercent = 100 - coveragePercent;
+
+    return res.status(200).json({
+      success: true,
+      active: true,
+      clicks: state.clicks,
+      clicksRequired: state.clicksRequired,
+      coveragePercent,
+      progressPercent,
+      defeated: state.defeated,
+      message: state.defeated ? 'StealthViral neutralized' : 
+               coveragePercent > 80 ? 'CRITICAL - Virus spreading rapidly!' :
+               coveragePercent > 50 ? 'Virus detected - Act fast!' : 
+               'StealthViral infection detected'
+    });
+
+  } else if (req.method === 'PUT') {
+    // Defender click action
+    const targetTeamId = req.headers['x-target-team-id'] as string | undefined;
+    if (!targetTeamId) return res.status(400).json({ success: false, error: 'Missing x-target-team-id header' });
+    const state = stealthStates[targetKey];
+    if (!state) {
+      return res.status(404).json({ success: false, error: 'No active StealthViral' });
+    }
+
+    if (state.defeated) {
+      return res.status(409).json({ success: false, error: 'Already defeated' });
+    }
+
+    // Increment clicks
+    state.clicks += 1;
+    state.lastProgress = Date.now();
+    
+    const coveragePercent = Math.min(100, Math.floor((state.clicks / state.clicksRequired) * 100));
+    const progressPercent = 100 - coveragePercent;
+
+    // Check if virus wins (coverage reaches 100%)
+    if (coveragePercent >= 100) {
+      state.defeated = true;
+      // Emit progress update
+  emitScoped(res, { scope: 'team', id: targetTeamId, event: 'malware-stealth-viral-progress', payload: { targetKey, clicks: state.clicks, clicksRequired: state.clicksRequired, coveragePercent, progressPercent, message: 'TOO LATE! StealthViral has taken control!' } });
+      
+      // Notify attacker of victory
+      if (state.attackerTeamId) {
+        emitScoped(res, { 
+          scope: 'team', 
+          id: state.attackerTeamId, 
+          event: 'stealth-viral-victory', 
+          payload: { targetKey, outcome: 'success' } 
+        });
+      }
+
+      delete stealthStates[targetKey];
+      return res.status(200).json({ 
+        success: false, 
+        virusWon: true, 
+        message: 'TOO LATE! StealthViral has taken control!' 
+      });
+    }
+
+    // Check if defender wins (enough clicks)
+    if (state.clicks >= state.clicksRequired) {
+      state.defeated = true;
+      
+      // Emit defeat event
+  emitScoped(res, { scope: 'team', id: targetTeamId, event: 'malware-stealth-viral-defeated', payload: { targetKey } });
+
+      // Notify attacker of defeat
+      if (state.attackerTeamId) {
+        emitScoped(res, { 
+          scope: 'team', 
+          id: state.attackerTeamId, 
+          event: 'stealth-viral-defeat', 
+          payload: { targetKey, outcome: 'neutralized' } 
+        });
+      }
+
+      delete stealthStates[targetKey];
+      return res.status(200).json({
+        success: true,
+        defeated: true,
+        clicks: state.clicks,
+        clicksRequired: state.clicksRequired,
+        coveragePercent: 0,
+        progressPercent: 100,
+        message: 'StealthViral neutralized successfully!'
+      });
+    }
+
+    // Emit progress update
+    emitScoped(res, { 
+      scope: 'playspace', 
+      id: targetKey, 
+      event: 'malware-stealth-viral-progress', 
+      payload: { 
+        targetKey, 
+        clicks: state.clicks, 
+        clicksRequired: state.clicksRequired, 
+        coveragePercent, 
+        progressPercent,
+        message: coveragePercent > 80 ? 'CRITICAL - Virus spreading rapidly!' :
+                 coveragePercent > 50 ? 'Virus detected - Act fast!' : 
+                 'StealthViral infection detected',
+        ts: Date.now() 
+      } 
+    });
+
+    return res.status(200).json({
+      success: true,
+      clicks: state.clicks,
+      clicksRequired: state.clicksRequired,
+      coveragePercent,
+      progressPercent,
+      message: coveragePercent > 80 ? 'CRITICAL - Virus spreading rapidly!' :
+               coveragePercent > 50 ? 'Virus detected - Act fast!' : 
+               'StealthViral infection detected'
+    });
+
+  } else {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-  if (req.method === 'PUT') {
-    // Defender action: require defender/strategist role
-    const teamId = req.headers['x-team-id'] as string | undefined;
-    if (teamId) {
-      try { await assertRoleAccess(teamId, 'def-stealth'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'def-stealth' }); }
-    }
-    const inst = active[targetKey];
-  if (!inst) return notFound(res, 'No active infection');
-    if (Date.now() > inst.expires) {
-      delete active[targetKey];
-      return res.status(410).json({ success: false, error: 'Expired', defeated: false });
-    }
-    inst.clicks += 1;
-    const defeated = inst.clicks >= inst.clicksRequired;
-    if (defeated) {
-      delete active[targetKey];
-  emitRoom(res, 'malware-stealth-viral-defeated', { targetKey });
-    } else {
-  progressEmit(res, targetKey, 'malware-stealth-viral-progress', { targetKey, clicks: inst.clicks, clicksRequired: inst.clicksRequired });
-    }
-    return res.status(200).json({ success: true, defeated, clicks: inst.clicks, clicksRequired: inst.clicksRequired, remainingMs: inst.expires - Date.now() });
-  }
-  return methodNotAllowed(res);
 }

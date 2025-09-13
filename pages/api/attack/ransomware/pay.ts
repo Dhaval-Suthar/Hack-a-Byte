@@ -1,9 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
-import { activeRansomDemands } from '../ransomware';
 import { withRedis } from '@/lib/redis';
 import { emitScoped } from '@/lib/emitter';
+
+// Fallback storage for ransom demands when Redis is disabled
+interface RansomDemand { targetKey: string; demand: number; windowMs: number; ts: number; attackerTeamId?: string; expires: number; paid?: boolean }
+const g = global as unknown as { __activeRansomDemands?: Record<string, RansomDemand> };
+if (!g.__activeRansomDemands) g.__activeRansomDemands = {};
+const activeRansomDemands = g.__activeRansomDemands;
 
 async function getDemand(key: string) {
   const redisRec = await withRedis(async r => {

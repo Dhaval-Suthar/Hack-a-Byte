@@ -101,6 +101,7 @@ describe('Tournament Actions', () => {
       await TournamentModel.create([
         {
           name: 'Active Tournament',
+          description: 'An active tournament',
           status: 'active',
           maxTeams: 8,
           entryFee: 0.001,
@@ -113,6 +114,7 @@ describe('Tournament Actions', () => {
         },
         {
           name: 'Registration Tournament',
+          description: 'A tournament open for registration',
           status: 'registration_open',
           maxTeams: 16,
           entryFee: 0.002,

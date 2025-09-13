@@ -5,6 +5,7 @@ import AccessCode, { AccessCodeType } from "@/models/AccessCode";
 import Playspace from "@/models/Playspace";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
@@ -71,7 +72,7 @@ export async function getAccessCodes(adminKey?: string) {
 
     return { accessCodes: safeAccessCodes };
   } catch (error) {
-    console.error("Error fetching access codes:", error);
+    logger.error('Error fetching access codes:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch access codes" };
   }
 }
@@ -147,7 +148,7 @@ export async function generateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error generating access code:", error);
+    logger.error('Error generating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to generate access code" };
   }
 }
@@ -229,7 +230,7 @@ export async function createCustomAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error creating custom access code:", error);
+    logger.error('Error creating custom access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create custom access code" };
   }
 }
@@ -274,7 +275,7 @@ export async function toggleAccessCodeStatus(codeId: string, isActive: boolean, 
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
   }
 }
@@ -302,7 +303,7 @@ export async function deleteAccessCode(codeId: string, adminKey?: string) {
       message: "Access code deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting access code:", error);
+    logger.error('Error deleting access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete access code" };
   }
 }
@@ -391,7 +392,7 @@ export async function updateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
   }
 }
@@ -448,7 +449,7 @@ export async function linkAccessCodeToPlayspace(codeId: string, playspaceId: str
       },
     };
   } catch (error) {
-    console.error("Error linking access code to playspace:", error);
+    logger.error('Error linking access code to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to link access code to playspace" };
   }
 }

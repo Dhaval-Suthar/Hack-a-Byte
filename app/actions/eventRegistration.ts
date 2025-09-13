@@ -6,6 +6,7 @@ import EventRegistration from "@/models/EventRegistration";
 import { AccessCode } from "@/models/AccessCode";
 import { completeRegistrationPipeline } from "@/lib/event-registration";
 import { sendAccessCodeEmail } from "@/lib/nodemailer";
+import { logger } from '@/lib/logger';
 
 export interface EventRegistrationData {
   eventId: number;
@@ -44,7 +45,8 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
     if (eventObjectId) {
       try {
         event = await Event.findById(eventObjectId);
-      } catch {
+      } catch (error) {
+        logger.error('Error finding event by ObjectId:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         return { success: false, error: "Invalid event id" };
       }
     } else {
@@ -59,6 +61,14 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
       return { 
         success: false, 
         error: "Event not found" 
+      };
+    }
+
+    // Check if registration is enabled for this event
+    if (event.registrationEnabled === false) {
+      return {
+        success: false,
+        error: "Registration is currently disabled for this event"
       };
     }
 
@@ -110,7 +120,7 @@ export async function registerForEvent(data: EventRegistrationData): Promise<Eve
     };
     
   } catch (error: unknown) {
-    console.error("Event registration error:", error);
+    logger.error('Event registration error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
   // Duplicate key is unlikely since we allow multiple registrations; keep generic message
     
@@ -150,7 +160,7 @@ export async function unregisterFromEvent(eventId: number, email: string) {
     };
     
   } catch (error: unknown) {
-    console.error("Event unregistration error:", error);
+    logger.error('Event unregistration error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       success: false, 
       error: "Failed to unregister from event. Please try again." 
@@ -183,7 +193,7 @@ export async function checkRegistrationStatus(eventId: number, email: string) {
     };
     
   } catch (error: unknown) {
-    console.error("Check registration status error:", error);
+    logger.error('Check registration status error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       success: false, 
       isRegistered: false 
@@ -202,7 +212,7 @@ export async function getEventRegistrationCount(eventId: number) {
     };
     
   } catch (error: unknown) {
-    console.error("Get registration count error:", error);
+    logger.error('Get registration count error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       success: false, 
   totalRegistrations: 0
@@ -238,7 +248,7 @@ export async function getAllEventsWithRegistrationCounts() {
     };
     
   } catch (error: unknown) {
-    console.error("Get all events registration counts error:", error);
+    logger.error('Get all events registration counts error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       success: false, 
       registrationCounts: {}
@@ -306,7 +316,7 @@ export async function resendAccessCode(registrationId: string): Promise<EventReg
     }
     
   } catch (error: unknown) {
-    console.error("Resend access code error:", error);
+    logger.error('Resend access code error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       success: false,
       error: "Failed to resend access code. Please try again."
@@ -359,7 +369,7 @@ export async function getRegistrationDetails(registrationId: string) {
     };
     
   } catch (error: unknown) {
-    console.error("Get registration details error:", error);
+    logger.error('Get registration details error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       success: false,
       error: "Failed to fetch registration details"

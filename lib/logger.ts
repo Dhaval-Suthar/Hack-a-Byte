@@ -93,16 +93,46 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, additionalContext?: Record<string, unknown>, error?: Error) {
+    // Safely handle the context to avoid circular references
+    let safeContext: Record<string, unknown> = {};
+    try {
+      safeContext = { ...this.context };
+      if (additionalContext) {
+        safeContext = { ...safeContext, ...additionalContext };
+      }
+    } catch {
+      safeContext = { contextError: 'Failed to merge context' };
+    }
+
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
-      context: { ...this.context, ...additionalContext },
-      error,
+      context: safeContext,
+      error: error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : undefined,
     };
 
-    // Log to console directly
-    console[level](message, logEntry);
+    // Log to console directly with safe method call
+    switch (level) {
+      case 'error':
+        console.error(message, logEntry);
+        break;
+      case 'warn':
+        console.warn(message, logEntry);
+        break;
+      case 'info':
+        console.info(message, logEntry);
+        break;
+      case 'debug':
+        console.debug(message, logEntry);
+        break;
+      default:
+        console.log(`[${(level as string).toUpperCase()}] ${message}`, logEntry);
+    }
 
     // In development, also log to console with colors
     if (process.env.NODE_ENV === 'development') {

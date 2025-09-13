@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getUserProgress } from '@/app/actions/userProgress';
 import { UserGameState } from '@/models/DeviceUser';
+import { logger } from '@/lib/logger';
 
 interface UserProgressDisplayProps {
   className?: string;
@@ -34,7 +35,7 @@ export function UserProgressDisplay({ className = "" }: UserProgressDisplayProps
         }
       } catch (error) {
         setError('Error loading user progress');
-        console.error('Error loading user progress:', error);
+        logger.error('Error loading user progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       } finally {
         setLoading(false);
       }

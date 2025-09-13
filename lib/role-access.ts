@@ -10,17 +10,18 @@ const EXTRACTORS = ['nairobi','denver'];
 
 // App -> allowed roles mapping (lowercase)
 export const SERVER_APP_ACCESS: Record<string,string[]> = {
-  'worm-phish': ATTACKERS,
-  'faucet': ATTACKERS,
+  // Faucet available to attackers & extractors (browsing/collection loop)
+  'faucet': [...ATTACKERS, ...EXTRACTORS],
   'email-sms': ATTACKERS,
   'appStore': ATTACKERS,
   'stocks': STRATEGIST,
-  'def-stealth': DEFENDERS,
-  'def-ransom': DEFENDERS,
   'security': [...DEFENDERS, ...STRATEGIST],
-  'bank-status': [...DEFENDERS, ...STRATEGIST],
   'prof-scan': STRATEGIST,
   'fakebank': ATTACKERS,
+  'recon': ATTACKERS,
+  'systrojan': ATTACKERS,
+  'systemlock': ATTACKERS,
+  'resolve': ATTACKERS,
   'end-game': STRATEGIST,
   'mining': EXTRACTORS,
   'top-wallets': [...STRATEGIST, ...ATTACKERS, ...EXTRACTORS, ...DEFENDERS],

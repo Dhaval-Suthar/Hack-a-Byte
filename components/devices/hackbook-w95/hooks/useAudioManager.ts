@@ -26,9 +26,8 @@ class AudioManager {
       try {
         const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         this.audioContext = new AudioContextClass();
-        console.log('Audio system initialized - sounds will now play normally');
-      } catch (error) {
-        console.log('AudioContext not supported:', error);
+      } catch {
+        // Ignore audio context creation errors
       }
       
       // Play any pending sounds
@@ -79,12 +78,12 @@ class AudioManager {
       const playPromise = audio.play();
       
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log('Audio play failed (this is normal if user hasn\'t interacted yet):', error.message);
+        playPromise.catch(() => {
+          // Ignore play promise rejection
         });
       }
-    } catch (error) {
-      console.log('Audio error:', error);
+    } catch {
+      // Ignore audio play errors
     }
   }
 

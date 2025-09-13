@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import clsx from "clsx";
 import useFileSystem, { FileSystemItem } from "@/components/devices/hackbook-w95/hooks/useFileSystem";
+import { logger } from '@/lib/logger';
 
 interface MyComputerProps {
   onClose: () => void;
@@ -40,7 +41,7 @@ const MyComputer: React.FC<MyComputerProps> = ({ onClose, isE95 = false }) => {
         const showHidden = userStorage.getItem('showHiddenFiles', false) as boolean;
         setShowHiddenFiles(showHidden === true);
       } catch (error) {
-        console.error('Error loading hidden files setting:', error);
+        logger.error('Error loading hidden files setting:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
     

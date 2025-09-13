@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { userStorage } from './useUserStorage';
+import { logger } from '@/lib/logger';
 
 export interface Mission {
   id: string;
@@ -30,7 +31,7 @@ export function useMissionTracker() {
       setMissions(savedMissions);
       setLoaded(true);
     } catch (error) {
-      console.error('Error loading missions:', error);
+      logger.error('Error loading missions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setLoaded(true);
     }
   }, []);
@@ -42,7 +43,7 @@ export function useMissionTracker() {
     try {
       userStorage.setItem('win95Missions', missions);
     } catch (error) {
-      console.error('Error saving missions:', error);
+      logger.error('Error saving missions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   }, [missions, loaded]);
   

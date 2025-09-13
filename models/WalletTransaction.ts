@@ -60,14 +60,12 @@ const WalletTransactionSchema = new Schema<WalletTransaction>(
   {
     walletAddress: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Team',
-      required: true,
-      index: true
+      required: true
     },
     gameSessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'GameSession' },
     tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament' },
@@ -148,13 +146,11 @@ const WalletTransactionSchema = new Schema<WalletTransaction>(
 );
 
 // Indexes
-WalletTransactionSchema.index({ teamId: 1, createdAt: -1 });
-WalletTransactionSchema.index({ walletAddress: 1, createdAt: -1 });
+// Note: teamId, walletAddress, and reference already have indexes from field definitions
 WalletTransactionSchema.index({ type: 1 });
 WalletTransactionSchema.index({ status: 1 });
 WalletTransactionSchema.index({ gameSessionId: 1 });
 WalletTransactionSchema.index({ tournamentId: 1 });
-WalletTransactionSchema.index({ reference: 1 }, { unique: true });
 
 // Compound indexes for common queries
 WalletTransactionSchema.index({ teamId: 1, type: 1, createdAt: -1 });

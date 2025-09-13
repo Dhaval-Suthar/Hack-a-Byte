@@ -4,6 +4,17 @@ import AchievementModel, { UserAchievementModel } from '@/models/Achievement';
 import DeviceUser from '@/models/DeviceUser';
 import { createAchievement, getAchievements, unlockAchievement, getUserAchievements, checkAchievementProgress, getAchievementStats } from '@/app/actions/achievement';
 
+// Type definition for the mapped achievement object
+interface MappedAchievement {
+  _id: unknown;
+  __v: number;
+  name: string;
+  rarity: string;
+  requirements: Record<string, unknown>;
+  unlockedCount: number;
+  [key: string]: unknown;
+}
+
 describe('Achievement Actions', () => {
   beforeEach(async () => {
     await connectDb();
@@ -139,8 +150,8 @@ describe('Achievement Actions', () => {
 
       expect(result.success).toBe(true);
       expect(result.achievements).toHaveLength(2);
-      expect(result.achievements?.[0].rarity).toBe('rare'); // Sorted by rarity desc
-      expect(result.achievements?.[1].rarity).toBe('common');
+      expect((result.achievements?.[0] as MappedAchievement).rarity).toBe('rare'); // Sorted by rarity desc
+      expect((result.achievements?.[1] as MappedAchievement).rarity).toBe('common');
     });
 
     it('should filter by category', async () => {
@@ -148,7 +159,7 @@ describe('Achievement Actions', () => {
 
       expect(result.success).toBe(true);
       expect(result.achievements).toHaveLength(1);
-      expect(result.achievements?.[0].name).toBe('Social Butterfly');
+      expect((result.achievements?.[0] as MappedAchievement).name).toBe('Social Butterfly');
     });
 
     it('should include inactive achievements when requested', async () => {
@@ -171,7 +182,7 @@ describe('Achievement Actions', () => {
           gameStats: { wins: 1 },
         },
       });
-      userId = user._id.toString();
+      userId = String(user._id);
 
       const achievement = await AchievementModel.create({
         name: 'First Win',
@@ -238,7 +249,7 @@ describe('Achievement Actions', () => {
         username: 'testuser',
         email: 'test@example.com',
       });
-      userId = user._id.toString();
+      userId = String(user._id);
 
       const achievement = await AchievementModel.create({
         name: 'First Win',
@@ -269,7 +280,7 @@ describe('Achievement Actions', () => {
       expect(result.success).toBe(true);
       expect(result.achievements).toHaveLength(1);
       expect(result.achievements?.[0].userId).toBe(userId);
-      expect(result.achievements?.[0].isCompleted).toBe(true);
+      expect((result.achievements?.[0] as unknown as { isCompleted: boolean }).isCompleted).toBe(true);
     });
   });
 
@@ -285,7 +296,7 @@ describe('Achievement Actions', () => {
           gameStats: { wins: 3 },
         },
       });
-      userId = user._id.toString();
+      userId = String(user._id);
 
       // Use createAchievement action instead of direct model creation to ensure proper normalization
       const achievementData = {

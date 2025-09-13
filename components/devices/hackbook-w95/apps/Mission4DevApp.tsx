@@ -33,7 +33,6 @@ const Mission4DevApp: React.FC<Mission4DevAppProps> = ({ onClose }) => {
     setCompletedGames(prev => [...prev, completion]);
     setGameStarted(false);
     
-    console.log("Mission 4 Completed:", completion);
   };
 
   const handleGameClose = () => {

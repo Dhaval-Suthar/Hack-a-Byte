@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { submitSponsorContact, type SponsorContactFormData } from "@/app/actions/sponsor";
+import { logger } from '@/lib/logger';
 
 interface Sponsor {
   _id: string;
@@ -137,7 +138,7 @@ export default function Page() {
         }
       } catch (err) {
         setError('Network error while fetching sponsors');
-        console.error('Error fetching sponsors:', err);
+        logger.error('Error fetching sponsors:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       } finally {
         setLoading(false);
       }
@@ -184,7 +185,7 @@ export default function Page() {
     } catch (error) {
       setSubmitSuccess(false);
       setSubmitMessage('An error occurred while submitting your request. Please try again.');
-      console.error('Contact form submission error:', error);
+      logger.error('Contact form submission error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     } finally {
       setIsSubmitting(false);
     }

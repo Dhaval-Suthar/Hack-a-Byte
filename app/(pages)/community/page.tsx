@@ -26,6 +26,7 @@ import {
 } from "@/components/community";
 import { useSocket } from "@/hooks/useSocket";
 import leoProfanity from "leo-profanity";
+import { logger } from '@/lib/logger';
 
 interface Message {
   id: number;
@@ -187,7 +188,7 @@ export default function Page() {
         });
       }
     } catch (error) {
-      console.error('Failed to fetch chat messages:', error);
+      logger.error('Failed to fetch chat messages:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -212,7 +213,7 @@ export default function Page() {
         setActiveMembers([]);
       }
     } catch (error) {
-      console.error('Failed to fetch online members:', error);
+      logger.error('Failed to fetch online members:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       // Show empty list on error
       setActiveMembers([]);
     }
@@ -273,11 +274,9 @@ useEffect(() => {
     if (socket && isConnected) {
       // Join community room
       socket.emit('join-team', 'community');
-      console.log('Joined community chat room');
 
       // Listen for new messages
       socket.on('new-message', (messageData: SocketMessage) => {
-        console.log('Received socket message:', messageData);
 
         // Only add messages from other users to avoid duplicates
         if (messageData.senderName !== userName) {
@@ -301,15 +300,12 @@ useEffect(() => {
             );
 
             if (!messageExists) {
-              console.log('Adding new socket message to chat');
               return [...prev, newMessage];
             } else {
-              console.log('Socket message already exists, skipping');
               return prev;
             }
           });
         } else {
-          console.log('Ignoring own message from socket');
         }
       });
     }
@@ -337,10 +333,10 @@ useEffect(() => {
           messageType: 'text'
         }),
       }).catch(error => {
-        console.error('Failed to send message to API:', error);
+        logger.error('Failed to send message to API:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 
@@ -405,7 +401,7 @@ useEffect(() => {
         });
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
   };
 

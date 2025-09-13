@@ -1,4 +1,4 @@
-import { stopMemoryMongo } from './__tests__/testMongoMemory';
+import { stopMemoryMongo } from './lib/mongoMemoryServer';
 
 export default async function globalTeardown() {
   await stopMemoryMongo();

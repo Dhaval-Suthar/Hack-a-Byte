@@ -10,8 +10,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       // Allow all server actions (default is already true, but being explicit)
       allowedOrigins: ['*'],
-    },
   },
+  },
+  // Configure image domains and optimization
+  // Configure Turbopack to handle the same exclusions as webpack
+  // Note: Turbopack handles Node.js polyfills differently than webpack
+  turbopack: {},
   // Configure image domains and optimization
   images: {
     remotePatterns: [
@@ -27,7 +31,8 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://checkout.razorpay.com; connect-src 'self' https://va.vercel-scripts.com https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://nominatim.openstreetmap.org https://server.arcgisonline.com; img-src 'self' data: https: https://api.iconify.design https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://server.arcgisonline.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://checkout.razorpay.com https://api.razorpay.com;",
+  // Include ws/wss in connect-src to allow WebSocket connections in dev and prod
+  contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://checkout.razorpay.com; connect-src 'self' ws: wss: https://va.vercel-scripts.com https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://nominatim.openstreetmap.org https://server.arcgisonline.com; img-src 'self' data: https: https://api.iconify.design https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://server.arcgisonline.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://checkout.razorpay.com https://api.razorpay.com;",
   },
   // Static file configuration
   assetPrefix: '',

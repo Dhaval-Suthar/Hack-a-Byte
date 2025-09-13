@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const def = getMalwareDefinition(malwareType);
   if (!def) return badRequest(res, 'Unknown malwareType');
   try {
-  try { await assertRoleAccess(attackerTeamId, 'worm-phish'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'worm-phish' }); }
+  try { await assertRoleAccess(attackerTeamId, 'resolve'); } catch (e) { const err = e as { allowed?: string[] }; return roleForbidden(res, { allowed: err.allowed, appId: 'resolve' }); }
     await connectDb();
     const attacker = await Team.findById(attackerTeamId);
     const device = await Device.findById(targetDeviceId).select('status configuration.securitySettings deviceType');

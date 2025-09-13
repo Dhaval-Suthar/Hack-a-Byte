@@ -2,6 +2,7 @@
 export interface User {
   _id: string;
   username: string;
+  teamId?: string;
   role?: string;
   sessionId?: string;
   progress: {
@@ -45,6 +46,8 @@ export interface AppRouterProps {
   onAppSwitch?: (appId: string) => void;
   onOpenApp?: (appId: string) => void;
   initialPhoneNumber?: string;
+  deviceId?: string;
+  playspaceId?: string;
 }
 
 export interface HomeScreenProps {

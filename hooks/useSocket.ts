@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getPlayspaceId } from '@/lib/playspace-utils';
+import { logger } from '@/lib/logger';
 
 export interface AttackData {
   attackerPlayspaceId: string;
@@ -14,7 +15,9 @@ export interface AttackData {
 }
 
 export interface AttackEffect {
-  playspaceId: string;
+  // One of these scopes will be present
+  playspaceId?: string;
+  teamId?: string;
   effect: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   duration?: number;
@@ -64,8 +67,18 @@ export interface NotificationData {
 
 // Stealth viral + ransomware realtime events
 export interface StealthViralSpawn { targetKey: string; clicksRequired: number; ts: number; }
-export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; ts: number; }
+export interface StealthViralProgress { targetKey: string; clicks: number; clicksRequired: number; coveragePercent: number; progressPercent: number; message: string; ts: number; }
 export interface StealthViralDefeated { targetKey: string; ts: number; }
+export interface VirusNotification { targetKey: string; virusType: string; message: string; severity: 'info' | 'warning' | 'critical'; ts: number; }
+
+// CryptoLocker Elite events
+export interface CryptoLockerSpawn { sessionKey: string; targetIP: string; attackerTeamId: string; phrase: string; timeLimit: number; demand: number; expires: number; ts: number; }
+export interface CryptoLockerNeutralized { sessionKey: string; message: string; ts: number; }
+export interface CryptoLockerPaymentDemand { attackerTeamId: string; demand: number; targetIP: string; deadline: number; message: string; ts: number; }
+export interface CryptoLockerPaymentSent { amount: number; newBalance: number; message: string; ts: number; }
+export interface CryptoLockerGameOver { reason: string; demanded: number; available: number; message: string; ts: number; }
+
+// Legacy ransomware events
 export interface RansomwareSpawn { targetKey: string; phrase: string; rewardDemand: number; ts: number; }
 export interface RansomwareProgress { targetKey: string; progress: number; total: number; ts: number; }
 export interface RansomwareNeutralized { targetKey: string; ts: number; }
@@ -93,6 +106,15 @@ export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; rew
 export interface FakeBankVictimEvent { targetTeamId: string; attackerTeamId: string; windowMs: number; ts: number; }
 export interface FakeBankAttackerEvent { attackerTeamId: string; targetTeamId: string; windowMs: number; ts: number; }
 
+// --- Per-tab singleton state ---
+let sharedSocket: Socket | null = null;
+let socketRefCount = 0;
+let creatingSocket: Promise<Socket> | null = null;
+// Room join caches (dedupe joins per tab + enables auto-rejoin on reconnect)
+const joinedTeamsGlobal = new Set<string>();
+const joinedUsersGlobal = new Set<string>();
+const joinedTournamentsGlobal = new Set<string>();
+
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -106,6 +128,15 @@ export const useSocket = () => {
   const [stealthSpawns, setStealthSpawns] = useState<StealthViralSpawn[]>([]);
   const [stealthProgress, setStealthProgress] = useState<StealthViralProgress[]>([]);
   const [stealthDefeated, setStealthDefeated] = useState<StealthViralDefeated[]>([]);
+  const [virusNotifications, setVirusNotifications] = useState<VirusNotification[]>([]);
+  
+  // CryptoLocker events
+  const [cryptoLockerSpawns, setCryptoLockerSpawns] = useState<CryptoLockerSpawn[]>([]);
+  const [cryptoLockerPaymentDemands, setCryptoLockerPaymentDemands] = useState<CryptoLockerPaymentDemand[]>([]);
+  const [cryptoLockerPaymentSents, setCryptoLockerPaymentSents] = useState<CryptoLockerPaymentSent[]>([]);
+  const [cryptoLockerGameOvers, setCryptoLockerGameOvers] = useState<CryptoLockerGameOver[]>([]);
+  
+  // Legacy ransomware events
   const [ransomSpawns, setRansomSpawns] = useState<RansomwareSpawn[]>([]);
   const [ransomProgress, setRansomProgress] = useState<RansomwareProgress[]>([]);
   const [ransomNeutralized, setRansomNeutralized] = useState<RansomwareNeutralized[]>([]);
@@ -128,246 +159,444 @@ export const useSocket = () => {
   const [miningRewards, setMiningRewards] = useState<MiningRewardEvent[]>([]);
   const [fakeBankVictimEvents, setFakeBankVictimEvents] = useState<FakeBankVictimEvent[]>([]);
   const [fakeBankAttackerEvents, setFakeBankAttackerEvents] = useState<FakeBankAttackerEvent[]>([]);
-  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    console.log('useSocket hook initialized');
     // Initialize socket connection
+  let localHandlers: Array<[string, (...args: unknown[]) => void]> = [];
     const initSocket = async () => {
       if (typeof window === 'undefined') {
-        console.log('useSocket: Skipping server-side execution');
         return;
       }
 
-      console.log('useSocket: Initializing socket connection');
 
       try {
-        console.log('Initializing Socket.IO client connection to:', process.env.NODE_ENV === 'production' ? '' : window.location.origin);
-        const newSocket = io(process.env.NODE_ENV === 'production' ? '' : window.location.origin, {
-          path: '/api/socketio',
-          transports: ['websocket', 'polling'],
-        });
-        newSocket.on('mining-reward', (data: MiningRewardEvent) => {
+
+        // Create the shared socket once per tab
+        if (!sharedSocket) {
+          if (creatingSocket) {
+            await creatingSocket;
+          } else {
+            creatingSocket = (async () => {
+              // Ensure the server-side Socket.IO is initialized before connecting
+              try {
+                await fetch('/api/socketio', { method: 'GET', cache: 'no-store', keepalive: true });
+              } catch (primeErr) {
+                logger.warn('Failed to prime /api/socketio:', { error: primeErr instanceof Error ? primeErr.message : String(primeErr) });
+              }
+
+              // Add a small delay to ensure server is ready
+              await new Promise(resolve => setTimeout(resolve, 300));
+
+              const base = process.env.NODE_ENV === 'production' ? '' : window.location.origin;
+              const s = io(base, {
+                path: '/api/socketio',
+                transports: ['websocket', 'polling'],
+                timeout: 30000,
+                // Do NOT force new connections; reuse the single client
+                forceNew: false,
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 2000,
+                reconnectionDelayMax: 10000,
+                randomizationFactor: 0.5,
+              });
+
+              // Attach one-time global connection lifecycle handlers
+              s.on('connect', () => {
+                // On a fresh connection (or reconnect), join playspace and any tracked rooms
+                const playspaceId = getPlayspaceId();
+                if (playspaceId) {
+                  s.emit('join-playspace', playspaceId);
+                } else {
+                  logger.warn('No playspace ID found, cannot join playspace room');
+                }
+                // Re-join all remembered rooms (teams/users/tournaments)
+                if (joinedTeamsGlobal.size) {
+                  for (const teamId of joinedTeamsGlobal) {
+                    s.emit('join-team', teamId);
+                  }
+                }
+                if (joinedUsersGlobal.size) {
+                  for (const userId of joinedUsersGlobal) {
+                    s.emit('join-user', userId);
+                  }
+                }
+                if (joinedTournamentsGlobal.size) {
+                  for (const tid of joinedTournamentsGlobal) {
+                    s.emit('join-tournament', tid);
+                  }
+                }
+              });
+
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              s.on('disconnect', (reason) => {
+              });
+
+              s.on('connect_error', (error) => {
+                logger.warn('❌ Socket.IO connection error:', { error: error.message });
+              });
+
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              s.on('reconnect', (attemptNumber) => {
+              });
+
+              s.on('reconnect_error', (error) => {
+                logger.warn('❌ Socket.IO reconnection error:', error.message);
+              });
+
+              sharedSocket = s;
+              return s;
+            })();
+            await creatingSocket;
+            creatingSocket = null;
+          }
+        }
+
+        // Increase reference count and expose to this hook instance
+        socketRefCount += 1;
+        const newSocket = sharedSocket!;
+        localHandlers = [];
+        const addHandler = (event: string, handler: (...args: unknown[]) => void) => {
+          newSocket.on(event, handler);
+          localHandlers.push([event, handler]);
+        };
+
+        addHandler('mining-reward', (dataUnknown: unknown) => {
+          const data = dataUnknown as MiningRewardEvent;
           setMiningRewards(prev => [...prev, data]);
         });
-        newSocket.on('fake-bank-victim', (data: FakeBankVictimEvent) => {
+        addHandler('fake-bank-victim', (dataUnknown: unknown) => {
+          const data = dataUnknown as FakeBankVictimEvent;
           setFakeBankVictimEvents(prev => [...prev, data]);
         });
-        newSocket.on('fake-bank-attacker', (data: FakeBankAttackerEvent) => {
+        addHandler('fake-bank-attacker', (dataUnknown: unknown) => {
+          const data = dataUnknown as FakeBankAttackerEvent;
           setFakeBankAttackerEvents(prev => [...prev, data]);
         });
-
-        socketRef.current = newSocket;
         setSocket(newSocket);
 
-        newSocket.on('connect', () => {
-          console.log('✅ Connected to Socket.IO server');
+  addHandler('connect', () => {
+          // Only update connection state here; room joins handled by global handler above
           setIsConnected(true);
-
-          // Join playspace room
-          const playspaceId = getPlayspaceId();
-          console.log('Device playspace ID for room joining:', playspaceId);
-          if (playspaceId) {
-            newSocket.emit('join-playspace', playspaceId);
-            console.log('Joined playspace:', playspaceId);
-          } else {
-            console.warn('No playspace ID found, cannot join room');
-          }
         });
-
-        newSocket.on('disconnect', () => {
-          console.log('❌ Disconnected from Socket.IO server');
+        addHandler('disconnect', () => {
           setIsConnected(false);
         });
+        addHandler('connect_error', (errorUnknown: unknown) => {
+          const error = errorUnknown as { message?: string };
+          logger.error('Socket.IO connection error:', { 
+            error: error?.message ?? String(error || 'Unknown error'),
+            errorType: typeof error,
+            hasMessage: !!error?.message
+          });
+          setIsConnected(false);
+        });
+        addHandler('connect_timeout', () => {
+          setIsConnected(false);
+        });
+        addHandler('reconnect', () => {
+          setIsConnected(true);
+        });
+        addHandler('reconnect_error', (errorUnknown: unknown) => {
+          const error = errorUnknown as { message?: string };
+          logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? String(error || 'Unknown error') });
+        });
 
-        // Handle incoming attacks
-        newSocket.on('incoming-attack', (attackData: AttackData) => {
-          console.log('Incoming attack received:', attackData);
+  // Also log timeouts with addHandler above; duplicate warning removed
+
+        // Stealth viral events
+        addHandler('malware-stealth-viral-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as StealthViralSpawn;
+          setStealthSpawns(prev => [...prev, data]);
+        });
+        addHandler('malware-stealth-viral-progress', (dataUnknown: unknown) => {
+          const data = dataUnknown as StealthViralProgress;
+          setStealthProgress(prev => [...prev, data]);
+        });
+        addHandler('malware-stealth-viral-defeated', (dataUnknown: unknown) => {
+          const data = dataUnknown as StealthViralDefeated;
+          setStealthDefeated(prev => [...prev, data]);
+        });
+
+        // Virus notifications
+        addHandler('virus-notification', (dataUnknown: unknown) => {
+          const data = dataUnknown as VirusNotification;
+          setVirusNotifications(prev => [...prev, data]);
+        });
+
+        // Private key compromised (DataMiner specific)
+        addHandler('private-key-compromised', (dataUnknown: unknown) => {
+          const data = dataUnknown as VirusNotification;
+          // Treat as a virus notification for UI display
+          setVirusNotifications(prev => [...prev, { 
+            ...data, 
+            severity: 'critical' as const,
+            virusType: data.virusType || 'DataMiner X'
+          }]);
+        });
+
+        // Ransomware events
+        addHandler('ransomware-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareSpawn;
+          setRansomSpawns(prev => [...prev, data]);
+        });
+        addHandler('ransomware-progress', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareProgress;
+          setRansomProgress(prev => [...prev, data]);
+        });
+        addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareNeutralized;
+          setRansomNeutralized(prev => [...prev, data]);
+        });
+        addHandler('ransomware-expired', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareExpired;
+          setRansomExpired(prev => [...prev, data]);
+        });
+        addHandler('ransomware-demand', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareDemand;
+          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey).concat(data));
+        });
+        addHandler('ransomware-paid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwarePaid;
+          setRansomPaid(prev => [...prev, data]);
+          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+        });
+        addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareUnpaid;
+          setRansomUnpaid(prev => [...prev, data]);
+          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+        });
+
+        // Handle tournament updates
+        addHandler('tournament-notification', (updateUnknown: unknown) => {
+          const updateData = updateUnknown as TournamentUpdate;
+          setTournamentUpdates(prev => [...prev, updateData]);
+        });
+
+        // Handle new chat messages
+        addHandler('new-message', (messageUnknown: unknown) => {
+          const messageData = messageUnknown as ChatMessage;
+          setChatMessages(prev => [...prev, messageData]);
+        });
+
+        // Handle achievement notifications
+        addHandler('achievement-notification', (achievementUnknown: unknown) => {
+          const achievementData = achievementUnknown as AchievementNotification;
+          setAchievementNotifications(prev => [...prev, achievementData]);
+        });
+
+        // Handle wallet updates
+        addHandler('wallet-update', (walletUnknown: unknown) => {
+          const walletData = walletUnknown as WalletUpdate;
+          setWalletUpdates(prev => [...prev, walletData]);
+        });
+
+        // Handle notifications
+        addHandler('new-notification', (notificationUnknown: unknown) => {
+          const notificationData = notificationUnknown as NotificationData;
+          setNotifications(prev => [...prev, notificationData]);
+        });
+
+  // Duplicate connect_error handler removed (handled above)
+
+        // Incoming attack stream (drives attack banner UI)
+        addHandler('incoming-attack', (attackUnknown: unknown) => {
+          const attackData = attackUnknown as AttackData;
           setIncomingAttacks(prev => [...prev, attackData]);
-
-          // Auto-remove after 10 seconds
           setTimeout(() => {
             setIncomingAttacks(prev => prev.filter(attack => attack.timestamp !== attackData.timestamp));
           }, 10000);
         });
-
-        // Handle attack confirmation
-        newSocket.on('attack-sent', (attackData: AttackData) => {
-          console.log('Attack sent confirmation:', attackData);
+        // Attack sent confirmation
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        addHandler('attack-sent', (attackUnknown: unknown) => {
+          // Attack sent confirmation received
         });
 
-        // Handle global effects
-        newSocket.on('global-effect', (effectData: AttackEffect) => {
-          console.log('Global effect triggered:', effectData);
+        // Global effects
+        addHandler('global-effect', (effectUnknown: unknown) => {
+          const effectData = effectUnknown as AttackEffect;
           setGlobalEffects(prev => [...prev, effectData]);
-
-          // Auto-remove after duration or 30 seconds
           setTimeout(() => {
             setGlobalEffects(prev => prev.filter(effect => effect.timestamp !== effectData.timestamp));
           }, effectData.duration || 30000);
         });
 
-        // Handle tournament updates
-        newSocket.on('tournament-notification', (updateData: TournamentUpdate) => {
-          console.log('Tournament update received:', updateData);
-          setTournamentUpdates(prev => [...prev, updateData]);
-        });
-
-        // Handle new chat messages
-        newSocket.on('new-message', (messageData: ChatMessage) => {
-          console.log('New chat message received:', messageData);
-          setChatMessages(prev => [...prev, messageData]);
-        });
-
-        // Handle achievement notifications
-        newSocket.on('achievement-notification', (achievementData: AchievementNotification) => {
-          console.log('Achievement notification received:', achievementData);
-          setAchievementNotifications(prev => [...prev, achievementData]);
-        });
-
-        // Handle wallet updates
-        newSocket.on('wallet-update', (walletData: WalletUpdate) => {
-          console.log('Wallet update received:', walletData);
-          setWalletUpdates(prev => [...prev, walletData]);
-        });
-
-        // Handle notifications
-        newSocket.on('new-notification', (notificationData: NotificationData) => {
-          console.log('Notification received:', notificationData);
-          setNotifications(prev => [...prev, notificationData]);
-        });
-
-        newSocket.on('connect_error', (error) => {
-          console.error('Socket.IO connection error:', error);
-          setIsConnected(false);
-        });
-
-        // Stealth viral events
-        newSocket.on('malware-stealth-viral-spawn', (data: StealthViralSpawn) => {
-          setStealthSpawns(prev => [...prev, data]);
-        });
-        newSocket.on('malware-stealth-viral-progress', (data: StealthViralProgress) => {
-          setStealthProgress(prev => [...prev, data]);
-        });
-        newSocket.on('malware-stealth-viral-defeated', (data: StealthViralDefeated) => {
-          setStealthDefeated(prev => [...prev, data]);
-        });
-
         // Ransomware events
-        newSocket.on('ransomware-spawn', (data: RansomwareSpawn) => {
+        addHandler('ransomware-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareSpawn;
           setRansomSpawns(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-progress', (data: RansomwareProgress) => {
+        addHandler('ransomware-progress', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareProgress;
           setRansomProgress(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-neutralized', (data: RansomwareNeutralized) => {
+        addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareNeutralized;
           setRansomNeutralized(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-expired', (data: RansomwareExpired) => {
+        addHandler('ransomware-expired', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareExpired;
           setRansomExpired(prev => [...prev, data]);
         });
-        newSocket.on('ransomware-demand', (data: RansomwareDemand) => {
+        addHandler('ransomware-demand', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareDemand;
           setRansomDemands(prev => [...prev.filter(d=>d.targetKey!==data.targetKey), data]);
         });
-        newSocket.on('ransomware-paid', (data: RansomwarePaid) => {
+        addHandler('ransomware-paid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwarePaid;
           setRansomPaid(prev => [...prev, data]);
           setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
         });
-        newSocket.on('ransomware-unpaid', (data: RansomwareUnpaid) => {
+        addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
+          const data = dataUnknown as RansomwareUnpaid;
           setRansomUnpaid(prev => [...prev, data]);
           setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
         });
 
+        // CryptoLocker Elite events
+        addHandler('cryptolocker-spawn', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerSpawn;
+          setCryptoLockerSpawns(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-payment-demand', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerPaymentDemand;
+          setCryptoLockerPaymentDemands(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-payment-sent', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerPaymentSent;
+          setCryptoLockerPaymentSents(prev => [...prev, data]);
+        });
+        addHandler('cryptolocker-game-over', (dataUnknown: unknown) => {
+          const data = dataUnknown as CryptoLockerGameOver;
+          setCryptoLockerGameOvers(prev => [...prev, data]);
+        });
+
         // SystemLock events
-        newSocket.on('systemlock-success', (data: SystemLockSuccess) => {
+        addHandler('systemlock-success', (dataUnknown: unknown) => {
+          const data = dataUnknown as SystemLockSuccess;
           setSystemLockEvents(prev => [...prev, data]);
         });
 
         // SysTrojan events
-        newSocket.on('systrojan-success', (data: SysTrojanSuccess) => {
+        addHandler('systrojan-success', (dataUnknown: unknown) => {
+          const data = dataUnknown as SysTrojanSuccess;
           setSysTrojanSuccesses(prev => [...prev, data]);
         });
-        newSocket.on('systrojan-failure', (data: SysTrojanFailure) => {
+        addHandler('systrojan-failure', (dataUnknown: unknown) => {
+          const data = dataUnknown as SysTrojanFailure;
           setSysTrojanFailures(prev => [...prev, data]);
         });
 
         // Bank state events
-        newSocket.on('bank-state', (data: BankStateEvent) => {
+        addHandler('bank-state', (dataUnknown: unknown) => {
+          const data = dataUnknown as BankStateEvent;
           setBankEvents(prev => [...prev, data]);
         });
-        newSocket.on('device-recovered', (data: DeviceRecoveredEvent) => {
+        addHandler('device-recovered', (dataUnknown: unknown) => {
+          const data = dataUnknown as DeviceRecoveredEvent;
           setDeviceRecoveredEvents(prev => [...prev, data]);
         });
         // Bank online explicit event (alias when transitioning online)
-        newSocket.on('bank-online', (data: BankStateEvent) => {
+        addHandler('bank-online', (dataUnknown: unknown) => {
+          const data = dataUnknown as BankStateEvent;
           setBankEvents(prev => [...prev, { ...data, online: true }]);
         });
 
         // Ransom-demand already handled (alias exists as ransomware-demand)
 
         // Role metadata events
-        newSocket.on('role-metadata', (data: RoleMetadataEvent) => {
+        addHandler('role-metadata', (dataUnknown: unknown) => {
+          const data = dataUnknown as RoleMetadataEvent;
           setRoleMetaEvents(prev => [...prev, data]);
         });
 
         // Game over events (server emits game-session-ended; we alias as game-over)
-        newSocket.on('game-session-ended', (data: GameOverEvent) => {
+        addHandler('game-session-ended', (dataUnknown: unknown) => {
+          const data = dataUnknown as GameOverEvent;
           setGameOverEvents(prev => [...prev, data]);
         });
-        newSocket.on('game-over', (data: GameOverEvent) => {
+        addHandler('game-over', (dataUnknown: unknown) => {
+          const data = dataUnknown as GameOverEvent;
           setGameOverEvents(prev => [...prev, data]);
+        });
+        
+        // Game termination event (when admin terminates the game)
+        addHandler('game-terminated', (dataUnknown: unknown) => {
+          const data = dataUnknown as GameOverEvent;
+          setGameOverEvents(prev => [...prev, { ...data, sessionId: 'TERMINATED', ts: Date.now() }]);
         });
 
         // Worm events
-        newSocket.on('worm-payload', (data: WormPayloadEvent) => {
+        addHandler('worm-payload', (dataUnknown: unknown) => {
+          const data = dataUnknown as WormPayloadEvent;
           setWormPayloads(prev => [...prev.filter(p=>p.tokenId!==data.tokenId), data]);
         });
-        newSocket.on('worm-opened', (data: WormOpenedEvent) => {
+        addHandler('worm-opened', (dataUnknown: unknown) => {
+          const data = dataUnknown as WormOpenedEvent;
           setWormOpened(prev => [...prev, data]);
           setWormPayloads(prev => prev.filter(p=>p.tokenId!==data.tokenId));
         });
 
         // FakeBank siphon
-        newSocket.on('fake-bank-siphon', (data: FakeBankSiphonEvent) => {
+        addHandler('fake-bank-siphon', (dataUnknown: unknown) => {
+          const data = dataUnknown as FakeBankSiphonEvent;
           setFakeBankSiphons(prev => [...prev, data]);
         });
 
         // DataMiner alert
-        newSocket.on('dataminer-exfil', (data: DataMinerExfilEvent) => {
+        addHandler('dataminer-exfil', (dataUnknown: unknown) => {
+          const data = dataUnknown as DataMinerExfilEvent;
           setDataMinerExfils(prev => [...prev, data]);
         });
 
         // Wallet transfers
-        newSocket.on('wallet-transfer', (data: WalletTransferEvent) => {
+        addHandler('wallet-transfer', (dataUnknown: unknown) => {
+          const data = dataUnknown as WalletTransferEvent;
           setWalletTransfers(prev => [...prev, data]);
         });
 
       } catch (error) {
-        console.error('Failed to initialize socket:', error);
+        logger.error('Failed to initialize socket:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     };
 
     initSocket();
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
+      // Remove this hook instance's event handlers to avoid duplicates
+      if (sharedSocket && localHandlers.length) {
+        try {
+          for (const [event, handler] of localHandlers) {
+            sharedSocket.off(event, handler as (...args: unknown[]) => void);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      // Decrement ref count and disconnect only when last consumer unmounts
+      socketRefCount = Math.max(0, socketRefCount - 1);
+      if (socketRefCount === 0 && sharedSocket) {
+        try {
+          sharedSocket.disconnect();
+  } catch {
+          // ignore
+        }
+        sharedSocket = null;
+        joinedTeamsGlobal.clear();
+        joinedUsersGlobal.clear();
+        joinedTournamentsGlobal.clear();
       }
     };
   }, []);
 
   // Function to send malware attack
   const sendMalwareAttack = (attackData: Omit<AttackData, 'timestamp'>) => {
-    console.log('sendMalwareAttack called with:', attackData);
-    console.log('Socket connected:', isConnected);
-    console.log('Socket object:', socket);
 
     if (socket && isConnected) {
       socket.emit('malware-attack', attackData);
-      console.log('Malware attack sent:', attackData);
     } else {
-      console.warn('Socket not connected, cannot send attack');
+      logger.warn('Socket not connected, cannot send attack');
     }
   };
 
@@ -375,39 +604,56 @@ export const useSocket = () => {
   const triggerAttackEffect = (effectData: Omit<AttackEffect, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('attack-effect', effectData);
-      console.log('Attack effect triggered:', effectData);
     } else {
-      console.warn('Socket not connected, cannot trigger effect');
+      logger.warn('Socket not connected, cannot trigger effect');
     }
   };
 
-  // Function to join team room
-  const joinTeam = (teamId: string) => {
+  // Function to join team room (memoized + idempotent per connection)
+  const joinTeam = useCallback((teamId: string) => {
+    // If already joined, do nothing
+    if (joinedTeamsGlobal.has(teamId)) return;
+
+    // If switching teams, leave previously joined ones on this connection to
+    // avoid receiving events for multiple teams in the same tab/window.
+    if (socket && isConnected && joinedTeamsGlobal.size > 0) {
+      for (const prev of Array.from(joinedTeamsGlobal)) {
+        if (prev !== teamId) {
+          try {
+            socket.emit('leave-team', prev);
+            joinedTeamsGlobal.delete(prev);
+          } catch {}
+        }
+      }
+    }
+
+    joinedTeamsGlobal.add(teamId);
     if (socket && isConnected) {
       socket.emit('join-team', teamId);
-      console.log('Joined team room:', teamId);
     } else {
-      console.warn('Socket not connected, cannot join team');
+      logger.warn('Queued team join until connected:', { teamId });
     }
-  };
+  }, [socket, isConnected]);
 
   // Function to join user room
   const joinUser = (userId: string) => {
+    if (joinedUsersGlobal.has(userId)) return;
+    joinedUsersGlobal.add(userId);
     if (socket && isConnected) {
       socket.emit('join-user', userId);
-      console.log('Joined user room:', userId);
     } else {
-      console.warn('Socket not connected, cannot join user');
+      logger.warn('Queued user join until connected:', { userId });
     }
   };
 
   // Function to join tournament room
   const joinTournament = (tournamentId: string) => {
+    if (joinedTournamentsGlobal.has(tournamentId)) return;
+    joinedTournamentsGlobal.add(tournamentId);
     if (socket && isConnected) {
       socket.emit('join-tournament', tournamentId);
-      console.log('Joined tournament room:', tournamentId);
     } else {
-      console.warn('Socket not connected, cannot join tournament');
+      logger.warn('Queued tournament join until connected:', { tournamentId });
     }
   };
 
@@ -415,9 +661,8 @@ export const useSocket = () => {
   const sendMessage = (messageData: Omit<ChatMessage, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('send-message', messageData);
-      console.log('Chat message sent:', messageData);
     } else {
-      console.warn('Socket not connected, cannot send message');
+      logger.warn('Socket not connected, cannot send message');
     }
   };
 
@@ -425,9 +670,8 @@ export const useSocket = () => {
   const sendTournamentUpdate = (updateData: Omit<TournamentUpdate, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('tournament-update', updateData);
-      console.log('Tournament update sent:', updateData);
     } else {
-      console.warn('Socket not connected, cannot send tournament update');
+      logger.warn('Socket not connected, cannot send tournament update');
     }
   };
 
@@ -435,9 +679,8 @@ export const useSocket = () => {
   const sendAchievementNotification = (achievementData: Omit<AchievementNotification, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('achievement-unlocked', achievementData);
-      console.log('Achievement notification sent:', achievementData);
     } else {
-      console.warn('Socket not connected, cannot send achievement notification');
+      logger.warn('Socket not connected, cannot send achievement notification');
     }
   };
 
@@ -445,9 +688,8 @@ export const useSocket = () => {
   const sendWalletUpdate = (walletData: Omit<WalletUpdate, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('wallet-transaction', walletData);
-      console.log('Wallet update sent:', walletData);
     } else {
-      console.warn('Socket not connected, cannot send wallet update');
+      logger.warn('Socket not connected, cannot send wallet update');
     }
   };
 
@@ -455,9 +697,8 @@ export const useSocket = () => {
   const sendNotification = (notificationData: Omit<NotificationData, 'timestamp'>) => {
     if (socket && isConnected) {
       socket.emit('send-notification', notificationData);
-      console.log('Notification sent:', notificationData);
     } else {
-      console.warn('Socket not connected, cannot send notification');
+      logger.warn('Socket not connected, cannot send notification');
     }
   };
 
@@ -474,6 +715,11 @@ export const useSocket = () => {
   stealthSpawns,
   stealthProgress,
   stealthDefeated,
+  virusNotifications,
+  cryptoLockerSpawns,
+  cryptoLockerPaymentDemands,
+  cryptoLockerPaymentSents,
+  cryptoLockerGameOvers,
   ransomSpawns,
   ransomProgress,
   ransomNeutralized,

@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSocket } from '@/hooks/useSocket';
+import { logger } from '@/lib/logger';
 
 interface Email {
   id: string;
@@ -15,97 +17,178 @@ interface Email {
   isStarred: boolean;
   body: string;
   hasAttachment?: boolean;
+  type?: 'system' | 'regular';
+  isScam?: boolean;
+  rewardAmount?: number;
+  lossAmount?: number;
+  processed?: boolean;
+  outcome?: 'gain' | 'loss' | 'neutral';
 }
 
 interface MailAppProps {
   onClose?: () => void;
   time?: Date;
+  teamId?: string;
 }
 
-const MailApp: React.FC<MailAppProps> = () => {
+interface TeamWallet {
+  walletAddress: string;
+  privateKey: string;
+  bitcoinBalance: number;
+}
+
+const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
   const [currentView, setCurrentView] = useState<"inbox" | "email" | "compose">("inbox");
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [composeTo, setComposeTo] = useState("");
-  const [showNumbers, setShowNumbers] = useState(false);
-  const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeField, setActiveField] = useState<'to' | 'subject' | 'body'>('body');
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [teamWallet, setTeamWallet] = useState<TeamWallet | null>(null);
+  const { socket, isConnected, joinTeam } = useSocket();
 
-  // Sample emails matching the design
-  const [emails, setEmails] = useState<Email[]>([
-    {
-      id: "1",
-      sender: "Google",
-      senderEmail: "security-alert@google.com",
-      recipient: "You",
-      recipientEmail: "you@hackphone.com",
-      subject: "Security alert",
-      preview: "2-step verification has been activated for your Gmail account",
-      timestamp: new Date(2024, 7, 20, 10, 23),
-      isRead: false,
-      isStarred: false,
-      hasAttachment: false,
-      body: `2-step verification has been activated for your Gmail account security-alert@google.com. We noticed a new sign-in to your Google Account...`
-    },
-    {
-      id: "2", 
-      sender: "Google",
-      senderEmail: "security-alert@google.com",
-      recipient: "You",
-      recipientEmail: "you@hackphone.com",
-      subject: "Security alert",
-      preview: "Unusual activity detected on your Google account",
-      timestamp: new Date(2024, 7, 19, 15, 45),
-      isRead: false,
-      isStarred: false,
-      hasAttachment: false,
-      body: `Unusual activity detected on your Google account. Please review your account activity...`
-    },
-    {
-      id: "3",
-      sender: "Google",
-      senderEmail: "security-alert@google.com",
-      recipient: "You",
-      recipientEmail: "you@hackphone.com", 
-      subject: "Security alert",
-      preview: "Someone granted access to your Google account",
-      timestamp: new Date(2024, 7, 19, 9, 30),
-      isRead: false,
-      isStarred: false,
-      hasAttachment: false,
-      body: `Someone granted access to your Google account. If this wasn't you, please review...`
-    },
-    {
-      id: "4",
-      sender: "Microsoft Outlook",
-      senderEmail: "outlook-mobile@microsoft.com",
-      recipient: "You",
-      recipientEmail: "you@hackphone.com",
-      subject: "Microsoft Outlook Test Message",
-      preview: "This is an email message sent automatically by Microsoft Outlook while testing the settings for your account",
-      timestamp: new Date(2024, 7, 18, 11, 0),
-      isRead: true,
-      isStarred: false,
-      hasAttachment: false,
-      body: `This is an email message sent automatically by Microsoft Outlook while testing the settings for your account...`
-    },
-    {
-      id: "5",
-      sender: "Google",
-      senderEmail: "security-alert@google.com",
-      recipient: "You",
-      recipientEmail: "you@hackphone.com",
-      subject: "Security alert",
-      preview: "Someone just used your password to try to sign in to your account",
-      timestamp: new Date(2024, 7, 17, 14, 15),
-      isRead: true,
-      isStarred: false,
-      hasAttachment: false,
-      body: `Someone just used your password to try to sign in to your account. Google blocked them...`
+  // System emails from the random message generator
+  const [systemEmails, setSystemEmails] = useState<Email[]>([]);
+  
+  // Use only system emails
+  const emails = [...systemEmails].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+  
+  // Fetch team wallet information
+  const fetchTeamWallet = useCallback(async () => {
+    if (!teamId) return;
+    
+    try {
+      const response = await fetch(`/api/team/${teamId}/wallet`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setTeamWallet(data.wallet);
+      }
+    } catch (error) {
+      logger.error('Failed to fetch team wallet:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
-  ]);
+  }, [teamId]);
+  
+  const fetchSystemEmails = useCallback(async () => {
+    if (!teamId) return;
+    
+    try {
+      const response = await fetch(`/api/extract/get-messages?teamId=${teamId}&type=email`, { cache: 'no-store' });
+      const data = await response.json();
+      
+      if (data.success) {
+        const formattedEmails: Email[] = data.messages.map((msg: { id: string; sender: string; senderEmail: string; subject: string; content: string; timestamp: string; isRead: boolean; isScam?: boolean; rewardAmount?: number; lossAmount?: number; processed?: boolean; outcome?: 'gain' | 'loss' | 'neutral' }) => ({
+          id: msg.id,
+          sender: msg.sender,
+          senderEmail: msg.senderEmail,
+          subject: msg.subject,
+          preview: msg.content.substring(0, 100) + (msg.content.length > 100 ? '...' : ''),
+          timestamp: new Date(msg.timestamp),
+          isRead: msg.isRead,
+          isStarred: false,
+          body: msg.content,
+          type: 'system' as const,
+          isScam: msg.isScam,
+          rewardAmount: msg.rewardAmount,
+          lossAmount: msg.lossAmount,
+          processed: msg.processed,
+          outcome: msg.outcome
+        }));
+        setSystemEmails(formattedEmails);
+      }
+    } catch (error) {
+      logger.error('Failed to fetch system emails:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+  }, [teamId]);
+
+  // Fetch system emails when component mounts or teamId changes
+  useEffect(() => {
+    if (teamId) {
+    // Proactively join team room for scoped events
+    if (isConnected) joinTeam(teamId);
+      fetchSystemEmails();
+      fetchTeamWallet();
+      // Set up periodic refresh
+      const interval = setInterval(fetchSystemEmails, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [teamId, fetchSystemEmails, fetchTeamWallet, isConnected, joinTeam]);
+
+  // Real-time: refresh inbox immediately when a new email is created for our team
+  useEffect(() => {
+    if (!socket || !isConnected || !teamId) return;
+    const onMessageCreated = (evt: { teamId: string; type: 'email' | 'sms' }) => {
+      if (evt.type !== 'email') return;
+      if (String(evt.teamId) !== String(teamId)) return;
+      // Pull fresh messages so metadata (isScam, processed, etc.) stays correct
+      fetchSystemEmails();
+    };
+    socket.on('message-created', onMessageCreated);
+    return () => {
+      socket.off('message-created', onMessageCreated);
+    };
+  }, [socket, isConnected, teamId, fetchSystemEmails]);
+
+  const handleEmailOpen = async (email: Email) => {
+    setSelectedEmail(email);
+    setCurrentView("email");
+    
+    // If it's a system email and not already processed, handle the reward/loss
+    if (email.type === 'system' && !email.processed && teamId) {
+      setLoading(true);
+      try {
+    const response = await fetch('/api/extract/open-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+      teamId,
+      messageId: email.id,
+      messageType: 'email'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && !result.alreadyProcessed) {
+          // Update the email as processed
+          setSystemEmails(prev => prev.map(e => 
+            e.id === email.id 
+              ? { ...e, processed: true, outcome: result.outcome, isRead: true }
+              : e
+          ));
+          
+          // Show notification
+          if (result.outcome === 'gain') {
+            setNotification(`🎉 Reward claimed! +${result.balanceChange} BTC`);
+          } else if (result.outcome === 'loss') {
+            setNotification(`⚠️ Scam detected! ${result.balanceChange} BTC`);
+          } else {
+            setNotification('Email opened');
+          }
+          
+          // Clear notification after 3 seconds
+          setTimeout(() => setNotification(null), 3000);
+        }
+      } catch (error) {
+        logger.error('Failed to process email open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+        setNotification('Error processing email');
+        setTimeout(() => setNotification(null), 3000);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    // Mark as read if not already
+    if (!email.isRead) {
+      markAsRead(email.id);
+    }
+  };
 
   const formatEmailTime = (date: Date) => {
     const now = new Date();
@@ -136,636 +219,420 @@ const MailApp: React.FC<MailAppProps> = () => {
   };
 
   const markAsRead = (emailId: string) => {
-    setEmails(emails.map(email => 
+    // For system emails
+    setSystemEmails(prev => prev.map(email => 
       email.id === emailId ? { ...email, isRead: true } : email
     ));
-  };
-
-  // Helper function for compose keyboard
-  const shouldCapitalize = (text: string) => {
-    if (text.length === 0) return true;
-    const lastTwoChars = text.slice(-2);
-    return lastTwoChars.match(/[.!?]\s$/) || text.trim().length === 0;
-  };
-
-  const handleKeyPress = (key: string, field?: 'to' | 'subject' | 'body') => {
-    const targetField = field || activeField;
-    const shouldCap = isShiftPressed || shouldCapitalize(targetField === 'to' ? composeTo : targetField === 'subject' ? composeSubject : composeBody);
-    const charToAdd = shouldCap ? key.toUpperCase() : key.toLowerCase();
-    
-    if (targetField === 'to') {
-      setComposeTo(prev => prev + charToAdd);
-    } else if (targetField === 'subject') {
-      setComposeSubject(prev => prev + charToAdd);
-    } else {
-      setComposeBody(prev => prev + charToAdd);
-    }
-    
-    if (isShiftPressed) {
-      setIsShiftPressed(false);
-    }
-  };
-
-  const handleSpecialChar = (char: string, field: 'to' | 'subject' | 'body') => {
-    if (field === 'to') {
-      setComposeTo(prev => prev + char);
-    } else if (field === 'subject') {
-      setComposeSubject(prev => prev + char);
-    } else {
-      setComposeBody(prev => prev + char);
-    }
   };
 
   // Email action handlers
   const handleReply = () => {
     if (selectedEmail) {
-      // Clear all compose fields first
-      setComposeTo("");
-      setComposeSubject("");
-      setComposeBody("");
-      setActiveField('to');
+      setComposeTo(selectedEmail.senderEmail);
+      const subject = selectedEmail.subject.startsWith("Re:") 
+        ? selectedEmail.subject 
+        : `Re: ${selectedEmail.subject}`;
+      setComposeSubject(subject);
       
-      // Set values with a small delay to ensure state is cleared
-      setTimeout(() => {
-        setComposeTo(selectedEmail.senderEmail);
-        const subject = selectedEmail.subject.startsWith("Re:") 
-          ? selectedEmail.subject 
-          : `Re: ${selectedEmail.subject}`;
-        setComposeSubject(subject);
-        setComposeBody(`
+  // Always prefill with wallet and private key
+  const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+  const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+  const prefillBody = `${walletAddr} ${privateKey}`;
 
-On ${selectedEmail.timestamp.toLocaleDateString()}, ${selectedEmail.sender} wrote:
-> ${selectedEmail.body.replace(/\n/g, '\n> ')}`);
-        setCurrentView("compose");
-        setActiveField('to');
-      }, 10);
-    }
-  };
-
-  const handleForward = () => {
-    if (selectedEmail) {
-      // Clear all compose fields first
-      setComposeTo("");
-      setComposeSubject("");
-      setComposeBody("");
-      
-      // Set values with a small delay to ensure state is cleared
-      setTimeout(() => {
-        // Leave To field empty for user to fill
-        setComposeTo("");
-        // Check if subject already has Fwd: prefix to avoid duplication
-        const subject = selectedEmail.subject.startsWith("Fwd:") 
-          ? selectedEmail.subject 
-          : `Fwd: ${selectedEmail.subject}`;
-        setComposeSubject(subject);
-        setComposeBody(`
-
----------- Forwarded message ----------
-From: ${selectedEmail.sender}
-Subject: ${selectedEmail.subject}
-
-${selectedEmail.body}`);
-        setCurrentView("compose");
-      }, 10);
+      setComposeBody(prefillBody);
+      setCurrentView("compose");
     }
   };
 
   const handleDelete = () => {
     if (selectedEmail) {
-      setEmails(emails.filter(email => email.id !== selectedEmail.id));
-      setCurrentView("inbox");
+      // For static emails, just go back (can't actually delete)
+      if (selectedEmail.type === 'regular') {
+        setCurrentView("inbox");
+        setSelectedEmail(null);
+      } else {
+        // For system emails, delete from DB and remove from list
+        const id = selectedEmail.id;
+        const doDelete = async () => {
+          try {
+            if (teamId) {
+              await fetch('/api/extract/delete-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teamId, messageType: 'email', messageIds: [id] })
+              });
+            }
+          } catch (e) {
+            logger.error('Failed to delete email from DB:', { error: e instanceof Error ? e.message : 'Unknown error' }, e as Error);
+          } finally {
+            setSystemEmails(prev => prev.filter(email => email.id !== id));
+            setCurrentView("inbox");
+            setSelectedEmail(null);
+          }
+        };
+        void doDelete();
+      }
     }
   };
 
-  // Search functionality
   const filteredEmails = emails.filter(email => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
+    const searchTerm = searchQuery.toLowerCase();
     return (
-      email.sender.toLowerCase().includes(query) ||
-      email.subject.toLowerCase().includes(query) ||
-      email.preview.toLowerCase().includes(query) ||
-      email.body.toLowerCase().includes(query)
+      email.sender.toLowerCase().includes(searchTerm) ||
+      email.subject.toLowerCase().includes(searchTerm) ||
+      email.body.toLowerCase().includes(searchTerm)
     );
   });
 
-  const renderInbox = () => (
-    <div className="w-full h-full bg-[#c5ccd4] flex flex-col">
+  const renderInboxView = () => (
+    <div className="flex flex-col h-full bg-[#f7f7f7]">
       {/* Header */}
-      <div className="bg-gradient-to-b from-[#b7c1ce] to-[#9bb0c4] border-b border-[#8a9bb0] shadow-sm">
-        <div className="px-4 py-3 pt-4">
-          <div className="flex items-center justify-between">
-            <div className="w-16"></div>
-            <h1 className="text-[20px] font-bold text-white drop-shadow-sm">Inbox</h1>
-            <button 
-              onClick={() => setCurrentView("compose")}
-              className="text-white font-bold text-[12px] drop-shadow-sm"
-            >
-              Edit
-            </button>
-          </div>
+      <div className="bg-gradient-to-b from-[#b0b5c0] to-[#8a8f9a] p-3 border-b border-[#666]">
+        <div className="flex items-center justify-between">
+          <h1 className="text-white text-lg font-bold">Mailboxes</h1>
+          <button 
+            onClick={() => setCurrentView("compose")}
+            className="bg-[#4a90e2] hover:bg-[#357abd] text-white px-3 py-1 rounded text-sm font-medium"
+          >
+            Compose
+          </button>
         </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="bg-gradient-to-b from-[#9bb0c4] to-[#8a9bb0] px-4 py-2">
-        <div className="bg-white rounded-lg px-3 py-1 flex items-center">
-          <span className="text-gray-400 text-[14px] mr-2">🔍</span>
+        
+        {/* Search bar */}
+        <div className="mt-2">
           <input
             type="text"
+            placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search"
-            className="flex-1 text-gray-400 text-[14px] outline-none bg-transparent"
+            className="w-full px-3 py-1 rounded-md border border-gray-300 text-sm"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-gray-400 text-[14px] ml-2"
-            >
-              ✕
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Email List */}
-      <div className="flex-1 bg-white overflow-y-auto">
-        {filteredEmails.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="text-gray-400 text-[16px] mb-2">📭</div>
-              <div className="text-gray-500 text-[16px]">
-                {searchQuery ? 'No emails found' : 'No emails'}
-              </div>
-            </div>
-          </div>
-        ) : (
-          filteredEmails.map((email, index) => (
-          <button
+      {/* Email list */}
+      <div className="flex-1 overflow-auto">
+        {filteredEmails.map((email, index) => (
+          <div
             key={email.id}
-            onClick={() => {
-              markAsRead(email.id);
-              setSelectedEmail(email);
-              setCurrentView("email");
-            }}
-            className={`w-full flex items-start px-4 py-2 active:bg-[#d9d9d9] bg-white ${
-              index < emails.length - 1 ? 'border-b border-[#e0e0e0]' : ''
-            }`}
+            onClick={() => handleEmailOpen(email)}
+            className={`
+              flex items-center p-3 cursor-pointer transition-colors
+              ${!email.isRead ? 'bg-[#e8f4fd]' : 'bg-white'}
+              ${index < emails.length - 1 ? 'border-b border-[#e0e0e0]' : ''}
+              hover:bg-[#d0e7f7]
+              ${email.type === 'system' && email.isScam ? 'border-l-4 border-red-500' : ''}
+              ${email.type === 'system' && !email.isScam && email.rewardAmount ? 'border-l-4 border-green-500' : ''}
+            `}
           >
-            {/* Blue dot for unread */}
-            <div className="flex flex-col items-center mr-3 mt-1 w-4">
-              <div className={`w-2 h-2 rounded-full ${
-                !email.isRead ? 'bg-[#007aff]' : 'bg-transparent'
-              }`} />
+            {/* Status indicator */}
+            <div className="w-2 mr-3">
+              {!email.isRead && <div className="w-2 h-2 bg-[#4a90e2] rounded-full"></div>}
             </div>
-            
-            {/* Email Content */}
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-start justify-between mb-1">
-                <span className={`text-[16px] truncate ${
-                  !email.isRead ? 'font-bold text-black' : 'font-normal text-black'
-                }`}>
+
+            {/* Email content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className={`font-medium text-sm truncate ${!email.isRead ? 'font-bold' : ''}`}>
                   {email.sender}
+                  {email.type === 'system' && email.isScam && ' ⚠️'}
+                  {email.type === 'system' && !email.isScam && email.rewardAmount && ' 💰'}
+                  {email.type === 'system' && email.processed && email.outcome === 'gain' && ' ✅'}
+                  {email.type === 'system' && email.processed && email.outcome === 'loss' && ' ❌'}
                 </span>
-                <span className="text-[12px] text-[#007aff] ml-2 flex-shrink-0 mt-1">
-                  {formatEmailTime(email.timestamp)}
+                <span className="text-xs text-[#666] ml-2 flex-shrink-0 flex items-center gap-2">
+                  {/* Inline claimed badge when reward has been claimed */}
+                  {email.type === 'system' && email.processed && email.outcome === 'gain' && (
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">✓ Claimed</span>
+                  )}
+                  <span>{formatEmailTime(email.timestamp)}</span>
                 </span>
               </div>
-              <div className={`text-[14px] mb-1 truncate ${
-                !email.isRead ? 'font-semibold text-black' : 'font-normal text-black'
-              }`}>
+              <div className={`text-sm mb-1 truncate ${!email.isRead ? 'font-bold' : ''}`}>
                 {email.subject}
               </div>
-              <div className="text-[13px] text-[#8e8e93] truncate">
+              <div className="text-xs text-[#666] truncate">
                 {email.preview}
               </div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex items-center ml-2">
-              <span className="text-[#c7c7cc] text-[16px]">›</span>
+            {/* Star */}
+            <div className="ml-2">
+              {email.isStarred && (
+                <span className="text-yellow-500">★</span>
+              )}
             </div>
-          </button>
-          ))
+          </div>
+        ))}
+        
+        {filteredEmails.length === 0 && (
+          <div className="p-8 text-center text-gray-500">
+            {searchQuery ? 'No emails found matching your search' : 'No emails'}
+          </div>
         )}
       </div>
+      
+      {/* Notification overlay */}
+      {notification && (
+        <div className="absolute top-4 left-4 right-4 bg-black/80 text-white p-3 rounded-lg text-center z-50">
+          {notification}
+        </div>
+      )}
     </div>
   );
 
-  const renderEmail = () => {
+  const renderEmailView = () => {
     if (!selectedEmail) return null;
 
     return (
-      <div className="w-full h-full bg-white flex flex-col">
+      <div className="flex flex-col h-full bg-white">
         {/* Header */}
-        <div className="bg-gradient-to-b from-[#b0b8c6] to-[#8e99ab] border-b border-[#6d7584] shadow-sm">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-b from-[#b0b5c0] to-[#8a8f9a] p-3 border-b border-[#666]">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => setCurrentView("inbox")}
+              className="text-white hover:text-gray-300"
+            >
+              ← Inbox
+            </button>
+            <div className="flex space-x-2">
               <button 
-                onClick={() => setCurrentView("inbox")}
-                className="text-white font-bold text-[17px] drop-shadow-sm"
+                onClick={handleReply}
+                disabled={!!(selectedEmail?.processed)}
+                className={`px-3 py-1 rounded text-sm text-white ${selectedEmail?.processed ? 'bg-gray-500 cursor-not-allowed' : 'bg-[#4a90e2] hover:bg-[#357abd]'}`}
               >
-                ← Inbox
+                {selectedEmail?.processed ? '✓ Already claimed' : 'Reply'}
               </button>
-              <h1 className="text-[16px] font-bold text-white drop-shadow-sm truncate max-w-[200px]">
-                {selectedEmail.subject}
-              </h1>
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={handleReply}
-                  className="w-8 h-8 bg-[#4a90e2] border border-[#3a7bc8] rounded-md flex items-center justify-center shadow-sm active:bg-[#3a7bc8]"
-                >
-                  <span className="text-white text-[14px]">↩</span>
-                </button>
-                <button 
-                  onClick={handleDelete}
-                  className="w-8 h-8 bg-[#4a90e2] border border-[#3a7bc8] rounded-md flex items-center justify-center shadow-sm active:bg-[#3a7bc8]"
-                >
-                  <span className="text-white text-[14px]">🗑</span>
-                </button>
-              </div>
+              <button 
+                onClick={handleDelete}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Email Header */}
-        <div className="bg-gradient-to-b from-[#f7f7f7] to-[#e8e8e8] border-b border-[#d0d0d0] px-4 py-3">
-          <div className="space-y-2">
-            <div>
-              <span className="text-[13px] text-[#666] font-medium">From: </span>
-              <span className="text-[13px] text-black">{selectedEmail.sender}</span>
+        {/* Email content */}
+        <div className="flex-1 overflow-auto p-4">
+          {/* System email warning/info */}
+          {selectedEmail.type === 'system' && (
+            <div className={`mb-4 p-3 rounded-lg border ${
+              selectedEmail.rewardAmount 
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-blue-50 border-blue-200 text-blue-800'
+            }`}>
+              {selectedEmail.processed ? (
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">✓ Claimed</span>
+                  <span className="opacity-80">
+                    {selectedEmail.outcome === 'gain' && `Reward: +${selectedEmail.rewardAmount} BTC`}
+                    {selectedEmail.outcome === 'loss' && `Loss: -${selectedEmail.lossAmount} BTC`}
+                    {selectedEmail.outcome === 'neutral' && 'Processed'}
+                  </span>
+                </div>
+              ) : selectedEmail.rewardAmount ? (
+                <div className="space-y-2">
+                  <div>💰 To claim, reply with only your wallet address and private key.</div>
+                  <button
+                    onClick={async () => {
+                      if (!teamId) return;
+                      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+                      const body = `${walletAddr} ${privateKey}`;
+                      try {
+                        setLoading(true);
+                        const resp = await fetch('/api/extract/reply-message', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            teamId,
+                            messageId: selectedEmail.id,
+                            messageType: 'email',
+                            replyText: body
+                          })
+                        });
+                        const result = await resp.json();
+                        if (result.success) {
+                          const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
+                          if (result.outcome === 'gain') {
+                            setNotification(`🎉 Reply accepted. +${delta} BTC`);
+                          } else if (result.outcome === 'loss') {
+                            setNotification(`⚠️ Reply processed. ${delta} BTC`);
+                          } else if (result.alreadyProcessed) {
+                            setNotification('✓ Already processed');
+                          }
+                          setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: result.outcome || e.outcome || 'neutral' } : e));
+                        } else if (result.error || result.message) {
+                          setNotification(result.message || result.error);
+                        }
+                      } catch {
+                        setNotification('Reply failed');
+                      } finally {
+                        setLoading(false);
+                        setTimeout(() => setNotification(null), 2500);
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                  >
+                    💰 Quick Reply to Claim Reward
+                  </button>
+                </div>
+              ) : (
+                <div>📧 System generated email</div>
+              )}
             </div>
-            <div>
-              <span className="text-[13px] text-[#666] font-medium">To: </span>
-              <span className="text-[13px] text-[#4a90e2]">{selectedEmail.recipient || "me"}</span>
+          )}
+          
+          <div className="space-y-3">
+            {/* Subject */}
+            <h2 className="text-xl font-bold text-black">
+              {selectedEmail.subject}
+            </h2>
+            
+            {/* From/To info */}
+            <div className="text-sm text-gray-600 space-y-1">
+              <div><strong>From:</strong> {selectedEmail.sender} &lt;{selectedEmail.senderEmail}&gt;</div>
+              <div><strong>To:</strong> You &lt;{selectedEmail.recipientEmail || 'you@hackphone.com'}&gt;</div>
+              <div><strong>Date:</strong> {selectedEmail.timestamp.toLocaleString()}</div>
             </div>
-            <div>
-              <span className="text-[13px] text-[#666] font-medium">Subject: </span>
-              <span className="text-[13px] text-black font-semibold">{selectedEmail.subject}</span>
-            </div>
-            <div>
-              <span className="text-[13px] text-[#666] font-medium">
-                {selectedEmail.timestamp.toLocaleDateString([], { 
-                  weekday: 'long', 
-                  year: 'numeric',
-                  month: 'long', 
-                  day: 'numeric' 
-                }) + ' ' + selectedEmail.timestamp.toLocaleTimeString([], { 
-                  hour: 'numeric', 
-                  minute: '2-digit', 
-                  hour12: true 
-                })}
-              </span>
+            
+            <hr className="border-gray-300" />
+            
+            {/* Body */}
+            <div className="text-black whitespace-pre-wrap leading-relaxed">
+              {selectedEmail.body}
             </div>
           </div>
         </div>
-
-        {/* Email Body */}
-        <div className="flex-1 p-4 bg-white overflow-y-auto">
-          <div className="text-[16px] text-black leading-[22px] whitespace-pre-wrap">
-            {selectedEmail.body}
+        
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50">
+            <div className="bg-white p-4 rounded-lg">
+              Processing email...
+            </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="bg-gradient-to-b from-[#f7f7f7] to-[#e8e8e8] border-t border-[#d0d0d0] px-4 py-3 relative z-[60]">
-          <div className="flex justify-center space-x-8">
-            <button onClick={handleReply} className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-[#4a90e2] border border-[#3a7bc8] rounded-md flex items-center justify-center shadow-sm active:bg-[#3a7bc8] mb-1">
-                <span className="text-white text-[16px]">↩</span>
-              </div>
-              <span className="text-[11px] text-[#4a90e2] font-medium">Reply</span>
-            </button>
-            <button onClick={handleForward} className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-[#4a90e2] border border-[#3a7bc8] rounded-md flex items-center justify-center shadow-sm active:bg-[#3a7bc8] mb-1">
-                <span className="text-white text-[14px]">↗</span>
-              </div>
-              <span className="text-[11px] text-[#4a90e2] font-medium">Forward</span>
-            </button>
-            <button onClick={handleDelete} className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-[#ff3b30] border border-[#d70015] rounded-md flex items-center justify-center shadow-sm active:bg-[#d70015] mb-1">
-                <span className="text-white text-[16px]">🗑</span>
-              </div>
-              <span className="text-[11px] text-[#ff3b30] font-medium">Delete</span>
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     );
   };
 
-  const renderCompose = () => (
-    <div className="w-full h-full bg-[#c5ccd4] flex flex-col overflow-hidden">
-      {/* Header only - removing status bar */}
-      <div className="flex justify-between items-center px-4 pt-2 pb-1 text-black text-[11px] font-medium bg-[#c5ccd4]">
-        <div className="flex items-center space-x-1">
-          <span>••••• AT&T</span>
-          <div className="flex items-end space-x-[1px] ml-2">
-            <div className="w-1 h-1 bg-black rounded-full" />
-            <div className="w-1 h-2 bg-black rounded-full" />
-            <div className="w-1 h-3 bg-black rounded-full" />
-            <div className="w-1 h-4 bg-black rounded-full" />
-            <div className="w-1 h-5 bg-black rounded-full" />
-          </div>
-        </div>
-        <div className="text-center">
-          <span>10:23</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span>🔋</span>
-          <span>100%</span>
-        </div>
-      </div>
-
+  const renderComposeView = () => (
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-b from-[#b7c1ce] to-[#9bb0c4] border-b border-[#8a9bb0] shadow-sm">
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={() => setCurrentView("inbox")}
-              className="text-white font-bold text-[12px] drop-shadow-sm"
-            >
-              Cancel
-            </button>
-            <h1 className="text-[20px] font-bold text-white drop-shadow-sm">New Message</h1>
-            <button 
-              onClick={() => {
-                if (composeTo.trim() && composeSubject.trim() && composeBody.trim()) {
-                  // Create new sent email
-                  const newEmail: Email = {
-                    id: Date.now().toString(),
-                    sender: "Me",
-                    senderEmail: "me@hackphone.com",
-                    recipient: composeTo.includes('@') ? composeTo : composeTo,
-                    recipientEmail: composeTo.includes('@') ? composeTo : `${composeTo}@example.com`,
-                    subject: composeSubject,
-                    preview: composeBody.substring(0, 100) + (composeBody.length > 100 ? "..." : ""),
-                    timestamp: new Date(),
-                    isRead: true,
-                    isStarred: false,
-                    hasAttachment: false,
-                    body: composeBody
-                  };
-                  
-                  // Add to emails list (in a real app, this would be sent to server)
-                  setEmails([newEmail, ...emails]);
-                  
-                  // Clear compose form and go back to inbox
-                  setCurrentView("inbox");
-                  setComposeTo("");
-                  setComposeSubject("");
-                  setComposeBody("");
+      <div className="bg-gradient-to-b from-[#b0b5c0] to-[#8a8f9a] p-3 border-b border-[#666]">
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => setCurrentView("inbox")}
+            className="text-white hover:text-gray-300"
+          >
+            Cancel
+          </button>
+          <h1 className="text-white text-lg font-bold">New Message</h1>
+          <button 
+            onClick={async () => {
+              const replyingToSystem = selectedEmail && selectedEmail.type === 'system';
+              if (replyingToSystem && selectedEmail && teamId) {
+                try {
+                  setLoading(true);
+                  const resp = await fetch('/api/extract/reply-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      teamId,
+                      messageId: selectedEmail.id,
+                      messageType: 'email',
+                      replyText: composeBody
+                    })
+                  });
+                  const result = await resp.json();
+                  if (result.success) {
+                    const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
+                    if (result.alreadyProcessed) {
+                      setNotification('✓ Already processed');
+                      setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: e.outcome || 'neutral' } : e));
+                    } else {
+                      if (result.outcome === 'gain') {
+                        setNotification(`🎉 Reply accepted. +${delta} BTC`);
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'gain' } : e));
+                      } else if (result.outcome === 'loss') {
+                        setNotification(`⚠️ Reply processed. ${delta} BTC`);
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'loss' } : e));
+                      } else {
+                        setNotification('Reply processed');
+                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'neutral' } : e));
+                      }
+                    }
+                  } else if (result.error || result.message) {
+                    setNotification(result.message || result.error);
+                  }
+                } catch {
+                  setNotification('Reply failed');
+                } finally {
+                  setLoading(false);
+                  setTimeout(() => setNotification(null), 2500);
                 }
-              }}
-              disabled={!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()}
-              className={`text-[12px] font-bold drop-shadow-sm ${
-                composeTo.trim() && composeSubject.trim() && composeBody.trim()
-                  ? 'text-white' 
-                  : 'text-white/50'
-              }`}
-            >
-              Send
-            </button>
-          </div>
+              }
+              // Clear compose fields and return to inbox
+              setComposeTo("");
+              setComposeSubject("");
+              setComposeBody("");
+              setCurrentView("inbox");
+            }}
+            className="bg-[#4a90e2] hover:bg-[#357abd] text-white px-3 py-1 rounded text-sm"
+          >
+            Send
+          </button>
         </div>
       </div>
 
-      {/* Compose Fields */}
-      <div className="bg-white">
-        {/* To Field */}
-        <div className="border-b border-[#e0e0e0] px-4 py-3">
-          <div className="flex items-center">
-            <span className="text-[16px] text-[#3c5998] mr-3 w-10 font-medium">To:</span>
-            <input
-              type="email"
-              value={composeTo}
-              onChange={(e) => setComposeTo(e.target.value)}
-              onFocus={() => setActiveField('to')}
-              placeholder=""
-              className="flex-1 text-[16px] text-black outline-none bg-transparent"
-            />
-            <button className="w-6 h-6 bg-[#007aff] rounded-full flex items-center justify-center ml-2">
-              <span className="text-white text-[12px] font-bold">+</span>
-            </button>
-          </div>
+      {/* Compose form */}
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">To:</label>
+          <input
+            type="email"
+            value={composeTo}
+            onChange={(e) => setComposeTo(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="recipient@example.com"
+          />
         </div>
-
-        {/* Cc/Bcc Field */}
-        <div className="border-b border-[#e0e0e0] px-4 py-3">
-          <div className="flex items-center">
-            <span className="text-[16px] text-[#3c5998] mr-3 min-w-[70px] font-medium">Cc/Bcc:</span>
-            <input
-              type="email" 
-              placeholder=""
-              className="flex-1 text-[16px] text-black outline-none bg-transparent"
-            />
-          </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Subject:</label>
+          <input
+            type="text"
+            value={composeSubject}
+            onChange={(e) => setComposeSubject(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Email subject"
+          />
         </div>
-
-        {/* Subject Field */}
-        <div className="border-b border-[#e0e0e0] px-4 py-3">
-          <div className="flex items-center">
-            <span className="text-[16px] text-[#3c5998] mr-3 min-w-[70px] font-medium">Subject:</span>
-            <input
-              type="text"
-              value={composeSubject}
-              onChange={(e) => setComposeSubject(e.target.value)}
-              onFocus={() => setActiveField('subject')}
-              placeholder=""
-              className="flex-1 text-[16px] text-black outline-none bg-transparent"
-            />
-          </div>
-        </div>
-
-        {/* From Field */}
-        <div className="border-b border-[#e0e0e0] px-4 py-3">
-          <div className="text-[16px] text-black">
-            <span className="text-[#666]">Sent from my </span>
-            <span className="text-[#007aff]">iPhone</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Message Body */}
-      <div className="flex-1 bg-white overflow-hidden">
-        <textarea
-          value={composeBody}
-          onChange={(e) => setComposeBody(e.target.value)}
-          onFocus={() => setActiveField('body')}
-          placeholder=""
-          className="w-full h-full text-[16px] text-black outline-none resize-none bg-transparent overflow-hidden"
-          style={{ 
-            verticalAlign: 'top', 
-            textAlign: 'left',
-            padding: '8px 16px 96px 16px',
-            margin: 0,
-            lineHeight: '20px'
-          }}
-        />
-      </div>
-
-      {/* Keyboard */}
-      <div className="bg-[#cfd6de] border-t border-[#a8b0bd] relative z-[60]">
-        <div className="grid grid-cols-10 gap-[6px] p-2">
-          {!showNumbers ? (
-            // Letters Mode
-            <>
-              {/* First Row */}
-              {['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleKeyPress(key, 'body')}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {isShiftPressed ? key : key.toLowerCase()}
-                </button>
-              ))}
-              
-              {/* Second Row */}
-              <div className="col-span-10 grid grid-cols-9 gap-[6px] ml-4">
-                {['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyPress(key, 'body')}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {isShiftPressed ? key : key.toLowerCase()}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Third Row */}
-              <button 
-                onClick={() => setIsShiftPressed(!isShiftPressed)}
-                className={`h-10 border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm ${
-                  isShiftPressed ? 'bg-[#007aff] text-white' : 'bg-[#acb5c0]'
-                }`}
-              >
-                ⇧
-              </button>
-              {['Z', 'X', 'C', 'V', 'B', 'N', 'M'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleKeyPress(key, 'body')}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {isShiftPressed ? key : key.toLowerCase()}
-                </button>
-              ))}
-              <button 
-                onClick={() => setComposeBody(prev => prev.slice(0, -1))}
-                className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                ⌫
-              </button>
-              
-              {/* Fourth Row */}
-              <button 
-                onClick={() => setShowNumbers(!showNumbers)}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                123
-              </button>
-              <button 
-                onClick={() => handleSpecialChar(' ', 'body')}
-                className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-              >
-                space
-              </button>
-              <button 
-                onClick={() => handleSpecialChar('\n', 'body')}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                return
-              </button>
-              <button className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[14px] font-medium text-black active:bg-[#9aa3b0] shadow-sm">
-                @
-              </button>
-            </>
-          ) : (
-            // Numbers & Symbols Mode
-            <>
-              {/* First Row - Numbers */}
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleSpecialChar(key, 'body')}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[20px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {key}
-                </button>
-              ))}
-              
-              {/* Second Row - Special Characters */}
-              <div className="col-span-10 grid grid-cols-10 gap-[6px]">
-                {['-', '/', ':', ';', '(', ')', '$', '&', '@', '"'].map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleSpecialChar(key, 'body')}
-                    className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Third Row - More Symbols */}
-              <button 
-                onClick={() => setShowNumbers(!showNumbers)}
-                className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[14px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                #+*
-              </button>
-              {['.', ',', '?', '!', "'", '"', '(', ')', '-'].map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleSpecialChar(key, 'body')}
-                  className="h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[18px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-                >
-                  {key}
-                </button>
-              ))}
-              
-              {/* Fourth Row */}
-              <button 
-                onClick={() => setShowNumbers(!showNumbers)}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                ABC
-              </button>
-              <button 
-                onClick={() => handleSpecialChar(' ', 'body')}
-                className="col-span-5 h-10 bg-white border border-[#a8a8a8] rounded-[4px] text-[16px] font-medium text-black active:bg-[#d6dae0] shadow-sm"
-              >
-                space
-              </button>
-              <button 
-                onClick={() => handleSpecialChar('\n', 'body')}
-                className="col-span-2 h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[16px] font-medium text-black active:bg-[#9aa3b0] shadow-sm"
-              >
-                return
-              </button>
-              <button className="h-10 bg-[#acb5c0] border border-[#9aa3b0] rounded-[4px] text-[14px] font-medium text-black active:bg-[#9aa3b0] shadow-sm">
-                .
-              </button>
-            </>
-          )}
+        
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Message:</label>
+          <textarea
+            value={composeBody}
+            onChange={(e) => setComposeBody(e.target.value)}
+            className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md resize-none"
+            placeholder="Type your message here..."
+          />
         </div>
       </div>
     </div>
   );
 
-  // Render based on current view
   switch (currentView) {
     case "inbox":
-      return renderInbox();
+      return renderInboxView();
     case "email":
-      return renderEmail();
+      return renderEmailView();
     case "compose":
-      return renderCompose();
+      return renderComposeView();
     default:
-      return renderInbox();
+      return renderInboxView();
   }
 };
 

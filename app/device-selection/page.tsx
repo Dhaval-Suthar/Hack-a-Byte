@@ -7,6 +7,7 @@ import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { getDevicesByPlayspaceId } from "@/app/actions/admin";
 import { CHARACTER_INFO } from "@/lib/constants/app-constants";
+import { logger } from '@/lib/logger';
 
 interface DeviceOption {
   id: string;
@@ -26,12 +27,18 @@ interface DeviceInstance {
 export default function DeviceSelectionPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [currentPlayspaceId, setCurrentPlayspaceId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<DeviceInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<{ [deviceType: string]: string }>({});
+
+  // Handle hydration
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Detect if user is on mobile
   useEffect(() => {
@@ -81,13 +88,11 @@ export default function DeviceSelectionPage() {
         setSelectedInstances(newSelectedInstances);
 
         // Log the available devices for debugging
-        console.log("Available devices:", result.devices);
-        console.log("Auto-selected instances:", newSelectedInstances);
       }
 
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching devices:", err);
+      logger.error('Error fetching devices:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError("Failed to load available devices");
       setLoading(false);
     }
@@ -137,11 +142,11 @@ export default function DeviceSelectionPage() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        logger.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
   } else {
     document.exitFullscreen().catch((err) => {
-      console.error(`Error attempting to exit fullscreen: ${err.message}`);
+      logger.error(`Error attempting to exit fullscreen: ${err.message}`);
     });
   }
 };
@@ -150,14 +155,6 @@ export default function DeviceSelectionPage() {
 
   // All possible device options - memoized to prevent re-creation on every render
   const allDeviceOptions: DeviceOption[] = useMemo(() => [
-    {
-      id: "hackbook-e95",
-      name: "HackBook E95",
-      icon: "/hackbook-W95/app-icon/windows-logo.png",
-      description: "Essential Windows 95 interface with core applications only - no mini games.",
-      path: "/hackbook-e95",
-      platform: "desktop",
-    },
     {
       id: "hackbook-w95",
       name: "HackBook W95",
@@ -267,8 +264,18 @@ export default function DeviceSelectionPage() {
     // Apply playspace access filter
     devices = filterByPlayspaceAccess(devices);
 
-    // Apply platform filter (mobile/desktop)
+    // Apply platform filter (mobile/desktop) but prioritize mobile devices
     devices = filterByPlatform(devices);
+
+    // Sort devices to prioritize mobile devices first
+    devices.sort((a, b) => {
+      // Mobile devices come first
+      if (a.platform === "mobile" && b.platform !== "mobile") return -1;
+      if (a.platform !== "mobile" && b.platform === "mobile") return 1;
+
+      // Within the same platform, maintain original order
+      return 0;
+    });
 
     return devices;
   }, [allDeviceOptions, filterByPlayspaceAccess, filterByPlatform]);
@@ -281,6 +288,11 @@ export default function DeviceSelectionPage() {
       // Get the selected device instance for this device type
       const deviceInstance = getSelectedDeviceInstance(deviceId);
       const specificDeviceId = deviceInstance?.id;
+
+      // Store the device MAC address in localStorage
+      if (specificDeviceId) {
+        localStorage.setItem("device_mac_address", specificDeviceId);
+      }
 
       // Small delay to show selection effect before navigating
       setTimeout(() => {
@@ -380,11 +392,13 @@ export default function DeviceSelectionPage() {
         <div className="text-center my-8">
           <p className="text-yellow-400 font-mono">No devices are available for this playspace.</p>
           {currentPlayspaceId && <p className="text-green-400 font-mono mt-2">Playspace ID: {currentPlayspaceId}</p>}
-          <p className="text-blue-400 font-mono mt-4">
-            {isMobile
-              ? "Try accessing from a desktop device for more options."
-              : "Try accessing from a mobile device for more options."}
-          </p>
+          {isHydrated && (
+            <p className="text-blue-400 font-mono mt-4">
+              {isMobile
+                ? "Try accessing from a desktop device for more options."
+                : "Try accessing from a mobile device for more options."}
+            </p>
+          )}
         </div>
       )}
 

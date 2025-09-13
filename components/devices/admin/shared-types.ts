@@ -43,6 +43,7 @@ export interface EventItem {
   category?: string;
   isPublic?: boolean;
   capacity?: number;
+  registrationEnabled?: boolean;
   requiredDeviceTypes?: {
     mobile: boolean;
     desktop: boolean;
@@ -95,4 +96,4 @@ export interface Note {
   kind: "ok" | "err" | "info";
 }
 
-export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions" | "sponsors";
+export type Tab = "dashboard" | "teams" | "codes" | "playspaces" | "devices" | "events" | "sessions" | "sponsors" | "messaging";

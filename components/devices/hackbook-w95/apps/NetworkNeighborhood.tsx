@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import IPFinder from "./IPFinder";
+import { logger } from '@/lib/logger';
 
 interface NetworkNeighborhoodProps {
   onClose: () => void;
@@ -39,7 +40,7 @@ const NetworkNeighborhood: React.FC<NetworkNeighborhoodProps> = ({ onClose }) =>
       const { MissionTracker } = await import('../hooks/useMissionTracker');
       MissionTracker.completeMission('mission2');
     } catch (error) {
-      console.error('Error completing mission:', error);
+      logger.error('Error completing mission:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
 
     // Remove the Network Neighborhood app from desktop after completion

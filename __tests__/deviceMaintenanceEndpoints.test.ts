@@ -45,7 +45,6 @@ describe('maintenance-producing endpoints', () => {
   teamFindOne.mockReturnValue({ select: () => targetTeamObj });
     const { req, res } = createMocks({ method: 'POST', body: { attackerTeamId: 'T1', targetDeviceId: 'D1', malwareType: 'worm' } });
     await handler(req as unknown as NextApiRequest, res as unknown as NextApiResponse);
-  if (res._getStatusCode() !== 200) { console.log('Resolve debug response:', res._getData()); }
     expect(res._getStatusCode()).toBe(200);
     expect(scheduleSpy).toHaveBeenCalledWith(expect.any(String), 'worm');
   });
@@ -60,7 +59,6 @@ describe('maintenance-producing endpoints', () => {
   teamFindOne.mockReturnValue({ select: () => targetTeamObj });
     const { req, res } = createMocks({ method: 'POST', body: { targetDeviceId: 'D2', attackerTeamId: 'T2' } });
     await handler(req as unknown as NextApiRequest, res as unknown as NextApiResponse);
-  if (res._getStatusCode() !== 200) { console.log('Systrojan debug response:', res._getData()); }
     expect(res._getStatusCode()).toBe(200);
     expect(scheduleSpy).toHaveBeenCalledWith(expect.any(String), 'trojan');
   });

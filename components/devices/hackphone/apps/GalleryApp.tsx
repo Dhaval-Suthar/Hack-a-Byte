@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { logger } from '@/lib/logger';
 
 interface Photo {
   id: string;
@@ -101,7 +102,7 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
     const userPhotos = updatedPhotos.filter(photo => !photo.id.startsWith('demo'));
     localStorage.setItem('hackphone_photos', JSON.stringify(userPhotos));
 
-    try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { console.warn(e); }
+    try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { logger.warn("Event dispatch failed", { error: e instanceof Error ? e.message : "Unknown error", errorObject: e }); }
 
     setSelectedIds([]);
     setSelectionMode(false);
@@ -147,7 +148,7 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
 
       const updatedPhotos = photos.filter(photo => photo.id !== photoId);
       setPhotos(updatedPhotos);
-      try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { console.warn(e); }
+      try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { logger.warn("Event dispatch failed", { error: e instanceof Error ? e.message : "Unknown error", errorObject: e }); }
       setSelectedPhoto(null);
       setIsDeleting(false);
       return;
@@ -162,7 +163,7 @@ const GalleryApp: React.FC<GalleryAppProps> = ({ onOpenCamera }) => {
     localStorage.setItem('hackphone_photos', JSON.stringify(userPhotos));
 
     // Notify other components (e.g. Camera) to refresh thumbnails
-    try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { console.warn(e); }
+    try { window.dispatchEvent(new Event('hackphone_photos_updated')); } catch (e) { logger.warn("Event dispatch failed", { error: e instanceof Error ? e.message : "Unknown error", errorObject: e }); }
 
     setSelectedPhoto(null);
     setIsDeleting(false);
