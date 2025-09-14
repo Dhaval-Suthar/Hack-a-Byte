@@ -40,6 +40,16 @@ pnpm dev
 ```bash
 pnpm build
 ```
+
+### Realtime sockets (external server)
+
+This app now connects to an external Socket.IO server. Set the URL in `.env.local`:
+
+```
+NEXT_PUBLIC_SOCKET_URL=https://urban-computing-machine-v6qvgx6v9g7fppx4-3000.app.github.dev
+```
+
+An example server is scaffolded at `external-socket-server/` (TypeScript + Express + Socket.IO). Run it separately and point the URL above to its public address.
 - Teams battle to accumulate the highest bitcoin balance
 - Features specialized roles inspired by Money Heist characters
 - Combines retro aesthetics with modern cybersecurity concepts

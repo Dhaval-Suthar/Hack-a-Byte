@@ -4,7 +4,7 @@ import Team from '@/models/Team';
 import { randomEmailSmsOutcome, recordRisk } from '@/lib/extractorState';
 import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, internalError, badRequest, notFound } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await team.save();
     const ev = recordRisk(teamId, { type: 'email-sms', outcome: outcome.outcome, amount: outcome.amount, detail: outcome.detail });
     try {
-      const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+      const io = getServerIo();
       io?.emit('extractor-email-sms', { teamId, ...outcome, balance: team.wallet.bitcoinBalance, ts: Date.now() });
       io?.emit('extractor-event', { teamId, event: ev });
     } catch {}

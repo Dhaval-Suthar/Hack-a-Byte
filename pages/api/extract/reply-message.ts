@@ -4,7 +4,7 @@ import Team from '@/models/Team';
 import EmailModel, { type EmailModel as EmailModelType } from '@/models/Email';
 import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import { badRequest, notFound, methodNotAllowed, internalError } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
 
@@ -115,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               content: baseContent,
             });
             try {
-              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              const io = getServerIo();
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
                 teamId: String(meta.attackerTeamId),
                 type: 'sms',
@@ -134,7 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               content: baseContent,
             });
             try {
-              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              const io = getServerIo();
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
                 teamId: String(meta.attackerTeamId),
                 type: 'email',
@@ -150,7 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch {}
       // Emit socket event (team scoped)
       try {
-        const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+  const io = getServerIo();
         io?.to?.(`team-${teamId}`)?.emit('extractor-email-sms', {
           teamId,
           outcome: 'gain',
@@ -191,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               content: baseContent,
             });
             try {
-              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              const io = getServerIo();
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
                 teamId: String(meta.attackerTeamId),
                 type: 'sms',
@@ -210,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               content: baseContent,
             });
             try {
-              const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+              const io = getServerIo();
               io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
                 teamId: String(meta.attackerTeamId),
                 type: 'email',
@@ -225,7 +225,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       } catch {}
       try {
-        const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+        const io = getServerIo();
         io?.to?.(`team-${teamId}`)?.emit('extractor-email-sms', {
           teamId,
           outcome: 'neutral',

@@ -2,11 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import { badRequest, notFound, methodNotAllowed } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import { activeFakeBank } from '@/pages/api/attack/fakebank';
 
-function emit(res: NextApiResponse, event: string, payload: Record<string, unknown>) {
-  try { (res as unknown as NextApiResponseServerIo).socket?.server?.io?.emit(event, { ...payload, ts: Date.now() }); } catch {}
+function emit(_res: NextApiResponse, event: string, payload: Record<string, unknown>) {
+  try { getServerIo()?.emit(event, { ...payload, ts: Date.now() }); } catch {}
 }
 
 /* Wallet transfer endpoint

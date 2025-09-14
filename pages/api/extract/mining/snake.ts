@@ -5,7 +5,7 @@ import { miningSnakeReward } from '@/lib/miningState';
 import { assertRoleAccess } from '@/lib/role-access';
 import { ensureRateLimit } from '@/lib/rateLimit';
 import { badRequest, methodNotAllowed, notFound, roleForbidden } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -20,6 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { reward, attempts, windowExpires } = miningSnakeReward(teamId, length);
   team.wallet.bitcoinBalance += reward;
   await team.save();
-  try { (res as unknown as NextApiResponseServerIo).socket?.server?.io?.emit('mining-reward', { teamId, type: 'snake', reward, attempts, windowExpires, balance: team.wallet.bitcoinBalance, ts: Date.now() }); } catch {}
+  try { getServerIo()?.emit('mining-reward', { teamId, type: 'snake', reward, attempts, windowExpires, balance: team.wallet.bitcoinBalance, ts: Date.now() }); } catch {}
   return res.status(200).json({ success: true, reward, attempts, windowExpires, balance: team.wallet.bitcoinBalance });
 }

@@ -4,7 +4,7 @@ import Device from "@/models/Device";
 import Team from "@/models/Team";
 import { bankState, evaluateBankState, getBankPublicState } from '@/lib/bankState';
 import { processDeviceRecoveries } from '@/lib/deviceRecovery';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import { logger } from "@/lib/logger";
 import { checkFormSubmissionRate } from "@/lib/validation";
 
@@ -100,8 +100,7 @@ export default async function handler(
       const recovered = await processDeviceRecoveries();
       if (recovered.length) {
         try {
-          const resAny = res as unknown as NextApiResponseServerIo;
-          const io = resAny.socket?.server?.io;
+          const io = getServerIo();
           recovered.forEach(id => io?.emit('device-recovered', { deviceId: id, ts: Date.now() }));
         } catch {}
       }
@@ -111,8 +110,7 @@ export default async function handler(
     const transition = evaluateBankState();
     if (transition) {
       try {
-        const resAny = res as unknown as NextApiResponseServerIo;
-        const io = resAny.socket?.server?.io;
+        const io = getServerIo();
         if (io) {
           const payload = { online: bankState.online, offlineUntil: getBankPublicState().offlineUntil, reason: transition.reason, ts: Date.now() };
           io.emit('bank-state', payload);

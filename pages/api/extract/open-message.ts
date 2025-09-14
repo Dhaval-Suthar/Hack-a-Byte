@@ -4,7 +4,7 @@ import Team from '@/models/Team';
 import EmailModel from '@/models/Email';
 import SMSModel from '@/models/SMS';
 import { badRequest, notFound, methodNotAllowed, internalError } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import { logger } from '@/lib/logger';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -73,10 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Emit socket event for real-time updates
     try {
-      const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+      const io = getServerIo();
       if (io) {
-  io.emit('extractor-email-sms', { teamId, outcome, amount: 0, balance: team.wallet.bitcoinBalance, detail: responseMessage, ts: Date.now() });
-        
+        io.emit('extractor-email-sms', { teamId, outcome, amount: 0, balance: team.wallet.bitcoinBalance, detail: responseMessage, ts: Date.now() });
         io.emit('extractor-event', { 
           teamId, 
           event: {

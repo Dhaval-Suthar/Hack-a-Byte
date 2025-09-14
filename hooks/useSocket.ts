@@ -177,23 +177,10 @@ export const useSocket = () => {
             await creatingSocket;
           } else {
             creatingSocket = (async () => {
-              // Ensure the server-side Socket.IO is initialized before connecting
-              try {
-                await fetch('/api/socketio', { method: 'GET', cache: 'no-store', keepalive: true });
-              } catch (primeErr) {
-                logger.warn('Failed to prime /api/socketio:', { error: primeErr instanceof Error ? primeErr.message : String(primeErr) });
-              }
-
-              // Add a small delay to ensure server is ready
-              await new Promise(resolve => setTimeout(resolve, 300));
-
-              const base = process.env.NODE_ENV === 'production'
-                ? (process.env.NEXT_PUBLIC_SOCKET_URL || '')
-                : window.location.origin;
+              const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || window.location.origin;
               const s = io(base, {
                 path: '/api/socketio',
-                // Prefer websockets in production (Serverless envs like Vercel cannot host Socket.IO server)
-                transports: process.env.NODE_ENV === 'production' ? ['websocket', 'polling'] : ['websocket', 'polling'],
+                transports: ['websocket', 'polling'],
                 timeout: 30000,
                 // Do NOT force new connections; reuse the single client
                 forceNew: false,

@@ -4,7 +4,7 @@ import Team from '@/models/Team';
 import { performFaucet, recordRisk } from '@/lib/extractorState';
 import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, internalError, badRequest, notFound } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ev = recordRisk(teamId, { type: 'faucet', outcome: 'gain', amount: reward, detail: 'Faucet claim' });
     // Emit socket event
     try {
-      const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+      const io = getServerIo();
       io?.emit('extractor-faucet', { teamId, reward, attempts, windowExpires, balance: team.wallet.bitcoinBalance, ts: Date.now() });
       io?.emit('extractor-event', { teamId, event: ev });
     } catch {}

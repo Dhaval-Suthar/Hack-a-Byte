@@ -5,7 +5,7 @@ import Device from '@/models/Device';
 import GameSession from '@/models/GameSession';
 import { assertRoleAccess } from '@/lib/role-access';
 import { badRequest, methodNotAllowed, notFound, roleForbidden } from '@/lib/api-errors';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 /* Unified game end endpoint
    Modes:
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!force && session.status !== 'active') return badRequest(res, 'Session not active');
   await session.end(winnerId);
       try {
-        const io = (res as unknown as NextApiResponseServerIo).socket?.server?.io;
+        const io = getServerIo();
         if (io) {
           const payload = { sessionId, winner: winnerId, ts: Date.now() };
             io.emit('game-session-ended', payload);
@@ -63,6 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const device = await Device.findById(team.deviceId).select('status');
     if (device) { device.status = 'offline'; await device.save(); }
   }
-  try { (res as unknown as NextApiResponseServerIo).socket?.server?.io?.emit('game-session-ended', { teamId, reason: 'early-end', ts: Date.now() }); } catch {}
+  try { getServerIo()?.emit('game-session-ended', { teamId, reason: 'early-end', ts: Date.now() }); } catch {}
   return res.status(200).json({ success: true, ended: true, teamId });
 }

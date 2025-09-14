@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import { assertRoleAccess } from '@/lib/role-access';
 import { redisRateLimit } from '@/lib/redisRateLimit';
 import { z } from 'zod';
@@ -16,13 +16,11 @@ import { bankState, forceOffline, getBankPublicState } from '@/lib/bankState';
 
 function emitScoped(res: NextApiResponse, event: string, payload: Record<string, unknown>) {
   try {
-    const resAny = res as unknown as NextApiResponseServerIo;
-    const maybeSocket = resAny.socket as unknown as { server?: { io?: { emit: (ev:string,data:unknown)=>void; to?: (room:string)=>{ emit:(ev:string,data:unknown)=>void } } } };
-    const io = maybeSocket.server?.io;
+    const io = getServerIo();
     const reqAny = (res as unknown as { req?: { cookies?: Record<string,string> } }).req;
     const playspaceId = reqAny?.cookies?.playspaceId;
-    if (io && playspaceId && io.to) io.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
-    else if (io) io.emit(event, { ...payload, ts: Date.now() });
+    if (io && playspaceId) io.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
+    else io?.emit(event, { ...payload, ts: Date.now() });
   } catch {}
 }
 
