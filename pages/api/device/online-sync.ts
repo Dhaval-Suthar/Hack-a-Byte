@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 // GET: ?deviceId=... returns { online: boolean, status }
 // POST: { deviceId, status } to update (restricted - placeholder auth header X-Admin-Key)
@@ -27,8 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const updated = await Device.findOneAndUpdate({ deviceMacAddress: deviceId }, { status }, { new: true }).select('status');
       if (!updated) return res.status(404).json({ error: 'Device not found' });
       try {
-        const resAny = res as unknown as NextApiResponseServerIo;
-        const io = resAny.socket?.server?.io;
+        const io = getServerIo();
         if (io) io.emit('device-status', { deviceId, status: updated.status, ts: Date.now() });
       } catch {}
       return res.status(200).json({ success: true, status: updated.status });

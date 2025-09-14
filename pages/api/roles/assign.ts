@@ -3,7 +3,7 @@ import connectDb from '@/db/connectDb';
 import Team from '@/models/Team';
 import AccessCode from '@/models/AccessCode';
 import { ROLE_LIMITS } from '@/lib/constants/app-constants';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -47,8 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Socket events
     try {
-      const resAny = res as unknown as NextApiResponseServerIo;
-      const io = resAny.socket?.server?.io;
+      const io = getServerIo();
       if (io) {
         io.emit('role-assigned', { teamId: team._id.toString(), username, role: normalizedRole, allJoined, ts: Date.now() });
         if (allJoined) {

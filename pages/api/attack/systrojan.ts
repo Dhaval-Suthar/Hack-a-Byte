@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import Team from '@/models/Team';
-import type { NextApiResponseServerIo } from '@/lib/socket';
+import { getServerIo } from '@/lib/socket';
 import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, badRequest, internalError, notFound } from '@/lib/api-errors';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
@@ -16,19 +16,15 @@ import { scheduleDeviceRecovery } from '@/lib/deviceRecovery';
 
 function emitScoped(res: NextApiResponse, event: string, payload: Record<string, unknown>) {
   try {
-    const resAny = res as unknown as NextApiResponseServerIo;
-    const maybeSocket = resAny.socket as unknown as { server?: { io?: { emit: (ev:string,data:unknown)=>void; to?: (room:string)=>{ emit:(ev:string,data:unknown)=>void } } } };
-    const io = maybeSocket.server?.io;
-    
-    // If payload has teamId, emit to team room; otherwise use playspace
-    if (io && payload.teamId && io.to) {
-      const teamRoom = `team-${payload.teamId}`;
-      io.to(teamRoom).emit(event, { ...payload, ts: Date.now() });
+    const io = getServerIo();
+    if ((payload as { teamId?: string }).teamId) {
+      const teamRoom = `team-${(payload as { teamId: string }).teamId}`;
+      io?.to(teamRoom).emit(event, { ...payload, ts: Date.now() });
     } else {
       const reqAny = (res as unknown as { req?: { cookies?: Record<string,string> } }).req;
       const playspaceId = reqAny?.cookies?.playspaceId;
-      if (io && playspaceId && io.to) io.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
-      else if (io) io.emit(event, { ...payload, ts: Date.now() });
+      if (playspaceId) io?.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
+      else io?.emit(event, { ...payload, ts: Date.now() });
     }
   } catch {}
 }
