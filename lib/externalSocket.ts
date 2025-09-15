@@ -8,6 +8,7 @@ let externalSocket: Socket | null = null;
  */
 export function getExternalSocket(): Socket | null {
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+  const authToken = process.env.SOCKET_SERVER_EMIT_TOKEN?.trim();
 
   if (!socketUrl) {
     console.warn('NEXT_PUBLIC_SOCKET_URL not set, cannot connect to external socket server');
@@ -24,6 +25,7 @@ export function getExternalSocket(): Socket | null {
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
+        auth: authToken ? { token: authToken } : undefined,
       });
 
       externalSocket.on('connect', () => {
@@ -74,9 +76,16 @@ export async function emitSocketEvent(room: string, event: string, data: Record<
     // Ask the external server to emit to the room on our behalf
     const ack = await new Promise<boolean>((resolve) => {
       // Use timeout() so we don't hang forever
-      (socket as Socket).timeout(3000).emit('server-emit', payload, (err: unknown, ok?: boolean) => {
-        if (err) return resolve(false);
-        resolve(Boolean(ok));
+      (socket as Socket).timeout(5000).emit('server-emit', payload, (err: unknown, ok?: boolean) => {
+        if (err) {
+          console.warn('server-emit timeout or error:', err);
+          return resolve(false);
+        }
+        if (!ok) {
+          console.warn('server-emit rejected by server');
+          return resolve(false);
+        }
+        resolve(true);
       });
     });
     if (!ack) {
