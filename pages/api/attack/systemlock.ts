@@ -10,7 +10,7 @@ import { bankState, forceOffline, getBankPublicState } from '@/lib/bankState';
 
 /* SystemLock Pro special bank attack
   POST body: { attackerTeamId }
-  Guarantee +100 BTC credit and forces bank offline 5–10 minutes using centralized bankState.
+  Guarantee +150 BTC credit and forces bank offline 5–10 minutes using centralized bankState.
   Denies if bank currently forced offline.
 */
 
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectDb();
     const attacker = await Team.findById(attackerTeamId).select('wallet.bitcoinBalance');
     if (!attacker) return res.status(404).json({ success: false, error: 'Attacker team not found' });
-    attacker.wallet.bitcoinBalance += 100;
+    attacker.wallet.bitcoinBalance += 150;
     await attacker.save();
   const offlineMs = (5 + Math.floor(Math.random()*6)) * 60 * 1000; // 5-10 min
   const transition = forceOffline(offlineMs, now); // updates centralized bank state

@@ -9,8 +9,8 @@ if (!g.__faucet) g.__faucet = {};
 if (!g.__risk) g.__risk = {};
 
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes faucet diminishing window
-const BASE_REWARD = 120; // base BTC faucet reward
-const MIN_REWARD = 15; // floor
+const BASE_REWARD = 80; // base BTC faucet reward - balanced for gameplay
+const MIN_REWARD = 10; // floor - balanced minimum
 const DIMINISH = 0.25; // 25% reduction each attempt in window
 
 export function performFaucet(teamId: string) {

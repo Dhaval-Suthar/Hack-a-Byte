@@ -10,8 +10,8 @@ interface Tile {
   correctIndex: number;
 }
 
-// Award per successful round (matches project spec: 10 bitcoins per round of ordering numbers)
-const REWARD_PER_ROUND = 10;
+// Award per successful round (matches project spec: 25 bitcoins per round of ordering numbers)
+const REWARD_PER_ROUND = 25;
 
 const generateRound = (size = 6): Tile[] => {
   const nums = Array.from({ length: size }, () => Math.floor(Math.random() * 99) + 1);

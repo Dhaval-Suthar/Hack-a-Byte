@@ -80,7 +80,7 @@ const TeamSchema = new Schema<EventTeam>(
       walletAddress: { type: String, required: true },
       privateKey: { type: String, required: true },
       publicKey: { type: String },
-      bitcoinBalance: { type: Number, default: 10000 }, // Increased default balance for new price scale
+      bitcoinBalance: { type: Number, default: 500 }, // Balanced starting balance for strategic gameplay
     },
     // Stock portfolio
     stockPortfolio: { type: [StockPortfolioSchema], default: [] },
