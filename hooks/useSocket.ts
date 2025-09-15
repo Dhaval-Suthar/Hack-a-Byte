@@ -180,7 +180,7 @@ export const useSocket = () => {
               const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || window.location.origin;
               const s = io(base, {
                 path: '/api/socketio',
-                transports: ['websocket', 'polling'],
+                transports: ['websocket'],
                 timeout: 30000,
                 // Do NOT force new connections; reuse the single client
                 forceNew: false,

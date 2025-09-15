@@ -19,7 +19,7 @@ export function getExternalSocket(): Socket | null {
     try {
       externalSocket = io(socketUrl, {
         path: '/api/socketio',
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
         timeout: 10000,
         reconnection: true,
         reconnectionAttempts: 10,

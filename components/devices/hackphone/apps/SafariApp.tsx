@@ -817,7 +817,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   useEffect(()=>{
     if (!teamId || socket) return;
   const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || (typeof window !== 'undefined' ? window.location.origin : '/');
-  const s = rawIo(base, { path: '/api/socketio', transports:['websocket','polling'], timeout: 20000 });
+  const s = rawIo(base, { path: '/api/socketio', transports:['websocket'], timeout: 20000 });
     s.on('connect', ()=>{/* noop */});
     s.on('connect_error', (error) => {
       logger.warn('SafariApp socket connection error:', { error: error.message });
