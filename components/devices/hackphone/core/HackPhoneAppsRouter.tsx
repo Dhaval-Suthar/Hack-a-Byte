@@ -25,9 +25,9 @@ const WeatherApp = lazy(() => import("../apps/WeatherApp"));
 const MusicApp = lazy(() => import("../apps/MusicApp"));
 const PhoneApp = lazy(() => import("../apps/PhoneApp"));
 const ClockApp = lazy(() => import("../apps/ClockApp"));
-const CameraApp = lazy(() => import("../apps/CameraApp"));
+const CameraApp = lazy(() => import("../apps/EnhancedCameraApp"));
 const FileApp = lazy(() => import("../apps/FileApp"));
-const GalleryApp = lazy(() => import("../apps/GalleryApp"));
+const GalleryApp = lazy(() => import("../apps/EnhancedGalleryApp"));
 const StockMarketApp = lazy(() => import("../apps/StockMarketApp"));
 const SnakeeGame = lazy(() => import("../apps/SnakeeGame"));
 const NotesApp = lazy(() => import("../apps/NotesApp"));
@@ -271,6 +271,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
           <Suspense fallback={<LoadingSpinner />}>
             <GalleryApp
               time={time}
+              onClose={onClose}
               onOpenCamera={() => onAppSwitch?.('camera')}
             />
           </Suspense>,
