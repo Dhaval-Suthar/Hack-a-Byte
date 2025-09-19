@@ -77,22 +77,124 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
   const [gameStatus, setGameStatus] = useState("Menu");
   const [level, setLevel] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
-  const [speed] = useState(4);
+  const [isPaused, setIsPaused] = useState(false);
+  const [speed, setSpeed] = useState(4);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // Sound effect references
+  const soundRefs = useRef({
+    eat: typeof Audio !== 'undefined' ? new Audio('/sounds/eat.mp3') : null,
+    golden: typeof Audio !== 'undefined' ? new Audio('/sounds/golden.mp3') : null,
+    poison: typeof Audio !== 'undefined' ? new Audio('/sounds/poison.mp3') : null,
+    gameOver: typeof Audio !== 'undefined' ? new Audio('/sounds/game-over.mp3') : null,
+    powerUp: typeof Audio !== 'undefined' ? new Audio('/sounds/power-up.mp3') : null,
+    click: typeof Audio !== 'undefined' ? new Audio('/sounds/click.mp3') : null,
+    move: typeof Audio !== 'undefined' ? new Audio('/sounds/move.mp3') : null
+  });
+  
+  // Function to play sound effects
+  const playSound = useCallback((sound: keyof typeof soundRefs.current) => {
+    if (!soundEnabled || typeof window === 'undefined') return;
+    
+    const audio = soundRefs.current[sound];
+    if (audio) {
+      audio.currentTime = 0; // Reset sound to start
+      audio.volume = 0.5; // Adjust volume
+      audio.play().catch(() => {}); // Ignore autoplay errors
+    }
+  }, [soundEnabled]);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const gameStateRef = useRef({
     snake: [] as Array<{ q: number; r: number }>,
     dirIndex: 0,
     targetDir: 0,
     food: null as { q: number; r: number; type: string; spawnAt: number } | null,
+    powerUp: null as { 
+      type: "shield" | "slowTime" | "pointBoost"; 
+      expiresAt: number;
+      q: number;
+      r: number;
+    } | null,
     moveTimer: null as NodeJS.Timeout | null,
     animationId: null as number | null,
+    activePowerUp: null as {
+      type: "shield" | "slowTime" | "pointBoost";
+      expiresAt: number;
+    } | null,
+    particles: [] as Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      color: string;
+      size: number;
+      alpha: number;
+      life: number;
+      maxLife: number;
+    }>,
+    lastHeadPos: { x: 0, y: 0 } // To track movement for trail particles
   });
 
   // (HEX_BASE) removed as unused
 
   // formatTime helper removed (unused in this component)
+  
+  // Create particles function
+  const createParticles = useCallback((
+    x: number, 
+    y: number, 
+    count: number, 
+    color: string | string[], 
+    size: number | [number, number] = 3,
+    speed: number = 2,
+    life: number = 30
+  ) => {
+    const particles = [];
+    const colors = Array.isArray(color) ? color : [color];
+    const sizeRange = Array.isArray(size) ? size : [size, size];
+    
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const s = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
+      const velocity = speed * (0.5 + Math.random() * 0.5);
+      const maxLife = life * (0.7 + Math.random() * 0.6);
+      
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * velocity,
+        vy: Math.sin(angle) * velocity,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: s,
+        alpha: 1,
+        life: maxLife,
+        maxLife
+      });
+    }
+    
+    gameStateRef.current.particles = [
+      ...gameStateRef.current.particles,
+      ...particles
+    ].slice(0, 200); // Limit total particles for performance
+  }, []);
+  
+  // Update particles
+  const updateParticles = useCallback(() => {
+    gameStateRef.current.particles = gameStateRef.current.particles
+      .map(p => ({
+        ...p,
+        x: p.x + p.vx,
+        y: p.y + p.vy,
+        vx: p.vx * 0.96, // Add some drag
+        vy: p.vy * 0.96,
+        size: p.size * 0.97, // Particles shrink over time
+        life: p.life - 1,
+        alpha: (p.life / p.maxLife) * 0.8 // Fade out
+      }))
+      .filter(p => p.life > 0 && p.size > 0.3);
+  }, []);
 
   // Load high score from localStorage
   useEffect(() => {
@@ -104,8 +206,48 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
   // Hex coordinate utilities moved to module scope above
 
+  // Function to place a power-up
+  const placePowerUp = useCallback(() => {
+    // Only place power-up if we don't have an active or placed one
+    if (gameStateRef.current.activePowerUp || gameStateRef.current.powerUp) {
+      return;
+    }
+    
+    // Power-up spawns are rare, so check chance
+    const powerUpChance = 0.1 + level * 0.02; // Increase chance with level
+    if (Math.random() > powerUpChance) {
+      return;
+    }
+    
+    // Find empty cell that's not where the snake or food is
+    const exclude = new Set([
+      ...gameStateRef.current.snake.map(coordKey),
+      gameStateRef.current.food ? coordKey(gameStateRef.current.food) : ''
+    ]);
+    const base = randomEmptyCell(exclude);
+    if (!base) {
+      return;
+    }
+    
+    // Choose a power-up type
+    const powerUpTypes: Array<"shield" | "slowTime" | "pointBoost"> = ["shield", "slowTime", "pointBoost"];
+    const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+    
+    gameStateRef.current.powerUp = {
+      q: base.q,
+      r: base.r,
+      type,
+      expiresAt: Date.now() + 10000 // Power-up disappears after 10 seconds if not collected
+    };
+  }, [level]);
+
   const placeFood = useCallback(() => {
     const exclude = new Set(gameStateRef.current.snake.map(coordKey));
+    // Also exclude power-up position if exists
+    if (gameStateRef.current.powerUp) {
+      exclude.add(coordKey(gameStateRef.current.powerUp));
+    }
+    
     const base = randomEmptyCell(exclude);
     if (!base) {
       gameStateRef.current.food = null;
@@ -114,6 +256,8 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
     const roll = Math.random();
     let type = "normal";
+    
+    // Fixed food spawn rates (balanced difficulty)
     const goldenChance = Math.min(0.08 + level * 0.02, 0.2);
     const poisonChance = Math.min(0.05 + level * 0.015, 0.15);
 
@@ -129,7 +273,10 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       type,
       spawnAt: Date.now() / 1000,
     };
-  }, [level]);
+    
+    // Check if we should place a power-up
+    placePowerUp();
+  }, [level, placePowerUp]);
 
   const initGame = useCallback(() => {
     gameStateRef.current.snake = [
@@ -139,10 +286,18 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     ];
     gameStateRef.current.dirIndex = 0;
     gameStateRef.current.targetDir = 0;
+    gameStateRef.current.powerUp = null;
+    gameStateRef.current.activePowerUp = null;
+    gameStateRef.current.particles = [];
+    gameStateRef.current.lastHeadPos = { x: 0, y: 0 };
     setScore(0);
     setLevel(1);
     setGameStatus("Menu");
     setIsRunning(false);
+    
+    // Set fixed game speed
+    setSpeed(4);
+    
     placeFood();
 
     if (gameStateRef.current.moveTimer) {
@@ -158,6 +313,9 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       clearInterval(gameStateRef.current.moveTimer);
       gameStateRef.current.moveTimer = null;
     }
+    
+    // Play game over sound
+    playSound("gameOver");
 
     // Add screen shake effect for game over
     const canvas = canvasRef.current;
@@ -166,15 +324,84 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       setTimeout(() => {
         if (canvas) canvas.style.animation = "";
       }, 500);
+      
+      // Create massive explosion particles at game over location
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Create an explosion effect from the last snake head position
+      if (gameStateRef.current.snake.length > 0) {
+        const head = gameStateRef.current.snake[gameStateRef.current.snake.length - 1];
+        const hexSize = Math.min(width, height) / (GRID_RADIUS * 4);
+        const headPixel = hexToPixel(head.q, head.r, hexSize);
+        const headX = centerX + headPixel.x;
+        const headY = centerY + headPixel.y;
+        
+        // Big explosion at snake head
+        createParticles(
+          headX, 
+          headY, 
+          50, 
+          ['#ff0000', '#ff4500', '#ff6347', '#ffaa33', '#ffcc00', '#ff7700'], 
+          [2, 5], 
+          4, 
+          60
+        );
+        
+        // Secondary explosions along snake body
+        const bodyPositions = Math.min(gameStateRef.current.snake.length - 1, 5); // Up to 5 body segments
+        for (let i = 0; i < bodyPositions; i++) {
+          const idx = gameStateRef.current.snake.length - 2 - i;
+          if (idx >= 0) {
+            const segment = gameStateRef.current.snake[idx];
+            const segPixel = hexToPixel(segment.q, segment.r, hexSize);
+            const segX = centerX + segPixel.x;
+            const segY = centerY + segPixel.y;
+            
+            // Create smaller explosion with delay
+            setTimeout(() => {
+              createParticles(
+                segX, 
+                segY, 
+                20, 
+                ['#ff0000', '#ff4500', '#ff6347'], 
+                [1.5, 3], 
+                3, 
+                40
+              );
+            }, 100 * (i + 1));
+          }
+        }
+      }
     }
 
     setTimeout(() => initGame(), 3000);
-  }, [initGame]);
+  }, [initGame, playSound, createParticles]);
 
   const tickMove = useCallback(() => {
     if (!isRunning) return;
 
     const state = gameStateRef.current;
+    
+    // Check if we have an active power-up that has expired
+    if (state.activePowerUp && Date.now() > state.activePowerUp.expiresAt) {
+      // Restore speed if slow time power-up is ending
+      if (state.activePowerUp.type === "slowTime") {
+        // Reset speed to fixed setting
+        setSpeed(4);
+      }
+      
+      state.activePowerUp = null;
+    }
+    
+    // Check if placed power-up has expired
+    if (state.powerUp && Date.now() > state.powerUp.expiresAt) {
+      state.powerUp = null;
+    }
+    
+    // Update direction
     if ((state.targetDir + 3) % 6 !== state.dirIndex) {
       state.dirIndex = state.targetDir;
     }
@@ -183,38 +410,201 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     const d = DIRECTIONS[state.dirIndex];
     let newHead = { q: head.q + d.q, r: head.r + d.r };
     newHead = axialWrap(newHead.q, newHead.r);
+    
+    // Calculate pixel position for the head for particle effects
+    const width = canvasRef.current?.width || 320;
+    const height = canvasRef.current?.height || 380;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const hexSize = Math.min(width, height) / (GRID_RADIUS * 4);
+    const headPixel = hexToPixel(head.q, head.r, hexSize);
+    const headX = centerX + headPixel.x;
+    const headY = centerY + headPixel.y;
+    
+    // Store head position for movement trail
+    state.lastHeadPos = { x: headX, y: headY };
+    
+    // Create movement trail particles occasionally
+    if (Math.random() < 0.3 && isRunning) {
+      createParticles(
+        headX, 
+        headY, 
+        1, 
+        ['rgba(0, 255, 100, 0.6)', 'rgba(0, 200, 100, 0.5)'], 
+        [1, 2],
+        0.5,
+        20
+      );
+    }
 
-    // Check self collision
+    // Check self collision - skip if shield power-up is active
     if (state.snake.some((s) => s.q === newHead.q && s.r === newHead.r)) {
-      gameOver();
-      return;
+      if (state.activePowerUp && state.activePowerUp.type === "shield") {
+        // Shield absorbs one collision and then expires
+        state.activePowerUp = null;
+      } else {
+        gameOver();
+        return;
+      }
     }
 
     state.snake.push(newHead);
 
+    // Check power-up collision
+    if (state.powerUp && state.powerUp.q === newHead.q && state.powerUp.r === newHead.r) {
+      // Activate the power-up
+      const powerUpDuration = 10000; // 10 seconds
+      
+      state.activePowerUp = {
+        type: state.powerUp.type,
+        expiresAt: Date.now() + powerUpDuration
+      };
+      
+      // Play power-up sound
+      playSound("powerUp");
+      
+      // Calculate power-up position for particle effects
+      const width = canvasRef.current?.width || 320;
+      const height = canvasRef.current?.height || 380;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const hexSize = Math.min(width, height) / (GRID_RADIUS * 4);
+      const powerUpPixel = hexToPixel(state.powerUp.q, state.powerUp.r, hexSize);
+      const powerUpX = centerX + powerUpPixel.x;
+      const powerUpY = centerY + powerUpPixel.y;
+      
+      // Apply power-up effect and create specific particles
+      switch(state.powerUp.type) {
+        case "shield":
+          // Shield is handled when collision happens
+          createParticles(
+            powerUpX, 
+            powerUpY, 
+            25, 
+            ['#4287f5', '#1c54b2', '#87b3ff', '#ffffff'], 
+            [2, 4], 
+            3, 
+            50
+          );
+          break;
+        case "slowTime":
+          // Slow down the game speed
+          setSpeed(Math.max(2, speed * 0.6));
+          createParticles(
+            powerUpX, 
+            powerUpY, 
+            25, 
+            ['#34ebc9', '#00c3ff', '#87cefa', '#ffffff'], 
+            [2, 4], 
+            1, // Slower speed for time effect
+            80  // Longer life for time effect
+          );
+          break;
+        case "pointBoost":
+          // Point boost will be applied when collecting food
+          createParticles(
+            powerUpX, 
+            powerUpY, 
+            25, 
+            ['#ffcc00', '#ffd700', '#ffff00', '#ffffff'], 
+            [2, 4], 
+            3, 
+            50
+          );
+          break;
+      }
+      
+      state.powerUp = null;
+    }
+
     // Check food collision
     if (state.food && state.food.q === newHead.q && state.food.r === newHead.r) {
       let points = 1;
-      let shouldGrow = true;
+      
+      // Apply point boost if active
+      const hasPointBoost = state.activePowerUp && state.activePowerUp.type === "pointBoost";
+      
+      // Calculate food position for particle effects
+      const width = canvasRef.current?.width || 320;
+      const height = canvasRef.current?.height || 380;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const hexSize = Math.min(width, height) / (GRID_RADIUS * 4);
+      const foodPixel = hexToPixel(state.food.q, state.food.r, hexSize);
+      const foodX = centerX + foodPixel.x;
+      const foodY = centerY + foodPixel.y;
 
       switch (state.food.type) {
         case "golden":
-          points = 2;
+          points = hasPointBoost ? 4 : 2; // Double points with boost
           // Golden apple: double growth (add extra segment)
           state.snake.push({ ...newHead });
+          playSound("golden"); // Play golden apple sound
+          
+          // Create golden particle explosion
+          createParticles(
+            foodX, 
+            foodY, 
+            20, 
+            ['#ffd700', '#ffcc00', '#ffb700', '#fff4cc', '#ffffff'], 
+            [2, 4], 
+            3, 
+            45
+          );
           break;
         case "poison":
-          points = -1;
-          shouldGrow = false;
-          // Poison apple: shrink by removing 2 segments if possible
-          if (state.snake.length > 3) {
-            state.snake.shift();
-            state.snake.shift();
+          // Shield protects from poison effects
+          if (state.activePowerUp && state.activePowerUp.type === "shield") {
+            points = 1; // Convert poison to normal apple
+            state.activePowerUp = null; // Use up the shield
+            playSound("eat"); // Regular eating sound
+            
+            // Create shield activation particles
+            createParticles(
+              foodX, 
+              foodY, 
+              15, 
+              ['#4287f5', '#1c54b2', '#ffffff'], 
+              [2, 3.5], 
+              2.5, 
+              35
+            );
+          } else {
+            points = -1;
+            // Poison apple: shrink by removing 2 segments if possible
+            if (state.snake.length > 3) {
+              state.snake.shift();
+              state.snake.shift();
+            }
+            playSound("poison"); // Play poison apple sound
+            
+            // Create poison particle effect
+            createParticles(
+              foodX, 
+              foodY, 
+              15, 
+              ['#800080', '#4b0082', '#330066', '#2f0000', '#660066'], 
+              [1.5, 3], 
+              2, 
+              40
+            );
           }
           break;
         case "normal":
         default:
-          points = 1;
+          points = hasPointBoost ? 2 : 1; // Double points with boost
+          playSound("eat"); // Play normal eating sound
+          
+          // Create regular eating particles
+          createParticles(
+            foodX, 
+            foodY, 
+            10, 
+            ['#ff6b7a', '#ff4757', '#ff073a'], 
+            [1, 3], 
+            2, 
+            30
+          );
           break;
       }
 
@@ -242,30 +632,58 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
       placeFood();
 
-      // Only remove tail if it's normal food or if we didn't shrink from poison
-      if (!shouldGrow || state.food.type === "normal") {
-        // For normal food, don't remove tail (grow)
-        // For poison, we already handled shrinking above
+      // Handle tail removal based on food type
+      // Only remove tail for normal movement (no food eaten)
+      // For food eaten, we want to grow (don't remove tail)
+      if (!state.food) {
+        // No food eaten, remove tail (normal movement)
+        state.snake.shift();
       }
+      // If food was eaten, don't remove tail (snake grows)
     } else {
       // No food eaten, remove tail (normal movement)
       state.snake.shift();
     }
-  }, [isRunning, highScore, placeFood, gameOver]);
+  }, [isRunning, highScore, placeFood, gameOver, speed, playSound, createParticles]);
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     if (isRunning) return;
     setIsRunning(true);
+    setIsPaused(false);
     setGameStatus("Running");
+    
+    // Play click sound when starting game
+    playSound("click");
 
     const moveMs = 1000 / speed;
     if (gameStateRef.current.moveTimer) {
       clearInterval(gameStateRef.current.moveTimer);
     }
     gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
-  };
+  }, [isRunning, speed, tickMove, playSound]);
 
-  // pauseGame removed (unused) — use game state toggles via setIsRunning/setGameStatus directly when needed
+  const togglePause = useCallback(() => {
+    if (!isRunning) return;
+    
+    // Play click sound when toggling pause
+    playSound("click");
+    
+    if (isPaused) {
+      // Resume game
+      setIsPaused(false);
+      setGameStatus("Running");
+      const moveMs = 1000 / speed;
+      gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
+    } else {
+      // Pause game
+      setIsPaused(true);
+      setGameStatus("Paused");
+      if (gameStateRef.current.moveTimer) {
+        clearInterval(gameStateRef.current.moveTimer);
+        gameStateRef.current.moveTimer = null;
+      }
+    }
+  }, [isRunning, isPaused, speed, tickMove, playSound]);
 
   const setDirection = (idx: number) => {
     if ((idx + 3) % 6 === gameStateRef.current.dirIndex) return;
@@ -410,6 +828,133 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       }
     });
 
+    // Draw active power-up indicator
+    if (gameStateRef.current.activePowerUp) {
+      const powerUpType = gameStateRef.current.activePowerUp.type;
+      const remainingTime = Math.max(0, (gameStateRef.current.activePowerUp.expiresAt - Date.now()) / 1000);
+      const progress = Math.min(1, remainingTime / 10); // 10 seconds total duration
+      
+      // Draw power-up status indicator at top of screen
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(centerX - 50, 10, 100, 25);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.strokeRect(centerX - 50, 10, 100, 25);
+      
+      // Progress bar
+      let barColor;
+      let label;
+      switch(powerUpType) {
+        case "shield":
+          barColor = "#4287f5";
+          label = "🛡️ SHIELD";
+          break;
+        case "slowTime":
+          barColor = "#42f5a7";
+          label = "⏱️ SLOW";
+          break;
+        case "pointBoost":
+          barColor = "#f5d742";
+          label = "💎 2x PTS";
+          break;
+      }
+      
+      ctx.fillStyle = barColor;
+      ctx.fillRect(centerX - 48, 12, 96 * progress, 21);
+      
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, centerX, 22);
+      ctx.restore();
+    }
+    
+    // Draw power-up if available
+    if (gameStateRef.current.powerUp) {
+      const pixel = hexToPixel(gameStateRef.current.powerUp.q, gameStateRef.current.powerUp.r, hexSize);
+      const x = centerX + pixel.x;
+      const y = centerY + pixel.y;
+      
+      const powerUpTime = time * 3;
+      const pulseScale = 0.85 + Math.sin(powerUpTime) * 0.15;
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(powerUpTime * 0.2);
+      ctx.translate(-x, -y);
+      
+      drawHexPath(ctx, x, y, hexSize * pulseScale);
+      
+      let powerUpColor1, powerUpColor2, powerUpSymbol;
+      switch(gameStateRef.current.powerUp.type) {
+        case "shield":
+          powerUpColor1 = "#4287f5"; // Blue
+          powerUpColor2 = "#1c54b2";
+          powerUpSymbol = "🛡️";
+          break;
+        case "slowTime":
+          powerUpColor1 = "#42f5a7"; // Green
+          powerUpColor2 = "#1cb26c";
+          powerUpSymbol = "⏱️";
+          break;
+        case "pointBoost":
+          powerUpColor1 = "#f5d742"; // Yellow
+          powerUpColor2 = "#b29e1c";
+          powerUpSymbol = "💎";
+          break;
+      }
+      
+      // Create a starburst gradient for the power-up
+      const powerUpGradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize * pulseScale);
+      powerUpGradient.addColorStop(0, "#ffffff");
+      powerUpGradient.addColorStop(0.3, powerUpColor1);
+      powerUpGradient.addColorStop(0.7, powerUpColor2);
+      powerUpGradient.addColorStop(1, "#000000");
+      ctx.fillStyle = powerUpGradient;
+      ctx.fill();
+      
+      // Add glowing border
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = powerUpColor1;
+      ctx.strokeStyle = powerUpColor1;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Add rotating particles
+      for (let i = 0; i < 6; i++) {
+        const angle = powerUpTime + (i * Math.PI / 3);
+        const particleX = x + Math.cos(angle) * hexSize * 1.2;
+        const particleY = y + Math.sin(angle) * hexSize * 1.2;
+        const particleSize = 2 + Math.sin(powerUpTime * 2 + i) * 1;
+        
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+        ctx.fillStyle = powerUpColor1;
+        ctx.fill();
+      }
+      
+      // Render power-up symbol
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `${hexSize * 0.4}px monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(powerUpSymbol, x, y);
+      
+      ctx.restore();
+      
+      // Show remaining time for power-up
+      const remainingTime = Math.max(0, Math.ceil((gameStateRef.current.powerUp.expiresAt - Date.now()) / 1000));
+      if (remainingTime <= 3) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `${hexSize * 0.3}px monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${remainingTime}s`, x, y - hexSize * 1.2);
+      }
+    }
+    
     // Enhanced food with advanced visual effects
     if (gameStateRef.current.food) {
       const pixel = hexToPixel(gameStateRef.current.food.q, gameStateRef.current.food.r, hexSize);
@@ -543,10 +1088,23 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       ctx.fillText(scoreText, x, floatY);
     }
 
+    // Update and draw particles
+    updateParticles();
+    
+    gameStateRef.current.particles.forEach(p => {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    ctx.globalAlpha = 1;
+    
     // Reset shadow
     ctx.shadowBlur = 0;
     gameStateRef.current.animationId = requestAnimationFrame(draw);
-  }, []);
+  }, [updateParticles]);
 
   useEffect(() => {
     initGame();
@@ -564,14 +1122,43 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
   }, [initGame, draw]);
 
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && !isPaused) {
       if (gameStateRef.current.moveTimer) {
         clearInterval(gameStateRef.current.moveTimer);
       }
       const moveMs = 1000 / speed;
       gameStateRef.current.moveTimer = setInterval(tickMove, moveMs);
     }
-  }, [speed, isRunning, tickMove]);
+  }, [speed, isRunning, isPaused, tickMove]);
+
+  // Keyboard event handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        if (isRunning) {
+          togglePause();
+        } else {
+          startGame();
+        }
+        e.preventDefault();
+      } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+        setDirection(0); // East
+        if (!isRunning) startGame();
+      } else if (e.code === "ArrowUp" || e.code === "KeyW") {
+        setDirection(1); // Northeast
+        if (!isRunning) startGame();
+      } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
+        setDirection(3); // West
+        if (!isRunning) startGame();
+      } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+        setDirection(5); // Southeast
+        if (!isRunning) startGame();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isRunning, togglePause, startGame]);
 
   // Touch event handlers for swipe detection
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -656,7 +1243,6 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
             <h3 className="text-blue-400 font-mono font-bold mb-2">📱 CONTROLS</h3>
             <div className="text-blue-200 font-mono text-xs space-y-1">
               <p>• SWIPE on the game area to change direction</p>
-              <p>• Or use the direction buttons below</p>
               <p>• 6 directions: NW, NE, E, W, SW, SE</p>
             </div>
           </div>
@@ -672,6 +1258,21 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
               </p>
               <p>
                 ☠️ <span className="text-purple-400">POISON APPLE</span>: -1 point, shrink by 2
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-black/50 border border-blue-500/30 rounded p-3">
+            <h3 className="text-blue-400 font-mono font-bold mb-2">✨ POWER-UPS</h3>
+            <div className="text-blue-200 font-mono text-xs space-y-1">
+              <p>
+                🛡️ <span className="text-blue-400">SHIELD</span>: Protects from collision & poison
+              </p>
+              <p>
+                ⏱️ <span className="text-green-400">SLOW TIME</span>: Reduces game speed
+              </p>
+              <p>
+                💎 <span className="text-yellow-400">POINT BOOST</span>: Doubles points from food
               </p>
             </div>
           </div>
@@ -721,7 +1322,6 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
               <p>• Retro neon visual effects</p>
               <p>• Touch-optimized controls</p>
               <p>• Multiple food types</p>
-              <p>• Progressive difficulty</p>
               <p>• Persistent high scores</p>
             </div>
           </div>
@@ -986,18 +1586,53 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
         {/* Enhanced tutorial and description buttons */}
         <div className="flex gap-3 justify-center mt-4">
           <button
-            onClick={() => setShowTutorial(true)}
+            onClick={() => {
+              setShowTutorial(true);
+              playSound("click");
+            }}
             className="retro-button bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-500/90 hover:to-indigo-500/90 text-white px-4 py-2 rounded-lg text-xs font-mono border border-blue-400/50 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-400/40 transform hover:scale-105"
           >
             📖 TUTORIAL
           </button>
           <button
-            onClick={() => setShowDescription(true)}
+            onClick={() => {
+              setShowDescription(true);
+              playSound("click");
+            }}
             className="retro-button bg-gradient-to-r from-purple-600/90 to-pink-600/90 hover:from-purple-500/90 hover:to-pink-500/90 text-white px-4 py-2 rounded-lg text-xs font-mono border border-purple-400/50 transition-all duration-300 shadow-lg shadow-purple-500/20 hover:shadow-purple-400/40 transform hover:scale-105"
           >
             ℹ️ ABOUT
           </button>
+          <button
+            onClick={() => {
+              setSoundEnabled(!soundEnabled);
+              playSound("click");
+            }}
+            className={`retro-button ${
+              soundEnabled
+                ? "bg-gradient-to-r from-green-600/90 to-teal-600/90 hover:from-green-500/90 hover:to-teal-500/90 border-green-400/50"
+                : "bg-gradient-to-r from-red-600/90 to-rose-600/90 hover:from-red-500/90 hover:to-rose-500/90 border-red-400/50"
+            } text-white px-4 py-2 rounded-lg text-xs font-mono transition-all duration-300 shadow-lg transform hover:scale-105`}
+          >
+            {soundEnabled ? "🔊 SOUND" : "🔇 MUTED"}
+          </button>
         </div>
+        
+        {/* Pause button */}
+        {isRunning && (
+          <div className="mt-3">
+            <button
+              onClick={togglePause}
+              className={`retro-button ${
+                isPaused 
+                  ? "bg-gradient-to-r from-green-600/90 to-teal-600/90 hover:from-green-500/90 hover:to-teal-500/90 border-green-400/50" 
+                  : "bg-gradient-to-r from-amber-600/90 to-orange-600/90 hover:from-amber-500/90 hover:to-orange-500/90 border-amber-400/50"
+              } text-white px-6 py-2 rounded-lg text-xs font-mono transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-400/40 transform hover:scale-105`}
+            >
+              {isPaused ? "▶️ RESUME" : "⏸️ PAUSE"}
+            </button>
+          </div>
+        )}
       </div>{" "}
       {/* Main game area */}
       <div className="flex-1 flex flex-col p-4 relative z-10">
@@ -1075,7 +1710,8 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
               <div className="text-yellow-300 text-xs font-mono tracking-wider relative z-10">HIGH SCORE</div>
             </div>
           </div>
-
+          
+          {/* Game controls */}
         </div>
       </div>
       {/* Tutorial Modal */}
