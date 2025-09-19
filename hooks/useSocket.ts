@@ -96,15 +96,12 @@ export interface DeviceRecoveredEvent { deviceId: string; ts: number; }
 export interface RoleMetadataEvent { teamId?: string; roles?: string[]; ts: number; }
 // Game over unified event
 export interface GameOverEvent { sessionId: string; winner?: string; ts: number; }
-// Worm & FakeBank & DataMiner & Wallet events
+// Worm & DataMiner & Wallet events
 export interface WormPayloadEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; targetTeamId: string; expires: number; ts: number; }
 export interface WormOpenedEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; reward: number; attackerTeamId: string; victimTeamId: string; ts: number; }
-export interface FakeBankSiphonEvent { attackerTeamId: string; victimTeamId: string; amount: number; attackerBalance: number; remainingMs: number; ts: number; }
 export interface DataMinerExfilEvent { targetTeamId: string; walletAddress: string; ts: number; }
 export interface WalletTransferEvent { fromAddress: string; toAddress: string; amount: number; senderBalance: number; receiverBalance: number; ts: number; }
 export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; reward: number; attempts: number; windowExpires: number; balance: number; ts: number; }
-export interface FakeBankVictimEvent { targetTeamId: string; attackerTeamId: string; windowMs: number; ts: number; }
-export interface FakeBankAttackerEvent { attackerTeamId: string; targetTeamId: string; windowMs: number; ts: number; }
 
 // --- Per-tab singleton state ---
 let sharedSocket: Socket | null = null;
@@ -153,12 +150,9 @@ export const useSocket = () => {
   const [gameOverEvents, setGameOverEvents] = useState<GameOverEvent[]>([]);
   const [wormPayloads, setWormPayloads] = useState<WormPayloadEvent[]>([]);
   const [wormOpened, setWormOpened] = useState<WormOpenedEvent[]>([]);
-  const [fakeBankSiphons, setFakeBankSiphons] = useState<FakeBankSiphonEvent[]>([]);
   const [dataMinerExfils, setDataMinerExfils] = useState<DataMinerExfilEvent[]>([]);
   const [walletTransfers, setWalletTransfers] = useState<WalletTransferEvent[]>([]);
   const [miningRewards, setMiningRewards] = useState<MiningRewardEvent[]>([]);
-  const [fakeBankVictimEvents, setFakeBankVictimEvents] = useState<FakeBankVictimEvent[]>([]);
-  const [fakeBankAttackerEvents, setFakeBankAttackerEvents] = useState<FakeBankAttackerEvent[]>([]);
 
   useEffect(() => {
     // Initialize socket connection
@@ -254,14 +248,6 @@ export const useSocket = () => {
         addHandler('mining-reward', (dataUnknown: unknown) => {
           const data = dataUnknown as MiningRewardEvent;
           setMiningRewards(prev => [...prev, data]);
-        });
-        addHandler('fake-bank-victim', (dataUnknown: unknown) => {
-          const data = dataUnknown as FakeBankVictimEvent;
-          setFakeBankVictimEvents(prev => [...prev, data]);
-        });
-        addHandler('fake-bank-attacker', (dataUnknown: unknown) => {
-          const data = dataUnknown as FakeBankAttackerEvent;
-          setFakeBankAttackerEvents(prev => [...prev, data]);
         });
         setSocket(newSocket);
 
@@ -528,12 +514,6 @@ export const useSocket = () => {
           setWormPayloads(prev => prev.filter(p=>p.tokenId!==data.tokenId));
         });
 
-        // FakeBank siphon
-        addHandler('fake-bank-siphon', (dataUnknown: unknown) => {
-          const data = dataUnknown as FakeBankSiphonEvent;
-          setFakeBankSiphons(prev => [...prev, data]);
-        });
-
         // DataMiner alert
         addHandler('dataminer-exfil', (dataUnknown: unknown) => {
           const data = dataUnknown as DataMinerExfilEvent;
@@ -726,12 +706,9 @@ export const useSocket = () => {
   gameOverEvents,
   wormPayloads,
   wormOpened,
-  fakeBankSiphons,
   dataMinerExfils,
   walletTransfers,
   miningRewards,
-  fakeBankVictimEvents,
-  fakeBankAttackerEvents,
     sendMalwareAttack,
     triggerAttackEffect,
     joinTeam,

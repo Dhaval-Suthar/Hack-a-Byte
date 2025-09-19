@@ -159,21 +159,6 @@ const CATALOG: StoreItem[] = [
     isPopular: true,
   },
   {
-    id: "ransom-002",
-    name: "FakeBank Portal",
-    category: "ransomware",
-    description:
-      "Creates convincing banking site replicas. Creates 1-minute window where any target transactions are captured by attacker. Defender gets notified.",
-    price: 320,
-    icon: "🏦",
-    requirements: ["Target IP Address"],
-    rating: 4.5,
-    downloadCount: "6.8K",
-    version: "1.9.2",
-    developer: "BankBuster Inc.",
-    size: "31.4 MB",
-  },
-  {
     id: "ransom-003",
     name: "SystemLock Pro",
     category: "ransomware",
@@ -467,13 +452,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           isValidTarget = false;
           targetInfo = '';
         }
-      } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
-        // FakeBank Portal needs both URL and steal amount
-        const urlRegex = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(\/.*)*/;
-        isValidTarget = urlRegex.test(deployData.targetUrl.trim()) && 
-                       !isNaN(parseFloat(deployData.stealAmount)) && 
-                       parseFloat(deployData.stealAmount) > 0;
-        targetInfo = deployData.targetUrl.trim();
       } else if (deployData.domainName) {
         // Regular ransomware deployment
         const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -561,32 +539,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           const fakeData = await fakeResponse.json();
           if (fakeData.success) {
             effectMessage = `🎭 Fake site deployed at ${deployData.targetUrl}! Will steal ${fakeData.targetAmount} BTC from each visitor.`;
-            deploymentMessage = `${deployItem.name} successfully deployed fake site!`;
-          } else {
-            throw new Error(fakeData.error || 'Failed to deploy fake site');
-          }
-        } else {
-          throw new Error('Failed to deploy fake site');
-        }
-  } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
-        // Deploy FakeBank Portal fake site (with custom steal amount)
-        const fakeResponse = await fetch('/api/safari/deploy-fake-site', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            teamId: getPlayspaceId(),
-            targetUrl: deployData.targetUrl,
-            malwareType: deployItem.name,
-            stealAmount: parseFloat(deployData.stealAmount),
-          }),
-        });
-
-        if (fakeResponse.ok) {
-          const fakeData = await fakeResponse.json();
-          if (fakeData.success) {
-            effectMessage = `🎭 Fake site deployed at ${deployData.targetUrl}! Will steal ${deployData.stealAmount} BTC from each visitor.`;
             deploymentMessage = `${deployItem.name} successfully deployed fake site!`;
           } else {
             throw new Error(fakeData.error || 'Failed to deploy fake site');
@@ -762,7 +714,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
           // Send real-time attack via Socket.IO (except for fake sites which are passive)
           const attackerPlayspaceId = getPlayspaceId();
-          if (attackerPlayspaceId && isConnected && !(deployItem.name === 'FakeBank Portal' || deployItem.name === 'SiteClone Pro')) {
+          if (attackerPlayspaceId && isConnected && !(deployItem.name === 'SiteClone Pro')) {
             sendMalwareAttack({
               attackerPlayspaceId,
               targetInfo,
@@ -1285,7 +1237,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                 )
               )}
               {deployItem.category === "ransomware" &&
-                (deployItem.name === "FakeBank Portal" || deployItem.name === "SiteClone Pro") && (
+                (deployItem.name === "SiteClone Pro") && (
                   <>
                     <div>
                       <label className="block text-[12px] text-[#666] mb-1">Target URL</label>
@@ -1299,21 +1251,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                         Enter the URL for your fake site (must start with http/https)
                       </div>
                     </div>
-                    {deployItem.name === "FakeBank Portal" && (
-                      <div>
-                        <label className="block text-[12px] text-[#666] mb-1">Bitcoin Steal Amount</label>
-                        <input
-                          value={deployData.stealAmount || ""}
-                          onChange={(e) => setDeployData({ ...deployData, stealAmount: e.target.value })}
-                          placeholder="5"
-                          type="number"
-                          min="0.1"
-                          step="0.1"
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2"
-                        />
-                        <div className="text-[11px] text-[#888] mt-1">Amount to steal from each visitor (in BTC)</div>
-                      </div>
-                    )}
                     {deployItem.name === "SiteClone Pro" && (
                       <>
                         <div>
@@ -1380,7 +1317,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                 </div>
               )}
               {deployItem.category === "ransomware" &&
-                deployItem.name !== "FakeBank Portal" &&
                 deployItem.name !== "SiteClone Pro" &&
                 deployItem.name !== "CryptoLocker Elite" &&
                 deployItem.name !== "SystemLock Pro" && (
@@ -1432,9 +1368,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     )
                   ) ||
                   (deployItem.category === "ransomware" &&
-                    deployItem.name === "FakeBank Portal" &&
-                    (!deployData.targetUrl || !deployData.stealAmount)) ||
-                  (deployItem.category === "ransomware" &&
                     deployItem.name === "SiteClone Pro" &&
                     (!deployData.targetUrl || !deployData.customTitle || !deployData.customDescription)) ||
                   (deployItem.category === "ransomware" &&
@@ -1444,7 +1377,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     deployItem.name === "SystemLock Pro" &&
                     !deployData.macAddress) ||
                   (deployItem.category === "ransomware" &&
-                    deployItem.name !== "FakeBank Portal" &&
                     deployItem.name !== "SiteClone Pro" &&
                     deployItem.name !== "CryptoLocker Elite" &&
                     deployItem.name !== "SystemLock Pro" &&

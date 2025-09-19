@@ -3,10 +3,6 @@
 // Import attack modules lazily to avoid mongoose connection issues during instrumentation
 
 import { logger } from '@/lib/logger';
-const getActiveFakeBank = async () => {
-  const { activeFakeBank } = await import('@/pages/api/attack/fakebank');
-  return activeFakeBank;
-};
 
 // Import random message functions lazily
 const getRandomMessageFunctions = async () => {
@@ -31,14 +27,8 @@ if (!g.__sweeperStarted) {
   })();
 
   setInterval(async () => {
-    const now = Date.now();
     try {
-      const activeFakeBank = await getActiveFakeBank();
-      
-      // Fake bank windows
-      for (const [teamId, win] of Object.entries(activeFakeBank)) {
-        if (win.expires < now) delete activeFakeBank[teamId];
-      }
+      // No active cleanup needed for removed FakeBank functionality
     } catch (err) {
       logger.error('❌ Error in state sweeper cleanup:', { error: err instanceof Error ? err.message : String(err || 'Unknown error'), errorObject: err });
     }
