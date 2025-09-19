@@ -71,6 +71,13 @@ export interface Device extends Document {
     details: string;
     ipAddress: string;
   }[];
+
+  // Notes app data
+  notes: {
+    id: number;
+    title: string;
+    body?: string;
+  }[];
 }
 
 const DeviceSchema = new Schema<Device>(
@@ -134,6 +141,15 @@ const DeviceSchema = new Schema<Device>(
     hapticFeedback: { type: Boolean, default: true },
     autoUpdateApps: { type: Boolean, default: true },
     autoBrightness: { type: Boolean, default: true },
+
+    // Notes app data
+    notes: [
+      {
+        id: { type: Number, required: true },
+        title: { type: String, required: true },
+        body: { type: String, default: "" },
+      },
+    ],
 
     logs: [
       {
