@@ -19,6 +19,11 @@ interface DeviceSettings {
   autoUpdateApps?: boolean;
   vibrateEnabled?: boolean;
   autoBrightness?: boolean;
+  // Security settings
+  vpnEnabled?: boolean;
+  firewallEnabled?: boolean;
+  encryptionEnabled?: boolean;
+  antivirusEnabled?: boolean;
 }
 
 interface PinSettings {
@@ -91,6 +96,12 @@ const SettingsApp: React.FC = () => {
   const [voiceControlEnabled, setVoiceControlEnabled] = useState<boolean>(false);
   const [largerTextEnabled, setLargerTextEnabled] = useState<boolean>(false);
   const [buttonShapesEnabled, setButtonShapesEnabled] = useState<boolean>(false);
+  
+  // Security settings
+  const [vpnEnabled, setVpnEnabled] = useState<boolean>(false);
+  const [firewallEnabled, setFirewallEnabled] = useState<boolean>(false);
+  const [encryptionEnabled, setEncryptionEnabled] = useState<boolean>(false);
+  const [antivirusEnabled, setAntivirusEnabled] = useState<boolean>(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +116,7 @@ const SettingsApp: React.FC = () => {
         return;
       }
 
-      // Load device settings
+      // Load device settings (general)
       const deviceResponse = await fetch(`/api/device/settings?deviceMacAddress=${deviceMacAddress}`);
       if (deviceResponse.ok) {
         const deviceData = await deviceResponse.json();
@@ -129,6 +140,23 @@ const SettingsApp: React.FC = () => {
           setAutoUpdateApps(device.autoUpdateApps !== undefined ? device.autoUpdateApps : true);
           setVibrateEnabled(device.vibrateEnabled !== undefined ? device.vibrateEnabled : true);
           
+          // Load security settings separately (because /api/device/settings does not include them)
+          try {
+            const securityResp = await fetch(`/api/device/security?deviceMacAddress=${deviceMacAddress}`);
+            if (securityResp.ok) {
+              const secData = await securityResp.json();
+              if (secData.success && secData.device) {
+                const sec = secData.device;
+                setVpnEnabled(sec.vpn || false);
+                setFirewallEnabled(sec.firewall !== undefined ? sec.firewall : true);
+                setEncryptionEnabled(sec.enc !== undefined ? sec.enc : false);
+                setAntivirusEnabled(sec.antiVirus !== undefined ? sec.antiVirus : true);
+              }
+            }
+          } catch (err) {
+            logger.error('Failed loading security settings', { error: err instanceof Error ? err.message : 'Unknown' });
+          }
+          
           // Set PIN settings
           setPinEnabled(!!device.pin);
         }
@@ -149,6 +177,10 @@ const SettingsApp: React.FC = () => {
       setHapticFeedback(true);
       setAutoUpdateApps(true);
       setVibrateEnabled(true);
+  setVpnEnabled(false);
+  setFirewallEnabled(true); // schema default
+  setEncryptionEnabled(false);
+  setAntivirusEnabled(true); // schema default
       setPinEnabled(false);
     } finally {
       setIsLoading(false);
@@ -302,6 +334,49 @@ const SettingsApp: React.FC = () => {
     await updateDeviceSettings({ vibrateEnabled: v });
   };
 
+  // Helper for security settings updates (POST /api/device/security)
+  const updateSecuritySettings = async (partial: { vpn?: boolean; firewall?: boolean; enc?: boolean; antiVirus?: boolean }) => {
+    setIsUpdating(true);
+    try {
+      const deviceMacAddress = localStorage.getItem("device_mac_address");
+      if (!deviceMacAddress) return;
+      const resp = await fetch('/api/device/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceMacAddress, ...partial })
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(()=>({}));
+        throw new Error(data.error || `Failed updating security (${resp.status})`);
+      }
+    } catch (e) {
+      logger.error('Security update failed', { error: e instanceof Error ? e.message : 'Unknown' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Security settings functions
+  const setVpn = async (v: boolean) => {
+    setVpnEnabled(v);
+    await updateSecuritySettings({ vpn: v });
+  };
+
+  const setFirewall = async (v: boolean) => {
+    setFirewallEnabled(v);
+    await updateSecuritySettings({ firewall: v });
+  };
+
+  const setEncryption = async (v: boolean) => {
+    setEncryptionEnabled(v);
+    await updateSecuritySettings({ enc: v });
+  };
+
+  const setAntivirus = async (v: boolean) => {
+    setAntivirusEnabled(v);
+    await updateSecuritySettings({ antiVirus: v });
+  };
+
   // PIN functions
   const setPinToggle = async (v: boolean) => {
     setPinEnabled(v);
@@ -439,6 +514,7 @@ const SettingsApp: React.FC = () => {
            screen === "about" ? "About" :
            screen === "display" ? "Display & Brightness" :
            screen === "accessibility" ? "Accessibility" :
+           screen === "privacy" ? "Privacy" :
            screen === "pin" ? "PIN" :
            screen === "notifications" ? "Notifications" : "Settings"}
           {isUpdating && <span className="ml-2 text-sm animate-spin">⭯</span>}
@@ -686,9 +762,9 @@ const SettingsApp: React.FC = () => {
               )}
 
               {shouldShowSetting("privacy") && (
-              <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center px-4 py-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setScreen("privacy")}>
                 <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center mr-3">
-                  <span className="text-white text-lg">🔒</span>
+                  <span className="text-white text-lg">�</span>
                 </div>
                 <div className="flex-1">
                   <span className="text-base text-black">Privacy</span>
@@ -1201,6 +1277,51 @@ const SettingsApp: React.FC = () => {
                 <div className="flex items-center">
                   <span className="text-gray-400 text-lg">›</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privacy Screen */}
+        {screen === "privacy" && (
+          <div className="pb-8">
+            <div className="bg-white border-t border-b border-gray-300 mt-4">
+              <div className="px-4 py-3 border-b border-gray-200">
+                <div className="text-base text-black font-medium">Privacy Controls</div>
+                <div className="text-xs text-gray-500 mt-1">Manage data protection and network security features.</div>
+              </div>
+              <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <div className="text-base text-black">VPN</div>
+                  <div className="text-xs text-gray-500">Route traffic through secure tunnel</div>
+                </div>
+                <ClassicSwitch checked={vpnEnabled} onChange={setVpn} />
+              </div>
+              <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <div className="text-base text-black">Firewall</div>
+                  <div className="text-xs text-gray-500">Block unauthorized connections</div>
+                </div>
+                <ClassicSwitch checked={firewallEnabled} onChange={setFirewall} />
+              </div>
+              <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <div className="text-base text-black">Encryption</div>
+                  <div className="text-xs text-gray-500">Protect stored data at rest</div>
+                </div>
+                <ClassicSwitch checked={encryptionEnabled} onChange={setEncryption} />
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <div className="text-base text-black">Antivirus</div>
+                  <div className="text-xs text-gray-500">Scan for malicious software</div>
+                </div>
+                <ClassicSwitch checked={antivirusEnabled} onChange={setAntivirus} />
+              </div>
+            </div>
+            <div className="bg-white border-t border-b border-gray-300 mt-4">
+              <div className="px-4 py-3 text-center text-xs text-gray-500">
+                Changes are saved automatically.
               </div>
             </div>
           </div>
