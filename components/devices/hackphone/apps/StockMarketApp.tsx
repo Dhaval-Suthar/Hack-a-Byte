@@ -286,8 +286,8 @@ const StockMarketApp: React.FC = () => {
   // Simulate real-time price updates with volume and high/low tracking
   useEffect(() => {
     const interval = setInterval(() => {
-      setStocks(prevStocks => 
-        prevStocks.map(stock => {
+      setStocks(prevStocks => {
+        const updatedStocks = prevStocks.map(stock => {
           const changePercent = (Math.random() - 0.5) * 4; // -2% to +2%
           const newPrice = stock.price * (1 + changePercent / 100);
           const change = newPrice - stock.price;
@@ -303,24 +303,26 @@ const StockMarketApp: React.FC = () => {
             high24h: Math.max(stock.high24h!, newPrice),
             low24h: Math.min(stock.low24h!, newPrice)
           };
-        })
-      );
-      
-      // Update price history
-      setPriceHistory(prevHistory => {
-        const newHistory = { ...prevHistory };
-        stocks.forEach(stock => {
-          if (!newHistory[stock.symbol]) {
-            newHistory[stock.symbol] = [];
-          }
-          newHistory[stock.symbol] = [...newHistory[stock.symbol].slice(-19), stock.price];
         });
-        return newHistory;
+
+        // Update price history with the new stock prices
+        setPriceHistory(prevHistory => {
+          const newHistory = { ...prevHistory };
+          updatedStocks.forEach(stock => {
+            if (!newHistory[stock.symbol]) {
+              newHistory[stock.symbol] = [];
+            }
+            newHistory[stock.symbol] = [...newHistory[stock.symbol].slice(-19), stock.price];
+          });
+          return newHistory;
+        });
+
+        return updatedStocks;
       });
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [stocks]);
+  }, []);
 
   // Check price alerts
   useEffect(() => {
@@ -909,16 +911,20 @@ const StockMarketApp: React.FC = () => {
     );
   };
 
-  const renderTradeTab = () => (
-    <div className="flex-1 overflow-y-auto">
+  const renderTradeTab = () => {
+    // Get the current stock data instead of using stale selectedStock
+    const currentStock = selectedStock ? stocks.find(s => s.symbol === selectedStock.symbol) : null;
+    
+    return (
+      <div className="flex-1 overflow-y-auto">
       <div className="px-4 py-3 bg-gradient-to-b from-[#e6e6e6] to-[#d4d4d4] border-b border-[#c0c0c0]">
         <h2 className="text-lg font-semibold text-[#2c2c2c]">Trade</h2>
-        {selectedStock && (
-          <p className="text-sm text-[#666] mt-1">{selectedStock.name} ({selectedStock.symbol})</p>
+        {currentStock && (
+          <p className="text-sm text-[#666] mt-1">{currentStock.name} ({currentStock.symbol})</p>
         )}
       </div>
       
-      {!selectedStock ? (
+      {!currentStock ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center px-4">
             <div className="text-4xl mb-4">📈</div>
@@ -932,12 +938,12 @@ const StockMarketApp: React.FC = () => {
           <div className="bg-gradient-to-b from-white to-[#f8f8f8] rounded-lg border border-[#c0c0c0] p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-[#2c2c2c] mb-1">
-                {formatStockPrice(selectedStock, selectedStock.price)}
+                {formatStockPrice(currentStock, currentStock.price)}
               </div>
               <div className={`text-sm font-medium ${
-                selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'
+                currentStock.change >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {formatStockPrice(selectedStock, selectedStock.change)} ({formatPercent(selectedStock.changePercent)})
+                {formatStockPrice(currentStock, currentStock.change)} ({formatPercent(currentStock.changePercent)})
               </div>
             </div>
           </div>
@@ -990,7 +996,7 @@ const StockMarketApp: React.FC = () => {
             
             {/* Holdings-based buttons if user owns this stock */}
             {(() => {
-              const holding = portfolio.find(p => p.symbol === selectedStock!.symbol);
+              const holding = portfolio.find(p => p.symbol === currentStock!.symbol);
               if (holding) {
                 return (
                   <div className="flex gap-2 mt-2">
@@ -1018,9 +1024,9 @@ const StockMarketApp: React.FC = () => {
               return null;
             })()}
             
-            {tradeAmount && selectedStock && (
+            {tradeAmount && currentStock && (
               <div className="mt-2 text-sm text-[#666]">
-                Total: {formatCurrency(parseFloat(tradeAmount || "0") * selectedStock.price)}
+                Total: {formatCurrency(parseFloat(tradeAmount || "0") * currentStock.price)}
               </div>
             )}
             <div className="mt-2 text-xs text-[#888]">
@@ -1048,9 +1054,9 @@ const StockMarketApp: React.FC = () => {
 
           {/* Current Holdings */}
           {(() => {
-            const holding = portfolio.find(p => p.symbol === selectedStock!.symbol);
-            if (holding && selectedStock) {
-              const currentValue = holding.shares * selectedStock.price;
+            const holding = portfolio.find(p => p.symbol === currentStock!.symbol);
+            if (holding && currentStock) {
+              const currentValue = holding.shares * currentStock.price;
               const totalCost = holding.shares * holding.avgPrice;
               const gainLoss = currentValue - totalCost;
               
@@ -1086,6 +1092,7 @@ const StockMarketApp: React.FC = () => {
       )}
     </div>
   );
+};
 
   const renderWatchlistTab = () => {
     const watchlistStocks = stocks.filter(stock => watchlist.includes(stock.symbol));
