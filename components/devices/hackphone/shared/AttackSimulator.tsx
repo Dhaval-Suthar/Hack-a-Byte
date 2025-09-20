@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { getPlayspaceId } from '@/lib/playspace-utils';
+import Alert from '@/components/ui/Alert';
 
 import { User } from '@/types/devices';
 
@@ -15,10 +16,22 @@ export const AttackSimulator: React.FC<AttackSimulatorProps> = ({ user }) => {
   const [targetInfo, setTargetInfo] = useState('192.168.1.100');
   const [malwareType, setMalwareType] = useState<'virus' | 'worm' | 'ransomware'>('virus');
 
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
+
   const simulateAttack = () => {
     const playspaceId = getPlayspaceId();
     if (!playspaceId || !isConnected) {
-      alert('Not connected to attack network');
+      showAlert('Not connected to attack network', 'error');
       return;
     }
 
@@ -47,7 +60,7 @@ export const AttackSimulator: React.FC<AttackSimulatorProps> = ({ user }) => {
       duration: malwareType === 'ransomware' ? 15000 : 10000,
     });
 
-    alert(`Attack simulated: ${malwareType.toUpperCase()} deployed to ${targetInfo}`);
+    showAlert(`Attack simulated: ${malwareType.toUpperCase()} deployed to ${targetInfo}`, 'success');
   };
 
   if (!isConnected) {
@@ -99,6 +112,13 @@ export const AttackSimulator: React.FC<AttackSimulatorProps> = ({ user }) => {
         <p>Status: 🟢 Connected to attack network</p>
         <p>This will broadcast attacks to all devices in your playspace</p>
       </div>
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };

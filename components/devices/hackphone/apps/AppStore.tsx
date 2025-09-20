@@ -6,6 +6,7 @@ import { getPlayspaceId } from "@/lib/playspace-utils";
 import { useSocket } from "@/hooks/useSocket";
 import SystemLockProAttack from "@/components/devices/hackphone/security/SystemLockProAttack";
 import { logger } from '@/lib/logger';
+import Alert from '@/components/ui/Alert';
 
 interface AppStoreProps {
   onClose?: () => void;
@@ -224,6 +225,18 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   const [showSystemLockProAttack, setShowSystemLockProAttack] = useState(false);
   const [systemLockProTarget, setSystemLockProTarget] = useState<string>('');
 
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
+
   // Fetch team balance and devices on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -309,7 +322,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     // Check if team has enough bitcoins
     if (currentBalance < itemPrice) {
-      alert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`);
+      showAlert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`, 'error');
       return;
     }
 
@@ -355,31 +368,31 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               setPurchased(prev => new Set(prev).add(purchaseItem.id));
               setShowPurchase(false);
               setPurchaseItem(null);
-              alert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`);
+              showAlert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`, 'success');
             } else {
               logger.error('Failed to save malware purchase:', { error: malwareData instanceof Error ? malwareData.message : 'Unknown error' }, malwareData as Error);
-              alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+              showAlert('Purchase completed but item may not be saved properly. Please refresh the app.', 'warning');
               setShowPurchase(false);
               setPurchaseItem(null);
             }
           } else {
             const errorText = await malwareResponse.text();
             logger.error('Malware purchase API failed', { status: malwareResponse.status, error: errorText });
-            alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+            showAlert('Purchase completed but item may not be saved properly. Please refresh the app.', 'warning');
             setShowPurchase(false);
             setPurchaseItem(null);
           }
         } else {
-          alert('Failed to process purchase: ' + (data.error || 'Unknown error'));
+          showAlert('Failed to process purchase: ' + (data.error || 'Unknown error'), 'error');
         }
       } else {
         const errorText = await response.text();
         logger.error('Purchase failed', { status: response.status, errorText });
-        alert('Failed to process purchase. Please try again.');
+        showAlert('Failed to process purchase. Please try again.', 'error');
       }
     } catch (error) {
       logger.error('Purchase error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      alert('Failed to process purchase. Please try again.');
+      showAlert('Failed to process purchase. Please try again.', 'error');
     }
   }, [purchaseItem, teamBalance]);
 
@@ -462,11 +475,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     if (!isValidTarget) {
       if (deployItem.category === 'virus' && (deployItem.name === 'SysTrojan Pro' || deployItem.name === 'StealthViral' || deployItem.name === 'DataMiner X')) {
-        alert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.');
+        showAlert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.', 'warning');
       } else if (deployItem.name === 'SystemLock Pro') {
-        alert('Please enter a valid MAC address (format: XX:XX:XX:XX:XX:XX) to target the device for SystemLock Pro.');
+        showAlert('Please enter a valid MAC address (format: XX:XX:XX:XX:XX:XX) to target the device for SystemLock Pro.', 'warning');
       } else {
-        alert('Please enter a valid target address in the correct format.');
+        showAlert('Please enter a valid target address in the correct format.', 'warning');
       }
       return;
     }
@@ -492,7 +505,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           }
         }
         if (!attackerTeamId) {
-          alert('Unable to determine your team. Please re-open App Store or rejoin your playspace.');
+          showAlert('Unable to determine your team. Please re-open App Store or rejoin your playspace.', 'error');
           return;
         }
         const wormId = deployItem.name === 'EmailSpread Pro' ? 'worm-001' : deployItem.name === 'NetCrawler' ? 'worm-002' : 'worm-003';
@@ -625,7 +638,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               } catch (e) { logger.warn('Resolve target team failed (ip)', { error: e }); }
             }
             if (!targetTeamId) {
-              alert('Could not resolve target team for StealthViral (missing mapping).');
+              showAlert('Could not resolve target team for StealthViral (missing mapping).', 'error');
               throw new Error('Target team resolution failed');
             }
             const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
@@ -670,7 +683,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               if (response.status === 429) {
                 const resetTs: number | undefined = result?.reset;
                 const secs = resetTs ? Math.max(0, Math.ceil((resetTs - Date.now()) / 1000)) : undefined;
-                alert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`);
+                showAlert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`, 'warning');
               }
               throw new Error(result.error || 'DataMiner attack failed');
             }
@@ -769,26 +782,26 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             });
           }
 
-          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`);
+          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`, 'info');
 
           setDeployItem(null);
           setDeployData({});
         } else {
           logger.error('Failed to remove malware from purchased list:', { error: deployDataResult instanceof Error ? deployDataResult.message : 'Unknown error' }, deployDataResult as Error);
-          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`, 'warning');
           setDeployItem(null);
           setDeployData({});
         }
       } else {
         const errorText = await deployResponse.text();
         logger.error('Deploy API failed', { status: deployResponse.status, errorText });
-        alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+        showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`, 'warning');
         setDeployItem(null);
         setDeployData({});
       }
     } catch (error) {
       logger.error('Deployment error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      alert('Deployment failed. Please try again.');
+      showAlert('Deployment failed. Please try again.', 'error');
     }
 
     if (socket && deployItem.category === 'ransomware' && deployItem.name.toLowerCase().includes('bank')) {
@@ -1401,6 +1414,13 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           }}
         />
       )}
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };

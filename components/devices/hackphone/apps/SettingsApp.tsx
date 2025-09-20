@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { logger } from '@/lib/logger';
+import Alert from '@/components/ui/Alert';
 
 // Type definitions
 interface DeviceSettings {
@@ -97,6 +98,17 @@ const SettingsApp: React.FC = () => {
   const [largerTextEnabled, setLargerTextEnabled] = useState<boolean>(false);
   const [buttonShapesEnabled, setButtonShapesEnabled] = useState<boolean>(false);
   
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
   // Security settings
   const [vpnEnabled, setVpnEnabled] = useState<boolean>(false);
   const [firewallEnabled, setFirewallEnabled] = useState<boolean>(false);
@@ -446,7 +458,7 @@ const SettingsApp: React.FC = () => {
       setNewPin("");
       setConfirmPin("");
       setPinError("");
-      alert("PIN updated successfully");
+      showAlert("PIN updated successfully", 'success');
       
       // Reload settings to reflect the changes
       loadSettingsFromDatabase();
@@ -1366,6 +1378,13 @@ const SettingsApp: React.FC = () => {
           </div>
         )}
       </div>
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };

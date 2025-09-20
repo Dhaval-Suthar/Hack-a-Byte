@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { logger } from '@/lib/logger';
+import Alert from '@/components/ui/Alert';
 
 interface StockData {
   symbol: string;
@@ -64,6 +65,18 @@ const StockMarketApp: React.FC = () => {
     trendingStocks: [] as string[],
     marketSentiment: 'neutral' as 'bullish' | 'bearish' | 'neutral'
   });
+
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   // Check localStorage for selected role on component mount
   useEffect(() => {
@@ -521,7 +534,7 @@ const StockMarketApp: React.FC = () => {
       if (type === "buy") {
         const cost = amount * selectedStock.price;
         if (cost > balance) {
-          alert("Insufficient team bitcoin balance!");
+          showAlert("Insufficient team bitcoin balance!", 'error');
           return;
         }
         
@@ -549,11 +562,11 @@ const StockMarketApp: React.FC = () => {
           return;
         }
         
-        alert(`Successfully bought ${amount} shares of ${selectedStock.symbol}!`);
+        showAlert(`Successfully bought ${amount} shares of ${selectedStock.symbol}!`, 'success');
       } else {
         const holding = portfolio.find(p => p.symbol === selectedStock.symbol);
         if (!holding || holding.shares < amount) {
-          alert("Insufficient shares!");
+          showAlert("Insufficient shares!", 'error');
           return;
         }
         
@@ -578,7 +591,7 @@ const StockMarketApp: React.FC = () => {
           return;
         }
         
-        alert(`Successfully sold ${amount} shares of ${selectedStock.symbol}!`);
+        showAlert(`Successfully sold ${amount} shares of ${selectedStock.symbol}!`, 'success');
       }
       
       setTradeAmount("");
@@ -1307,6 +1320,13 @@ const StockMarketApp: React.FC = () => {
       {activeTab === "watchlist" && renderWatchlistTab()}
       {activeTab === "news" && renderNewsTab()}
       {activeTab === "alerts" && renderAlertsTab()}
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };
