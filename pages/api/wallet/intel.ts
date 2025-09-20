@@ -3,14 +3,6 @@ import connectDb from "@/db/connectDb";
 import Team from "@/models/Team";
 import { logger } from "@/lib/logger";
 
-interface WalletInfo {
-  address: string;
-  balance: number;
-  teamName?: string;
-  lastActivity: string;
-  isOwnTeam: boolean;
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -28,6 +20,19 @@ export default async function handler(
       .select("name wallet.bitcoinBalance wallet.address createdAt updatedAt")
       .lean();
 
+    // Get playspaceId from cookies or headers to identify current user
+    const playspaceId = req.cookies?.playspaceId || req.headers['x-playspace-id'] as string;
+    
+    if (!playspaceId) {
+      return res.status(400).json({ error: "No playspace ID found" });
+    }
+
+    // Find the current user's team
+    const currentTeam = await Team.findOne({ playspaceId });
+    if (!currentTeam) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
     // Transform to wallet intel format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wallets = teams.map((team: any) => ({
@@ -35,13 +40,8 @@ export default async function handler(
       balance: team.wallet?.bitcoinBalance || 0,
       teamName: team.name,
       lastActivity: team.updatedAt || team.createdAt,
-      isOwnTeam: false // This would need to be determined based on user session
+      isOwnTeam: team._id.toString() === currentTeam._id.toString() // Compare team IDs
     }));
-
-    // For now, mark the first team as "own team" for demonstration
-    if (wallets.length > 0) {
-      wallets[0].isOwnTeam = true;
-    }
 
     logger.info('Wallet intel retrieved successfully', {
       walletCount: wallets.length,

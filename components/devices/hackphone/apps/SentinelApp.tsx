@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { logger } from '@/lib/logger';
 import { generateCodeSnippet, TerminalDeviceList } from './hackerUtils';
+import { getPlayspaceId } from '@/lib/playspace-utils';
 
 // Core interfaces - keeping the same data structure
 interface DeviceInfo {
@@ -1116,9 +1117,14 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
   // Wrap fetch functions in useCallback to prevent dependency array warnings
   const fetchWallets = useCallback(async () => {
     try {
+      const playspaceId = getPlayspaceId();
+      
       const response = await fetch('/api/wallet/intel', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(playspaceId && { 'x-playspace-id': playspaceId })
+        }
       });
 
       const result = await response.json();
