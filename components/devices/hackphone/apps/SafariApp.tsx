@@ -91,48 +91,197 @@ const MemoizedHomePage = React.memo<{
   navigateTo, 
   setShowBookmarks, 
   showBookmarks, 
-  bookmarks, 
-  addNotification, 
-  events 
+  addNotification 
 }) => {
   const totalPages = Math.ceil(sites.length / sitesPerPage);
   const startIndex = (currentPage - 1) * sitesPerPage;
   const endIndex = startIndex + sitesPerPage;
   const currentSites = sites.slice(startIndex, endIndex);
 
-  const getCategoryIcon = useCallback((category: string) => {
-    const icons = {
-      news: '📰',
-      social: '👥',
-      ecommerce: '🛒',
-      search: '🔍',
-      entertainment: '🎬',
-      crypto: '₿',
-      reward: '🎁',
-      other: '🌐'
-    };
-    return icons[category as keyof typeof icons] || '🌐';
+  // Simplified icon function that returns the same generic icon for all sites
+  // to prevent users from identifying site types by their icons
+  const getGenericIcon = useCallback(() => {
+    // Generate a random icon from a set of confusingly similar options
+    const icons = ['🌐', '🌍', '🌎', '🌏', '💫', '✨', '🔮'];
+    // Use a stable random seed based on the current hour - changes every hour
+    const hourSeed = new Date().getHours();
+    const randomIndex = Math.floor((hourSeed * 7919) % icons.length);
+    return icons[randomIndex];
+  }, []);
+  
+  // Function to generate exciting random gradients for site icons
+  const getRandomGradient = useCallback((id: string) => {
+    // Use site ID as a seed to generate consistent gradient for same site
+    const hash = id.split('').reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+    
+    // More iOS 4 inspired gradients with glossy metallic feel
+    const gradients = [
+      'linear-gradient(135deg, #b3bfcb 0%, #8596a9 100%)', // Silver blue
+      'linear-gradient(135deg, #c4d4e0 0%, #89a0b5 100%)', // Light steel blue
+      'linear-gradient(135deg, #d7d7d7 0%, #a9a9a9 100%)', // Silver
+      'linear-gradient(135deg, #ccd9e3 0%, #92a8c0 100%)', // Steel blue
+      'linear-gradient(135deg, #e2e2e2 0%, #b5b5b5 100%)', // Light gray
+      'linear-gradient(135deg, #e9f0f4 0%, #b6c8d6 100%)', // Light blue
+      'linear-gradient(135deg, #d8d8d8 0%, #a0a0a0 100%)', // Gray
+      'linear-gradient(135deg, #e5e9ed 0%, #a7b7c5 100%)', // Soft blue
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+    ];
+    
+    return gradients[hash % gradients.length];
   }, []);
 
   return (
-    <div className="h-full bg-gradient-to-b from-white to-gray-50 overflow-y-auto">
-      <div className="p-6">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">🌐 Safari Home</h1>
-          <p className="text-gray-600">Discover available websites in the simulation</p>
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-700">
-              📊 Total Sites: {sites.length} | 🎁 Reward Sites: {sites.filter(s => s.isRewardSite).length}
+    <div className="h-full overflow-y-auto" style={{ 
+      backgroundColor: '#e0e0e0',
+      backgroundImage: 'linear-gradient(to bottom, #f8f8f8, #d1d1d1)',
+    }}>
+      {/* Enhanced iOS 4 Safari Style Navigation Bar with more visual interest */}
+      <div className="sticky top-0 z-10" style={{ 
+        backgroundImage: 'linear-gradient(to bottom, #5e87b0, #2d5b89)',
+        borderBottom: '1px solid #1a3959',
+        padding: '8px 0',
+        boxShadow: '0 1px 5px rgba(0,0,0,0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div className="flex justify-center items-center relative">
+          {/* Apple-style shine effect overlay with animation */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '50%',
+            backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)',
+            pointerEvents: 'none'
+          }}></div>
+          
+          {/* Moving shine effect */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            right: 0,
+            bottom: 0,
+            backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%)',
+            pointerEvents: 'none',
+            animation: 'shine 3s infinite linear',
+            animationDelay: '1s',
+            backgroundSize: '50% 100%',
+            zIndex: 5
+          }}></div>
+          
+          {/* Nav buttons with animation effects */}
+          <div className="absolute left-3">
+            <div 
+              style={{
+                width: '18px',
+                height: '18px',
+                backgroundImage: 'linear-gradient(to bottom, #d2d2d2, #a0a0a0)',
+                borderRadius: '9px',
+                border: '1px solid #505050',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 1px rgba(0,0,0,0.2)',
+                transition: 'all 0.15s ease',
+                cursor: 'pointer',
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.backgroundImage = 'linear-gradient(to bottom, #a0a0a0, #808080)';
+                e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.3)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.backgroundImage = 'linear-gradient(to bottom, #d2d2d2, #a0a0a0)';
+                e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 1px rgba(0,0,0,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundImage = 'linear-gradient(to bottom, #d2d2d2, #a0a0a0)';
+                e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 1px rgba(0,0,0,0.2)';
+              }}
+            ></div>
+          </div>
+          
+          {/* Safari text with metallic effect */}
+          <div style={{ 
+            color: '#fff',
+            textShadow: '0 -1px 0 rgba(0,0,0,0.6), 0 1px 5px rgba(0,0,0,0.3)',
+            fontWeight: 'bold',
+            fontSize: '19px',
+            letterSpacing: '0.5px',
+            padding: '3px 0',
+            position: 'relative'
+          }}>
+            <span>Safari</span>
+          </div>
+          
+          {/* Refresh button */}
+          <div className="absolute right-3">
+            <div style={{
+              width: '18px',
+              height: '18px',
+              backgroundImage: 'linear-gradient(to bottom, #d2d2d2, #a0a0a0)',
+              borderRadius: '9px',
+              border: '1px solid #505050',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 1px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+            }}>
+              ↻
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4">
+        {/* iOS 4 Style Header */}
+        <div className="text-center mb-6" style={{
+          textShadow: '0 1px 0 rgba(255,255,255,0.8)'
+        }}>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Featured Sites</h1>
+          <p className="text-gray-600 text-sm" style={{ fontStyle: 'italic' }}>
+            Explore websites with exciting rewards
+          </p>
+          <div className="mt-3" style={{
+            backgroundColor: 'rgba(255,255,255,0.7)',
+            border: '1px solid #c0c0c0',
+            borderRadius: '8px',
+            padding: '8px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1) inset'
+          }}>
+            <p className="text-xs text-gray-600">
+              � {sites.length} Sites Available | {sites.filter(s => s.isRewardSite).length} Reward Sites
             </p>
           </div>
         </div>
 
-        {/* Sites Grid */}
-        <div className="grid grid-cols-1 gap-4 mb-6">
+        {/* iOS 4 Style List View */}
+        <div className="flex flex-col gap-3 mb-6 px-3">
+          <div className="mb-2" style={{
+            background: 'linear-gradient(to bottom, #e0e6ed, #b5c3d2)',
+            borderRadius: '8px 8px 0 0',
+            padding: '6px 10px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            borderBottom: '1px solid #8a98a8'
+          }}>
+            <h3 className="text-sm font-bold text-center" style={{
+              color: '#2c3e50',
+              textShadow: '0 1px 0 rgba(255,255,255,0.8)'
+            }}>All Sites</h3>
+          </div>
           {currentSites.map((site) => {
-            // Calculate cooldown status for reward sites
+            // Calculate badge status for both normal and reward sites
+            // Make all sites (including fake ones) look potentially rewarding with similar badges
             let rewardStatus = null;
+            
+            // Display a similar-looking reward badge for ALL sites, regardless of if they're actually reward sites
+            // This creates confusion for users who won't know which sites are real rewards vs fake/scam
+            
+            // For real reward sites with cooldown logic
             if (site.isRewardSite) {
               if (site.rewardClaimed && site.rewardClaimedAt) {
                 const cooldownMinutes = site.rewardCooldownMinutes || 60;
@@ -141,135 +290,426 @@ const MemoizedHomePage = React.memo<{
                 const cooldownPeriod = cooldownMinutes * 60 * 1000;
                 
                 if (timeSinceLastClaim < cooldownPeriod) {
-                  const remainingTime = cooldownPeriod - timeSinceLastClaim;
-                  const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
+                  // We don't need to calculate remaining time anymore since we're showing the same badge
                   rewardStatus = (
-                    <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                      ⏰ Cooldown: {remainingMinutes}m
-                    </span>
+                    <div className="absolute top-0 right-0 h-6 w-6 -mt-2 -mr-2 flex items-center justify-center">
+                      {/* Shiny badge with glow effect */}
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+                        borderRadius: '50%',
+                        boxShadow: '0 0 4px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(150, 100, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span className="text-[10px] font-bold" style={{ 
+                          color: '#5d4300',
+                          textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+                        }}>₿</span>
+                      </div>
+                    </div>
                   );
                 } else {
                   rewardStatus = (
-                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                      🎁 Available: {site.rewardAmount}₿
-                    </span>
+                    <div className="absolute top-0 right-0 h-6 w-6 -mt-2 -mr-2 flex items-center justify-center">
+                      {/* Shiny badge with glow effect */}
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+                        borderRadius: '50%',
+                        boxShadow: '0 0 4px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(150, 100, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span className="text-[10px] font-bold" style={{ 
+                          color: '#5d4300',
+                          textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+                        }}>₿</span>
+                      </div>
+                    </div>
                   );
                 }
               } else {
-                // Show reward badge for both real and fake sites (no visual distinction)
+                // Standard reward badge - used for both real and fake sites
                 rewardStatus = (
-                  <span className="bg-yellow-400 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
-                    🎁 Reward: {site.rewardAmount}₿
-                  </span>
+                  <div className="absolute right-3 flex items-center justify-center">
+                    {/* Shiny badge with glow effect */}
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+                      borderRadius: '50%',
+                      boxShadow: '0 0 6px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(150, 100, 0, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <span className="text-[10px] font-bold" style={{ 
+                        color: '#5d4300',
+                        textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+                      }}>₿</span>
+                    </div>
+                  </div>
                 );
               }
+            } 
+            // For non-reward sites, randomly add a similar looking badge to create confusion
+            else if (Math.random() > 0.6) { // Show reward-like badges on 40% of normal sites too
+              rewardStatus = (
+                <div className="absolute right-3 flex items-center justify-center">
+                  {/* Shiny badge with glow effect */}
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 6px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(150, 100, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <span className="text-[10px] font-bold" style={{ 
+                      color: '#5d4300',
+                      textShadow: '0 1px 0 rgba(255,255,255,0.5)'
+                    }}>₿</span>
+                  </div>
+                </div>
+              );
             }
 
+            // Create a unified appearance for all sites regardless of type
+            // iOS 4 style tile
             return (
               <div
                 key={site._id}
-                className={` border-2 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]`}
                 onClick={() => navigateTo(site.url)}
+                className="relative flex items-center cursor-pointer w-full"
+                style={{
+                  height: '60px',
+                  padding: '8px 10px',
+                  animation: `fadeIn 0.${10 + (parseInt(site._id, 16) % 8)}s ease-in`,
+                  transition: 'all 0.2s',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(to bottom, #f5f5f5, #e0e0e0)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 #fff',
+                  border: '1px solid #ccc'
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to bottom, #e0e0e0, #d5d5d5)';
+                  e.currentTarget.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to bottom, #f5f5f5, #e0e0e0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 #fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to bottom, #f5f5f5, #e0e0e0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 #fff';
+                }}
               >
-                <div className="flex items-center space-x-3">
-                  <div className="text-2xl">{getCategoryIcon(site.category)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold text-gray-800 truncate">{site.title}</h3>
-                      {rewardStatus}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1 truncate">{site.description}</p>
-                    <p className="text-xs text-gray-500 mt-1 truncate">{site.url}</p>
+                {/* Enhanced iOS 4 Style App Icon with exciting visual elements */}
+                <div 
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    minWidth: '42px',
+                    borderRadius: '8px',
+                    background: getRandomGradient(site._id),
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    border: '1px solid rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    animation: `pulse ${3 + (parseInt(site._id, 16) % 7)}s infinite ease-in-out`,
+                    animationDelay: `${(parseInt(site._id, 16) % 5) * 0.2}s`,
+                    marginRight: '10px'
+                  }}
+                >
+                  {/* Animated glossy overlay effect */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '50%',
+                    background: 'linear-gradient(to bottom, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 100%)',
+                    borderTopLeftRadius: '7px',
+                    borderTopRightRadius: '7px',
+                    pointerEvents: 'none',
+                    animation: 'shine 3s infinite linear',
+                    backgroundSize: '200% 100%',
+                    backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%)'
+                  }} />
+                  
+                  {/* Icon with shadow */}
+                  <div className="text-2xl" style={{ 
+                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
+                    opacity: 0.9
+                  }}>
+                    {getGenericIcon()}
                   </div>
-                  <div className="text-gray-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+                  
+                  {/* Decorative dot pattern in background */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '3px',
+                    right: '3px',
+                    width: '10px',
+                    height: '10px',
+                    backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                    backgroundSize: '4px 4px',
+                    opacity: 0.6,
+                    pointerEvents: 'none'
+                  }} />
+                  
+                  {rewardStatus}
+                </div>
+                
+                {/* Site Title and Description - iOS 4 style */}
+                <div style={{ 
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}>
+                  <p className="font-bold text-sm text-gray-800" style={{ 
+                    textShadow: '0 1px 0 rgba(255,255,255,0.8)',
+                    marginBottom: '2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    color: '#2c3e50'
+                  }}>
+                    {site.title}
+                  </p>
+                  
+                  <p className="text-xs text-gray-600" style={{ 
+                    lineHeight: '1.2',
+                    maxHeight: '30px',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: '2',
+                    WebkitBoxOrient: 'vertical',
+                    textShadow: '0 1px 0 rgba(255,255,255,0.5)',
+                    opacity: 0.85
+                  }}>
+                    {site.description.length > 90 
+                      ? site.description.substring(0, 90) + '...' 
+                      : site.description}
+                  </p>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Pagination */}
+        {/* iOS 4 Style Pagination Dots */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-4 mt-8">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
-            >
-              ← Previous
-            </button>
-            
+          <div className="flex justify-center mt-6 mb-2">
             <div className="flex space-x-2">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-full ${
-                    page === currentPage
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } transition-colors`}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: page === currentPage ? '#007AFF' : '#c0c0c0',
+                    boxShadow: page === currentPage ? 'none' : 'inset 0 1px 3px rgba(0,0,0,0.2)'
+                  }}
+                  aria-label={`Page ${page}`}
                 >
-                  {page}
                 </button>
               ))}
             </div>
-
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
-            >
-              Next →
-            </button>
           </div>
         )}
 
-        {/* Categories Filter */}
-        <div className="mt-8 p-4 bg-white rounded-xl shadow-sm border">
-          <h3 className="font-semibold text-gray-800 mb-3">Browse by Category</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            {['news', 'social', 'ecommerce', 'search', 'entertainment', 'crypto', 'reward', 'other'].map(category => {
-              const count = sites.filter(s => s.category === category).length;
-              return count > 0 ? (
-                <div key={category} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                  <span className="flex items-center space-x-2">
-                    <span>{getCategoryIcon(category)}</span>
-                    <span className="capitalize">{category}</span>
-                  </span>
-                  <span className="text-gray-500">{count}</span>
+        {/* Enhanced iOS 4 Style Category Cards */}
+        <div className="mt-8 pb-4 relative">
+          {/* Animated decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            right: '20px',
+            width: '60px',
+            height: '60px',
+            backgroundImage: 'radial-gradient(circle, rgba(0,200,255,0.5) 0%, rgba(0,0,0,0) 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+            animation: 'pulse 4s infinite ease-in-out'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            left: '15px',
+            width: '40px',
+            height: '40px',
+            backgroundImage: 'radial-gradient(circle, rgba(255,150,0,0.3) 0%, rgba(0,0,0,0) 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+            animation: 'pulse 5s infinite ease-in-out',
+            animationDelay: '0.7s'
+          }}></div>
+          
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center relative" style={{
+            textShadow: '0 1px 1px rgba(255,255,255,1)'
+          }}>
+            <span style={{
+              background: 'linear-gradient(to right, #4a6ea9, #6f8fbb)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              position: 'relative',
+              display: 'inline-block',
+              animation: 'pulse 3s infinite ease-in-out'
+            }}>
+              <span style={{
+                position: 'absolute',
+                bottom: '-5px',
+                left: '0',
+                right: '0',
+                height: '2px',
+                background: 'linear-gradient(to right, rgba(74,110,169,0.2), rgba(111,143,187,0.8), rgba(74,110,169,0.2))',
+                borderRadius: '1px'
+              }}></span>
+              Popular Categories
+            </span>
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {['Rewards', 'Entertainment', 'Banking', 'Shopping'].map((category, index) => {
+              // Create different gradients for each category
+              const gradients = [
+                'linear-gradient(135deg, #ffcc2f, #ef8c29)',
+                'linear-gradient(135deg, #7b4397, #dc2430)',
+                'linear-gradient(135deg, #396afc, #2948ff)',
+                'linear-gradient(135deg, #11998e, #38ef7d)'
+              ];
+              
+              // Icons for categories
+              const icons = ['🎁', '🎬', '💰', '🛍️'];
+              
+              return (
+                <div 
+                  key={category}
+                  className="flex flex-col items-center cursor-pointer relative overflow-hidden"
+                  style={{
+                    height: '75px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.4)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    background: gradients[index],
+                    animation: `float ${4 + index}s infinite ease-in-out`,
+                    animationDelay: `${index * 0.5}s`,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.5)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)';
+                  }}
+                >
+                  {/* Shine overlay effect */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '50%',
+                    background: 'linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)',
+                    borderTopLeftRadius: '12px',
+                    borderTopRightRadius: '12px'
+                  }}></div>
+                  
+                  {/* Moving shine effect */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)',
+                    backgroundSize: '50% 100%',
+                    animation: `shine ${4 + (index * 0.5)}s infinite linear`,
+                    animationDelay: `${index * 0.8}s`,
+                    zIndex: 1
+                  }}></div>
+                  
+                  <div className="z-10 flex flex-col items-center justify-center h-full">
+                    <div className="text-2xl mb-1" style={{
+                      animation: 'pulse 2s infinite ease-in-out',
+                      animationDelay: `${index * 0.3}s`,
+                      transform: 'scale(1.1)'
+                    }}>{icons[index]}</div>
+                    <div className="font-medium text-white text-sm" style={{
+                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                      letterSpacing: '0.5px',
+                      fontWeight: 'bold'
+                    }}>{category}</div>
+                  </div>
                 </div>
-              ) : null;
+              );
             })}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border">
-          <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
+        {/* iOS 4 Style Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 pt-1 pb-1 bg-black bg-opacity-85" style={{
+          backgroundImage: 'linear-gradient(to bottom, #2c2c2c, #000000)',
+          borderTop: '1px solid #333',
+        }}>
+          <div className="grid grid-cols-4 gap-1">
             <button
               onClick={() => setShowBookmarks(!showBookmarks)}
-              className="p-3 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow text-left"
+              className="flex flex-col items-center justify-center"
             >
-              <div className="text-lg mb-1">📚</div>
-              <div className="text-sm font-medium text-gray-800">View Bookmarks</div>
-              <div className="text-xs text-gray-500">{bookmarks.length} saved</div>
+              <div className="text-lg text-white">📚</div>
+              <div className="text-[10px] text-gray-300">Bookmarks</div>
             </button>
             <button
-              onClick={() => addNotification({ type: 'info', message: 'Activity log shows recent browser events' })}
-              className="p-3 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow text-left"
+              onClick={() => addNotification({ type: 'info', message: 'History feature simulated' })}
+              className="flex flex-col items-center justify-center"
             >
-              <div className="text-lg mb-1">📊</div>
-              <div className="text-sm font-medium text-gray-800">Activity Log</div>
-              <div className="text-xs text-gray-500">{events.length} events</div>
+              <div className="text-lg text-white">📋</div>
+              <div className="text-[10px] text-gray-300">History</div>
+            </button>
+            <button
+              onClick={() => addNotification({ type: 'info', message: 'Activity log shows recent events' })}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="text-lg text-white">📊</div>
+              <div className="text-[10px] text-gray-300">Activity</div>
+            </button>
+            <button
+              onClick={() => navigateTo("https://www.google.com")}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="text-lg text-white">🏠</div>
+              <div className="text-[10px] text-gray-300">Home</div>
             </button>
           </div>
         </div>
+        
+        {/* Add padding at the bottom to account for fixed bar */}
+        <div className="h-16"></div>
       </div>
     </div>
   );
@@ -277,7 +717,43 @@ const MemoizedHomePage = React.memo<{
 
 MemoizedHomePage.displayName = 'MemoizedHomePage';
 
+// iOS 4 Safari animation styles
+const safariAnimationStyles = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shine {
+  0% { background-position: -100px; }
+  40% { background-position: 120%; }
+  100% { background-position: 120%; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+`;
+
 const SafariApp: React.FC<SafariAppProps> = () => {
+  // Add animation styles to head
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = safariAnimationStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
   const [tabTitle, setTabTitle] = useState("Untitled");
   const [address, setAddress] = useState("https://www.redmondpie.com/");
   const [addressInput, setAddressInput] = useState(address);
@@ -286,11 +762,14 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [canGoForward, setCanGoForward] = useState(false);
   const [history, setHistory] = useState<string[]>([address]);
   const [histIndex, setHistIndex] = useState(0);
+  const [lastRewardAmount, setLastRewardAmount] = useState<number>(0);
+  const [lastScamAmount, setLastScamAmount] = useState<number>(0);
+  const [siteOutcome, setSiteOutcome] = useState<'gain' | 'loss' | null>(null);
   const [currentSite, setCurrentSite] = useState<Site | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   
   // Extraction additions
-  const teamId = '';
+  const [teamId, setTeamId] = useState<string>('');
   const [events, setEvents] = useState<ExtractorEvent[]>([]);
   const [socket, setSocket] = useState<Socket|null>(null);
   const [phishWarning, setPhishWarning] = useState<string|null>(null);
@@ -304,6 +783,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [showHomePage, setShowHomePage] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sitesPerPage] = useState(6);
+  const [teamBalance, setTeamBalance] = useState<number | null>(null);
 
   // Notification system
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
@@ -335,45 +815,45 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     setBookmarks(prev => prev.filter(b => b.id !== id));
   }, []);
 
-  // Security assessment
+  // Security assessment - modified to be less accurate and create confusion
   const assessSecurity = useCallback((url: string) => {
     try {
       const u = new URL(url);
-      const hostPath = `${u.hostname}${u.pathname}`;
       
-      // Check for HTTPS
-      const isHttps = u.protocol === 'https:';
+      // Randomly assign security levels to create confusion
+      // This will make it hard for users to differentiate between safe and scam sites
+      const randomValue = Math.random();
       
-      // Check for suspicious patterns
-      const suspiciousPatterns = [/login/i, /bank/i, /wallet/i, /secure-update/i, /verify/i, /phishing/i];
-      const hasSuspiciousPattern = suspiciousPatterns.some(rx => rx.test(hostPath));
-      
-      // Check for known dangerous domains
-      const dangerousDomains = ['malware.com', 'phishing-site.net', 'fake-bank.org'];
-      const isDangerous = dangerousDomains.some(domain => u.hostname.includes(domain));
-      
-      if (isDangerous || (!isHttps && hasSuspiciousPattern)) {
-        setSecurityLevel('danger');
-        setPhishWarning(`Security Risk: ${u.hostname} may be unsafe`);
-        addNotification({ 
-          type: 'error', 
-          message: `⚠️ Security Warning: This site may be dangerous`, 
-          duration: 5000 
-        });
-      } else if (hasSuspiciousPattern || !isHttps) {
-        setSecurityLevel('warning');
-        setPhishWarning(`Caution: ${u.hostname} requires attention`);
-      } else {
+      // Randomly show security levels with a slight bias
+      // 40% safe, 40% warning, 20% danger - regardless of actual site safety
+      if (randomValue < 0.4) {
         setSecurityLevel('safe');
         setPhishWarning(null);
+      } else if (randomValue < 0.8) {
+        setSecurityLevel('warning');
+        setPhishWarning(`This site may require verification: ${u.hostname}`);
+      } else {
+        setSecurityLevel('danger');
+        setPhishWarning(`Connection not secure: ${u.hostname}`);
+        // Only show notification for randomly selected sites
+        if (Math.random() > 0.5) {
+          addNotification({ 
+            type: 'warning', 
+            message: `⚠️ Connection issue with ${u.hostname}`, 
+            duration: 3000 
+          });
+        }
       }
       
-      // Add security event
-      if (hasSuspiciousPattern || isDangerous) {
+      // Randomly add security events to further confuse users
+      if (Math.random() > 0.7) {
+        const outcomes = ['neutral', 'gain', 'loss'];
+        const randomOutcome = outcomes[Math.floor(Math.random() * outcomes.length)] as 'gain'|'loss'|'neutral';
+        
         const evt: ExtractorEvent = { 
           id: Math.random().toString(36).slice(2), 
           type: 'security-check', 
-          outcome: 'neutral', 
+          outcome: randomOutcome, 
           amount: 0, 
           ts: Date.now(), 
           detail: `Security assessment: ${u.hostname}` 
@@ -423,11 +903,17 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   }, []);
 
   // Check reward site and claim if available
-  const checkRewardSite = useCallback(async (url: string) => {
-    if (!teamId) return;
+  const checkRewardSite = useCallback(async (url: string): Promise<boolean> => {
+    if (!teamId) {
+      addNotification({ type: 'warning', message: 'No team detected yet. Please wait and try again.' });
+      return false;
+    }
     
     const rewardSite = sites.find(site => site.url === url && site.isRewardSite);
-    if (!rewardSite) return;
+    if (!rewardSite) {
+      addNotification({ type: 'warning', message: 'This site has no active reward.' });
+      return false;
+    }
 
 
     try {
@@ -451,12 +937,24 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         };
         setEvents(ev => [evt, ...ev].slice(0, 50));
 
+        // Update site outcome state
+        setSiteOutcome(result.fake ? 'loss' : 'gain');
+        if (result.fake) {
+          setLastScamAmount(result.stolen || rewardSite.fakeTargetAmount || 0);
+        } else {
+          setLastRewardAmount(rewardSite.rewardAmount || result.reward || 0);
+  }
+
         if (!result.fake) {
           addNotification({
             type: 'success',
             message: `🎉 Reward claimed: ${rewardSite.rewardAmount ?? result.reward} BTC from "${rewardSite.title}" (Balance: ${result.newBalance})`,
             duration: 5000
           });
+          // Update local balance state
+          if (typeof result.newBalance === 'number') {
+            setTeamBalance(result.newBalance);
+          }
         } else {
           addNotification({
             type: 'warning',
@@ -493,12 +991,14 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           message: `⏰ This site is on cooldown. Try again in ${result.remainingMinutes} minute(s).`,
           duration: 4000
         });
+        return false;
       } else if (result.alreadyClaimed) {
         addNotification({
           type: 'warning',
           message: `💰 This reward site has already been claimed by team ${result.claimedBy}`,
           duration: 4000
         });
+        return false;
       } else {
         // Handle any other unsuccessful responses
         addNotification({
@@ -506,13 +1006,26 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           message: result.message || 'Unable to claim reward at this time',
           duration: 4000
         });
+        return false;
       }
+      // Attempt to refresh balance explicitly in case other views rely on it
+      try {
+        const resp = await fetch('/api/team');
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && typeof data.bitcoinBalance === 'number') {
+            setTeamBalance(data.bitcoinBalance);
+          }
+        }
+      } catch {/* ignore */}
+      return true;
     } catch (error) {
       logger.error('Failed to claim reward site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       addNotification({
         type: 'error',
         message: 'Failed to claim reward site'
       });
+      return false;
     }
   }, [teamId, sites, addNotification]);
 
@@ -530,15 +1043,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         if (data.success) {
           setCurrentSite(data.site);
           setTabTitle(data.site.title);
-          
-          // Check if this is a reward site - always attempt to claim
-          if (data.site.isRewardSite && teamId) {
-            // Inline the reward check to avoid dependency loop
-            const rewardSite = sites.find(site => site.url === address && site.isRewardSite);
-            if (rewardSite) {
-              checkRewardSite(address);
-            }
-          }
         } else {
           // Site not found, create a default one
           const defaultSite: Site = {
@@ -563,7 +1067,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     };
 
     loadCurrentSite();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, showHomePage, teamId]);
 
   const extractTitleFromUrl = (url: string) => {
@@ -595,6 +1098,9 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     setHistIndex(newHist.length - 1);
     setAddress(url);
     setShowHomePage(false);
+    setSiteOutcome(null); // Reset site outcome when navigating
+    setLastRewardAmount(0);
+    setLastScamAmount(0);
     assessSecurity(url);
   }, [history, histIndex, assessSecurity]);
 
@@ -729,8 +1235,9 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         </div>
       </div>
       
-      <div className="mt-2 grid grid-cols-[1fr_90px] gap-2">
-        {/* Address bar */}
+      {/* iOS 4 Style Address Bar */}
+      <div className="mt-1">
+        {/* iOS 4 Style Address & Search Bar */}
         <form
           className="relative"
           onSubmit={(e) => { 
@@ -742,21 +1249,85 @@ const SafariApp: React.FC<SafariAppProps> = () => {
             }
           }}
         >
-          <input
-            value={showHomePage ? "Home" : addressInput}
-            onChange={(e) => setAddressInput(e.target.value)}
-            onFocus={() => {
-              if (showHomePage) {
-                setAddressInput("");
-              }
+          <div className="flex items-center px-1">
+            {/* iOS 4 style back/forward buttons */}
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={!canGoBack}
+              className="h-7 w-7 flex items-center justify-center"
+              style={{
+                backgroundImage: canGoBack ? 'linear-gradient(to bottom, #a8a8a8, #707070)' : 'linear-gradient(to bottom, #d8d8d8, #a0a0a0)',
+                borderRadius: '4px',
+                border: '1px solid #505050',
+                boxShadow: canGoBack ? 'inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                opacity: canGoBack ? 1 : 0.5
+              }}
+            >
+              <span className="text-white text-sm">◀</span>
+            </button>
+            
+            <div className="mx-1 flex-1">
+              <input
+                value={showHomePage ? "Home" : addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                onFocus={() => {
+                  if (showHomePage) {
+                    setAddressInput("");
+                  }
+                }}
+                placeholder="Search or enter website name"
+                style={{
+                  width: '100%',
+                  height: '28px',
+                  borderRadius: '5px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #505050',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
+                  fontSize: '12px',
+                  paddingLeft: '8px',
+                  paddingRight: '8px'
+                }}
+                className="focus:outline-none"
+              />
+            </div>
+            
+            <button
+              type="button"
+              onClick={goForward}
+              disabled={!canGoForward}
+              className="h-7 w-7 flex items-center justify-center"
+              style={{
+                backgroundImage: canGoForward ? 'linear-gradient(to bottom, #a8a8a8, #707070)' : 'linear-gradient(to bottom, #d8d8d8, #a0a0a0)',
+                borderRadius: '4px',
+                border: '1px solid #505050',
+                boxShadow: canGoForward ? 'inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                opacity: canGoForward ? 1 : 0.5
+              }}
+            >
+              <span className="text-white text-sm">▶</span>
+            </button>
+          </div>
+          
+          {/* iOS 4 Go button */}
+          <button
+            type="submit"
+            className="absolute right-10 top-1 h-6 w-10 flex items-center justify-center"
+            style={{
+              backgroundImage: 'linear-gradient(to bottom, #a8a8a8, #707070)',
+              borderRadius: '4px',
+              border: '1px solid #505050',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+              marginTop: '0.5px'
             }}
-            placeholder="Enter URL or type 'Home'"
-            className="w-full rounded-full bg-gradient-to-b from-[#efefef] to-[#d9d9d9] text-black placeholder:text-gray-500 px-4 py-1.5 border border-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_0_rgba(255,255,255,0.1)] focus:outline-none"
-          />
-          {loading && (
+          >
+            <span className="text-white text-xs font-bold">Go</span>
+          </button>
+        </form>
+        
+        {loading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
           )}
-        </form>
         {/* Google search box */}
         <form onSubmit={(e) => { e.preventDefault(); navigateTo((e.target as HTMLFormElement).querySelector("input")!.value); }}>
           <input
@@ -778,7 +1349,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         // Get current playspace ID using the proper utility
         const playspaceId = getPlayspaceId();
 
-        if (playspaceId && !teamId) {
+  if (playspaceId && !teamId) {
           // Use /api/team with proper x-playspace-id header like other apps
           const teamResponse = await fetch('/api/team', {
             headers: {
@@ -788,6 +1359,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           if (teamResponse.ok) {
             const teamData = await teamResponse.json();
             if (teamData.success && teamData.teamId) {
+              setTeamId(teamData.teamId);
               return;
             }
           }
@@ -802,6 +1374,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           const devices: DeviceMeta[] = js.devices;
           const pick = devices.find(d=> d.teamId && !d.isBank) || devices.find(d=>d.teamId);
           if (pick?.teamId && !teamId) {
+            setTeamId(pick.teamId);
           }
         }
       } catch (error) {
@@ -811,7 +1384,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     load();
     const id = setInterval(load, 20000);
     return ()=>{ cancelled = true; clearInterval(id); };
-  }, []);
+  }, [teamId]);
 
   // Socket connect for extractor events
   useEffect(()=>{
@@ -844,6 +1417,11 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   // UI Components
   const NotificationContainer = () => (
     <div className="fixed top-4 right-4 z-50 space-y-2">
+      {teamBalance !== null && (
+        <div className="px-4 py-2 rounded bg-black/60 text-white text-xs font-mono inline-block shadow">
+          Balance: ₿{teamBalance.toFixed(2)}
+        </div>
+      )}
       {notifications.map(notification => (
         <div
           key={notification.id}
@@ -918,40 +1496,105 @@ const SafariApp: React.FC<SafariAppProps> = () => {
           {showHomePage ? (
             <HomePage />
           ) : currentSite ? (
-            <div 
-              className="min-h-full p-4" 
-              style={{ 
+            <div
+              className="min-h-full p-4"
+              style={{
                 backgroundColor: currentSite.backgroundColor || '#ffffff',
                 color: currentSite.textColor || '#000000'
               }}
-              dangerouslySetInnerHTML={{ __html: InputSanitizer.sanitizeHtml(currentSite.content) }}
-              onClick={(e) => {
-                // Handle clicks on claim buttons within the site content
-                const target = e.target as HTMLElement;
-                if (target.tagName === 'BUTTON' && 
-                    target.textContent?.includes('CLAIM') && 
-                    currentSite.isRewardSite) {
-                  e.preventDefault();
-                  
-                  // Add visual feedback
-                  target.style.opacity = '0.6';
-                  target.style.cursor = 'wait';
-                  target.textContent = 'Processing...';
-                  
-                  // Trigger reward claim
-                  checkRewardSite(currentSite.url).finally(() => {
-                    // Reset button state after a delay
-                    setTimeout(() => {
-                      if (target.textContent === 'Processing...') {
-                        target.style.opacity = '1';
-                        target.style.cursor = 'pointer';
-                        target.textContent = target.textContent.replace('Processing...', 'CLAIM');
-                      }
-                    }, 1000);
-                  });
-                }
-              }}
-            />
+            >
+              {/* Custom content based on site type and outcome */}
+              {currentSite.category === 'fake' && siteOutcome === 'loss' ? (
+                <div className="min-h-full flex flex-col items-center justify-center text-center p-8">
+                  <div className="bg-red-100 border-2 border-red-300 rounded-lg p-6 max-w-md w-full">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h1 className="text-2xl font-bold text-red-800 mb-4">Suspicious Activity Detected!</h1>
+                    <p className="text-red-700 mb-4">
+                      This website has been flagged as potentially harmful. Your security system has detected and blocked suspicious activity.
+                    </p>
+                    <div className="bg-red-200 rounded p-3 mb-4">
+                      <p className="text-red-800 font-semibold">
+                        Amount Lost: <span className="text-xl font-bold">{lastScamAmount || 0.5} BTC</span>
+                      </p>
+                      <p className="text-sm text-red-600 mt-1">
+                        Funds have been deducted from your wallet as a security measure.
+                      </p>
+                    </div>
+                    <p className="text-sm text-red-600">
+                      Please be cautious when visiting unknown websites.
+                    </p>
+                  </div>
+                </div>
+              ) : currentSite.isRewardSite && siteOutcome === 'gain' ? (
+                <div className="min-h-full flex flex-col items-center justify-center text-center p-8">
+                  <div className="bg-green-100 border-2 border-green-300 rounded-lg p-6 max-w-md w-full">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h1 className="text-2xl font-bold text-green-800 mb-4">Reward Claimed!</h1>
+                    <p className="text-green-700 mb-4">
+                      Congratulations! You&apos;ve successfully claimed a reward from this website.
+                    </p>
+                    <div className="bg-green-200 rounded p-3 mb-4">
+                      <p className="text-green-800 font-semibold">
+                        Amount Received: <span className="text-xl font-bold">{lastRewardAmount || currentSite.rewardAmount || 0.25} BTC</span>
+                      </p>
+                      <p className="text-sm text-green-600 mt-1">
+                        The reward has been added to your wallet balance.
+                      </p>
+                    </div>
+                    <p className="text-sm text-green-600">
+                      Keep exploring to find more reward opportunities!
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {/* Show original site content */}
+                  <div
+                    dangerouslySetInnerHTML={{ __html: InputSanitizer.sanitizeHtml(currentSite.content) }}
+                  />
+
+                  {/* Add clickable button for reward/scam sites */}
+                  {(currentSite.isRewardSite || currentSite.category === 'fake') && (
+                    <div className="fixed bottom-20 left-4 right-4 z-50">
+                      <button
+                        onClick={async () => {
+                          if (currentSite.isRewardSite) {
+                            const ok = await checkRewardSite(currentSite.url);
+                            if (ok) {
+                              setTimeout(() => {
+                                setShowHomePage(true);
+                                setAddress("https://www.redmondpie.com/");
+                                setAddressInput("Home");
+                                setCurrentPage(1);
+                              }, 1500);
+                            }
+                          } else if (currentSite.category === 'fake') {
+                            setSiteOutcome('loss');
+                            setLastScamAmount(0.5);
+                            addNotification({
+                              type: 'warning',
+                              message: `⚠️ Suspicious activity detected on site "${currentSite.title}" (0.5 BTC stolen)`,
+                              duration: 4000
+                            });
+                          }
+                        }}
+                        className={`w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg transition-all duration-200 ${
+                          currentSite.isRewardSite
+                            ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+                            : 'bg-red-500 hover:bg-red-600 active:bg-red-700'
+                        }`}
+                        style={{
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                          border: '2px solid rgba(255,255,255,0.3)'
+                        }}
+                      >
+                        {currentSite.isRewardSite ? '🎁 CLAIM REWARD' : '⚠️ ACCESS SITE'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="h-full flex items-center justify-center">
               {loading ? (
@@ -962,7 +1605,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
               ) : (
                 <div className="text-center text-gray-500">
                   <p>No website loaded</p>
-                  <button 
+                  <button
                     onClick={goHome}
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
