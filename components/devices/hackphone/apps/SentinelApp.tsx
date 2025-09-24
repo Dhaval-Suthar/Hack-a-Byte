@@ -34,6 +34,7 @@ interface WalletInfo {
 interface SentinelAppProps {
   onClose: () => void;
   time: string;
+  teamId?: string;
 }
 
 // ==========================================
@@ -647,7 +648,7 @@ const CodeSnippet = ({ lines, title = "memory.dump", className = "" }: {
 // Terminal-style notification toast system
 const TerminalNotification = ({ notifications }: { notifications: string[] }) => {
   return (
-    <div className="fixed top-20 right-4 space-y-2 z-50 max-w-md">
+    <div className="fixed bottom-20 right-4 space-y-2 z-50 max-w-md">
       {notifications.map((notification, index) => (
         <div
           key={index}
@@ -688,6 +689,33 @@ const BankTransfersTab = ({
   const [amount, setAmount] = useState<string>('');
   const [isTransferring, setIsTransferring] = useState<boolean>(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+
+  // Load persisted values from localStorage on mount
+  useEffect(() => {
+    const persistedData = localStorage.getItem('sentinel-transfer-form');
+    if (persistedData) {
+      try {
+        const { senderWallet: savedSender, privateKey: savedPrivateKey, receiverWallet: savedReceiver, amount: savedAmount } = JSON.parse(persistedData);
+        if (savedSender) setSenderWallet(savedSender);
+        if (savedPrivateKey) setPrivateKey(savedPrivateKey);
+        if (savedReceiver) setReceiverWallet(savedReceiver);
+        if (savedAmount) setAmount(savedAmount);
+      } catch (error) {
+        logger.error('Failed to load persisted transfer form data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      }
+    }
+  }, []);
+
+  // Persist values to localStorage whenever they change
+  useEffect(() => {
+    const dataToPersist = {
+      senderWallet,
+      privateKey,
+      receiverWallet,
+      amount
+    };
+    localStorage.setItem('sentinel-transfer-form', JSON.stringify(dataToPersist));
+  }, [senderWallet, privateKey, receiverWallet, amount]);
   
   const handleTransfer = async () => {
     if (!senderWallet || !privateKey || !receiverWallet || !amount || isNaN(parseFloat(amount))) {
@@ -890,7 +918,7 @@ const BankTransfersTab = ({
 // MAIN SENTINEL APP COMPONENT
 // ==========================================
 
-function SentinelApp({ onClose, time }: SentinelAppProps) {
+function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   // State management from original component
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [walletData, setWalletData] = useState<WalletInfo[]>([]);
@@ -1130,10 +1158,75 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setWalletData(result.wallets);
+        // For the current user's team, try to get their actual wallet address
+        let currentUserWalletAddress = null;
+        if (teamId) {
+          try {
+            const userWalletResponse = await fetch(`/api/team/${teamId}/wallet`, {
+              headers: { 
+                'Content-Type': 'application/json',
+                ...(playspaceId && { 'x-playspace-id': playspaceId })
+              }
+            });
+            if (userWalletResponse.ok) {
+              const userWalletData = await userWalletResponse.json();
+              if (userWalletData.success && userWalletData.wallet?.walletAddress) {
+                currentUserWalletAddress = userWalletData.wallet.walletAddress;
+              }
+            }
+          } catch (error) {
+            logger.error(`Failed to fetch current user wallet:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+          }
+        }
+
+        // Fetch actual wallet addresses for each team
+        const walletsWithAddresses = await Promise.all(
+          result.wallets.map(async (wallet: WalletInfo) => {
+            // If this is the current user's team and we have their wallet address, use it
+            if (wallet.isOwnTeam && currentUserWalletAddress) {
+              return {
+                ...wallet,
+                address: currentUserWalletAddress
+              };
+            }
+
+            try {
+              // Extract team ID from the address field (format: team-xxxxx)
+              const teamIdFromWallet = wallet.address.startsWith('team-') ? wallet.address : null;
+              if (teamIdFromWallet) {
+                const walletResponse = await fetch(`/api/team/${teamIdFromWallet}/wallet`, {
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    ...(playspaceId && { 'x-playspace-id': playspaceId })
+                  }
+                });
+                if (walletResponse.ok) {
+                  const walletData = await walletResponse.json();
+                  if (walletData.success && walletData.wallet?.walletAddress) {
+                    return {
+                      ...wallet,
+                      address: walletData.wallet.walletAddress
+                    };
+                  }
+                } else if (walletResponse.status === 500) {
+                  // If the team doesn't exist or has no wallet, show a placeholder
+                  return {
+                    ...wallet,
+                    address: `${teamIdFromWallet} (no wallet found)`
+                  };
+                }
+              }
+            } catch (error) {
+              logger.error(`Failed to fetch wallet address for ${wallet.address}:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+            }
+            return wallet; // Return original wallet if fetch fails
+          })
+        );
+        
+        setWalletData(walletsWithAddresses);
         
         // Find own team wallet
-        const ownTeam = result.wallets.find((w: WalletInfo) => w.isOwnTeam);
+        const ownTeam = walletsWithAddresses.find((w: WalletInfo) => w.isOwnTeam);
         if (ownTeam) {
           setOwnTeamBalance(ownTeam.balance);
         }
@@ -1144,7 +1237,7 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
       logger.error('Wallet data error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       addNotification("[ERROR] Wallet data protocol interrupted");
     }
-  }, [addNotification]);
+  }, [addNotification, teamId]);
 
   // Team balance fetch function
   const fetchTeamBalance = useCallback(async () => {
@@ -1621,14 +1714,32 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                     <div className="border border-green-900 p-2 bg-black bg-opacity-30">
                       <div className="text-xs text-green-700">MAC ADDRESS</div>
                       <div className="font-mono flex items-center flex-wrap">
-                        <span className="text-green-500 break-all">{selectedDevice.deviceMacAddress}</span>
+                        <span 
+                          className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedDevice.deviceMacAddress);
+                            addNotification(`MAC address copied: ${selectedDevice.deviceMacAddress}`);
+                          }}
+                          title="Click to copy MAC address"
+                        >
+                          {selectedDevice.deviceMacAddress}
+                        </span>
                         <span className="ml-1 text-xs text-green-700 whitespace-nowrap">(OUI: {selectedDevice.deviceMacAddress.slice(0,8)})</span>
                       </div>
                     </div>
                     <div className="border border-green-900 p-2 bg-black bg-opacity-30">
                       <div className="text-xs text-green-700">IP ADDRESS</div>
                       <div className="font-mono flex items-center flex-wrap">
-                        <span className="text-green-500 break-all">{selectedDevice.ipAddress}</span>
+                        <span 
+                          className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedDevice.ipAddress);
+                            addNotification(`IP address copied: ${selectedDevice.ipAddress}`);
+                          }}
+                          title="Click to copy IP address"
+                        >
+                          {selectedDevice.ipAddress}
+                        </span>
                         <span className="ml-1 text-xs text-green-700 whitespace-nowrap">(TTL: 64)</span>
                       </div>
                     </div>
@@ -1896,8 +2007,17 @@ function SentinelApp({ onClose, time }: SentinelAppProps) {
                     </div>
                     
                     {/* Wallet address */}
-                    <div className="flex-1 font-mono text-gray-500 truncate px-1" title={wallet.address}>
-                      {wallet.address}
+                    <div className="flex-1 font-mono px-1">
+                      <span 
+                        className="text-gray-500 break-all cursor-pointer hover:text-green-300 transition-colors"
+                        onClick={() => {
+                          navigator.clipboard.writeText(wallet.address);
+                          addNotification(`Wallet address copied: ${wallet.address}`);
+                        }}
+                        title="Click to copy wallet address"
+                      >
+                        {wallet.address}
+                      </span>
                     </div>
                     
                     {/* Balance */}

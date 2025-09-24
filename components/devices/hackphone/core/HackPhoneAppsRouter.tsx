@@ -372,7 +372,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "sentinel":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <SentinelApp onClose={onClose} time={time.toLocaleTimeString()} />
+            <SentinelApp onClose={onClose} time={time.toLocaleTimeString()} teamId={teamId || undefined} />
           </Suspense>,
           appId
         );
