@@ -21,6 +21,16 @@ interface DeviceInfo {
   walletAddress?: string;
   bitcoinBalance?: number;
   isBank?: boolean;
+  configuration?: {
+    securitySettings?: {
+      firewall?: boolean;
+      antiVirus?: boolean;
+      vpn?: boolean;
+      enc?: boolean;
+      ids?: boolean;
+      vulnerabilities?: string[];
+    };
+  };
 }
 
 interface WalletInfo {
@@ -932,6 +942,13 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   // Store team ID for future use
   const [, setOwnTeamId] = useState<string | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
+  const [deviceSecuritySettings, setDeviceSecuritySettings] = useState<{
+    firewall?: boolean;
+    antiVirus?: boolean;
+    vpn?: boolean;
+    enc?: boolean;
+    ids?: boolean;
+  } | null>(null);
   
   // Scan state
   const SCAN_COOLDOWN_MS = 60_000; // 1 minute
@@ -939,6 +956,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   const [scanCompleted, setScanCompleted] = useState(false);
   const [deviceLockedForScan, setDeviceLockedForScan] = useState<DeviceInfo | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
+  
+  // Exploit state
+  const [exploitUsed, setExploitUsed] = useState(false);
   
   // Game termination state
   const [isTerminating, setIsTerminating] = useState(false);
@@ -948,7 +968,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   // UI state
   const [showGlitch, setShowGlitch] = useState(false);
   const [codeSnippets, setCodeSnippets] = useState<string[]>(generateCodeSnippet());
-  
+
   // Command history references
   
   
@@ -1001,6 +1021,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     setDeviceLockedForScan(null);
     setScanCompleted(false);
     
+    // Reset exploit state for new network scan
+    setExploitUsed(false);
+    
     // Brief glitch effect at scan start
     setShowGlitch(true);
     setTimeout(() => setShowGlitch(false), 500);
@@ -1015,9 +1038,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
         setDiscoveredDevices(prev => prev + Math.floor(Math.random() * 2) + 1);
         
         if (i === 20) addNotification("[INFO] Network topology mapped");
-        if (i === 40) addNotification("[INFO] Identifying vulnerabilities");
-        if (i === 60) addNotification("[INFO] Bypassing firewall protocols");
-        if (i === 80) addNotification("[INFO] Extracting device fingerprints");
+        if (i === 40) addNotification("[INFO] Analyzing security configurations");
+        if (i === 60) addNotification("[INFO] Checking firewall rules");
+        if (i === 80) addNotification("[INFO] Running vulnerability assessment");
       }
     }
 
@@ -1258,46 +1281,104 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     }
   }, []);
 
-  // Calculate security level of devices
-  const calculateSecurityLevel = (device: DeviceInfo): "low" | "medium" | "high" => {
-    let score = 0;
-    
-    // Vulnerabilities reduce security
-    if (device.vulnerabilities && device.vulnerabilities.length > 0) {
-      score -= device.vulnerabilities.length * 20;
-    }
-    
+  // Calculate security level of devices based on security settings
+  const calculateSecurityLevel = (device: DeviceInfo, securitySettings?: {
+    firewall?: boolean;
+    antiVirus?: boolean;
+    vpn?: boolean;
+    enc?: boolean;
+    ids?: boolean;
+  }): "low" | "medium" | "high" => {
+    // Use provided securitySettings, or deviceSecuritySettings for selected device, or device configuration
+    const settings = securitySettings || (selectedDevice?.id === device.id ? deviceSecuritySettings : null) || device.configuration?.securitySettings;
+    if (!settings) return "medium"; // Default if no security settings available
+
+    let score = 100; // Start with perfect security
+
+    // Check each security setting and reduce score if disabled
+    if (!settings.firewall) score -= 25;
+    if (!settings.antiVirus) score -= 20;
+    if (!settings.vpn) score -= 15;
+    if (!settings.enc) score -= 20;
+    if (!settings.ids) score -= 20;
+
     // High bitcoin balance indicates valuable target (potentially better secured)
     if (device.bitcoinBalance && device.bitcoinBalance > 50) {
-      score += 30;
-    } else if (device.bitcoinBalance && device.bitcoinBalance > 10) {
-      score += 15;
-    }
-    
-    // Bank devices are typically more secure
-    if (device.isBank) {
-      score += 25;
-    }
-    
-    // Status affects security
-    if (device.status === 'online') {
       score += 10;
     }
-    
+
+    // Bank devices are typically more secure
+    if (device.isBank) {
+      score += 15;
+    }
+
+    // Status affects security
+    if (device.status === 'online') {
+      score += 5;
+    }
+
     // Determine level based on score
-    if (score >= 30) return "high";
-    if (score >= 0) return "medium";
+    if (score >= 80) return "high";
+    if (score >= 50) return "medium";
     return "low";
   };
 
-  // Load data on initial mount
-  useEffect(() => {
-    // Only load data if user is professor
-    if (userRole?.toLowerCase() === 'professor') {
-      fetchWallets();
-      fetchTeamBalance();
+  // Generate vulnerabilities based on security settings
+  const generateVulnerabilities = (device: DeviceInfo, securitySettings?: {
+    firewall?: boolean;
+    antiVirus?: boolean;
+    vpn?: boolean;
+    enc?: boolean;
+    ids?: boolean;
+  }): string[] => {
+    // Use provided securitySettings, or deviceSecuritySettings for selected device, or device configuration
+    const settings = securitySettings || (selectedDevice?.id === device.id ? deviceSecuritySettings : null) || device.configuration?.securitySettings;
+    if (!settings) return [];
+
+    const vulnerabilities: string[] = [];
+
+    if (!settings.firewall) {
+      vulnerabilities.push("Firewall disabled - Network exposed to unauthorized access");
     }
-  }, [userRole, fetchWallets, fetchTeamBalance]);
+    if (!settings.antiVirus) {
+      vulnerabilities.push("Antivirus software not installed - Vulnerable to malware");
+    }
+    if (!settings.vpn) {
+      vulnerabilities.push("VPN not configured - Traffic interception possible");
+    }
+    if (!settings.enc) {
+      vulnerabilities.push("Data encryption disabled - Information at risk");
+    }
+    if (!settings.ids) {
+      vulnerabilities.push("Intrusion Detection System offline - Attacks may go undetected");
+    }
+
+    // Add existing vulnerabilities from the device data
+    if (device.vulnerabilities && device.vulnerabilities.length > 0) {
+      vulnerabilities.push(...device.vulnerabilities);
+    }
+
+    return vulnerabilities;
+  };
+
+  // Fetch security settings for a specific device
+  const fetchDeviceSecuritySettings = useCallback(async (deviceMacAddress: string) => {
+    try {
+      const response = await fetch(`/api/device/security?deviceMacAddress=${encodeURIComponent(deviceMacAddress)}`);
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log('Fetched security settings for', deviceMacAddress, ':', result.device);
+        return result.device;
+      } else {
+        console.error('Failed to fetch security settings:', result);
+      }
+    } catch (error) {
+      console.error('Error fetching device security settings:', error);
+      logger.error('Failed to fetch device security settings:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+    return null;
+  }, []);
 
   // Access denied screen
   if (userRole && userRole.toLowerCase() !== 'professor') {
@@ -1505,9 +1586,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     <div className="absolute inset-0 pointer-events-none flex items-end justify-center">
                       <div className="p-1 bg-black bg-opacity-70 text-xs font-mono text-green-500 w-full text-center">
                         <div className="animate-typewriter overflow-hidden whitespace-nowrap">
-                          {scanProgress < 30 ? 'Initializing nmap scan...' :
-                           scanProgress < 60 ? 'Probing ports 1-65535...' :
-                           'Identifying services...'}
+                          {scanProgress < 30 ? 'Initializing vulnerability scan...' :
+                           scanProgress < 60 ? 'Analyzing security configurations...' :
+                           'Running vulnerability assessment...'}
                         </div>
                       </div>
                     </div>
@@ -1529,20 +1610,20 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       <div className="mt-3 font-mono text-xs space-y-1">
                         {/* Dynamic scan messages */}
                         <div className="text-green-500">
-                          $ sudo nmap -sV -T4 --script vuln 192.168.1.0/24
+                          $ sudo openvas --scan-config &quot;Full and fast&quot; --target 192.168.1.0/24
                         </div>
                         <div className="text-green-700">
-                          {scanProgress < 25 && '> Initiating ARP discovery scan...'}
-                          {scanProgress >= 25 && scanProgress < 50 && '> Scanning TCP ports...'}
-                          {scanProgress >= 50 && scanProgress < 75 && '> Analyzing service versions...'}
-                          {scanProgress >= 75 && '> Running vulnerability scripts...'}
+                          {scanProgress < 25 && '> Initializing vulnerability scanner...'}
+                          {scanProgress >= 25 && scanProgress < 50 && '> Checking security configurations...'}
+                          {scanProgress >= 50 && scanProgress < 75 && '> Analyzing firewall rules...'}
+                          {scanProgress >= 75 && '> Running vulnerability assessment...'}
                         </div>
                         
                         {/* Live stats */}
                         <div className="flex justify-between text-green-600 mt-2">
                           <span>Hosts: {Math.min(Math.floor(scanProgress/10), discoveredDevices)}/{discoveredDevices}</span>
-                          <span>Open ports: {Math.floor(scanProgress/5)}</span>
-                          <span>Rate: {Math.floor(1000 + Math.random() * 500)} p/s</span>
+                          <span>Vulnerabilities: {Math.floor(scanProgress/3)}</span>
+                          <span>Rate: {Math.floor(50 + Math.random() * 100)} checks/s</span>
                         </div>
                       </div>
                     </div>
@@ -1643,19 +1724,37 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <div className="text-green-700 text-sm">No targets detected in scan</div>
                 </div>
               ) : (
-                <TerminalDeviceList
-                  devices={devices.filter(device => device.deviceType === 'hackphone')}
-                  selectedDevice={selectedDevice || undefined}
-                  onDeviceSelect={(device) => {
-                    const locked = !!deviceLockedForScan && deviceLockedForScan.id !== device.id;
-                    if (locked) return;
+                <>
+                  {deviceLockedForScan && (
+                    <div className="text-xs font-mono border border-yellow-900 p-2 bg-yellow-900 bg-opacity-10 mb-2">
+                      <div className="text-yellow-500">⚠ TARGET SELECTION LOCKED</div>
+                      <div className="text-yellow-700">One target per scan session - start new scan to change target</div>
+                    </div>
+                  )}
+                  <TerminalDeviceList
+                    devices={devices.filter(device => device.deviceType === 'hackphone')}
+                    selectedDevice={selectedDevice || undefined}
+                    onDeviceSelect={async (device) => {
+                      // Prevent selecting any device if one is already locked for this scan session
+                      if (deviceLockedForScan) {
+                        addNotification(`[ERROR] Target already locked for this scan session`);
+                        return;
+                      }
 
-                    // Trigger brief glitch effect when selecting a device
-                    setShowGlitch(true);
-                    setTimeout(() => setShowGlitch(false), 300);
+                      // Trigger brief glitch effect when selecting a device
+                      setShowGlitch(true);
+                      setTimeout(() => setShowGlitch(false), 300);
 
-                    setSelectedDevice(device);
-                    if (!deviceLockedForScan) {
+                      setSelectedDevice(device);
+                      
+                      // Reset exploit state for new device
+                      setExploitUsed(false);
+                      
+                      // Fetch security settings for the selected device
+                      const securitySettings = await fetchDeviceSecuritySettings(device.deviceMacAddress);
+                      setDeviceSecuritySettings(securitySettings);
+                      
+                      // Lock this device for the entire scan session
                       setDeviceLockedForScan(device);
                       addNotification(`[TARGET LOCKED] ${device.deviceType} (${device.ipAddress})`);
 
@@ -1667,11 +1766,11 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         `0xE812: collecting device info`,
                         `0x7FF8: extracting vulnerabilities`
                       ]);
-                    }
-                  }}
-                  lockedDevices={deviceLockedForScan ? devices.filter(d => d.id !== deviceLockedForScan.id && d.deviceType === 'hackphone').map(d => d.id) : []}
-                  className="mb-4"
-                />
+                    }}
+                    lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone').map(d => d.id) : []}
+                    className="mb-4"
+                  />
+                </>
               )}
             </TerminalWindow>
             
@@ -1703,9 +1802,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   
                   {/* Terminal command header */}
                   <div className="text-xs font-mono text-green-600">
-                    $ nmap -A -T4 -p- {selectedDevice.ipAddress}
+                    $ openvas --target {selectedDevice.ipAddress} --scan-config &quot;Full and fast&quot;
                     <div className="mt-1">
-                      Starting Nmap scan at {new Date().toLocaleTimeString()}
+                      Starting vulnerability scan at {new Date().toLocaleTimeString()}
                     </div>
                   </div>
                   
@@ -1744,18 +1843,22 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       </div>
                     </div>
                     
-                    {/* Open ports section - always shown with terminal feel */}
+                    {/* Security status section - shows security settings */}
                     <div className="border border-green-900 p-2 bg-black bg-opacity-30">
-                      <div className="text-xs text-green-700">OPEN PORTS</div>
+                      <div className="text-xs text-green-700">SECURITY STATUS</div>
                       <div className="font-mono text-xs space-y-1 mt-1">
-                        <div className="text-green-500">22/tcp <span className="text-green-700">ssh</span></div>
-                        <div className="text-green-500">80/tcp <span className="text-green-700">http</span></div>
-                        {selectedDevice.status === 'online' && (
-                          <div className="text-green-500">443/tcp <span className="text-green-700">https</span></div>
-                        )}
-                        {selectedDevice.isBank && (
-                          <div className="text-yellow-500">8443/tcp <span className="text-yellow-700">custom-https</span></div>
-                        )}
+                        <div className={`flex items-center ${deviceSecuritySettings?.firewall ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className="mr-2">🔥</span>Firewall: {deviceSecuritySettings?.firewall ? 'ENABLED' : 'DISABLED'}
+                        </div>
+                        <div className={`flex items-center ${deviceSecuritySettings?.antiVirus ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className="mr-2">🛡️</span>Antivirus: {deviceSecuritySettings?.antiVirus ? 'ENABLED' : 'DISABLED'}
+                        </div>
+                        <div className={`flex items-center ${deviceSecuritySettings?.vpn ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className="mr-2">🔒</span>VPN: {deviceSecuritySettings?.vpn ? 'ENABLED' : 'DISABLED'}
+                        </div>
+                        <div className={`flex items-center ${deviceSecuritySettings?.enc ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className="mr-2">🔐</span>Encryption: {deviceSecuritySettings?.enc ? 'ENABLED' : 'DISABLED'}
+                        </div>
                       </div>
                     </div>
                     
@@ -1802,15 +1905,15 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     <div className="flex justify-between items-center mb-2">
                       <div className="text-xs text-red-500 font-bold">VULNERABILITY SCAN</div>
                       <div className="text-xs text-red-700">
-                        {calculateSecurityLevel(selectedDevice) === 'low' ? '(CRITICAL ISSUES FOUND)' : 
-                         calculateSecurityLevel(selectedDevice) === 'medium' ? '(POTENTIAL ISSUES FOUND)' :
+                        {calculateSecurityLevel(selectedDevice, deviceSecuritySettings || undefined) === 'low' ? '(CRITICAL ISSUES FOUND)' : 
+                         calculateSecurityLevel(selectedDevice, deviceSecuritySettings || undefined) === 'medium' ? '(POTENTIAL ISSUES FOUND)' :
                          '(NO CRITICAL ISSUES)'}
                       </div>
                     </div>
                     
-                    {selectedDevice.vulnerabilities && selectedDevice.vulnerabilities.length > 0 ? (
+                    {generateVulnerabilities(selectedDevice, deviceSecuritySettings || undefined).length > 0 ? (
                       <div className="space-y-1">
-                        {selectedDevice.vulnerabilities.map((v, i) => (
+                        {generateVulnerabilities(selectedDevice, deviceSecuritySettings || undefined).map((v, i) => (
                           <div key={i} className="text-xs text-red-500 font-mono flex items-start">
                             <span className="inline-block h-2 w-2 bg-red-500 mr-2 mt-1 flex-shrink-0"></span>
                             <span className="text-red-400 whitespace-nowrap mr-2">CVE-2023-{Math.floor(Math.random() * 9000) + 1000}</span>
@@ -1831,48 +1934,121 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <div className="flex space-x-2 pt-2 border-t border-green-900">
                     <button
                       className="flex-1 bg-black hover:bg-green-900 hover:bg-opacity-30 text-green-500 border border-green-700 py-1 px-2 text-sm font-mono transition-colors"
-                      onClick={() => {
+                      onClick={async () => {
                         // Show a brief glitch effect
                         setShowGlitch(true);
                         setTimeout(() => setShowGlitch(false), 300);
                         
-                        // Add a notification
-                        addNotification(`[INFO] Port scan completed on ${selectedDevice.ipAddress}`);
+                        // Fetch fresh security settings before scanning
+                        const freshSecuritySettings = await fetchDeviceSecuritySettings(selectedDevice.deviceMacAddress);
+                        setDeviceSecuritySettings(freshSecuritySettings);
                         
-                        // Update code snippets to show scan output
+                        // Add a notification
+                        addNotification(`[INFO] Vulnerability scan completed on ${selectedDevice.ipAddress}`);
+                        
+                        // Update code snippets to show vulnerability scan output
+                        const vulnerabilities = generateVulnerabilities(selectedDevice, freshSecuritySettings);
                         setCodeSnippets([
-                          `PORT   STATE SERVICE VERSION`,
-                          `22/tcp open  ssh     OpenSSH 8.9`,
-                          `80/tcp open  http    nginx 1.18.0`,
-                          `443/tcp ${selectedDevice.status === 'online' ? 'open' : 'filtered'}  https   Apache/2.4.52`,
-                          selectedDevice.isBank ? `8443/tcp open  https   custom SSL` : ''
-                        ].filter(Boolean));
+                          `VULNERABILITY SCAN REPORT`,
+                          `Target: ${selectedDevice.ipAddress}`,
+                          `Security Level: ${calculateSecurityLevel(selectedDevice, freshSecuritySettings).toUpperCase()}`,
+                          `Vulnerabilities Found: ${vulnerabilities.length}`,
+                          ...vulnerabilities.slice(0, 3).map(v => `• ${v.substring(0, 50)}${v.length > 50 ? '...' : ''}`)
+                        ]);
                       }}
                     >
-                      SCAN PORTS
+                      VULNERABILITY SCAN
                     </button>
                     
                     <button
-                      className="flex-1 bg-black hover:bg-red-900 hover:bg-opacity-30 text-red-500 border border-red-700 py-1 px-2 text-sm font-mono transition-colors"
-                      onClick={() => {
+                      className={`flex-1 bg-black hover:bg-red-900 hover:bg-opacity-30 text-red-500 border border-red-700 py-1 px-2 text-sm font-mono transition-colors ${exploitUsed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={async () => {
+                        if (exploitUsed) return;
+                        
                         // Show a more intense glitch effect
                         setShowGlitch(true);
                         setTimeout(() => setShowGlitch(false), 500);
                         
-                        // Add a notification
-                        addNotification(`[WARNING] Exploit attempt on ${selectedDevice.deviceType} (${selectedDevice.ipAddress})`);
+                        // Mark exploit as used
+                        setExploitUsed(true);
                         
-                        // Update code snippets to show exploit output
-                        setCodeSnippets([
-                          `Launching exploit module...`,
-                          `Target: ${selectedDevice.ipAddress}`,
-                          `${calculateSecurityLevel(selectedDevice) === 'low' ? 'Vulnerability found!' : 'No exploitable vulnerabilities.'}`,
-                          calculateSecurityLevel(selectedDevice) === 'low' ? `Exploitation successful!` : `Exploitation failed.`,
-                          selectedDevice.isBank ? `Access to financial systems: ${calculateSecurityLevel(selectedDevice) === 'low' ? 'GRANTED' : 'DENIED'}` : ''
-                        ].filter(Boolean));
+                        // Randomly select a security setting to disable
+                        const securityKeys = ['firewall', 'antiVirus', 'vpn', 'enc', 'ids'] as const;
+                        const enabledSettings = securityKeys.filter(key => deviceSecuritySettings?.[key]);
+                        
+                        if (enabledSettings.length === 0) {
+                          // No security settings to disable
+                          addNotification(`[ERROR] No security systems to exploit on ${selectedDevice.deviceType}`);
+                          setCodeSnippets([
+                            `Launching exploit module...`,
+                            `Target: ${selectedDevice.ipAddress}`,
+                            `No exploitable security systems found!`,
+                            `Exploit failed - target already compromised.`
+                          ]);
+                          return;
+                        }
+                        
+                        const randomIndex = Math.floor(Math.random() * enabledSettings.length);
+                        const settingToDisable = enabledSettings[randomIndex];
+                        
+                        // Update security settings on server
+                        try {
+                          const response = await fetch('/api/device/security', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              deviceMacAddress: selectedDevice.deviceMacAddress,
+                              [settingToDisable]: false
+                            })
+                          });
+                          
+                          if (response.ok) {
+                            // Update local state
+                            const updatedSettings = {
+                              ...deviceSecuritySettings,
+                              [settingToDisable]: false
+                            };
+                            setDeviceSecuritySettings(updatedSettings);
+                            
+                            // Add notification
+                            addNotification(`[SUCCESS] Security breach! ${settingToDisable.toUpperCase()} disabled on ${selectedDevice.deviceType}`);
+                            
+                            // Update code snippets to show exploit output
+                            setCodeSnippets([
+                              `Launching exploit module...`,
+                              `Target: ${selectedDevice.ipAddress}`,
+                              `Security breach successful!`,
+                              `${settingToDisable.toUpperCase()} system compromised and disabled.`,
+                              `Target vulnerability increased.`,
+                              selectedDevice.isBank ? `Financial system access: ENHANCED` : ''
+                            ].filter(Boolean));
+                          } else {
+                            // Revert exploit used state on failure
+                            setExploitUsed(false);
+                            addNotification(`[ERROR] Exploit failed on ${selectedDevice.deviceType}`);
+                            setCodeSnippets([
+                              `Launching exploit module...`,
+                              `Target: ${selectedDevice.ipAddress}`,
+                              `Exploit execution failed!`,
+                              `Security systems remain intact.`
+                            ]);
+                          }
+                        } catch (error) {
+                          console.error('Exploit failed:', error);
+                          // Revert exploit used state on error
+                          setExploitUsed(false);
+                          addNotification(`[ERROR] Exploit failed on ${selectedDevice.deviceType}`);
+                          setCodeSnippets([
+                            `Launching exploit module...`,
+                            `Target: ${selectedDevice.ipAddress}`,
+                            `Network error during exploit!`,
+                            `Security systems remain intact.`
+                          ]);
+                        }
                       }}
+                      disabled={exploitUsed}
                     >
-                      EXPLOIT
+                      {exploitUsed ? 'EXPLOIT USED' : 'EXPLOIT'}
                     </button>
                   </div>
                   
