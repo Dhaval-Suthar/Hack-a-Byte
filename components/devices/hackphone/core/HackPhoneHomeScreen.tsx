@@ -64,6 +64,23 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
       // Show locked app notification
       return;
     }
+
+    // Special handling for fullscreen app - toggle fullscreen directly
+    if (app.id === 'fullscreen') {
+      if (typeof document !== 'undefined') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.error('Error attempting to enable fullscreen:', err);
+          });
+        } else {
+          document.exitFullscreen().catch(err => {
+            console.error('Error attempting to exit fullscreen:', err);
+          });
+        }
+      }
+      return;
+    }
+
     onAppOpen(app.id);
   };
 
