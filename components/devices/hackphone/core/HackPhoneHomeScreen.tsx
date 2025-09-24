@@ -9,7 +9,13 @@ import { useSocket } from '@/hooks/useSocket';
 const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,
 }) => {
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hackphone-current-page');
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -17,6 +23,10 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   const activeDemand = ransomDemands.slice(-1)[0];
   const latestBank = bankEvents?.slice(-1)[0];
   const [alertBadge, setAlertBadge] = useState<{ type: 'stealth' | 'ransom'; ts: number } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('hackphone-current-page', currentPage.toString());
+  }, [currentPage]);
 
   useEffect(() => {
     const latestStealth = stealthSpawns.slice(-1)[0];
