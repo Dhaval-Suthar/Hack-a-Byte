@@ -32,6 +32,7 @@ const HackPhoneDesktop = () => {
   const [deviceId, setDeviceId] = useState<string | undefined>();
   const [playspaceId, setPlayspaceId] = useState<string | undefined>();
   const [teamId, setTeamId] = useState<string | undefined>();
+  const [isPortrait, setIsPortrait] = useState(true);
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
@@ -54,6 +55,25 @@ const HackPhoneDesktop = () => {
       const saved = typeof window !== "undefined" ? localStorage.getItem("hackphone_password") : null;
       setHasPasscode(!!saved);
     } catch {}
+  }, []);
+
+  // Handle orientation changes
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      const orientation = window.orientation || (screen.orientation ? screen.orientation.angle : 0);
+      setIsPortrait(orientation === 0 || orientation === 180);
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    // Also listen for resize as fallback
+    window.addEventListener('resize', handleOrientationChange);
+
+    handleOrientationChange(); // initial check
+
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+    };
   }, []);
 
   // Check authentication
@@ -188,6 +208,19 @@ const HackPhoneDesktop = () => {
             />
           )}
         </div>
+
+        {/* Orientation warning overlay */}
+        {!isPortrait && (
+          <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-[60] backdrop-blur-sm">
+            <div className="text-center text-white p-6 max-w-sm">
+              <div className="text-6xl mb-4">📱</div>
+              <h2 className="text-xl font-semibold mb-2">Rotate to Portrait</h2>
+              <p className="text-sm opacity-80">
+                Please rotate your device to vertical orientation to continue using the HackPhone.
+              </p>
+            </div>
+          </div>
+        )}
 
             {/* iOS 4 Style Notifications on Home Screen */}
       {notification && !currentApp && (
