@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { SocketProvider } from '@/components/SocketProvider';
 import GameTerminationListener from '@/components/GameTerminationListener';
 import "./globals.css";
 
@@ -119,12 +120,14 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <GameTerminationListener />
-        <div className="min-h-screen flex flex-col">
-          <div className="flex-grow">
-            {children}
+        <SocketProvider>
+          <GameTerminationListener />
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-grow">
+              {children}
+            </div>
           </div>
-        </div>
+        </SocketProvider>
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"
           strategy="lazyOnload"

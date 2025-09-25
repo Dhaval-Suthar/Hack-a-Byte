@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSocket } from '@/hooks/useSocket';
+import { useGlobalSocket } from '@/components/SocketProvider';
 
 export default function GameTerminationListener() {
-  const { socket } = useSocket();
+  const { socket } = useGlobalSocket();
 
   useEffect(() => {
     if (!socket) return;

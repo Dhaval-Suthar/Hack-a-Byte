@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { getPlayspaceId } from '@/lib/playspace-utils';
+import { Socket } from 'socket.io-client';
 import { logger } from '@/lib/logger';
+import { useGlobalSocket } from '@/components/SocketProvider';
 
 export interface AttackData {
   attackerPlayspaceId: string;
@@ -103,16 +103,18 @@ export interface DataMinerExfilEvent { targetTeamId: string; walletAddress: stri
 export interface WalletTransferEvent { fromAddress: string; toAddress: string; amount: number; senderBalance: number; receiverBalance: number; ts: number; }
 export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; reward: number; attempts: number; windowExpires: number; balance: number; ts: number; }
 
-// --- Per-tab singleton state ---
-let sharedSocket: Socket | null = null;
-let socketRefCount = 0;
-let creatingSocket: Promise<Socket> | null = null;
 // Room join caches (dedupe joins per tab + enables auto-rejoin on reconnect)
 const joinedTeamsGlobal = new Set<string>();
 const joinedUsersGlobal = new Set<string>();
 const joinedTournamentsGlobal = new Set<string>();
 
+let useSocketCallCount = 0;
+
 export const useSocket = () => {
+  useSocketCallCount++;
+  console.log('🎣 useSocket hook called #', useSocketCallCount);
+  
+  const { socket: globalSocket, isConnected: globalIsConnected } = useGlobalSocket();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [incomingAttacks, setIncomingAttacks] = useState<AttackData[]>([]);
@@ -155,414 +157,303 @@ export const useSocket = () => {
   const [miningRewards, setMiningRewards] = useState<MiningRewardEvent[]>([]);
 
   useEffect(() => {
-    // Initialize socket connection
-  let localHandlers: Array<[string, (...args: unknown[]) => void]> = [];
-    const initSocket = async () => {
-      if (typeof window === 'undefined') {
-        return;
-      }
+    // Use the global socket and set up event handlers
+    const localHandlers: Array<[string, (...args: unknown[]) => void]> = [];
+    
+    if (!globalSocket) {
+      console.log('🎣 useSocket: No global socket available yet');
+      return;
+    }
 
+    console.log('🎣 useSocket: Setting up event handlers for global socket');
+    
+    // Update local state to reflect global socket
+    setSocket(globalSocket);
+    setIsConnected(globalIsConnected);
 
-      try {
-
-        // Create the shared socket once per tab
-        if (!sharedSocket) {
-          if (creatingSocket) {
-            await creatingSocket;
-          } else {
-            creatingSocket = (async () => {
-              const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || window.location.origin;
-              const s = io(base, {
-                path: '/api/socketio',
-                transports: ['websocket'],
-                timeout: 30000,
-                // Do NOT force new connections; reuse the single client
-                forceNew: false,
-                reconnection: true,
-                reconnectionAttempts: 10,
-                reconnectionDelay: 2000,
-                reconnectionDelayMax: 10000,
-                randomizationFactor: 0.5,
-              });
-
-              // Attach one-time global connection lifecycle handlers
-              s.on('connect', () => {
-                // On a fresh connection (or reconnect), join playspace and any tracked rooms
-                const playspaceId = getPlayspaceId();
-                if (playspaceId) {
-                  s.emit('join-playspace', playspaceId);
-                } else {
-                  logger.warn('No playspace ID found, cannot join playspace room');
-                }
-                // Re-join all remembered rooms (teams/users/tournaments)
-                if (joinedTeamsGlobal.size) {
-                  for (const teamId of joinedTeamsGlobal) {
-                    s.emit('join-team', teamId);
-                  }
-                }
-                if (joinedUsersGlobal.size) {
-                  for (const userId of joinedUsersGlobal) {
-                    s.emit('join-user', userId);
-                  }
-                }
-                if (joinedTournamentsGlobal.size) {
-                  for (const tid of joinedTournamentsGlobal) {
-                    s.emit('join-tournament', tid);
-                  }
-                }
-              });
-
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              s.on('disconnect', (reason) => {
-              });
-
-              s.on('connect_error', (error) => {
-                logger.warn('❌ Socket.IO connection error:', { error: error.message });
-              });
-
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              s.on('reconnect', (attemptNumber) => {
-              });
-
-              s.on('reconnect_error', (error) => {
-                logger.warn('❌ Socket.IO reconnection error:', error.message);
-              });
-
-              sharedSocket = s;
-              return s;
-            })();
-            await creatingSocket;
-            creatingSocket = null;
-          }
-        }
-
-        // Increase reference count and expose to this hook instance
-        socketRefCount += 1;
-        const newSocket = sharedSocket!;
-        localHandlers = [];
-        const addHandler = (event: string, handler: (...args: unknown[]) => void) => {
-          newSocket.on(event, handler);
-          localHandlers.push([event, handler]);
-        };
-
-        addHandler('mining-reward', (dataUnknown: unknown) => {
-          const data = dataUnknown as MiningRewardEvent;
-          setMiningRewards(prev => [...prev, data]);
-        });
-        setSocket(newSocket);
-
-  addHandler('connect', () => {
-          // Only update connection state here; room joins handled by global handler above
-          setIsConnected(true);
-        });
-        addHandler('disconnect', () => {
-          setIsConnected(false);
-        });
-        addHandler('connect_error', (errorUnknown: unknown) => {
-          const error = errorUnknown as { message?: string };
-          logger.error('Socket.IO connection error:', { 
-            error: error?.message ?? String(error || 'Unknown error'),
-            errorType: typeof error,
-            hasMessage: !!error?.message
-          });
-          setIsConnected(false);
-        });
-        addHandler('connect_timeout', () => {
-          setIsConnected(false);
-        });
-        addHandler('reconnect', () => {
-          setIsConnected(true);
-        });
-        addHandler('reconnect_error', (errorUnknown: unknown) => {
-          const error = errorUnknown as { message?: string };
-          logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? String(error || 'Unknown error') });
-        });
-
-  // Also log timeouts with addHandler above; duplicate warning removed
-
-        // Stealth viral events
-        addHandler('malware-stealth-viral-spawn', (dataUnknown: unknown) => {
-          const data = dataUnknown as StealthViralSpawn;
-          setStealthSpawns(prev => [...prev, data]);
-        });
-        addHandler('malware-stealth-viral-progress', (dataUnknown: unknown) => {
-          const data = dataUnknown as StealthViralProgress;
-          setStealthProgress(prev => [...prev, data]);
-        });
-        addHandler('malware-stealth-viral-defeated', (dataUnknown: unknown) => {
-          const data = dataUnknown as StealthViralDefeated;
-          setStealthDefeated(prev => [...prev, data]);
-        });
-
-        // Virus notifications
-        addHandler('virus-notification', (dataUnknown: unknown) => {
-          const data = dataUnknown as VirusNotification;
-          setVirusNotifications(prev => [...prev, data]);
-        });
-
-        // Private key compromised (DataMiner specific)
-        addHandler('private-key-compromised', (dataUnknown: unknown) => {
-          const data = dataUnknown as VirusNotification;
-          // Treat as a virus notification for UI display
-          setVirusNotifications(prev => [...prev, { 
-            ...data, 
-            severity: 'critical' as const,
-            virusType: data.virusType || 'DataMiner X'
-          }]);
-        });
-
-        // Ransomware events
-        addHandler('ransomware-spawn', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareSpawn;
-          setRansomSpawns(prev => [...prev, data]);
-        });
-        addHandler('ransomware-progress', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareProgress;
-          setRansomProgress(prev => [...prev, data]);
-        });
-        addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareNeutralized;
-          setRansomNeutralized(prev => [...prev, data]);
-        });
-        addHandler('ransomware-expired', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareExpired;
-          setRansomExpired(prev => [...prev, data]);
-        });
-        addHandler('ransomware-demand', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareDemand;
-          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey).concat(data));
-        });
-        addHandler('ransomware-paid', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwarePaid;
-          setRansomPaid(prev => [...prev, data]);
-          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
-        });
-        addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareUnpaid;
-          setRansomUnpaid(prev => [...prev, data]);
-          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
-        });
-
-        // Handle tournament updates
-        addHandler('tournament-notification', (updateUnknown: unknown) => {
-          const updateData = updateUnknown as TournamentUpdate;
-          setTournamentUpdates(prev => [...prev, updateData]);
-        });
-
-        // Handle new chat messages
-        addHandler('new-message', (messageUnknown: unknown) => {
-          const messageData = messageUnknown as ChatMessage;
-          setChatMessages(prev => [...prev, messageData]);
-        });
-
-        // Handle achievement notifications
-        addHandler('achievement-notification', (achievementUnknown: unknown) => {
-          const achievementData = achievementUnknown as AchievementNotification;
-          setAchievementNotifications(prev => [...prev, achievementData]);
-        });
-
-        // Handle wallet updates
-        addHandler('wallet-update', (walletUnknown: unknown) => {
-          const walletData = walletUnknown as WalletUpdate;
-          setWalletUpdates(prev => [...prev, walletData]);
-        });
-
-        // Handle notifications
-        addHandler('new-notification', (notificationUnknown: unknown) => {
-          const notificationData = notificationUnknown as NotificationData;
-          setNotifications(prev => [...prev, notificationData]);
-        });
-
-  // Duplicate connect_error handler removed (handled above)
-
-        // Incoming attack stream (drives attack banner UI)
-        addHandler('incoming-attack', (attackUnknown: unknown) => {
-          const attackData = attackUnknown as AttackData;
-          setIncomingAttacks(prev => [...prev, attackData]);
-          setTimeout(() => {
-            setIncomingAttacks(prev => prev.filter(attack => attack.timestamp !== attackData.timestamp));
-          }, 10000);
-        });
-        // Attack sent confirmation
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        addHandler('attack-sent', (attackUnknown: unknown) => {
-          // Attack sent confirmation received
-        });
-
-        // Global effects
-        addHandler('global-effect', (effectUnknown: unknown) => {
-          const effectData = effectUnknown as AttackEffect;
-          setGlobalEffects(prev => [...prev, effectData]);
-          setTimeout(() => {
-            setGlobalEffects(prev => prev.filter(effect => effect.timestamp !== effectData.timestamp));
-          }, effectData.duration || 30000);
-        });
-
-        // Ransomware events
-        addHandler('ransomware-spawn', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareSpawn;
-          setRansomSpawns(prev => [...prev, data]);
-        });
-        addHandler('ransomware-progress', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareProgress;
-          setRansomProgress(prev => [...prev, data]);
-        });
-        addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareNeutralized;
-          setRansomNeutralized(prev => [...prev, data]);
-        });
-        addHandler('ransomware-expired', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareExpired;
-          setRansomExpired(prev => [...prev, data]);
-        });
-        addHandler('ransomware-demand', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareDemand;
-          setRansomDemands(prev => [...prev.filter(d=>d.targetKey!==data.targetKey), data]);
-        });
-        addHandler('ransomware-paid', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwarePaid;
-          setRansomPaid(prev => [...prev, data]);
-          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
-        });
-        addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
-          const data = dataUnknown as RansomwareUnpaid;
-          setRansomUnpaid(prev => [...prev, data]);
-          setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
-        });
-
-        // CryptoLocker Elite events
-        addHandler('cryptolocker-spawn', (dataUnknown: unknown) => {
-          const data = dataUnknown as CryptoLockerSpawn;
-          setCryptoLockerSpawns(prev => [...prev, data]);
-        });
-        addHandler('cryptolocker-payment-demand', (dataUnknown: unknown) => {
-          const data = dataUnknown as CryptoLockerPaymentDemand;
-          setCryptoLockerPaymentDemands(prev => [...prev, data]);
-        });
-        addHandler('cryptolocker-payment-sent', (dataUnknown: unknown) => {
-          const data = dataUnknown as CryptoLockerPaymentSent;
-          setCryptoLockerPaymentSents(prev => [...prev, data]);
-        });
-        addHandler('cryptolocker-game-over', (dataUnknown: unknown) => {
-          const data = dataUnknown as CryptoLockerGameOver;
-          setCryptoLockerGameOvers(prev => [...prev, data]);
-        });
-
-        // SystemLock events
-        addHandler('systemlock-success', (dataUnknown: unknown) => {
-          const data = dataUnknown as SystemLockSuccess;
-          setSystemLockEvents(prev => [...prev, data]);
-        });
-
-        // SysTrojan events
-        addHandler('systrojan-success', (dataUnknown: unknown) => {
-          const data = dataUnknown as SysTrojanSuccess;
-          setSysTrojanSuccesses(prev => [...prev, data]);
-        });
-        addHandler('systrojan-failure', (dataUnknown: unknown) => {
-          const data = dataUnknown as SysTrojanFailure;
-          setSysTrojanFailures(prev => [...prev, data]);
-        });
-
-        // Bank state events
-        addHandler('bank-state', (dataUnknown: unknown) => {
-          const data = dataUnknown as BankStateEvent;
-          setBankEvents(prev => [...prev, data]);
-        });
-        addHandler('device-recovered', (dataUnknown: unknown) => {
-          const data = dataUnknown as DeviceRecoveredEvent;
-          setDeviceRecoveredEvents(prev => [...prev, data]);
-        });
-        // Bank online explicit event (alias when transitioning online)
-        addHandler('bank-online', (dataUnknown: unknown) => {
-          const data = dataUnknown as BankStateEvent;
-          setBankEvents(prev => [...prev, { ...data, online: true }]);
-        });
-
-        // Ransom-demand already handled (alias exists as ransomware-demand)
-
-        // Role metadata events
-        addHandler('role-metadata', (dataUnknown: unknown) => {
-          const data = dataUnknown as RoleMetadataEvent;
-          setRoleMetaEvents(prev => [...prev, data]);
-        });
-
-        // Game over events (server emits game-session-ended; we alias as game-over)
-        addHandler('game-session-ended', (dataUnknown: unknown) => {
-          const data = dataUnknown as GameOverEvent;
-          setGameOverEvents(prev => [...prev, data]);
-        });
-        addHandler('game-over', (dataUnknown: unknown) => {
-          const data = dataUnknown as GameOverEvent;
-          setGameOverEvents(prev => [...prev, data]);
-        });
-        
-        // Game termination event (when admin terminates the game)
-        addHandler('game-terminated', (dataUnknown: unknown) => {
-          const data = dataUnknown as GameOverEvent;
-          setGameOverEvents(prev => [...prev, { ...data, sessionId: 'TERMINATED', ts: Date.now() }]);
-        });
-
-        // Worm events
-        addHandler('worm-payload', (dataUnknown: unknown) => {
-          const data = dataUnknown as WormPayloadEvent;
-          setWormPayloads(prev => [...prev.filter(p=>p.tokenId!==data.tokenId), data]);
-        });
-        addHandler('worm-opened', (dataUnknown: unknown) => {
-          const data = dataUnknown as WormOpenedEvent;
-          setWormOpened(prev => [...prev, data]);
-          setWormPayloads(prev => prev.filter(p=>p.tokenId!==data.tokenId));
-        });
-
-        // DataMiner alert
-        addHandler('dataminer-exfil', (dataUnknown: unknown) => {
-          const data = dataUnknown as DataMinerExfilEvent;
-          setDataMinerExfils(prev => [...prev, data]);
-        });
-
-        // Wallet transfers
-        addHandler('wallet-transfer', (dataUnknown: unknown) => {
-          const data = dataUnknown as WalletTransferEvent;
-          setWalletTransfers(prev => [...prev, data]);
-        });
-
-      } catch (error) {
-        logger.error('Failed to initialize socket:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      }
+    const addHandler = (event: string, handler: (...args: unknown[]) => void) => {
+      globalSocket.on(event, handler);
+      localHandlers.push([event, handler]);
     };
 
-    initSocket();
+    // Set up all event handlers
+    addHandler('mining-reward', (dataUnknown: unknown) => {
+      const data = dataUnknown as MiningRewardEvent;
+      setMiningRewards(prev => [...prev, data]);
+    });
+
+    addHandler('connect', () => {
+      setIsConnected(true);
+    });
+
+    addHandler('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    addHandler('connect_error', (errorUnknown: unknown) => {
+      const error = errorUnknown as { message?: string };
+      logger.error('Socket.IO connection error:', { 
+        error: error?.message ?? String(error || 'Unknown error'),
+        errorType: typeof error,
+        hasMessage: !!error?.message
+      });
+      setIsConnected(false);
+    });
+
+    addHandler('connect_timeout', () => {
+      setIsConnected(false);
+    });
+
+    addHandler('reconnect', () => {
+      setIsConnected(true);
+    });
+
+    addHandler('reconnect_error', (errorUnknown: unknown) => {
+      const error = errorUnknown as { message?: string };
+      logger.warn('❌ Socket.IO reconnection error:', { error: error?.message ?? String(error || 'Unknown error') });
+    });
+
+    // Stealth viral events
+    addHandler('malware-stealth-viral-spawn', (dataUnknown: unknown) => {
+      const data = dataUnknown as StealthViralSpawn;
+      setStealthSpawns(prev => [...prev, data]);
+    });
+
+    addHandler('malware-stealth-viral-progress', (dataUnknown: unknown) => {
+      const data = dataUnknown as StealthViralProgress;
+      setStealthProgress(prev => [...prev, data]);
+    });
+
+    addHandler('malware-stealth-viral-defeated', (dataUnknown: unknown) => {
+      const data = dataUnknown as StealthViralDefeated;
+      setStealthDefeated(prev => [...prev, data]);
+    });
+
+    // Virus notifications
+    addHandler('virus-notification', (dataUnknown: unknown) => {
+      const data = dataUnknown as VirusNotification;
+      setVirusNotifications(prev => [...prev, data]);
+    });
+
+    // Private key compromised (DataMiner specific)
+    addHandler('private-key-compromised', (dataUnknown: unknown) => {
+      const data = dataUnknown as VirusNotification;
+      setVirusNotifications(prev => [...prev, { 
+        ...data, 
+        severity: 'critical' as const,
+        virusType: data.virusType || 'DataMiner X'
+      }]);
+    });
+
+    // Ransomware events
+    addHandler('ransomware-spawn', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareSpawn;
+      setRansomSpawns(prev => [...prev, data]);
+    });
+
+    addHandler('ransomware-progress', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareProgress;
+      setRansomProgress(prev => [...prev, data]);
+    });
+
+    addHandler('ransomware-neutralized', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareNeutralized;
+      setRansomNeutralized(prev => [...prev, data]);
+    });
+
+    addHandler('ransomware-expired', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareExpired;
+      setRansomExpired(prev => [...prev, data]);
+    });
+
+    addHandler('ransomware-demand', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareDemand;
+      setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey).concat(data));
+    });
+
+    addHandler('ransomware-paid', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwarePaid;
+      setRansomPaid(prev => [...prev, data]);
+      setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+    });
+
+    addHandler('ransomware-unpaid', (dataUnknown: unknown) => {
+      const data = dataUnknown as RansomwareUnpaid;
+      setRansomUnpaid(prev => [...prev, data]);
+      setRansomDemands(prev => prev.filter(d=>d.targetKey!==data.targetKey));
+    });
+
+    // Handle tournament updates
+    addHandler('tournament-notification', (updateUnknown: unknown) => {
+      const updateData = updateUnknown as TournamentUpdate;
+      setTournamentUpdates(prev => [...prev, updateData]);
+    });
+
+    // Handle new chat messages
+    addHandler('new-message', (messageUnknown: unknown) => {
+      const messageData = messageUnknown as ChatMessage;
+      setChatMessages(prev => [...prev, messageData]);
+    });
+
+    // Handle achievement notifications
+    addHandler('achievement-notification', (achievementUnknown: unknown) => {
+      const achievementData = achievementUnknown as AchievementNotification;
+      setAchievementNotifications(prev => [...prev, achievementData]);
+    });
+
+    // Handle wallet updates
+    addHandler('wallet-update', (walletUnknown: unknown) => {
+      const walletData = walletUnknown as WalletUpdate;
+      setWalletUpdates(prev => [...prev, walletData]);
+    });
+
+    // Handle notifications
+    addHandler('new-notification', (notificationUnknown: unknown) => {
+      const notificationData = notificationUnknown as NotificationData;
+      setNotifications(prev => [...prev, notificationData]);
+    });
+
+    // Incoming attack stream (drives attack banner UI)
+    addHandler('incoming-attack', (attackUnknown: unknown) => {
+      const attackData = attackUnknown as AttackData;
+      setIncomingAttacks(prev => [...prev, attackData]);
+      setTimeout(() => {
+        setIncomingAttacks(prev => prev.filter(attack => attack.timestamp !== attackData.timestamp));
+      }, 10000);
+    });
+
+    // Attack sent confirmation
+    addHandler('attack-sent', () => {
+      // Attack sent confirmation received
+    });
+
+    // Global effects
+    addHandler('global-effect', (effectUnknown: unknown) => {
+      const effectData = effectUnknown as AttackEffect;
+      setGlobalEffects(prev => [...prev, effectData]);
+      setTimeout(() => {
+        setGlobalEffects(prev => prev.filter(effect => effect.timestamp !== effectData.timestamp));
+      }, effectData.duration || 30000);
+    });
+
+    // CryptoLocker Elite events
+    addHandler('cryptolocker-spawn', (dataUnknown: unknown) => {
+      const data = dataUnknown as CryptoLockerSpawn;
+      setCryptoLockerSpawns(prev => [...prev, data]);
+    });
+
+    addHandler('cryptolocker-payment-demand', (dataUnknown: unknown) => {
+      const data = dataUnknown as CryptoLockerPaymentDemand;
+      setCryptoLockerPaymentDemands(prev => [...prev, data]);
+    });
+
+    addHandler('cryptolocker-payment-sent', (dataUnknown: unknown) => {
+      const data = dataUnknown as CryptoLockerPaymentSent;
+      setCryptoLockerPaymentSents(prev => [...prev, data]);
+    });
+
+    addHandler('cryptolocker-game-over', (dataUnknown: unknown) => {
+      const data = dataUnknown as CryptoLockerGameOver;
+      setCryptoLockerGameOvers(prev => [...prev, data]);
+    });
+
+    // SystemLock events
+    addHandler('systemlock-success', (dataUnknown: unknown) => {
+      const data = dataUnknown as SystemLockSuccess;
+      setSystemLockEvents(prev => [...prev, data]);
+    });
+
+    // SysTrojan events
+    addHandler('systrojan-success', (dataUnknown: unknown) => {
+      const data = dataUnknown as SysTrojanSuccess;
+      setSysTrojanSuccesses(prev => [...prev, data]);
+    });
+
+    addHandler('systrojan-failure', (dataUnknown: unknown) => {
+      const data = dataUnknown as SysTrojanFailure;
+      setSysTrojanFailures(prev => [...prev, data]);
+    });
+
+    // Bank state events
+    addHandler('bank-state', (dataUnknown: unknown) => {
+      const data = dataUnknown as BankStateEvent;
+      setBankEvents(prev => [...prev, data]);
+    });
+
+    addHandler('device-recovered', (dataUnknown: unknown) => {
+      const data = dataUnknown as DeviceRecoveredEvent;
+      setDeviceRecoveredEvents(prev => [...prev, data]);
+    });
+
+    // Bank online explicit event (alias when transitioning online)
+    addHandler('bank-online', (dataUnknown: unknown) => {
+      const data = dataUnknown as BankStateEvent;
+      setBankEvents(prev => [...prev, { ...data, online: true }]);
+    });
+
+    // Role metadata events
+    addHandler('role-metadata', (dataUnknown: unknown) => {
+      const data = dataUnknown as RoleMetadataEvent;
+      setRoleMetaEvents(prev => [...prev, data]);
+    });
+
+    // Game over events (server emits game-session-ended; we alias as game-over)
+    addHandler('game-session-ended', (dataUnknown: unknown) => {
+      const data = dataUnknown as GameOverEvent;
+      setGameOverEvents(prev => [...prev, data]);
+    });
+
+    addHandler('game-over', (dataUnknown: unknown) => {
+      const data = dataUnknown as GameOverEvent;
+      setGameOverEvents(prev => [...prev, data]);
+    });
+    
+    // Game termination event (when admin terminates the game)
+    addHandler('game-terminated', (dataUnknown: unknown) => {
+      const data = dataUnknown as GameOverEvent;
+      setGameOverEvents(prev => [...prev, { ...data, sessionId: 'TERMINATED', ts: Date.now() }]);
+    });
+
+    // Worm events
+    addHandler('worm-payload', (dataUnknown: unknown) => {
+      const data = dataUnknown as WormPayloadEvent;
+      setWormPayloads(prev => [...prev.filter(p=>p.tokenId!==data.tokenId), data]);
+    });
+
+    addHandler('worm-opened', (dataUnknown: unknown) => {
+      const data = dataUnknown as WormOpenedEvent;
+      setWormOpened(prev => [...prev, data]);
+      setWormPayloads(prev => prev.filter(p=>p.tokenId!==data.tokenId));
+    });
+
+    // DataMiner alert
+    addHandler('dataminer-exfil', (dataUnknown: unknown) => {
+      const data = dataUnknown as DataMinerExfilEvent;
+      setDataMinerExfils(prev => [...prev, data]);
+    });
+
+    // Wallet transfers
+    addHandler('wallet-transfer', (dataUnknown: unknown) => {
+      const data = dataUnknown as WalletTransferEvent;
+      setWalletTransfers(prev => [...prev, data]);
+    });
 
     return () => {
       // Remove this hook instance's event handlers to avoid duplicates
-      if (sharedSocket && localHandlers.length) {
+      if (globalSocket && localHandlers.length) {
         try {
           for (const [event, handler] of localHandlers) {
-            sharedSocket.off(event, handler as (...args: unknown[]) => void);
+            globalSocket.off(event, handler as (...args: unknown[]) => void);
           }
         } catch {
           // ignore
         }
       }
-      // Decrement ref count and disconnect only when last consumer unmounts
-      socketRefCount = Math.max(0, socketRefCount - 1);
-      if (socketRefCount === 0 && sharedSocket) {
-        try {
-          sharedSocket.disconnect();
-  } catch {
-          // ignore
-        }
-        sharedSocket = null;
-        joinedTeamsGlobal.clear();
-        joinedUsersGlobal.clear();
-        joinedTournamentsGlobal.clear();
-      }
     };
-  }, []);
+  }, [globalSocket, globalIsConnected]);
 
   // Function to send malware attack
   const sendMalwareAttack = (attackData: Omit<AttackData, 'timestamp'>) => {
-
     if (socket && isConnected) {
       socket.emit('malware-attack', attackData);
     } else {
@@ -682,33 +573,33 @@ export const useSocket = () => {
     achievementNotifications,
     walletUpdates,
     notifications,
-  stealthSpawns,
-  stealthProgress,
-  stealthDefeated,
-  virusNotifications,
-  cryptoLockerSpawns,
-  cryptoLockerPaymentDemands,
-  cryptoLockerPaymentSents,
-  cryptoLockerGameOvers,
-  ransomSpawns,
-  ransomProgress,
-  ransomNeutralized,
-  ransomExpired,
-  ransomDemands,
-  ransomPaid,
-  ransomUnpaid,
-  systemLockEvents,
-  sysTrojanSuccesses,
-  sysTrojanFailures,
-  bankEvents,
-  deviceRecoveredEvents,
-  roleMetaEvents,
-  gameOverEvents,
-  wormPayloads,
-  wormOpened,
-  dataMinerExfils,
-  walletTransfers,
-  miningRewards,
+    stealthSpawns,
+    stealthProgress,
+    stealthDefeated,
+    virusNotifications,
+    cryptoLockerSpawns,
+    cryptoLockerPaymentDemands,
+    cryptoLockerPaymentSents,
+    cryptoLockerGameOvers,
+    ransomSpawns,
+    ransomProgress,
+    ransomNeutralized,
+    ransomExpired,
+    ransomDemands,
+    ransomPaid,
+    ransomUnpaid,
+    systemLockEvents,
+    sysTrojanSuccesses,
+    sysTrojanFailures,
+    bankEvents,
+    deviceRecoveredEvents,
+    roleMetaEvents,
+    gameOverEvents,
+    wormPayloads,
+    wormOpened,
+    dataMinerExfils,
+    walletTransfers,
+    miningRewards,
     sendMalwareAttack,
     triggerAttackEffect,
     joinTeam,
