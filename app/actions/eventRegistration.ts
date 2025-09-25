@@ -283,6 +283,18 @@ export async function resendAccessCode(registrationId: string): Promise<EventReg
     const accessCode = registration.accessCodeId as AccessCode;
     const playspace = registration.playspaceId as { _id: string; name: string; description: string };
     
+    // Get device details from playspace
+    let deviceId: string | undefined;
+    let deviceMacAddress: string | undefined;
+    if (playspace) {
+      const DeviceModel = (await import("@/models/Device")).default;
+      const device = await DeviceModel.findOne({ playspace: playspace._id });
+      if (device) {
+        deviceId = device._id.toString();
+        deviceMacAddress = device.deviceMacAddress;
+      }
+    }
+    
     // Resend the email
     const emailResult = await sendAccessCodeEmail({
       email: registration.email,
@@ -291,7 +303,9 @@ export async function resendAccessCode(registrationId: string): Promise<EventReg
       numberOfPlayers: registration.numberOfPlayers,
       playingDevice: registration.playingDevice === "smartphone" ? "Smartphone" : "PC/Laptop",
       maxUsages: accessCode.maxUsages || registration.numberOfPlayers,
-      playspaceName: playspace?.name || `Event ${registration.eventId} - Team ${accessCode.code}`
+      playspaceName: playspace?.name || `Event ${registration.eventId} - Team ${accessCode.code}`,
+      deviceId,
+      deviceMacAddress
     });
     
     if (emailResult.success) {
