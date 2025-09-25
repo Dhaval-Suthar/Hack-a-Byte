@@ -9,6 +9,7 @@ import SMSModel, { type SMSModel as SMSModelType } from '@/models/SMS';
 import mongoose from 'mongoose';
 import { getServerIo } from '@/lib/socket';
 import { logger } from '@/lib/logger';
+import { withRedis } from '@/lib/redis';
 
 /**
  * Create sample emails and SMS for a new hackphone device
@@ -251,7 +252,44 @@ interface PendingMessage {
   scheduledAt: number;
 }
 
-// Global state for pending messages
+// Redis-based message storage functions with fallback to in-memory
+async function getPendingMessages(): Promise<PendingMessage[]> {
+  try {
+    const messages = await withRedis(async (redis) => {
+      const data = await redis.get('pending-messages');
+      return data ? JSON.parse(data) : [];
+    });
+    return messages || g.__pendingMessages || [];
+  } catch (error) {
+    logger.error('Error getting pending messages from Redis, using in-memory fallback:', { error });
+    return g.__pendingMessages || [];
+  }
+}
+
+async function savePendingMessages(messages: PendingMessage[]): Promise<void> {
+  try {
+    await withRedis(async (redis) => {
+      await redis.setEx('pending-messages', 3600, JSON.stringify(messages)); // 1 hour TTL
+    });
+  } catch (error) {
+    logger.error('Error saving pending messages to Redis, using in-memory fallback:', { error });
+    g.__pendingMessages = messages;
+  }
+}
+
+async function addPendingMessage(message: PendingMessage): Promise<void> {
+  const messages = await getPendingMessages();
+  messages.push(message);
+  await savePendingMessages(messages);
+}
+
+async function removePendingMessage(index: number): Promise<void> {
+  const messages = await getPendingMessages();
+  messages.splice(index, 1);
+  await savePendingMessages(messages);
+}
+
+// Global state for in-memory fallback
 const g = global as unknown as { __pendingMessages?: PendingMessage[] };
 if (!g.__pendingMessages) g.__pendingMessages = [];
 
@@ -282,22 +320,26 @@ export async function getOnlineHackphoneDevices(): Promise<Array<{deviceId: stri
     const devices = await Device.find({ 
       deviceType: 'hackphone', 
       status: 'online' 
-    }).lean();
+    }).select('_id teamId');
+    
+    logger.info(`Found ${devices.length} online hackphone devices`);
     
     const onlineHackphones: Array<{deviceId: string, teamId: string}> = [];
     
     for (const device of devices) {
-      // Find the team that owns this device
-      const team = await Team.findOne({ deviceId: device._id }).select('_id').lean() as { _id: mongoose.Types.ObjectId } | null;
-      
-      if (team) {
+      logger.info(`Device ${device._id}: teamId = ${device.teamId}, type = ${typeof device.teamId}, exists = ${!!device.teamId}`);
+      // Use the teamId directly from the device
+      if (device.teamId != null && device.teamId !== undefined) {
         onlineHackphones.push({
-          deviceId: (device._id as mongoose.Types.ObjectId).toString(),
-          teamId: team._id.toString()
+          deviceId: device._id.toString(),
+          teamId: device.teamId.toString()
         });
+      } else {
+        logger.info(`Device ${device._id} has no teamId, skipping`);
       }
     }
     
+    logger.info(`Returning ${onlineHackphones.length} online hackphone devices with teams`);
     return onlineHackphones;
   } catch (error) {
     logger.error('Error getting online hackphone devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -305,19 +347,21 @@ export async function getOnlineHackphoneDevices(): Promise<Array<{deviceId: stri
   }
 }
 
-export function scheduleRandomMessage(deviceId: string, teamId: string) {
+export async function scheduleRandomMessage(deviceId: string, teamId: string) {
   const template = getRandomTemplate();
   // Deliver in ~2-5 minutes
   const delay = 2 * 60_000 + Math.random() * 3 * 60_000;
   const scheduledAt = Date.now() + delay;
   
-  g.__pendingMessages!.push({
+  const message: PendingMessage = {
     deviceId,
     teamId,
     template,
     scheduledAt
-  });
-
+  };
+  
+  logger.info(`Scheduling message for device ${deviceId}, team ${teamId}, type ${template.type}, scheduled at ${new Date(scheduledAt).toISOString()}`);
+  await addPendingMessage(message);
 }
 
 export async function sendScheduledMessage(message: PendingMessage) {
@@ -327,8 +371,11 @@ export async function sendScheduledMessage(message: PendingMessage) {
     // Verify device is still online
     const device = await Device.findById(message.deviceId).select('status');
     if (!device || device.status !== 'online') {
+      logger.info(`Device ${message.deviceId} is not online (status: ${device?.status}), skipping message`);
       return false; // Skip if device is no longer online
     }
+    
+    logger.info(`Sending ${message.template.type} message to device ${message.deviceId}, team ${message.teamId}`);
     
     const teamId = new mongoose.Types.ObjectId(message.teamId);
     const deviceId = new mongoose.Types.ObjectId(message.deviceId);
@@ -401,19 +448,22 @@ export async function sendScheduledMessage(message: PendingMessage) {
 }
 
 export async function processScheduledMessages(now = Date.now()) {
-  const pendingMessages = g.__pendingMessages!;
-  const readyMessages = pendingMessages.filter(msg => now >= msg.scheduledAt);
+  const pendingMessages = await getPendingMessages();
+  const readyMessages = pendingMessages.filter((msg: PendingMessage) => now >= msg.scheduledAt);
+  
+  logger.info(`Processing scheduled messages: ${pendingMessages.length} pending, ${readyMessages.length} ready`);
   
   if (readyMessages.length === 0) return;
   
   // Send ready messages
   for (const message of readyMessages) {
+    logger.info(`Sending message to device ${message.deviceId}, team ${message.teamId}`);
     await sendScheduledMessage(message);
     
     // Remove from pending
     const index = pendingMessages.indexOf(message);
     if (index > -1) {
-      pendingMessages.splice(index, 1);
+      await removePendingMessage(index);
     }
   }
 }
@@ -421,17 +471,21 @@ export async function processScheduledMessages(now = Date.now()) {
 // Schedule messages for all online hackphone devices
 export async function scheduleMessagesForOnlineDevices() {
   const onlineDevices = await getOnlineHackphoneDevices();
+  const pendingMessages = await getPendingMessages();
   
+  logger.info(`Scheduling messages for ${onlineDevices.length} online devices`);
   
   for (const device of onlineDevices) {
     // Ensure at most one pending message per device to avoid flooding
-    const hasPendingForDevice = g.__pendingMessages!.some(p => p.deviceId === device.deviceId);
+    const hasPendingForDevice = pendingMessages.some((p: PendingMessage) => p.deviceId === device.deviceId);
     if (hasPendingForDevice) {
+      logger.info(`Device ${device.deviceId} already has pending message, skipping`);
       continue;
     }
     
     // Always schedule a message (no probability - 100% delivery)
-    scheduleRandomMessage(device.deviceId, device.teamId);
+    logger.info(`Scheduling message for device ${device.deviceId}, team ${device.teamId}`);
+    await scheduleRandomMessage(device.deviceId, device.teamId);
   }
 }
 
