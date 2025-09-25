@@ -11,9 +11,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { accessCode, username, role } = req.body || {};
     if (!accessCode || !username || !role) return res.status(400).json({ error: 'accessCode, username, role required' });
     await connectDb();
-    const codeDoc = await AccessCode.findOne({ code: accessCode, isActive: true });
+    
+    // Use atomic findAndModify to increment usage count and check limit
+    const codeDoc = await AccessCode.findOneAndUpdate(
+      { code: accessCode, isActive: true },
+      { $inc: { usageCount: 1 } },
+      { new: true } // Return the updated document
+    );
+    
     if (!codeDoc) return res.status(404).json({ error: 'Invalid access code' });
-    if (codeDoc.maxUsages && codeDoc.usageCount >= codeDoc.maxUsages) return res.status(400).json({ error: 'Code usage limit reached' });
+    
+    // Check if usage limit was exceeded after increment
+    if (codeDoc.maxUsages && codeDoc.usageCount > codeDoc.maxUsages) {
+      // Usage exceeded, revert the increment and return error
+      await AccessCode.findOneAndUpdate(
+        { _id: codeDoc._id },
+        { $inc: { usageCount: -1 } }
+      );
+      return res.status(400).json({ error: 'Code usage limit reached' });
+    }
+    
+    // Check if we should delete the code (usage count now equals max usages)
+    if (codeDoc.maxUsages && codeDoc.usageCount >= codeDoc.maxUsages) {
+      console.log(`Deleting access code ${codeDoc.code} as usage limit reached (usageCount=${codeDoc.usageCount}, maxUsages=${codeDoc.maxUsages})`);
+      await AccessCode.findByIdAndDelete(codeDoc._id);
+      console.log(`Access code ${codeDoc.code} deleted`);
+    }
     const team = await Team.findOne({ accessCodeId: codeDoc._id });
     if (!team) return res.status(404).json({ error: 'Team not found' });
     const normalizedRole = String(role).toLowerCase();
@@ -28,8 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     slot.role = normalizedRole;
     slot.accessCodeUsed = true;
     slot.accessCodeUsedAt = new Date();
-    codeDoc.usageCount += 1;
-    await codeDoc.save();
     // Bring the device online as soon as at least one member joins
     if (team.deviceId) {
       const Device = (await import('@/models/Device')).default;

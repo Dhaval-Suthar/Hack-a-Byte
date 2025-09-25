@@ -58,14 +58,32 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     const { accessCode, username, role } = params;
     await connectDb();
 
-    const codeDocument = await AccessCodeModel.findOne({ code: accessCode, isActive: true });
+    // Use atomic findAndModify to increment usage count and check limit
+    const codeDocument = await AccessCodeModel.findOneAndUpdate(
+      { code: accessCode, isActive: true },
+      { $inc: { usageCount: 1 } },
+      { new: true } // Return the updated document
+    );
+
     if (!codeDocument) {
       return { success: false, error: "Invalid access code" };
     }
 
-    // Usage limit checks
-    if (codeDocument.maxUsages && codeDocument.usageCount >= codeDocument.maxUsages) {
+    // Check if usage limit was exceeded after increment
+    if (codeDocument.maxUsages && codeDocument.usageCount > codeDocument.maxUsages) {
+      // Usage exceeded, revert the increment and return error
+      await AccessCodeModel.findOneAndUpdate(
+        { _id: codeDocument._id },
+        { $inc: { usageCount: -1 } }
+      );
       return { success: false, error: "Access code usage limit reached" };
+    }
+
+    // Check if we should delete the code (usage count now equals max usages)
+    if (codeDocument.maxUsages && codeDocument.usageCount >= codeDocument.maxUsages) {
+      console.log(`Deleting access code ${codeDocument.code} as usage limit reached (usageCount=${codeDocument.usageCount}, maxUsages=${codeDocument.maxUsages})`);
+      await AccessCodeModel.findByIdAndDelete(codeDocument._id);
+      console.log(`Access code ${codeDocument.code} deleted`);
     }
 
   const team = await Team.findOne({ accessCodeId: codeDocument._id });
@@ -95,10 +113,6 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
   team.teamMembers[memberIndex].role = normalizedRole;
     team.teamMembers[memberIndex].accessCodeUsed = true;
     team.teamMembers[memberIndex].accessCodeUsedAt = new Date();
-
-    // Increment access code usage
-    codeDocument.usageCount += 1;
-    await codeDocument.save();
 
     // If all members joined, bring device online and start team timer
   const allJoined = members.every((m: TeamMemberType) => m.accessCodeUsed);
