@@ -34,6 +34,7 @@ interface DeviceInfo {
 }
 
 interface WalletInfo {
+  teamId: string;
   address: string;
   balance: number;
   teamName?: string;
@@ -739,8 +740,8 @@ const BankTransfersTab = ({
       return;
     }
 
-    // Validate wallet addresses (basic format check)
-    const walletRegex = /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
+    // Validate wallet addresses (hex format for this app's wallet system)
+    const walletRegex = /^[a-f0-9]{42}$/;
     if (!walletRegex.test(senderWallet)) {
       addNotification('Invalid sender wallet address format');
       return;
@@ -770,10 +771,10 @@ const BankTransfersTab = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          senderWalletAddress: senderWallet,
-          privateKey: privateKey,
-          receiverWalletAddress: receiverWallet,
-          amount: transferAmount
+          fromAddress: senderWallet,
+          toAddress: receiverWallet,
+          amount: transferAmount,
+          privateKey: privateKey
         })
       });
 
@@ -1214,8 +1215,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
             }
 
             try {
-              // Extract team ID from the address field (format: team-xxxxx)
-              const teamIdFromWallet = wallet.address.startsWith('team-') ? wallet.address : null;
+              // Use the teamId from the wallet data
+              const teamIdFromWallet = wallet.teamId;
               if (teamIdFromWallet) {
                 const walletResponse = await fetch(`/api/team/${teamIdFromWallet}/wallet`, {
                   headers: { 
@@ -1240,7 +1241,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                 }
               }
             } catch (error) {
-              logger.error(`Failed to fetch wallet address for ${wallet.address}:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+              logger.error(`Failed to fetch wallet address for ${wallet.teamId}:`, { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
             }
             return wallet; // Return original wallet if fetch fails
           })
@@ -2167,7 +2168,6 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <div className="w-24 truncate">TEAM</div>
                   <div className="flex-1 px-1 truncate">ADDRESS</div>
                   <div className="w-24 flex-shrink-0 text-right px-1">BALANCE</div>
-                  <div className="w-24 flex-shrink-0 text-right truncate">ACTIVITY</div>
                 </div>
                 
                 {/* Wallet rows */}
@@ -2203,11 +2203,6 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     {/* Balance */}
                     <div className="w-24 text-yellow-500 font-mono flex-shrink-0 text-right px-1">
                       ₿{wallet.balance.toFixed(2)}
-                    </div>
-                    
-                    {/* Last activity */}
-                    <div className="w-24 text-gray-500 truncate flex-shrink-0 text-right">
-                      {wallet.lastActivity}
                     </div>
                   </div>
                 ))}

@@ -36,6 +36,7 @@ export default async function handler(
     // Transform to wallet intel format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wallets = teams.map((team: any) => ({
+      teamId: team._id.toString(),
       address: team.wallet?.address || `team-${team._id.toString().slice(-8)}`,
       balance: team.wallet?.bitcoinBalance || 0,
       teamName: team.name,
