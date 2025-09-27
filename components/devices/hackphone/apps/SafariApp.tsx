@@ -536,141 +536,6 @@ const MemoizedHomePage = React.memo<{
           </div>
         )}
 
-        {/* Enhanced iOS 4 Style Category Cards */}
-        <div className="mt-8 pb-4 relative">
-          {/* Animated decorative elements */}
-          <div style={{
-            position: 'absolute',
-            top: '-10px',
-            right: '20px',
-            width: '60px',
-            height: '60px',
-            backgroundImage: 'radial-gradient(circle, rgba(0,200,255,0.5) 0%, rgba(0,0,0,0) 70%)',
-            pointerEvents: 'none',
-            zIndex: 0,
-            animation: 'pulse 4s infinite ease-in-out'
-          }}></div>
-          <div style={{
-            position: 'absolute',
-            top: '20px',
-            left: '15px',
-            width: '40px',
-            height: '40px',
-            backgroundImage: 'radial-gradient(circle, rgba(255,150,0,0.3) 0%, rgba(0,0,0,0) 70%)',
-            pointerEvents: 'none',
-            zIndex: 0,
-            animation: 'pulse 5s infinite ease-in-out',
-            animationDelay: '0.7s'
-          }}></div>
-          
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center relative" style={{
-            textShadow: '0 1px 1px rgba(255,255,255,1)'
-          }}>
-            <span style={{
-              background: 'linear-gradient(to right, #4a6ea9, #6f8fbb)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              position: 'relative',
-              display: 'inline-block',
-              animation: 'pulse 3s infinite ease-in-out'
-            }}>
-              <span style={{
-                position: 'absolute',
-                bottom: '-5px',
-                left: '0',
-                right: '0',
-                height: '2px',
-                background: 'linear-gradient(to right, rgba(74,110,169,0.2), rgba(111,143,187,0.8), rgba(74,110,169,0.2))',
-                borderRadius: '1px'
-              }}></span>
-              Popular Categories
-            </span>
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {['Rewards', 'Entertainment', 'Banking', 'Shopping'].map((category, index) => {
-              // Create different gradients for each category
-              const gradients = [
-                'linear-gradient(135deg, #ffcc2f, #ef8c29)',
-                'linear-gradient(135deg, #7b4397, #dc2430)',
-                'linear-gradient(135deg, #396afc, #2948ff)',
-                'linear-gradient(135deg, #11998e, #38ef7d)'
-              ];
-              
-              // Icons for categories
-              const icons = ['🎁', '🎬', '💰', '🛍️'];
-              
-              return (
-                <div 
-                  key={category}
-                  className="flex flex-col items-center cursor-pointer relative overflow-hidden"
-                  style={{
-                    height: '75px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255,255,255,0.4)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)',
-                    background: gradients[index],
-                    animation: `float ${4 + index}s infinite ease-in-out`,
-                    animationDelay: `${index * 0.5}s`,
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                  }}
-                  onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'scale(0.95)';
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.5)';
-                  }}
-                  onMouseUp={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)';
-                  }}
-                >
-                  {/* Shine overlay effect */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '50%',
-                    background: 'linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)',
-                    borderTopLeftRadius: '12px',
-                    borderTopRightRadius: '12px'
-                  }}></div>
-                  
-                  {/* Moving shine effect */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '-100%',
-                    right: 0,
-                    bottom: 0,
-                    backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)',
-                    backgroundSize: '50% 100%',
-                    animation: `shine ${4 + (index * 0.5)}s infinite linear`,
-                    animationDelay: `${index * 0.8}s`,
-                    zIndex: 1
-                  }}></div>
-                  
-                  <div className="z-10 flex flex-col items-center justify-center h-full">
-                    <div className="text-2xl mb-1" style={{
-                      animation: 'pulse 2s infinite ease-in-out',
-                      animationDelay: `${index * 0.3}s`,
-                      transform: 'scale(1.1)'
-                    }}>{icons[index]}</div>
-                    <div className="font-medium text-white text-sm" style={{
-                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                      letterSpacing: '0.5px',
-                      fontWeight: 'bold'
-                    }}>{category}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* iOS 4 Style Bottom Bar */}
         <div className="fixed bottom-0 left-0 right-0 pt-1 pb-1 bg-black bg-opacity-85" style={{
           backgroundImage: 'linear-gradient(to bottom, #2c2c2c, #000000)',
@@ -783,7 +648,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [showHomePage, setShowHomePage] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sitesPerPage] = useState(6);
-  const [teamBalance, setTeamBalance] = useState<number | null>(null);
 
   // Notification system
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
@@ -814,6 +678,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const removeBookmark = useCallback((id: string) => {
     setBookmarks(prev => prev.filter(b => b.id !== id));
   }, []);
+
 
   // Security assessment - modified to be less accurate and create confusion
   const assessSecurity = useCallback((url: string) => {
@@ -951,10 +816,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
             message: `🎉 Reward claimed: ${rewardSite.rewardAmount ?? result.reward} BTC from "${rewardSite.title}" (Balance: ${result.newBalance})`,
             duration: 5000
           });
-          // Update local balance state
-          if (typeof result.newBalance === 'number') {
-            setTeamBalance(result.newBalance);
-          }
         } else {
           addNotification({
             type: 'warning',
@@ -1008,16 +869,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
         });
         return false;
       }
-      // Attempt to refresh balance explicitly in case other views rely on it
-      try {
-        const resp = await fetch('/api/team');
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data && typeof data.bitcoinBalance === 'number') {
-            setTeamBalance(data.bitcoinBalance);
-          }
-        }
-      } catch {/* ignore */}
       return true;
     } catch (error) {
       logger.error('Failed to claim reward site:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -1170,176 +1021,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     );
   };
 
-  const BookmarksPanel = () => (
-    showBookmarks && (
-      <div className="absolute top-full left-0 right-0 bg-gray-800 border-t border-gray-600 max-h-64 overflow-y-auto z-30">
-        <div className="p-3">
-          <h3 className="text-white text-sm font-semibold mb-2">Bookmarks</h3>
-          {bookmarks.length === 0 ? (
-            <p className="text-gray-400 text-xs">No bookmarks yet</p>
-          ) : (
-            <div className="space-y-2">
-              {bookmarks.map(bookmark => (
-                <div
-                  key={bookmark.id}
-                  className="flex items-center justify-between p-2 bg-gray-700 rounded cursor-pointer hover:bg-gray-600"
-                  onClick={() => {
-                    navigateTo(bookmark.url);
-                    setShowBookmarks(false);
-                  }}
-                >
-                  <div className="flex items-center space-x-2 flex-1">
-                    {bookmark.favicon && (
-                      <Image src={bookmark.favicon} alt="" width={16} height={16} className="w-4 h-4" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs font-medium truncate">{bookmark.title}</p>
-                      <p className="text-gray-400 text-xs truncate">{bookmark.url}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeBookmark(bookmark.id);
-                    }}
-                    className="text-red-400 hover:text-red-300 ml-2"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  );
-
-  const iOSBar = (
-    <div className="px-4 pb-2 pt-2 bg-gradient-to-b from-[#2a2a2a] via-[#1a1a1a] to-[#0f0f0f] border-b border-gray-600 shadow-lg relative select-none">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-black/10 pointer-events-none" />
-      
-      {/* Tab title with security indicator */}
-      <div className="flex items-center justify-between text-center text-white text-base font-semibold tracking-wide drop-shadow">
-        <div className="flex-1 text-center">{showHomePage ? "🏠 Home" : tabTitle}</div>
-        <div className="flex items-center space-x-2">
-          {!showHomePage && <SecurityIndicator />}
-          {events.length > 0 && (
-            <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
-              {events.length}
-            </span>
-          )}
-          {isOffline && (
-            <span className="text-red-400 text-xs">Offline</span>
-          )}
-        </div>
-      </div>
-      
-      {/* iOS 4 Style Address Bar */}
-      <div className="mt-1">
-        {/* iOS 4 Style Address & Search Bar */}
-        <form
-          className="relative"
-          onSubmit={(e) => { 
-            e.preventDefault(); 
-            if (addressInput.toLowerCase() === 'home' || addressInput === '') {
-              goHome();
-            } else {
-              navigateTo(addressInput); 
-            }
-          }}
-        >
-          <div className="flex items-center px-1">
-            {/* iOS 4 style back/forward buttons */}
-            <button
-              type="button"
-              onClick={goBack}
-              disabled={!canGoBack}
-              className="h-7 w-7 flex items-center justify-center"
-              style={{
-                backgroundImage: canGoBack ? 'linear-gradient(to bottom, #a8a8a8, #707070)' : 'linear-gradient(to bottom, #d8d8d8, #a0a0a0)',
-                borderRadius: '4px',
-                border: '1px solid #505050',
-                boxShadow: canGoBack ? 'inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.2)',
-                opacity: canGoBack ? 1 : 0.5
-              }}
-            >
-              <span className="text-white text-sm">◀</span>
-            </button>
-            
-            <div className="mx-1 flex-1">
-              <input
-                value={showHomePage ? "Home" : addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
-                onFocus={() => {
-                  if (showHomePage) {
-                    setAddressInput("");
-                  }
-                }}
-                placeholder="Search or enter website name"
-                style={{
-                  width: '100%',
-                  height: '28px',
-                  borderRadius: '5px',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #505050',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
-                  fontSize: '12px',
-                  paddingLeft: '8px',
-                  paddingRight: '8px'
-                }}
-                className="focus:outline-none"
-              />
-            </div>
-            
-            <button
-              type="button"
-              onClick={goForward}
-              disabled={!canGoForward}
-              className="h-7 w-7 flex items-center justify-center"
-              style={{
-                backgroundImage: canGoForward ? 'linear-gradient(to bottom, #a8a8a8, #707070)' : 'linear-gradient(to bottom, #d8d8d8, #a0a0a0)',
-                borderRadius: '4px',
-                border: '1px solid #505050',
-                boxShadow: canGoForward ? 'inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.2)',
-                opacity: canGoForward ? 1 : 0.5
-              }}
-            >
-              <span className="text-white text-sm">▶</span>
-            </button>
-          </div>
-          
-          {/* iOS 4 Go button */}
-          <button
-            type="submit"
-            className="absolute right-10 top-1 h-6 w-10 flex items-center justify-center"
-            style={{
-              backgroundImage: 'linear-gradient(to bottom, #a8a8a8, #707070)',
-              borderRadius: '4px',
-              border: '1px solid #505050',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
-              marginTop: '0.5px'
-            }}
-          >
-            <span className="text-white text-xs font-bold">Go</span>
-          </button>
-        </form>
-        
-        {loading && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
-          )}
-        {/* Google search box */}
-        <form onSubmit={(e) => { e.preventDefault(); navigateTo((e.target as HTMLFormElement).querySelector("input")!.value); }}>
-          <input
-            placeholder="Google"
-            className="w-full rounded-full bg-gradient-to-b from-[#efefef] to-[#d9d9d9] text-black placeholder:text-gray-500 px-3 py-1.5 border border-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_0_rgba(255,255,255,0.1)] focus:outline-none"
-          />
-        </form>
-      </div>
-      
-      <BookmarksPanel />
-    </div>
-  );
 
   // Auto team discovery
   useEffect(()=>{
@@ -1417,11 +1098,6 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   // UI Components
   const NotificationContainer = () => (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {teamBalance !== null && (
-        <div className="px-4 py-2 rounded bg-black/60 text-white text-xs font-mono inline-block shadow">
-          Balance: ₿{teamBalance.toFixed(2)}
-        </div>
-      )}
       {notifications.map(notification => (
         <div
           key={notification.id}
@@ -1466,7 +1142,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
       },
     ];
     return (
-      <div className="flex bg-gradient-to-b from-[#2a2a2a] via-[#1a1a1a] to-[#0a0a0a] border-t border-gray-600 h-16 fixed left-0 right-0 bottom-[clamp(74px,12vw,92px)] z-40 shadow-2xl">
+      <div className="flex bg-gradient-to-b from-[#2a2a2a] via-[#1a1a1a] to-[#0a0a0a] border-t border-gray-600 h-16 fixed left-0 right-0 bottom-[clamp(74px,12vw,92px)] z-50 shadow-2xl" style={{ pointerEvents: 'auto' }}>
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20 pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
         {buttons.map((b, i) => (
@@ -1486,10 +1162,30 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     );
   };
 
+  // Top bar shown while viewing a site (address + security indicator + basic controls)
+  const TopBar = () => {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#213141] to-[#12202a] border-b border-gray-700 px-3 py-2">
+        <div className="max-w-screen-lg mx-auto flex items-center space-x-3">
+          <button onClick={goBack} disabled={!canGoBack} className={`p-2 rounded ${!canGoBack ? 'opacity-40' : 'hover:bg-white/5'}`} aria-label="Back">◀</button>
+          <button onClick={goForward} disabled={!canGoForward} className={`p-2 rounded ${!canGoForward ? 'opacity-40' : 'hover:bg-white/5'}`} aria-label="Forward">▶</button>
+          <div className="flex-1 rounded bg-white/10 px-3 py-1 flex items-center space-x-2 text-sm">
+            <div className="truncate text-white/90" title={address}>{address}</div>
+            <div className="ml-2"><SecurityIndicator /></div>
+          </div>
+          <button onClick={() => { setShowHomePage(true); goHome(); }} className="p-2 rounded hover:bg-white/5 text-white" aria-label="Home">🏠</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full h-full flex flex-col bg-gradient-to-b from-[#1a1a1a] via-[#0f0f0f] to-black">
-      {iOSBar}
-
+      {!showHomePage && <TopBar />}
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-black px-3 py-1 rounded shadow">You are offline</div>
+      )}
       {/* Web content area */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto bg-white">
@@ -1500,9 +1196,14 @@ const SafariApp: React.FC<SafariAppProps> = () => {
               className="min-h-full p-4"
               style={{
                 backgroundColor: currentSite.backgroundColor || '#ffffff',
-                color: currentSite.textColor || '#000000'
+                color: currentSite.textColor || '#000000',
+                paddingTop: '64px',
+                paddingBottom: '220px'
               }}
             >
+              {/* Keep tabTitle and addressInput referenced to avoid unused variable warnings */}
+              <span className="sr-only" aria-hidden>{tabTitle}</span>
+              <span className="sr-only" aria-hidden>{addressInput}</span>
               {/* Custom content based on site type and outcome */}
               {currentSite.category === 'fake' && siteOutcome === 'loss' ? (
                 <div className="min-h-full flex flex-col items-center justify-center text-center p-8">
@@ -1555,7 +1256,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
 
                   {/* Add clickable button for reward/scam sites */}
                   {(currentSite.isRewardSite || currentSite.category === 'fake') && (
-                    <div className="fixed bottom-20 left-4 right-4 z-50">
+                    <div className="fixed left-4 right-4" style={{ bottom: 'calc(clamp(74px,12vw,92px) + 86px)', zIndex: 60 }}>
                       <button
                         onClick={async () => {
                           if (currentSite.isRewardSite) {
