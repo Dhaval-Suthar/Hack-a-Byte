@@ -1525,6 +1525,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
               setShowGlitch(true);
               setTimeout(() => setShowGlitch(false), 300);
               addNotification(`[EXEC] ${tab.cmd}`);
+              // Fetch wallets when wallets tab is selected
+              if (tab.id === 'wallets') {
+                fetchWallets();
+              }
             }}
             className={`flex-1 py-2 px-1 sm:px-3 font-mono text-xs sm:text-sm transition-colors relative
               ${activeTab === tab.id ? 'text-green-400 bg-black' : 'text-green-700 hover:text-green-500'}`}

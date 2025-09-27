@@ -267,7 +267,7 @@ const HackPhoneDesktop = () => {
       {/* Enhanced bottom navigation with haptic feedback */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/90 border-t border-white/20 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[40] supports-[backdrop-filter]:backdrop-blur-md"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[clamp(74px,12vw,92px)] bg-black/90 border-t border-white/20 ring-1 ring-black/60 shadow-[0_18px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[65] supports-[backdrop-filter]:backdrop-blur-md"
       >
         <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/50" />
         <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
@@ -291,7 +291,7 @@ const HackPhoneDesktop = () => {
         onTouchEnd={(e) => {
           e.currentTarget.style.transform = 'translate(-50%, 0) scale(1)';
         }}
-        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/80 border border-white/20 ring-1 ring-white/30 shadow-[0_14px_30px_rgba(0,0,0,0.7)] transition-all duration-150 ease-out supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[50] active:scale-95 hover:ring-white/40"
+        className="group absolute bottom-2.5 left-1/2 -translate-x-1/2 w-[clamp(58px,10.5vw,76px)] h-[clamp(58px,10.5vw,76px)] rounded-full bg-neutral-900/80 border border-white/20 ring-1 ring-white/30 shadow-[0_14px_30px_rgba(0,0,0,0.7)] transition-all duration-150 ease-out supports-[backdrop-filter]:backdrop-blur-md overflow-hidden z-[70] active:scale-95 hover:ring-white/40"
       >
         <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/20 via-transparent to-transparent" />
         <div className="absolute inset-[10%] rounded-full bg-gradient-to-b from-neutral-900 to-black shadow-[inset_0_8px_12px_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.6)] group-active:shadow-[inset_0_4px_8px_rgba(255,255,255,0.05),inset_0_-6px_10px_rgba(0,0,0,0.6)]" />
