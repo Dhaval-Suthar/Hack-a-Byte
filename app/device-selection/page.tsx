@@ -138,6 +138,17 @@ export default function DeviceSelectionPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Polling for device status updates
+  useEffect(() => {
+    if (!currentPlayspaceId) return;
+
+    const interval = setInterval(() => {
+      fetchDevices(currentPlayspaceId);
+    }, 10000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentPlayspaceId, fetchDevices]);
+
  const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
