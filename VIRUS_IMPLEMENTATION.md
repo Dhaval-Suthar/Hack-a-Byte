@@ -28,7 +28,8 @@ I have successfully implemented the three virus categories (SysTrojan Pro, Steal
 ### Functionality
 - **Purpose**: Polymorphic virus requiring rapid defender response
 - **Requirements**: MAC address, IP address (device targeting)
-- **Interactive Defense**: Berlin must click rapidly to neutralize
+- **Success Rate**: Medium (80% base chance, reduced by security settings)
+- **Interactive Defense**: Berlin must click rapidly to neutralize (if infection succeeds)
 - **Real-time Updates**: Live progress updates to both attacker and defender
 
 ### Implementation
@@ -40,6 +41,7 @@ I have successfully implemented the three virus categories (SysTrojan Pro, Steal
   - `malware-stealth-viral-defeated` → Virus neutralized
   - `virus-notification` → Alert to Berlin
 - **Features**:
+  - Security modifier support (affected by target defenses)
   - Random click requirement (30-80 clicks)
   - Visual progress bars and coverage percentage
   - Auto-timeout after 2 minutes if no response

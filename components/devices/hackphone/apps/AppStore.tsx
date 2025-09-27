@@ -647,7 +647,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             });
             const result = await response.json();
             if (result.success) {
-              effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+              if (result.outcome === 'failed') {
+                effectMessage = `🔍 StealthViral failed to infect target. Security defenses too strong.`;
+              } else {
+                effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+              }
             } else {
               throw new Error(result.error || 'StealthViral deployment failed');
             }
