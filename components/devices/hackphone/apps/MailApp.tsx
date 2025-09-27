@@ -137,53 +137,6 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
     setSelectedEmail(email);
     setCurrentView("email");
     
-    // If it's a system email and not already processed, handle the reward/loss
-    if (email.type === 'system' && !email.processed && teamId) {
-      setLoading(true);
-      try {
-    const response = await fetch('/api/extract/open-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-      teamId,
-      messageId: email.id,
-      messageType: 'email'
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && !result.alreadyProcessed) {
-          // Update the email as processed
-          setSystemEmails(prev => prev.map(e => 
-            e.id === email.id 
-              ? { ...e, processed: true, outcome: result.outcome, isRead: true }
-              : e
-          ));
-          
-          // Show notification
-          if (result.outcome === 'gain') {
-            setNotification(`🎉 Reward claimed! +${result.balanceChange} BTC`);
-          } else if (result.outcome === 'loss') {
-            setNotification(`⚠️ Scam detected! ${result.balanceChange} BTC`);
-          } else {
-            setNotification('Email opened');
-          }
-          
-          // Clear notification after 3 seconds
-          setTimeout(() => setNotification(null), 3000);
-        }
-      } catch (error) {
-        logger.error('Failed to process email open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-        setNotification('Error processing email');
-        setTimeout(() => setNotification(null), 3000);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
     // Mark as read if not already
     if (!email.isRead) {
       markAsRead(email.id);
@@ -226,21 +179,56 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
   };
 
   // Email action handlers
-  const handleReply = () => {
-    if (selectedEmail) {
-      setComposeTo(selectedEmail.senderEmail);
-      const subject = selectedEmail.subject.startsWith("Re:") 
-        ? selectedEmail.subject 
-        : `Re: ${selectedEmail.subject}`;
-      setComposeSubject(subject);
-      
-  // Always prefill with wallet and private key
-  const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-  const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-  const prefillBody = `${walletAddr} ${privateKey}`;
+  const handleReply = async () => {
+    if (!selectedEmail || !teamId || selectedEmail.processed) return;
+    
+    setLoading(true);
+    try {
+      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+      const replyText = `${walletAddr} ${privateKey}`;
 
-      setComposeBody(prefillBody);
-      setCurrentView("compose");
+      const response = await fetch('/api/extract/reply-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId,
+          messageId: selectedEmail.id,
+          messageType: 'email',
+          replyText
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the email as processed
+        setSystemEmails(prev => prev.map(e => 
+          e.id === selectedEmail.id 
+            ? { ...e, processed: true, outcome: result.outcome }
+            : e
+        ));
+        
+        // Update selected email
+        setSelectedEmail(prev => prev ? { ...prev, processed: true, outcome: result.outcome } : null);
+        
+        // Show notification
+        if (result.outcome === 'gain') {
+          setNotification(`🎉 Reward claimed! +${result.balanceChange || selectedEmail.rewardAmount || 0} BTC`);
+        } else if (result.outcome === 'loss') {
+          setNotification(`⚠️ Scam detected! ${result.balanceChange || selectedEmail.lossAmount || 0} BTC`);
+        } else {
+          setNotification('Reply sent - wallet info forwarded to attacker');
+        }
+      } else {
+        setNotification(result.message || 'Reply failed');
+      }
+    } catch (error) {
+      logger.error('Failed to reply to email:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      setNotification('Reply failed');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -321,8 +309,6 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
               ${!email.isRead ? 'bg-[#e8f4fd]' : 'bg-white'}
               ${index < emails.length - 1 ? 'border-b border-[#e0e0e0]' : ''}
               hover:bg-[#d0e7f7]
-              ${email.type === 'system' && email.isScam ? 'border-l-4 border-red-500' : ''}
-              ${email.type === 'system' && !email.isScam && email.rewardAmount ? 'border-l-4 border-green-500' : ''}
             `}
           >
             {/* Status indicator */}
@@ -415,7 +401,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
 
         {/* Email content */}
         <div className="flex-1 overflow-auto p-4">
-          {/* System email warning/info */}
+          {/* System email info and reply button */}
           {selectedEmail.type === 'system' && (
             <div className={`mb-4 p-3 rounded-lg border ${
               selectedEmail.rewardAmount 
@@ -424,63 +410,38 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
             }`}>
               {selectedEmail.processed ? (
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">✓ Claimed</span>
+                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">✓ Processed</span>
                   <span className="opacity-80">
                     {selectedEmail.outcome === 'gain' && `Reward: +${selectedEmail.rewardAmount} BTC`}
                     {selectedEmail.outcome === 'loss' && `Loss: -${selectedEmail.lossAmount} BTC`}
-                    {selectedEmail.outcome === 'neutral' && 'Processed'}
+                    {selectedEmail.outcome === 'neutral' && 'No reward'}
                   </span>
                 </div>
-              ) : selectedEmail.rewardAmount ? (
-                <div className="space-y-2">
-                  <div>💰 To claim, reply with only your wallet address and private key.</div>
-                  <button
-                    onClick={async () => {
-                      if (!teamId) return;
-                      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-                      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                      const body = `${walletAddr} ${privateKey}`;
-                      try {
-                        setLoading(true);
-                        const resp = await fetch('/api/extract/reply-message', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            teamId,
-                            messageId: selectedEmail.id,
-                            messageType: 'email',
-                            replyText: body
-                          })
-                        });
-                        const result = await resp.json();
-                        if (result.success) {
-                          const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
-                          if (result.outcome === 'gain') {
-                            setNotification(`🎉 Reply accepted. +${delta} BTC`);
-                          } else if (result.outcome === 'loss') {
-                            setNotification(`⚠️ Reply processed. ${delta} BTC`);
-                          } else if (result.alreadyProcessed) {
-                            setNotification('✓ Already processed');
-                          }
-                          setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: result.outcome || e.outcome || 'neutral' } : e));
-                        } else if (result.error || result.message) {
-                          setNotification(result.message || result.error);
-                        }
-                      } catch {
-                        setNotification('Reply failed');
-                      } finally {
-                        setLoading(false);
-                        setTimeout(() => setNotification(null), 2500);
-                      }
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-                  >
-                    💰 Quick Reply to Claim Reward
-                  </button>
-                </div>
               ) : (
-                <div>📧 System generated email</div>
+                <div>
+                  � {selectedEmail.rewardAmount ? `Potential reward: ${selectedEmail.rewardAmount} BTC` : 'System generated email'}
+                </div>
               )}
+            </div>
+          )}
+
+          {/* Reply button for system emails */}
+          {selectedEmail.type === 'system' && !selectedEmail.processed && (
+            <div className="mb-4">
+              <button
+                onClick={handleReply}
+                className={`w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg transition-all duration-200 ${
+                  selectedEmail.rewardAmount
+                    ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+                    : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
+                }`}
+                style={{
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  border: '2px solid rgba(255,255,255,0.3)'
+                }}
+              >
+                {selectedEmail.rewardAmount ? '🎁 REPLY TO CLAIM' : '� REPLY'}
+              </button>
             </div>
           )}
           
@@ -531,49 +492,7 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
           </button>
           <h1 className="text-white text-lg font-bold">New Message</h1>
           <button 
-            onClick={async () => {
-              const replyingToSystem = selectedEmail && selectedEmail.type === 'system';
-              if (replyingToSystem && selectedEmail && teamId) {
-                try {
-                  setLoading(true);
-                  const resp = await fetch('/api/extract/reply-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      teamId,
-                      messageId: selectedEmail.id,
-                      messageType: 'email',
-                      replyText: composeBody
-                    })
-                  });
-                  const result = await resp.json();
-                  if (result.success) {
-                    const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
-                    if (result.alreadyProcessed) {
-                      setNotification('✓ Already processed');
-                      setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: e.outcome || 'neutral' } : e));
-                    } else {
-                      if (result.outcome === 'gain') {
-                        setNotification(`🎉 Reply accepted. +${delta} BTC`);
-                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'gain' } : e));
-                      } else if (result.outcome === 'loss') {
-                        setNotification(`⚠️ Reply processed. ${delta} BTC`);
-                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'loss' } : e));
-                      } else {
-                        setNotification('Reply processed');
-                        setSystemEmails(prev => prev.map(e => e.id === selectedEmail.id ? { ...e, processed: true, outcome: 'neutral' } : e));
-                      }
-                    }
-                  } else if (result.error || result.message) {
-                    setNotification(result.message || result.error);
-                  }
-                } catch {
-                  setNotification('Reply failed');
-                } finally {
-                  setLoading(false);
-                  setTimeout(() => setNotification(null), 2500);
-                }
-              }
+            onClick={() => {
               // Clear compose fields and return to inbox
               setComposeTo("");
               setComposeSubject("");

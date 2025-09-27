@@ -316,33 +316,44 @@ export async function getOnlineHackphoneDevices(): Promise<Array<{deviceId: stri
   try {
     await connectDb();
     
-    // Find all online hackphone devices directly
+    // Find all hackphone devices
     const devices = await Device.find({ 
-      deviceType: 'hackphone', 
-      status: 'online' 
-    }).select('_id teamId');
+      deviceType: 'hackphone'
+    }).select('_id');
     
-    logger.info(`Found ${devices.length} online hackphone devices`);
+    logger.info(`Found ${devices.length} hackphone devices`);
+    
+    // Get team information for these devices
+    const deviceIds = devices.map(d => d._id);
+    const teams = await Team.find({ deviceId: { $in: deviceIds } })
+      .select("deviceId _id")
+      .lean();
+    
+    const teamByDevice: Record<string, string> = {};
+    teams.forEach(t => {
+      if (t.deviceId) teamByDevice[String(t.deviceId)] = String(t._id);
+    });
     
     const onlineHackphones: Array<{deviceId: string, teamId: string}> = [];
     
     for (const device of devices) {
-      logger.info(`Device ${device._id}: teamId = ${device.teamId}, type = ${typeof device.teamId}, exists = ${!!device.teamId}`);
-      // Use the teamId directly from the device
-      if (device.teamId != null && device.teamId !== undefined) {
+      const teamId = teamByDevice[String(device._id)];
+      logger.info(`Device ${device._id}: teamId = ${teamId}, exists = ${!!teamId}`);
+      
+      if (teamId) {
         onlineHackphones.push({
           deviceId: device._id.toString(),
-          teamId: device.teamId.toString()
+          teamId: teamId
         });
       } else {
-        logger.info(`Device ${device._id} has no teamId, skipping`);
+        logger.info(`Device ${device._id} has no associated team, skipping`);
       }
     }
     
-    logger.info(`Returning ${onlineHackphones.length} online hackphone devices with teams`);
+    logger.info(`Returning ${onlineHackphones.length} hackphone devices with teams for broadcast`);
     return onlineHackphones;
   } catch (error) {
-    logger.error('Error getting online hackphone devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    logger.error('Error getting hackphone devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return [];
   }
 }

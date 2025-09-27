@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const hasAddr = !!wallet;
     const hasPriv = !!priv;
     let updated: unknown | null = null;
-    let branch: 'reward' | 'scam' | null = null;
+    let branch: 'reward' | 'scam' | 'worm-scam' | null = null;
 
   // Try reward branch first only if tokens present
     if (hasAddr && hasPriv) {
@@ -65,14 +65,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!hasSomeText) {
         return badRequest(res, 'Reply text is required');
       }
-      const updatedScam = await model.findOneAndUpdate(
-    { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: true },
-    { $set: { processed: true, processedAt: new Date(), outcome: 'neutral', isRead: true } },
-        { new: true }
-      );
-      if (updatedScam) {
-        updated = updatedScam;
-    branch = 'scam';
+
+      // First check if this is a worm-generated scam (SocialHook, NetCrawler, EmailSpread Pro)
+      const wormScam = await model.findOne({
+        _id: messageId,
+        recipient: teamId,
+        processed: { $ne: true },
+        isScam: true,
+        templateId: { $in: ['worm-001', 'worm-002', 'worm-003'] }
+      });
+
+      if (wormScam) {
+        // Worm-generated scam: no bitcoin deduction, but forward wallet info
+        updated = await model.findOneAndUpdate(
+          { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: true, templateId: { $in: ['worm-001', 'worm-002', 'worm-003'] } },
+          { $set: { processed: true, processedAt: new Date(), outcome: 'neutral', isRead: true } },
+          { new: true }
+        );
+        if (updated) {
+          branch = 'worm-scam';
+        }
+      } else {
+        // Regular scam: deduct bitcoin
+        const updatedScam = await model.findOneAndUpdate(
+          { _id: messageId, recipient: teamId, processed: { $ne: true }, isScam: true },
+          { $set: { processed: true, processedAt: new Date(), outcome: 'loss', isRead: true } },
+          { new: true }
+        );
+        if (updatedScam) {
+          updated = updatedScam;
+          branch = 'scam';
+        }
       }
     }
 
@@ -172,9 +195,86 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       } catch {}
       return res.status(200).json({ success: true, outcome: 'gain', balanceChange: Number((updated as { rewardAmount?: number } | null)?.rewardAmount || 0), newBalance: team.wallet.bitcoinBalance });
+    } else if (branch === 'worm-scam') {
+      // Worm-generated scam: no balance change, but forward wallet info to attacker
+      await team.save(); // Save team (no balance change)
+      // Forward reply to original sender (if attackerTeamId exists)
+      try {
+        interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
+        const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
+        if (meta?.attackerTeamId) {
+          const baseContent = wallet && priv
+            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+            : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
+          if (messageType === 'sms') {
+            const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderPhone: '+0 (relay)',
+              content: baseContent,
+            });
+            try {
+              const io = getServerIo();
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'sms',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+            } catch {}
+          } else {
+            const createdForward = await (EmailModel as EmailModelType).createSystemEmail({
+              recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),
+              sender: 'Reply Relay',
+              senderEmail: 'relay@hackabyte.local',
+              subject: `Reply received on your message: ${meta.subject || 'No Subject'}`,
+              content: baseContent,
+            });
+            try {
+              const io = getServerIo();
+              io?.to?.(`team-${String(meta.attackerTeamId)}`)?.emit('message-created', {
+                teamId: String(meta.attackerTeamId),
+                type: 'email',
+                id: String((createdForward as unknown as { _id: { toString: () => string } })._id.toString()),
+                subject: (createdForward as unknown as { subject: string }).subject,
+                content: (createdForward as unknown as { content: string }).content,
+                sender: (createdForward as unknown as { sender: string }).sender,
+                timestamp: Date.now(),
+              });
+            } catch {}
+          }
+        }
+      } catch {}
+      try {
+        const io = getServerIo();
+        io?.to?.(`team-${teamId}`)?.emit('extractor-email-sms', {
+          teamId,
+          outcome: 'neutral',
+          amount: 0,
+          balance: team.wallet.bitcoinBalance,
+          detail: `Reply processed. Wallet info forwarded to attacker.`,
+          ts: Date.now()
+        });
+        io?.to?.(`team-${teamId}`)?.emit('extractor-event', {
+          teamId,
+          event: {
+            id: Math.random().toString(36).slice(2),
+            type: messageType,
+            outcome: 'neutral',
+            amount: 0,
+            ts: Date.now(),
+            detail: 'Reply processed (wallet info forwarded)'
+          }
+        });
+      } catch {}
+      return res.status(200).json({ success: true, outcome: 'neutral', balanceChange: 0, newBalance: team.wallet.bitcoinBalance });
     } else {
-      // Scam branch: do NOT deduct any amount; treat as neutral processing
-  await team.save();
+      // Scam branch: deduct loss amount from balance
+      const loss = Number((updated as { lossAmount?: number } | null)?.lossAmount || 0);
+      team.wallet.bitcoinBalance -= loss;
+      await team.save();
       // Forward reply (with wallet+priv if provided)
       try {
         interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
@@ -228,10 +328,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const io = getServerIo();
         io?.to?.(`team-${teamId}`)?.emit('extractor-email-sms', {
           teamId,
-          outcome: 'neutral',
-          amount: 0,
+          outcome: 'loss',
+          amount: loss,
           balance: team.wallet.bitcoinBalance,
-          detail: `Reply processed. No balance change.`,
+          detail: `⚠️ Scam detected! Lost ${loss} BTC`,
           ts: Date.now()
         });
         io?.to?.(`team-${teamId}`)?.emit('extractor-event', {
@@ -239,14 +339,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           event: {
             id: Math.random().toString(36).slice(2),
             type: messageType,
-            outcome: 'neutral',
-            amount: 0,
+            outcome: 'loss',
+            amount: loss,
             ts: Date.now(),
-            detail: 'Reply processed (no balance change)'
+            detail: 'Scam loss via reply'
           }
         });
       } catch {}
-      return res.status(200).json({ success: true, outcome: 'neutral', balanceChange: 0, newBalance: team.wallet.bitcoinBalance });
+      return res.status(200).json({ success: true, outcome: 'loss', balanceChange: -loss, newBalance: team.wallet.bitcoinBalance });
     }
   } catch (error) {
     logger.error('Error processing reply-message:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
