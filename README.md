@@ -41,6 +41,12 @@ pnpm dev
 pnpm build
 ```
 
+### Health Check
+```bash
+curl http://localhost:3000/api/health
+```
+Returns JSON with overall service status, runtime latency, and MongoDB health metadata so you can wire the app into monitors quickly.
+
 ### Realtime sockets (external server)
 
 This app now connects to an external Socket.IO server. Set the URL in `.env.local`:

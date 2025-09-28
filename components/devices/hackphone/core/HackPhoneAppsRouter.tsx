@@ -52,6 +52,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   onAppSwitch,
   onOpenApp,
   initialPhoneNumber,
+  deviceId,
   playspaceId,
 }) => {
   const analytics = useAppAnalytics();
@@ -331,7 +332,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "notes":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <NotesApp onClose={onClose} time={time.toLocaleTimeString()} />
+            <NotesApp onClose={onClose} time={time.toLocaleTimeString()} deviceId={deviceId || ''} />
           </Suspense>,
           appId
         );
@@ -371,7 +372,7 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
       case "sentinel":
         return wrapWithErrorBoundary(
           <Suspense fallback={<LoadingSpinner />}>
-            <SentinelApp onClose={onClose} time={time.toLocaleTimeString()} />
+            <SentinelApp onClose={onClose} time={time.toLocaleTimeString()} teamId={teamId || undefined} />
           </Suspense>,
           appId
         );

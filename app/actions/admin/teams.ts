@@ -115,7 +115,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
         walletAddress,
         privateKey,
         publicKey,
-        bitcoinBalance: 100,
+        bitcoinBalance: 1000,
       },
       teamMembers,
       timer: {

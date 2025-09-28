@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { redisRateLimit } from '@/lib/redisRateLimit';
 import { emitScoped } from '@/lib/emitter';
+import connectDb from '@/db/connectDb';
+import Device from '@/models/Device';
+import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 
 // In-memory state for StealthViral attacks
 interface StealthViralState {
@@ -30,6 +33,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Check if already active
     if (stealthStates[targetKey] && !stealthStates[targetKey].defeated) {
       return res.status(409).json({ success: false, error: 'StealthViral already active on target' });
+    }
+
+    // Check security settings for deployment success
+    await connectDb();
+    const device = await Device.findOne({ deviceMacAddress: targetKey }).select('configuration.securitySettings');
+    if (!device) return res.status(404).json({ success: false, error: 'Target device not found' });
+
+    const sec = device.configuration?.securitySettings as RawSecuritySettings | undefined;
+    const { finalChance } = computeSuccessChance({ baseSuccess: 0.80, security: sec }); // 80% base success for StealthViral
+    const roll = Math.random();
+    const success = roll < finalChance;
+
+    if (!success) {
+      // Deployment failed due to security
+      emitScoped(res, { scope: 'team', id: attackerTeamId, event: 'stealth-viral-failure', payload: { targetKey, reason: 'security' } });
+      return res.status(200).json({ success: true, outcome: 'failed', successChance: finalChance });
     }
 
     // Create new attack
@@ -98,7 +117,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true, 
       message: 'StealthViral deployed successfully', 
       targetKey, 
-      clicksRequired 
+      clicksRequired,
+      successChance: finalChance
     });
 
   } else if (req.method === 'GET') {

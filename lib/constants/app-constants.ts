@@ -137,7 +137,6 @@ export const APP_ROLE_ACCESS: Record<string, string[]> = {
   'appStore': [...ROLE_GROUPS.attackers],
   'faucet': [...ROLE_GROUPS.attackers],
   'email-sms': [...ROLE_GROUPS.attackers],
-  'fakebank': [...ROLE_GROUPS.attackers],
   'recon': [...ROLE_GROUPS.attackers],
   'systrojan': [...ROLE_GROUPS.attackers],
   'systemlock': [...ROLE_GROUPS.attackers],

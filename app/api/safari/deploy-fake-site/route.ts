@@ -62,43 +62,7 @@ export async function POST(request: NextRequest) {
     let title = '';
     let description = '';
 
-    if (malwareType === 'FakeBank Portal') {
-      title = 'SecureBank Online';
-      description = 'Online banking portal - Login to access your account';
-      fakeContent = `
-        <div class="bg-gradient-to-b from-blue-900 to-blue-800 min-h-screen text-white">
-          <div class="container mx-auto p-8">
-            <div class="bg-white rounded-lg p-8 text-black max-w-md mx-auto mt-16">
-              <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-blue-800 mb-2">🏦 SecureBank</h1>
-                <p class="text-gray-600">Secure Online Banking</p>
-              </div>
-              <div class="bg-red-50 border border-red-200 rounded p-3 mb-4">
-                <p class="text-red-700 text-sm">⚠️ Security Alert: Unusual activity detected. Please verify your account.</p>
-              </div>
-              <form class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input type="text" class="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" placeholder="Enter your username">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input type="password" class="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
-                </div>
-                <button type="button" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700 font-medium">
-                  Secure Login
-                </button>
-              </form>
-              <div class="mt-6 text-center">
-                <div class="bg-green-50 border border-green-200 rounded p-3">
-                  <p class="text-green-700 text-sm">🎁 Login now to claim your security bonus: ${randomStealAmount} BTC!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (malwareType === 'SiteClone Pro') {
+    if (malwareType === 'SiteClone Pro') {
       // Use custom title and description for SiteClone Pro
       title = customTitle;
       description = customDescription;
@@ -187,7 +151,7 @@ export async function POST(request: NextRequest) {
       fakeTargetAmount: randomStealAmount, // This is what will actually be stolen
       deployedBy: deployerTeam._id, // Use the actual team ObjectId
       deployedAt: new Date(),
-      backgroundColor: malwareType === 'FakeBank Portal' ? '#1e40af' : '#581c87',
+      backgroundColor: '#581c87',
       textColor: '#ffffff'
     });
 

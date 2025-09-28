@@ -203,6 +203,14 @@ export const APP_REGISTRY: AppConfig[] = [
     description: "Mine bitcoins via skill-based mini-games",
     permissions: [{ type: "storage", required: false, description: "Persist mining progress" }],
   },
+  {
+    id: "fullscreen",
+    name: "Fullscreen",
+    icon: "/hackphone/apps/fullscreen/app-icon.png",
+    category: "utility",
+    description: "Toggle fullscreen mode",
+    isSystemApp: true,
+  },
 ];
 
 // Dock apps (always visible)

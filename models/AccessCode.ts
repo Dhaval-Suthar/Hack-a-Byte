@@ -108,6 +108,11 @@ AccessCodeSchema.methods.recordUsage = function(userId: mongoose.Types.ObjectId,
     });
   }
 
+  // If usage limit is reached, delete the access code
+  if (this.maxUsages && this.usageCount >= this.maxUsages) {
+    return this.deleteOne();
+  }
+
   return this.save();
 };
 

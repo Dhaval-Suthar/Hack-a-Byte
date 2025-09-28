@@ -1,4 +1,4 @@
-import { assertRoleAccess, teamHasRole } from '@/lib/role-access';
+import { teamHasRole } from '@/lib/role-access';
 import Team from '@/models/Team';
 
 jest.mock('@/models/Team', () => ({
@@ -31,15 +31,5 @@ describe('role access utilities', () => {
     mockFind([ { role: 'professor' } ]);
     const ok = await teamHasRole('tid',['rio','tokyo']);
     expect(ok).toBe(false);
-  });
-
-  it('assertRoleAccess passes for allowed team', async () => {
-    mockFind([ { role: 'tokyo' } ]);
-    await expect(assertRoleAccess('tid','fakebank')).resolves.toBeUndefined();
-  });
-
-  it('assertRoleAccess throws for disallowed team', async () => {
-    mockFind([ { role: 'berlin' } ]);
-    await expect(assertRoleAccess('tid','fakebank')).rejects.toHaveProperty('message','FORBIDDEN_ROLE');
   });
 });

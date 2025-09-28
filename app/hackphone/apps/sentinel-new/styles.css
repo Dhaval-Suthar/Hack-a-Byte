@@ -1,0 +1,115 @@
+/* 
+ * This file contains global styles for the hacker-themed SentinelApp
+ * These styles provide animations and effects that aren't easily implemented with Tailwind
+ */
+
+/* Matrix rain animation */
+@keyframes matrix-fall {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100vh); }
+}
+
+.animate-matrix-fall {
+  animation: matrix-fall linear infinite;
+}
+
+/* Blinking cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Glitch effect animations */
+@keyframes glitch-horizontal {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(3px); opacity: 0.5; }
+  75% { transform: translateY(-3px); opacity: 0.7; }
+}
+
+.animate-glitch-horizontal {
+  animation: glitch-horizontal 0.2s ease-in-out infinite;
+}
+
+@keyframes rgb-shift {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+.animate-rgb-shift {
+  animation: rgb-shift 2s ease-in-out infinite;
+}
+
+@keyframes noise {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 10%); }
+  80% { transform: translate(-15%, 0); }
+  90% { transform: translate(10%, 5%); }
+}
+
+.animate-noise {
+  animation: noise 0.3s linear infinite;
+}
+
+/* Flicker effect for progress bars */
+@keyframes flicker {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.1; }
+}
+
+.animate-flicker {
+  animation: flicker 0.3s infinite;
+}
+
+/* Slide-in animation for notifications */
+@keyframes slide-in {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+  border-left: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(22, 163, 74);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(34, 197, 94);
+}
+
+/* CRT screen effect */
+.crt-screen::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}

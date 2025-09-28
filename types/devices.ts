@@ -52,6 +52,8 @@ export interface AppRouterProps {
 
 export interface HomeScreenProps {
   onAppOpen: (appId: string) => void;
+  user?: User | null;
+  teamSize?: number;
 }
 
 export interface AppAnalytics {

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface Note {
   id: number;
   title: string;
-  body: string;
+  body?: string;
 }
 
 interface NotesAppProps {
   onClose: () => void;
   time: string;
+  deviceId: string;
 }
 
 interface NoteEditorProps {
@@ -19,20 +20,62 @@ interface NoteEditorProps {
   onSave: (id: number, body: string) => void;
 }
 
-function NotesApp({ onClose, time }: NotesAppProps) {
-  const [notes, setNotes] = useState<Note[]>(() => {
-    const saved = localStorage.getItem("notes");
-    return saved
-      ? JSON.parse(saved)
-      : [{ id: 1, title: "Shopping list", body: "Milk\nEggs\nBread" }];
-  });
-
+function NotesApp({ onClose, time, deviceId }: NotesAppProps) {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
-  // Persist notes to localStorage whenever they change
+  // Fetch notes from API on mount
   useEffect(() => {
-    localStorage.setItem("notes", JSON.stringify(notes));
-  }, [notes]);
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch(`/api/device/notes?deviceMacAddress=${deviceId}`);
+        const data = await response.json();
+        if (data.success) {
+          setNotes(data.notes.length > 0 ? data.notes.map((note: Note) => ({ ...note, body: note.body || "" })) : [{ id: 1, title: "Shopping list", body: "Milk\nEggs\nBread" }]);
+        } else {
+          setError(data.error || 'Failed to fetch notes');
+        }
+      } catch (err) {
+        setError('Failed to fetch notes');
+        console.error('Error fetching notes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotes();
+  }, [deviceId]);
+
+  // Save notes to API
+  const saveNotesToAPI = useCallback(async (updatedNotes: Note[]) => {
+    try {
+      const response = await fetch('/api/device/notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceMacAddress: deviceId,
+          notes: updatedNotes,
+        }),
+      });
+      const data = await response.json();
+      if (!data.success) {
+        console.error('Failed to save notes:', data.error);
+      }
+    } catch (err) {
+      console.error('Error saving notes:', err);
+    }
+  }, [deviceId]);
+
+  // Persist notes to API whenever they change
+  useEffect(() => {
+    if (!loading && notes.length > 0) {
+      saveNotesToAPI(notes);
+    }
+  }, [notes, loading, saveNotesToAPI]);
 
   // Save edits to a note
   function saveNote(id: number, body: string) {
@@ -67,7 +110,15 @@ function NotesApp({ onClose, time }: NotesAppProps) {
 
       {/* Body */}
       <div className="flex-1">
-        {selected === null ? (
+        {loading ? (
+          <div className="h-full flex items-center justify-center text-yellow-900">
+            <p>Loading notes...</p>
+          </div>
+        ) : error ? (
+          <div className="h-full flex items-center justify-center text-red-600">
+            <p>Error: {error}</p>
+          </div>
+        ) : selected === null ? (
           <NotesList
             notes={notes}
             setSelected={setSelected}
@@ -101,22 +152,16 @@ function NotesList({
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between bg-yellow-900 text-yellow-100 p-4 font-bold shadow">
         <span>Notes</span>
-        <button
-          onClick={onAdd}
-          className="text-sm px-2 py-1 bg-yellow-100 text-yellow-900 rounded hover:bg-yellow-200"
-        >
+        <button onClick={onAdd} className="text-sm px-2 py-1 bg-yellow-100 text-yellow-900 rounded hover:bg-yellow-200">
           + New Note
         </button>
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-yellow-700/30">
         {notes.map((note) => (
-          <div
-            key={note.id}
-            className="flex justify-between items-center p-4 hover:bg-yellow-200/30 cursor-pointer"
-          >
+          <div key={note.id} className="flex justify-between items-center p-4 hover:bg-yellow-200/30 cursor-pointer">
             <div onClick={() => setSelected(note.id)} className="flex-1">
-              <div className="font-bold">{note.title}</div>
-              <div className="text-sm text-yellow-900/70 truncate">{note.body}</div>
+              <div className="font-bold text-yellow-800">{note.title}</div>
+              <div className="text-sm text-yellow-900/70 truncate">{note.body || ""}</div>
             </div>
             <button
               onClick={() => onDelete(note.id)}
@@ -162,7 +207,7 @@ function NoteEditor({ note, onBack, onSave }: NoteEditorProps) {
             "repeating-linear-gradient(transparent, transparent 34px, rgba(0,0,0,0.1) 35px)",
           fontFamily: "Georgia, serif",
         }}
-        value={note.body}
+        value={note.body || ""}
         onChange={(e) => onSave(note.id, e.target.value)}
       />
     </div>

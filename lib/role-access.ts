@@ -17,7 +17,6 @@ export const SERVER_APP_ACCESS: Record<string,string[]> = {
   'stocks': STRATEGIST,
   'security': [...DEFENDERS, ...STRATEGIST],
   'prof-scan': STRATEGIST,
-  'fakebank': ATTACKERS,
   'recon': ATTACKERS,
   'systrojan': ATTACKERS,
   'systemlock': ATTACKERS,

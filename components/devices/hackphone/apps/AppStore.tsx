@@ -6,33 +6,7 @@ import { getPlayspaceId } from "@/lib/playspace-utils";
 import { useSocket } from "@/hooks/useSocket";
 import SystemLockProAttack from "@/components/devices/hackphone/security/SystemLockProAttack";
 import { logger } from '@/lib/logger';
-
-// Add custom styles for running malware animation
-const runningMalwareStyles = `
-  @keyframes pulse-red {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.05); }
-  }
-  @keyframes progress-shine {
-    0% { background-position: -100% 0; }
-    100% { background-position: 100% 0; }
-  }
-  @keyframes complete-flash {
-    0%, 100% { background-color: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); }
-    50% { background-color: rgba(34, 197, 94, 0.4); border-color: rgba(34, 197, 94, 0.8); }
-  }
-  .malware-pulse {
-    animation: pulse-red 2s ease-in-out infinite;
-  }
-  .progress-shine {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    background-size: 200% 100%;
-    animation: progress-shine 2s ease-in-out infinite;
-  }
-  .complete-flash {
-    animation: complete-flash 1s ease-in-out;
-  }
-`;
+import Alert from '@/components/ui/Alert';
 
 interface AppStoreProps {
   onClose?: () => void;
@@ -186,21 +160,6 @@ const CATALOG: StoreItem[] = [
     isPopular: true,
   },
   {
-    id: "ransom-002",
-    name: "FakeBank Portal",
-    category: "ransomware",
-    description:
-      "Creates convincing banking site replicas. Creates 1-minute window where any target transactions are captured by attacker. Defender gets notified.",
-    price: 320,
-    icon: "🏦",
-    requirements: ["Target IP Address"],
-    rating: 4.5,
-    downloadCount: "6.8K",
-    version: "1.9.2",
-    developer: "BankBuster Inc.",
-    size: "31.4 MB",
-  },
-  {
     id: "ransom-003",
     name: "SystemLock Pro",
     category: "ransomware",
@@ -252,15 +211,6 @@ function parseDownloads(d: string): number {
 const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attackerTeamIdProp }) => {
   // Initialize Socket.IO connection
   const { sendMalwareAttack, triggerAttackEffect, isConnected, socket } = useSocket();
-  // Inject custom styles for running malware animation
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = runningMalwareStyles;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
   const [tab, setTab] = useState<TabKey>("featured");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"all" | Category>("all");
@@ -272,9 +222,20 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
   const [deployData, setDeployData] = useState<DeploymentData>({});
   const [teamBalance, setTeamBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [runningMalware, setRunningMalware] = useState<Map<string, { progress: number; target: string; startTime: number }>>(new Map());
   const [showSystemLockProAttack, setShowSystemLockProAttack] = useState(false);
   const [systemLockProTarget, setSystemLockProTarget] = useState<string>('');
+
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   // Fetch team balance and devices on component mount
   useEffect(() => {
@@ -308,91 +269,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     fetchData();
   }, []);
-
-  // Live malware execution animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRunningMalware(prev => {
-        const updated = new Map(prev);
-        updated.forEach((data, malwareId) => {
-          if (data.progress < 100) {
-            const malware = CATALOG.find(item => item.id === malwareId);
-            // Different malware types have different execution speeds
-            let speedMultiplier = 1;
-            if (malware) {
-              switch (malware.category) {
-                case 'virus': speedMultiplier = 1.2; break; // Faster
-                case 'worm': speedMultiplier = 0.8; break; // Slower
-                case 'ransomware': speedMultiplier = 0.6; break; // Slowest
-              }
-            }
-            const progressIncrement = (Math.random() * 8 + 3) * speedMultiplier;
-            updated.set(malwareId, {
-              ...data,
-              progress: Math.min(100, data.progress + progressIncrement)
-            });
-          } else {
-            // Remove completed malware after a delay
-            setTimeout(() => {
-              setRunningMalware(current => {
-                const newMap = new Map(current);
-                newMap.delete(malwareId);
-                return newMap;
-              });
-            }, 3000);
-          }
-        });
-        return updated;
-      });
-    }, 400); // Slightly faster updates
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Component for live running malware indicator
-  const RunningMalwareIndicator: React.FC<{ malwareId: string; data: { progress: number; target: string; startTime: number } }> = ({ malwareId, data }) => {
-    const malware = CATALOG.find(item => item.id === malwareId);
-    if (!malware) return null;
-
-    return (
-      <div className={`fixed left-4 right-4 z-[80] bg-black/90 backdrop-blur-sm rounded-lg p-3 border shadow-2xl transition-all duration-300 ${
-        data.progress >= 100 ? 'border-green-500/50 complete-flash' : 'border-red-500/50'
-      }`}>
-        <div className="flex items-center space-x-3">
-          <div className={`text-2xl ${data.progress >= 100 ? 'animate-bounce' : 'malware-pulse'}`}>{malware.icon}</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white text-sm font-semibold truncate">{malware.name}</div>
-            <div className="text-red-400 text-xs truncate">Target: {data.target}</div>
-            <div className="mt-1 bg-gray-700 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full transition-all duration-300 ease-out relative ${
-                  data.progress >= 100 ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-red-500 to-red-400'
-                }`}
-                style={{ width: `${data.progress}%` }}
-              >
-                {data.progress < 100 && <div className="progress-shine absolute inset-0"></div>}
-              </div>
-            </div>
-            <div className="text-gray-400 text-xs mt-1">
-              {data.progress < 30 && "🔍 Scanning target..."}
-              {data.progress >= 30 && data.progress < 60 && "⚡ Injecting payload..."}
-              {data.progress >= 60 && data.progress < 90 && "🔄 Executing malware..."}
-              {data.progress >= 90 && data.progress < 100 && "🔄 Finalizing attack..."}
-              {data.progress >= 100 && "✅ Operation complete - Malware consumed"}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className={`text-lg font-mono ${data.progress >= 100 ? 'text-green-400' : 'text-white'}`}>
-              {Math.round(data.progress)}%
-            </div>
-            <div className="text-gray-400 text-xs">
-              {data.progress >= 100 ? 'Complete' : 'Active'}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const featured = useMemo(() => CATALOG.filter(i => i.isPopular), []);
   const top = useMemo(() => {
@@ -446,7 +322,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     // Check if team has enough bitcoins
     if (currentBalance < itemPrice) {
-      alert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`);
+      showAlert(`Insufficient team bitcoins! You have ₿${currentBalance.toFixed(2)}, but need ₿${itemPrice.toFixed(2)}`, 'error');
       return;
     }
 
@@ -492,31 +368,31 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               setPurchased(prev => new Set(prev).add(purchaseItem.id));
               setShowPurchase(false);
               setPurchaseItem(null);
-              alert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`);
+              showAlert(`${purchaseItem.name} purchased successfully! ₿${itemPrice.toFixed(2)} deducted from team wallet. New balance: ₿${newBalance.toFixed(2)}`, 'success');
             } else {
               logger.error('Failed to save malware purchase:', { error: malwareData instanceof Error ? malwareData.message : 'Unknown error' }, malwareData as Error);
-              alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+              showAlert('Purchase completed but item may not be saved properly. Please refresh the app.', 'warning');
               setShowPurchase(false);
               setPurchaseItem(null);
             }
           } else {
             const errorText = await malwareResponse.text();
             logger.error('Malware purchase API failed', { status: malwareResponse.status, error: errorText });
-            alert('Purchase completed but item may not be saved properly. Please refresh the app.');
+            showAlert('Purchase completed but item may not be saved properly. Please refresh the app.', 'warning');
             setShowPurchase(false);
             setPurchaseItem(null);
           }
         } else {
-          alert('Failed to process purchase: ' + (data.error || 'Unknown error'));
+          showAlert('Failed to process purchase: ' + (data.error || 'Unknown error'), 'error');
         }
       } else {
         const errorText = await response.text();
         logger.error('Purchase failed', { status: response.status, errorText });
-        alert('Failed to process purchase. Please try again.');
+        showAlert('Failed to process purchase. Please try again.', 'error');
       }
     } catch (error) {
       logger.error('Purchase error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      alert('Failed to process purchase. Please try again.');
+      showAlert('Failed to process purchase. Please try again.', 'error');
     }
   }, [purchaseItem, teamBalance]);
 
@@ -589,13 +465,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           isValidTarget = false;
           targetInfo = '';
         }
-      } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
-        // FakeBank Portal needs both URL and steal amount
-        const urlRegex = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(\/.*)*/;
-        isValidTarget = urlRegex.test(deployData.targetUrl.trim()) && 
-                       !isNaN(parseFloat(deployData.stealAmount)) && 
-                       parseFloat(deployData.stealAmount) > 0;
-        targetInfo = deployData.targetUrl.trim();
       } else if (deployData.domainName) {
         // Regular ransomware deployment
         const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -606,11 +475,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
     if (!isValidTarget) {
       if (deployItem.category === 'virus' && (deployItem.name === 'SysTrojan Pro' || deployItem.name === 'StealthViral' || deployItem.name === 'DataMiner X')) {
-        alert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.');
+        showAlert('Please enter both a valid MAC address (format: XX:XX:XX:XX:XX:XX) and IP address (format: XXX.XXX.XXX.XXX) to target the device.', 'warning');
       } else if (deployItem.name === 'SystemLock Pro') {
-        alert('Please enter a valid MAC address (format: XX:XX:XX:XX:XX:XX) to target the device for SystemLock Pro.');
+        showAlert('Please enter a valid MAC address (format: XX:XX:XX:XX:XX:XX) to target the device for SystemLock Pro.', 'warning');
       } else {
-        alert('Please enter a valid target address in the correct format.');
+        showAlert('Please enter a valid target address in the correct format.', 'warning');
       }
       return;
     }
@@ -636,7 +505,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           }
         }
         if (!attackerTeamId) {
-          alert('Unable to determine your team. Please re-open App Store or rejoin your playspace.');
+          showAlert('Unable to determine your team. Please re-open App Store or rejoin your playspace.', 'error');
           return;
         }
         const wormId = deployItem.name === 'EmailSpread Pro' ? 'worm-001' : deployItem.name === 'NetCrawler' ? 'worm-002' : 'worm-003';
@@ -683,32 +552,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           const fakeData = await fakeResponse.json();
           if (fakeData.success) {
             effectMessage = `🎭 Fake site deployed at ${deployData.targetUrl}! Will steal ${fakeData.targetAmount} BTC from each visitor.`;
-            deploymentMessage = `${deployItem.name} successfully deployed fake site!`;
-          } else {
-            throw new Error(fakeData.error || 'Failed to deploy fake site');
-          }
-        } else {
-          throw new Error('Failed to deploy fake site');
-        }
-  } else if (deployItem.name === 'FakeBank Portal' && deployData.targetUrl && deployData.stealAmount) {
-        // Deploy FakeBank Portal fake site (with custom steal amount)
-        const fakeResponse = await fetch('/api/safari/deploy-fake-site', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            teamId: getPlayspaceId(),
-            targetUrl: deployData.targetUrl,
-            malwareType: deployItem.name,
-            stealAmount: parseFloat(deployData.stealAmount),
-          }),
-        });
-
-        if (fakeResponse.ok) {
-          const fakeData = await fakeResponse.json();
-          if (fakeData.success) {
-            effectMessage = `🎭 Fake site deployed at ${deployData.targetUrl}! Will steal ${deployData.stealAmount} BTC from each visitor.`;
             deploymentMessage = `${deployItem.name} successfully deployed fake site!`;
           } else {
             throw new Error(fakeData.error || 'Failed to deploy fake site');
@@ -795,7 +638,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               } catch (e) { logger.warn('Resolve target team failed (ip)', { error: e }); }
             }
             if (!targetTeamId) {
-              alert('Could not resolve target team for StealthViral (missing mapping).');
+              showAlert('Could not resolve target team for StealthViral (missing mapping).', 'error');
               throw new Error('Target team resolution failed');
             }
             const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
@@ -804,7 +647,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             });
             const result = await response.json();
             if (result.success) {
-              effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+              if (result.outcome === 'failed') {
+                effectMessage = `🔍 StealthViral failed to infect target. Security defenses too strong.`;
+              } else {
+                effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+              }
             } else {
               throw new Error(result.error || 'StealthViral deployment failed');
             }
@@ -840,7 +687,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               if (response.status === 429) {
                 const resetTs: number | undefined = result?.reset;
                 const secs = resetTs ? Math.max(0, Math.ceil((resetTs - Date.now()) / 1000)) : undefined;
-                alert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`);
+                showAlert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`, 'warning');
               }
               throw new Error(result.error || 'DataMiner attack failed');
             }
@@ -884,7 +731,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
 
           // Send real-time attack via Socket.IO (except for fake sites which are passive)
           const attackerPlayspaceId = getPlayspaceId();
-          if (attackerPlayspaceId && isConnected && !(deployItem.name === 'FakeBank Portal' || deployItem.name === 'SiteClone Pro')) {
+          if (attackerPlayspaceId && isConnected && !(deployItem.name === 'SiteClone Pro')) {
             sendMalwareAttack({
               attackerPlayspaceId,
               targetInfo,
@@ -939,37 +786,26 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             });
           }
 
-          // Add to running malware for live visualization
-          setRunningMalware(prev => {
-            const newMap = new Map(prev);
-            newMap.set(deployItem.id, {
-              progress: 0,
-              target: targetInfo,
-              startTime: Date.now()
-            });
-            return newMap;
-          });
-
-          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`);
+          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`, 'info');
 
           setDeployItem(null);
           setDeployData({});
         } else {
           logger.error('Failed to remove malware from purchased list:', { error: deployDataResult instanceof Error ? deployDataResult.message : 'Unknown error' }, deployDataResult as Error);
-          alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`, 'warning');
           setDeployItem(null);
           setDeployData({});
         }
       } else {
         const errorText = await deployResponse.text();
         logger.error('Deploy API failed', { status: deployResponse.status, errorText });
-        alert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`);
+        showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ Warning: Malware deployed but may still be available for reuse. Please refresh the app.`, 'warning');
         setDeployItem(null);
         setDeployData({});
       }
     } catch (error) {
       logger.error('Deployment error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      alert('Deployment failed. Please try again.');
+      showAlert('Deployment failed. Please try again.', 'error');
     }
 
     if (socket && deployItem.category === 'ransomware' && deployItem.name.toLowerCase().includes('bank')) {
@@ -1035,36 +871,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           </div>
           <div className="text-[15px] font-bold tracking-wide">App Store</div>
           <div className="absolute right-0 top-0 bottom-0 flex items-center space-x-2">
-            <button
-              onClick={async () => {
-                try {
-                  const playspaceId = getPlayspaceId();
-                  const teamResponse = await fetch("/api/team", {
-                    headers: {
-                      "x-playspace-id": playspaceId || "",
-                    },
-                  });
-                  if (teamResponse.ok) {
-                    const teamData = await teamResponse.json();
-                    if (teamData.success) {
-                      const balance = Number(teamData.bitcoinBalance) || 0;
-                      const purchasedMalware = teamData.purchasedMalware || [];
-                      setTeamBalance(balance);
-                      setPurchased(new Set(purchasedMalware));
-                      alert(
-                        `Data refreshed!\nBalance: ₿${balance.toFixed(2)}\nPurchased items: ${purchasedMalware.length}`
-                      );
-                    }
-                  }
-                } catch (error) {
-                  logger.error('Failed to refresh data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-                }
-              }}
-              className="text-white/70 text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20"
-            >
-              ↻
-            </button>
-            <span className="text-white/90 text-xs">₿{loading ? "..." : teamBalance.toFixed(2)}</span>
+            <div className="w-[52px]" />
           </div>
         </div>
       </div>
@@ -1447,7 +1254,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                 )
               )}
               {deployItem.category === "ransomware" &&
-                (deployItem.name === "FakeBank Portal" || deployItem.name === "SiteClone Pro") && (
+                (deployItem.name === "SiteClone Pro") && (
                   <>
                     <div>
                       <label className="block text-[12px] text-[#666] mb-1">Target URL</label>
@@ -1461,21 +1268,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                         Enter the URL for your fake site (must start with http/https)
                       </div>
                     </div>
-                    {deployItem.name === "FakeBank Portal" && (
-                      <div>
-                        <label className="block text-[12px] text-[#666] mb-1">Bitcoin Steal Amount</label>
-                        <input
-                          value={deployData.stealAmount || ""}
-                          onChange={(e) => setDeployData({ ...deployData, stealAmount: e.target.value })}
-                          placeholder="5"
-                          type="number"
-                          min="0.1"
-                          step="0.1"
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2"
-                        />
-                        <div className="text-[11px] text-[#888] mt-1">Amount to steal from each visitor (in BTC)</div>
-                      </div>
-                    )}
                     {deployItem.name === "SiteClone Pro" && (
                       <>
                         <div>
@@ -1542,7 +1334,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                 </div>
               )}
               {deployItem.category === "ransomware" &&
-                deployItem.name !== "FakeBank Portal" &&
                 deployItem.name !== "SiteClone Pro" &&
                 deployItem.name !== "CryptoLocker Elite" &&
                 deployItem.name !== "SystemLock Pro" && (
@@ -1572,9 +1363,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
               <div className="bg-red-50 border border-red-200 rounded p-2 text-[12px] text-red-700">
                 Deploying malware without authorization is illegal. This is a simulation.
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-[12px] text-blue-700">
-                Team Bitcoin Balance: ₿{teamBalance.toFixed(2)}
-              </div>
             </div>
             <div className="flex gap-2 mt-3">
               <button
@@ -1597,9 +1385,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     )
                   ) ||
                   (deployItem.category === "ransomware" &&
-                    deployItem.name === "FakeBank Portal" &&
-                    (!deployData.targetUrl || !deployData.stealAmount)) ||
-                  (deployItem.category === "ransomware" &&
                     deployItem.name === "SiteClone Pro" &&
                     (!deployData.targetUrl || !deployData.customTitle || !deployData.customDescription)) ||
                   (deployItem.category === "ransomware" &&
@@ -1609,7 +1394,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     deployItem.name === "SystemLock Pro" &&
                     !deployData.macAddress) ||
                   (deployItem.category === "ransomware" &&
-                    deployItem.name !== "FakeBank Portal" &&
                     deployItem.name !== "SiteClone Pro" &&
                     deployItem.name !== "CryptoLocker Elite" &&
                     deployItem.name !== "SystemLock Pro" &&
@@ -1624,13 +1408,6 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         </div>
       )}
 
-      {/* Live Running Malware Indicators */}
-      {Array.from(runningMalware.entries()).map(([malwareId, data], index) => (
-        <div key={malwareId} style={{ bottom: `${80 + index * 80}px` }}>
-          <RunningMalwareIndicator malwareId={malwareId} data={data} />
-        </div>
-      ))}
-
       {/* SystemLock Pro Attack Interface */}
       {showSystemLockProAttack && (
         <SystemLockProAttack
@@ -1641,6 +1418,13 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           }}
         />
       )}
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };

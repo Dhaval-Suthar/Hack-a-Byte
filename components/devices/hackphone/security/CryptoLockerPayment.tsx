@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket, CryptoLockerPaymentDemand, CryptoLockerGameOver } from '@/hooks/useSocket';
 import { logger } from '@/lib/logger';
+import Alert from '@/components/ui/Alert';
 
 interface CryptoLockerPaymentProps {
   teamId?: string;
@@ -27,6 +28,18 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
     }
     return false;
   });
+
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+
+  // Helper function to show alerts
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   // Check localStorage for persistent payment screen on mount
   useEffect(() => {
@@ -103,7 +116,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
       localStorage.removeItem(`cryptolocker-payment-${teamId}`);
       setHasLocalStorageData(false);
       // Show success message briefly
-      alert(`Payment successful! Files are being decrypted... New balance: ₿${latestPaymentSent.newBalance}`);
+      showAlert(`Payment successful! Files are being decrypted... New balance: ₿${latestPaymentSent.newBalance}`, 'success');
     }
   }, [cryptoLockerPaymentSents, teamId, active]);
 
@@ -165,7 +178,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
         setActiveDemand(null);
         setShowPersistentScreen(false);
         setHasLocalStorageData(false);
-        alert(`Payment of ${activeDemand.demand} BTC sent successfully! Files are being decrypted...`);
+        showAlert(`Payment of ${activeDemand.demand} BTC sent successfully! Files are being decrypted...`, 'success');
       } else if (result.outcome === 'insufficient_funds') {
         // Not enough funds - trigger game over
         setGameOver({
@@ -182,7 +195,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
       }
     } catch (error) {
       logger.error('Payment failed:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-      alert('Payment failed. Please try again.');
+      showAlert('Payment failed. Please try again.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -204,7 +217,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
       setGameOver(null);
       localStorage.removeItem(`cryptolocker-payment-${teamId}`);
       // Show success message briefly
-      alert(`Payment successful! Files are being decrypted... New balance: ₿${latestPaymentSent.newBalance}`);
+      showAlert(`Payment successful! Files are being decrypted... New balance: ₿${latestPaymentSent.newBalance}`, 'success');
     }
   }, [cryptoLockerPaymentSents, teamId, active]);
 
@@ -338,6 +351,13 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
           <p className="text-red-300 text-sm mt-2">Time until game over</p>
         </div>
       </div>
+
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        isVisible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </div>
   );
 };

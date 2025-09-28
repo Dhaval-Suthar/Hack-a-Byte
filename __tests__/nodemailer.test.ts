@@ -44,7 +44,7 @@ describe('sendAccessCodeEmail', () => {
     expect(mailOptions.html).toContain(params.privateKey);
   });
 
-  it('should not include wallet information when not provided', async () => {
+  it('should include device information in email when provided', async () => {
     const params = {
       email: 'test@example.com',
       eventTitle: 'Test Event',
@@ -53,6 +53,8 @@ describe('sendAccessCodeEmail', () => {
       playingDevice: 'Smartphone',
       maxUsages: 2,
       playspaceName: 'Test Playspace',
+      deviceId: '507f1f77bcf86cd799439011',
+      deviceMacAddress: 'AA:BB:CC:DD:EE:FF',
     };
 
     const result = await sendAccessCodeEmail(params);
@@ -61,6 +63,9 @@ describe('sendAccessCodeEmail', () => {
     expect(mockSendMail).toHaveBeenCalledTimes(1);
 
     const mailOptions = mockSendMail.mock.calls[0][0] as any;
-    expect(mailOptions.html).not.toContain('Your Wallet Credentials');
+    expect(mailOptions.html).toContain('Device ID:');
+    expect(mailOptions.html).toContain(params.deviceId);
+    expect(mailOptions.html).toContain('MAC Address:');
+    expect(mailOptions.html).toContain(params.deviceMacAddress);
   });
 });

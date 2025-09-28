@@ -169,49 +169,22 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
   }, [teamId, fetchSystemMessages, fetchTeamWallet, joinTeam, socket, isConnected]);
 
   const handleMessageOpen = async (message: Message, conversation: Conversation) => {
-    if (message.type === 'system' && teamId) {
-      setLoading(true);
-      try {
-    const response = await fetch('/api/extract/open-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-      teamId,
-      messageId: message.id,
-      messageType: 'sms'
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          // Mark as read only; do not set processed here
-          setSystemConversations(prev => prev.map(conv => {
-            if (conv.id === conversation.id) {
-              return {
-                ...conv,
-                messages: conv.messages.map(msg =>
-                  msg.id === message.id
-                    ? { ...msg, status: "read" as const }
-                    : msg
-                ),
-                unreadCount: Math.max(0, conv.unreadCount - 1)
-              };
-            }
-            return conv;
-          }));
-          setNotification('SMS opened');
-          setTimeout(() => setNotification(null), 2000);
+    // Just mark as read, no processing
+    if (message.type === 'system') {
+      setSystemConversations(prev => prev.map(conv => {
+        if (conv.id === conversation.id) {
+          return {
+            ...conv,
+            messages: conv.messages.map(msg =>
+              msg.id === message.id
+                ? { ...msg, status: "read" as const }
+                : msg
+            ),
+            unreadCount: Math.max(0, conv.unreadCount - 1)
+          };
         }
-      } catch (error) {
-        logger.error('Failed to process SMS open:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-        setNotification('Error processing SMS');
-        setTimeout(() => setNotification(null), 3000);
-      } finally {
-        setLoading(false);
-      }
+        return conv;
+      }));
     }
   };
 
@@ -259,77 +232,63 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
       }
 
       setSelectedConversation(updatedConversation);
-      const replyText = newMessage;
       setNewMessage("");
+    }
+  };
 
-      // If replying to a system conversation, attempt reward claim via reply endpoint
-      if (selectedConversation.type === 'system') {
-        try {
-          const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system');
-          if (lastSystemMsg && teamId) {
-            const resp = await fetch('/api/extract/reply-message', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ teamId, messageId: lastSystemMsg.id, messageType: 'sms', replyText })
-            });
-            const result = await resp.json();
-            if (result.success) {
-              const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
-              if (result.alreadyProcessed) {
-                setNotification('✓ Reward already claimed');
-                // Mark as processed locally if not set
-                const updatedConv = {
-                  ...updatedConversation,
-                  messages: updatedConversation.messages.map(m => 
-                    m.id === lastSystemMsg.id ? { ...m, processed: true, outcome: m.outcome || 'gain' } : m
-                  )
-                };
-                setSelectedConversation(updatedConv);
-                setSystemConversations(prev => prev.map(conv => 
-                  conv.id === selectedConversation.id ? updatedConv : conv
-                ));
-              } else {
-                setNotification(`🎉 Reply accepted. +${delta} BTC`);
-                
-                // Add automatic system response
-                const systemResponse: Message = {
-                  id: `system-response-${Date.now()}`,
-                  text: `Thank you! Your reward of ${delta} BTC has been credited to your account. No further replies are needed.`,
-                  timestamp: new Date(),
-                  isSent: false,
-                  status: "delivered",
-                  type: 'system'
-                };
+  const handleSMSReply = async () => {
+    if (!selectedConversation || !teamId || selectedConversation.type !== 'system') return;
+    
+    const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system' && !m.processed);
+    if (!lastSystemMsg) return;
 
-                // Update conversation with processed state and add system response
-                const updatedConvWithResponse = {
-                  ...updatedConversation,
-                  messages: [
-                    ...updatedConversation.messages.map(m => 
-                      m.id === lastSystemMsg.id ? { ...m, processed: true, outcome: 'gain' as const } : m
-                    ),
-                    systemResponse
-                  ],
-                  lastMessage: systemResponse.text,
-                  lastMessageTime: systemResponse.timestamp
-                };
-                
-                setSelectedConversation(updatedConvWithResponse);
-                setSystemConversations(prev => prev.map(conv => 
-                  conv.id === selectedConversation.id ? updatedConvWithResponse : conv
-                ));
-              }
-            } else if (result.error) {
-              setNotification(result.error);
-            }
-          }
-        } catch (err) {
-          logger.error('Reply claim failed:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
-          setNotification('Reply failed');
-        } finally {
-          setTimeout(() => setNotification(null), 2500);
+    setLoading(true);
+    try {
+      const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+      const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+      const replyText = `${walletAddr} ${privateKey}`;
+
+      const response = await fetch('/api/extract/reply-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId, messageId: lastSystemMsg.id, messageType: 'sms', replyText })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        const delta = typeof result.balanceChange === 'number' ? result.balanceChange : 0;
+        
+        // Update conversation with processed state
+        const updatedConv = {
+          ...selectedConversation,
+          messages: selectedConversation.messages.map(m => 
+            m.id === lastSystemMsg.id ? { ...m, processed: true, outcome: result.outcome } : m
+          )
+        };
+        
+        setSelectedConversation(updatedConv);
+        setSystemConversations(prev => prev.map(conv => 
+          conv.id === selectedConversation.id ? updatedConv : conv
+        ));
+
+        // Show notification
+        if (result.outcome === 'gain') {
+          setNotification(`🎉 Reward claimed! +${delta} BTC`);
+        } else if (result.outcome === 'loss') {
+          setNotification(`⚠️ Scam detected! ${delta} BTC`);
+        } else {
+          setNotification('Reply sent - wallet info forwarded to attacker');
         }
+      } else {
+        setNotification(result.message || 'Reply failed');
       }
+    } catch (error) {
+      logger.error('Failed to reply to SMS:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      setNotification('Reply failed');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -507,24 +466,9 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
                         {message.outcome === 'loss' && ` (-${message.lossAmount} BTC)`}
                       </span>
                     ) : message.rewardAmount ? (
-                      <div className="space-y-1">
-                        <span>💰 Reward available - tap to claim</span>
-                        {!message.processed && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-                              const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                              setNewMessage(`${walletAddr} ${privateKey}`);
-                            }}
-                            className="block bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
-                          >
-                            Quick Reply for Reward
-                          </button>
-                        )}
-                      </div>
+                      <span>💰 Potential reward: {message.rewardAmount} BTC</span>
                     ) : (
-                      <span>📱 System message - tap to open</span>
+                      <span>📱 System message</span>
                     )}
                   </div>
                 )}
@@ -545,14 +489,13 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
           ))}
         </div>
 
-        {/* Quick reply button for system conversations */}
-  {selectedConversation.type === 'system' && (
+        {/* Reply button for system conversations */}
+        {selectedConversation.type === 'system' && (
           <div className="bg-gray-100 px-4 py-2 border-t border-gray-200">
             {(() => {
               const lastSystemMsg = [...selectedConversation.messages].reverse().find(m => !m.isSent && m.type === 'system' && !m.processed);
-              const processed = !lastSystemMsg; // if no unprocessed system msg, treat as processed
               
-              if (processed) {
+              if (!lastSystemMsg) {
                 return (
                   <div className="w-full bg-gray-400 text-white px-3 py-2 rounded-lg text-sm text-center">
                     ✓ Already Processed
@@ -562,16 +505,18 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
               
               return (
                 <button
-                  onClick={() => {
-                    if (!lastSystemMsg) return;
-                    const walletAddr = teamWallet?.walletAddress || "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-                    const privateKey = teamWallet?.privateKey || "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
-                    setNewMessage(`${walletAddr} ${privateKey}`);
+                  onClick={handleSMSReply}
+                  className={`w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg transition-all duration-200 ${
+                    lastSystemMsg.rewardAmount
+                      ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+                      : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
+                  }`}
+                  style={{
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    border: '2px solid rgba(255,255,255,0.3)'
                   }}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm"
-  disabled={!lastSystemMsg}
                 >
-                  💰 Quick Reply with Wallet Info
+                  {lastSystemMsg.rewardAmount ? '🎁 REPLY TO CLAIM' : '📱 REPLY'}
                 </button>
               );
             })()}

@@ -39,7 +39,6 @@ export const AlertHub: React.FC<AlertHubProps> = ({ onCountChange }) => {
     interface StealthSpawn { targetKey: string; clicksRequired: number }
     interface StealthProgress { targetKey: string; clicks: number; clicksRequired: number }
     interface StealthDefeated { targetKey: string }
-    interface FakeBank { domain: string }
     interface GameEnd { winner?: string }
     interface DeviceStatus { deviceId: string; status: string }
 
@@ -51,7 +50,6 @@ export const AlertHub: React.FC<AlertHubProps> = ({ onCountChange }) => {
   const stealthSpawn = (data: StealthSpawn) => push({ type: 'stealth-viral-spawn', message: `StealthViral active on ${data.targetKey}`, severity: 'warn', meta: wrap(data) });
   const stealthProgress = (data: StealthProgress) => push({ type: 'stealth-viral-progress', message: `StealthViral progress ${data.clicks}/${data.clicksRequired}`, severity: 'info', meta: wrap(data) });
   const stealthDefeated = (data: StealthDefeated) => push({ type: 'stealth-viral-defeated', message: `StealthViral neutralized on ${data.targetKey}`, severity: 'info', meta: wrap(data) });
-  const fakeBank = (data: FakeBank) => push({ type: 'fake-bank-warning', message: `FakeBank portal observed at ${data.domain}`, severity: 'warn', meta: wrap(data) });
   const gameEnd = (data: GameEnd) => push({ type: 'game-end', message: `Game ended. Winner: ${data.winner || 'N/A'}`, severity: 'info', meta: wrap(data) });
   const deviceStatus = (data: DeviceStatus) => push({ type: 'device-status', message: `Device ${data.deviceId} is now ${data.status}`, severity: data.status==='online' ? 'info':'warn', meta: wrap(data) });
   // Extractor loop events
@@ -72,7 +70,6 @@ export const AlertHub: React.FC<AlertHubProps> = ({ onCountChange }) => {
     socket.on('malware-stealth-viral-spawn', stealthSpawn);
     socket.on('malware-stealth-viral-progress', stealthProgress);
     socket.on('malware-stealth-viral-defeated', stealthDefeated);
-    socket.on('fake-bank-warning', fakeBank);
     socket.on('game-session-ended', gameEnd);
     socket.on('device-status', deviceStatus);
   socket.on('extractor-faucet', faucet);
@@ -86,7 +83,6 @@ export const AlertHub: React.FC<AlertHubProps> = ({ onCountChange }) => {
       socket.off('malware-stealth-viral-spawn', stealthSpawn);
       socket.off('malware-stealth-viral-progress', stealthProgress);
       socket.off('malware-stealth-viral-defeated', stealthDefeated);
-      socket.off('fake-bank-warning', fakeBank);
       socket.off('game-session-ended', gameEnd);
       socket.off('device-status', deviceStatus);
   socket.off('extractor-faucet', faucet);

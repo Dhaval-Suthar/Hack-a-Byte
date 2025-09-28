@@ -28,14 +28,14 @@ export interface SuccessComputation {
   };
 }
 
-// Weight mapping per toggle – reduced for better gameplay balance
+// Weight mapping per toggle – each major security feature reduces success by 25%
 const TOGGLE_WEIGHTS: Record<string, number> = {
-  firewall: 0.04,       // was 0.08
-  antiVirus: 0.04,      // was 0.07
-  vpn: 0.03,           // was 0.05
-  enc: 0.03,           // was 0.06
-  ids: 0.03,           // was 0.05
-  vulnerabilitiesClear: 0.04, // was 0.08 - no vulns bonus for defenders
+  firewall: 0.25,       // 25% penalty when enabled
+  antiVirus: 0.25,      // 25% penalty when enabled
+  vpn: 0.25,           // 25% penalty when enabled
+  enc: 0.25,           // 25% penalty when enabled
+  ids: 0.03,           // 3% penalty when enabled
+  vulnerabilitiesClear: 0.04, // 4% bonus for defenders with no vulnerabilities
 };
 
 export function computeSecurityPenalty(sec?: RawSecuritySettings | null): number {

@@ -70,7 +70,7 @@ async function ensureTeamForRegistration(params: {
       walletAddress,
       privateKey,
       publicKey,
-      bitcoinBalance: 100,
+      bitcoinBalance: 1000,
     },
     teamMembers,
     timer: {
@@ -152,6 +152,14 @@ export async function completeRegistrationPipeline(
     const walletAddress = team?.wallet?.walletAddress;
     const privateKey = team?.wallet?.privateKey;
     
+    // Get device details if deviceId is available
+    let deviceMacAddress: string | undefined;
+    if (deviceId) {
+      const DeviceModel = (await import("@/models/Device")).default;
+      const device = await DeviceModel.findById(deviceId);
+      deviceMacAddress = device?.deviceMacAddress;
+    }
+    
     const emailResult = await sendAccessCodeEmail({
       email: email.toLowerCase(),
       eventTitle,
@@ -161,7 +169,9 @@ export async function completeRegistrationPipeline(
       maxUsages: numberOfPlayers,
       playspaceName: playspaceName || `${eventTitle} - Team ${accessCode}`,
       walletAddress,
-      privateKey
+      privateKey,
+      deviceId,
+      deviceMacAddress
     });
 
     if (emailResult.success) {

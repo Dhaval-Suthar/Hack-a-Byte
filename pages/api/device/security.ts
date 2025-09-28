@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           vpn: securitySettings.vpn || false,
           firewall: securitySettings.firewall !== undefined ? securitySettings.firewall : true,
           antiVirus: securitySettings.antiVirus !== undefined ? securitySettings.antiVirus : true,
-          enc: securitySettings.enc !== undefined ? securitySettings.enc : true,
+          enc: securitySettings.enc !== undefined ? securitySettings.enc : false,
           ids: securitySettings.ids || false
         }
       });
@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           vpn: sec.vpn || false,
           firewall: sec.firewall !== undefined ? sec.firewall : true,
           antiVirus: sec.antiVirus !== undefined ? sec.antiVirus : true,
-          enc: sec.enc !== undefined ? sec.enc : true,
+          enc: sec.enc !== undefined ? sec.enc : false,
           ids: sec.ids || false
         }
       });

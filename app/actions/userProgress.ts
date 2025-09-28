@@ -58,50 +58,71 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
     const { accessCode, username, role } = params;
     await connectDb();
 
+    // First, find the access code without incrementing
     const codeDocument = await AccessCodeModel.findOne({ code: accessCode, isActive: true });
+
     if (!codeDocument) {
       return { success: false, error: "Invalid access code" };
     }
 
-    // Usage limit checks
-    if (codeDocument.maxUsages && codeDocument.usageCount >= codeDocument.maxUsages) {
-      return { success: false, error: "Access code usage limit reached" };
-    }
-
-  const team = await Team.findOne({ accessCodeId: codeDocument._id });
+    const team = await Team.findOne({ accessCodeId: codeDocument._id });
     if (!team) {
       return { success: false, error: "Team not found for this code" };
     }
-  const members: TeamMemberType[] = (team.teamMembers as unknown as TeamMemberType[]) || [];
+    const members: TeamMemberType[] = (team.teamMembers as unknown as TeamMemberType[]) || [];
 
-    // Check if role is available based on team size limits
+    // Check if role is available based on team size limits BEFORE incrementing usage
     const teamSize = team.numberOfPlayers;
     const roleLimits = ROLE_LIMITS[teamSize as keyof typeof ROLE_LIMITS] || ROLE_LIMITS[4];
-  const normalizedRole = role.toLowerCase();
-  const currentRoleCount = members.filter((m: TeamMemberType) => m.role && m.role.toLowerCase() === normalizedRole).length;
-  const maxAllowed = roleLimits[normalizedRole as keyof typeof roleLimits] || 0;
+    const normalizedRole = role.toLowerCase();
+    const currentRoleCount = members.filter((m: TeamMemberType) => m.role && m.role.toLowerCase() === normalizedRole).length;
+    const maxAllowed = roleLimits[normalizedRole as keyof typeof roleLimits] || 0;
 
     if (currentRoleCount >= maxAllowed) {
       return { success: false, error: `Role "${role}" limit reached for this team size` };
     }
 
     // Find first available member slot
-  const memberIndex = members.findIndex((m: TeamMemberType) => !m.accessCodeUsed);
+    const memberIndex = members.findIndex((m: TeamMemberType) => !m.accessCodeUsed);
     if (memberIndex === -1) {
       return { success: false, error: "No available slots for this team" };
     }
 
+    // Now increment usage count atomically and check limit
+    const updatedCodeDocument = await AccessCodeModel.findOneAndUpdate(
+      { _id: codeDocument._id, isActive: true },
+      { $inc: { usageCount: 1 } },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedCodeDocument) {
+      return { success: false, error: "Failed to update access code usage" };
+    }
+
+    // Check if usage limit was exceeded after increment
+    if (updatedCodeDocument.maxUsages && updatedCodeDocument.usageCount > updatedCodeDocument.maxUsages) {
+      // Usage exceeded, revert the increment and return error
+      await AccessCodeModel.findOneAndUpdate(
+        { _id: updatedCodeDocument._id },
+        { $inc: { usageCount: -1 } }
+      );
+      return { success: false, error: "Access code usage limit reached" };
+    }
+
+    // Check if we should delete the code (usage count now equals max usages)
+    if (updatedCodeDocument.maxUsages && updatedCodeDocument.usageCount >= updatedCodeDocument.maxUsages) {
+      console.log(`Deleting access code ${updatedCodeDocument.code} as usage limit reached (usageCount=${updatedCodeDocument.usageCount}, maxUsages=${updatedCodeDocument.maxUsages})`);
+      await AccessCodeModel.findByIdAndDelete(updatedCodeDocument._id);
+      console.log(`Access code ${updatedCodeDocument.code} deleted`);
+    }
+
     team.teamMembers[memberIndex].username = username;
-  team.teamMembers[memberIndex].role = normalizedRole;
+    team.teamMembers[memberIndex].role = normalizedRole;
     team.teamMembers[memberIndex].accessCodeUsed = true;
     team.teamMembers[memberIndex].accessCodeUsedAt = new Date();
 
-    // Increment access code usage
-    codeDocument.usageCount += 1;
-    await codeDocument.save();
-
     // If all members joined, bring device online and start team timer
-  const allJoined = members.every((m: TeamMemberType) => m.accessCodeUsed);
+    const allJoined = members.every((m: TeamMemberType) => m.accessCodeUsed);
     if (allJoined) {
       if (team.deviceId) {
         await Device.findByIdAndUpdate(team.deviceId, { status: "online" });

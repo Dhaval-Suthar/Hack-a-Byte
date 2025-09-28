@@ -186,6 +186,8 @@ export interface AccessCodeEmailParams {
   playspaceName: string;
   walletAddress?: string;
   privateKey?: string;
+  deviceId?: string;
+  deviceMacAddress?: string;
 }
 
 export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
@@ -201,7 +203,9 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
       maxUsages,
       playspaceName,
       walletAddress,
-      privateKey
+      privateKey,
+      deviceId,
+      deviceMacAddress
     } = params;
 
     const mailOptions = {
@@ -404,6 +408,18 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
                   <span class="detail-label">Environment:</span>
                   <span class="detail-value">${playspaceName}</span>
                 </div>
+                ${deviceId ? `
+                <div class="detail-row">
+                  <span class="detail-label">Device ID:</span>
+                  <span class="detail-value">${deviceId}</span>
+                </div>
+                ` : ''}
+                ${deviceMacAddress ? `
+                <div class="detail-row">
+                  <span class="detail-label">MAC Address:</span>
+                  <span class="detail-value">${deviceMacAddress}</span>
+                </div>
+                ` : ''}
                 <div class="detail-row">
                   <span class="detail-label">Email:</span>
                   <span class="detail-value">${email}</span>
