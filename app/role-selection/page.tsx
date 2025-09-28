@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAvailableRoles, validateAndUseAccessCode } from "@/app/actions/userProgress";
 import { CHARACTER_INFO, ROLE_LIMITS } from "@/lib/constants/app-constants";
 import { logger } from "@/lib/logger";
@@ -95,8 +95,8 @@ function RoleSelectionClient() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // New state for enhanced user experience
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [showSelectionEffect, setShowSelectionEffect] = useState(false);
+  // const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  // const [showSelectionEffect, setShowSelectionEffect] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -113,7 +113,7 @@ function RoleSelectionClient() {
   const [displayedLines, setDisplayedLines] = useState<number>(0);
 
   // Play sound effect function
-  const playSound = (type: "select" | "error" | "submit" | "hover") => {
+  const playSound = () => {
     if (typeof window === "undefined") return;
     if (!audioRef.current) return;
 
@@ -221,10 +221,10 @@ function RoleSelectionClient() {
   // Effect for showing selection animation
   useEffect(() => {
     if (selectedRole) {
-      playSound("select");
-      setShowSelectionEffect(true);
+      playSound();
+      // setShowSelectionEffect(true);
       const timer = setTimeout(() => {
-        setShowSelectionEffect(false);
+        // setShowSelectionEffect(false);
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -233,7 +233,7 @@ function RoleSelectionClient() {
   // Effect for error sound
   useEffect(() => {
     if (error) {
-      playSound("error");
+      playSound();
     }
   }, [error]);
 
@@ -275,7 +275,7 @@ function RoleSelectionClient() {
     if (!selectedRole) return setError("Select a role");
 
     // Play submit sound
-    playSound("submit");
+    playSound();
 
     const res = await validateAndUseAccessCode({ accessCode, username: username.trim(), role: selectedRole });
     if (!res.success) {
@@ -644,7 +644,7 @@ function RoleSelectionClient() {
                           whileTap={isAvailable ? { scale: 0.97 } : {}}
                           onClick={() => {
                             if (!isAvailable) {
-                              playSound("error");
+                              playSound();
                               setError(`Role already taken: ${character.name}`);
                               return;
                             }
@@ -652,13 +652,13 @@ function RoleSelectionClient() {
                           }}
                           onMouseEnter={() => {
                             if (isAvailable) {
-                              setHoveredCard(characterName);
-                              playSound("hover");
+                              // setHoveredCard(characterName);
+                              playSound();
                             }
                           }}
                           onMouseLeave={() => {
                             if (isAvailable) {
-                              setHoveredCard(null);
+                              // setHoveredCard(null);
                             }
                           }}
                           className={`
@@ -711,7 +711,7 @@ function RoleSelectionClient() {
                                 }}
                               >
                                 {[...Array(40)]
-                                  .map((_, j) => String.fromCharCode(48 + Math.floor(Math.random() * 74)))
+                                  .map(() => String.fromCharCode(48 + Math.floor(Math.random() * 74)))
                                   .join("")}
                               </motion.div>
                             ))}
@@ -736,7 +736,7 @@ function RoleSelectionClient() {
                                 }}
                               >
                                 {[...Array(20)]
-                                  .map((_, j) => String.fromCharCode(48 + Math.floor(Math.random() * 74)))
+                                  .map(() => String.fromCharCode(48 + Math.floor(Math.random() * 74)))
                                   .join("")}
                               </motion.div>
                             ))}

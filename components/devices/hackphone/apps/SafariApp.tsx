@@ -675,9 +675,9 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     addNotification({ type: 'success', message: `Bookmarked "${title}"` });
   }, [addNotification]);
 
-  const removeBookmark = useCallback((id: string) => {
-    setBookmarks(prev => prev.filter(b => b.id !== id));
-  }, []);
+  // const removeBookmark = useCallback((id: string) => {
+  //   setBookmarks(prev => prev.filter(b => b.id !== id));
+  // }, []);
 
 
   // Security assessment - modified to be less accurate and create confusion

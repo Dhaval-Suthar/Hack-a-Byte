@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { logger } from '@/lib/logger';
@@ -939,7 +939,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   const [discoveredDevices, setDiscoveredDevices] = useState<number>(0);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'mission' | 'transfers' | 'wallets'>('mission');
-  const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
+  // const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
   // Store team ID for future use
   const [, setOwnTeamId] = useState<string | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
@@ -1112,7 +1112,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     setTimeout(() => {
       window.location.href = '/game-over';
     }, 5000);
-  }, []);
+  }, [addNotification]);
 
   // Socket event listeners for game termination
   useEffect(() => {
@@ -1252,7 +1252,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
         // Find own team wallet
         const ownTeam = walletsWithAddresses.find((w: WalletInfo) => w.isOwnTeam);
         if (ownTeam) {
-          setOwnTeamBalance(ownTeam.balance);
+          // setOwnTeamBalance(ownTeam.balance);
         }
       } else {
         addNotification(`[ERROR] Wallet data retrieval failed: ${result.error || 'Unknown error'}`);
@@ -1274,7 +1274,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setOwnTeamBalance(result.balance);
+        // setOwnTeamBalance(result.balance);
         setOwnTeamId(result.teamId);
       }
     } catch (error) {
