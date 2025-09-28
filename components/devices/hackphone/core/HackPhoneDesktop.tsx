@@ -32,6 +32,7 @@ const HackPhoneDesktop = () => {
   const [deviceId, setDeviceId] = useState<string | undefined>();
   const [playspaceId, setPlayspaceId] = useState<string | undefined>();
   const [teamId, setTeamId] = useState<string | undefined>();
+  const [teamSize, setTeamSize] = useState<number | undefined>();
   const [isPortrait, setIsPortrait] = useState(true);
 
   // Use the navigation hook
@@ -99,6 +100,16 @@ const HackPhoneDesktop = () => {
             const teamData = await teamResponse.json();
             if (teamData.success) {
               setTeamId(teamData.teamId);
+              // Fetch team size
+              try {
+                const sizeResponse = await fetch(`/api/team/size?teamId=${teamData.teamId}`);
+                const sizeData = await sizeResponse.json();
+                if (sizeData.success) {
+                  setTeamSize(sizeData.numberOfPlayers);
+                }
+              } catch (error) {
+                logger.error('Failed to fetch team size:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+              }
             }
           } catch (error) {
             logger.error('Failed to fetch team ID:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -205,6 +216,8 @@ const HackPhoneDesktop = () => {
           ) : (
             <HackPhoneHomeScreen
               onAppOpen={handleAppOpen}
+              user={user}
+              teamSize={teamSize}
             />
           )}
         </div>

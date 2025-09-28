@@ -6,8 +6,67 @@ import { APP_REGISTRY, DOCK_APPS, getAppById } from "../shared/AppRegistry";
 import { HomeScreenProps, AppConfig } from "@/types/devices";
 import { useSocket } from '@/hooks/useSocket';
 
+// Permission matrix: teamSize -> role -> [settings, messages, mail, safari, appStore, sentinel, game, mining, stocks, allOthers]
+const PERMISSION_MATRIX: Record<number, Record<string, boolean[]>> = {
+  1: {
+    professor: [true, true, true, true, true, true, true, true, true, true]
+  },
+  2: {
+    professor: [false, false, false, false, true, true, true, true, true, true],
+    berlin: [true, true, true, true, false, false, false, false, false, true]
+  },
+  3: {
+    professor: [false, false, false, false, false, true, true, true, true, true],
+    berlin: [true, true, true, true, false, false, false, false, false, true],
+    rio: [false, false, false, false, true, false, false, false, false, true],
+    tokyo: [false, false, false, false, true, false, false, false, false, true]
+  },
+  4: {
+    professor: [false, false, false, false, false, true, false, false, true, true],
+    berlin: [true, false, false, false, false, false, false, false, false, true],
+    rio: [false, false, false, false, true, false, false, false, false, true],
+    tokyo: [false, false, false, false, true, false, false, false, false, true],
+    nairobi: [false, true, true, true, false, false, true, true, false, true],
+    denver: [false, true, true, true, false, false, true, true, false, true]
+  },
+  5: {
+    professor: [false, false, false, false, false, true, false, false, true, true],
+    berlin: [true, false, false, false, false, false, false, false, false, true],
+    rio: [false, false, false, false, true, false, false, false, false, true],
+    tokyo: [false, false, false, false, true, false, false, false, false, true],
+    nairobi: [false, true, true, true, false, false, true, true, false, true],
+    denver: [false, true, true, true, false, false, true, true, false, true]
+  },
+  6: {
+    professor: [false, false, false, false, false, true, false, false, true, true],
+    berlin: [true, false, false, false, false, false, false, false, false, true],
+    rio: [false, false, false, false, true, false, false, false, false, true],
+    tokyo: [false, false, false, false, true, false, false, false, false, true],
+    nairobi: [false, true, true, true, false, false, true, true, false, true],
+    denver: [false, true, true, true, false, false, true, true, false, true]
+  }
+};
+
+// Special apps in order: settings, messages, mail, safari, appStore, sentinel, game, mining, stocks
+const SPECIAL_APPS = ['settings', 'messages', 'mail', 'safari', 'appStore', 'sentinel', 'game', 'mining', 'stocks'];
+
+function isAppAllowed(appId: string, teamSize: number, role: string): boolean {
+  const normalizedRole = role.toLowerCase();
+  const matrix = PERMISSION_MATRIX[teamSize]?.[normalizedRole];
+  if (!matrix) return true; // default allow if not defined
+
+  const specialIndex = SPECIAL_APPS.indexOf(appId);
+  if (specialIndex !== -1) {
+    return matrix[specialIndex];
+  } else {
+    return matrix[9]; // all others
+  }
+}
+
 const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,
+  user,
+  teamSize
 }) => {
   const [currentPage, setCurrentPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -44,7 +103,13 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   }, [ransomSpawns]);
 
   // Use the app registry instead of hardcoded apps
-  const apps = useMemo(() => APP_REGISTRY, []);
+  const apps = useMemo(() => {
+    if (!user?.role || !teamSize) return APP_REGISTRY; // if no user or teamSize, show all unlocked
+    return APP_REGISTRY.map(app => ({
+      ...app,
+      isLocked: !isAppAllowed(app.id, teamSize, user.role!)
+    }));
+  }, [user?.role, teamSize]);
 
   // Distribute apps across exactly 3 pages in a round-robin fashion to "scatter" them
   const TOTAL_PAGES = 3;
