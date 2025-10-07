@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { logger } from '@/lib/logger';
 import Alert from '@/components/ui/Alert';
+import TeamTimerDisplay from '@/components/timer/TeamTimerDisplay';
+import { getPlayspaceId } from '@/lib/playspace-utils';
 
 // Type definitions
 interface DeviceSettings {
@@ -115,6 +117,9 @@ const SettingsApp: React.FC = () => {
   const [encryptionEnabled, setEncryptionEnabled] = useState<boolean>(false);
   const [antivirusEnabled, setAntivirusEnabled] = useState<boolean>(false);
 
+  // Team information
+  const [teamId, setTeamId] = useState<string | null>(null);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Load settings from database
@@ -172,6 +177,22 @@ const SettingsApp: React.FC = () => {
           // Set PIN settings
           setPinEnabled(!!device.pin);
         }
+      }
+
+      // Load team information using playspaceId
+      try {
+        const playspaceId = getPlayspaceId();
+        if (playspaceId) {
+          const teamResponse = await fetch(`/api/team/get-team-id?playspaceId=${playspaceId}`);
+          if (teamResponse.ok) {
+            const teamData = await teamResponse.json();
+            if (teamData.success && teamData.teamId) {
+              setTeamId(teamData.teamId);
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Failed to load team information:', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     } catch (error) {
       logger.error('Failed to load settings from database:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -825,6 +846,32 @@ const SettingsApp: React.FC = () => {
               )}
             </div>
             )}
+
+            {/* Team Timer Group */}
+            <div className="bg-white border-t border-b border-gray-300 mt-4">
+              <div className="px-4 py-3">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center mr-3">
+                    <span className="text-white text-lg">⏱️</span>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-base text-black font-medium">Team Timer</span>
+                  </div>
+                </div>
+                <div className="ml-11">
+                  {teamId ? (
+                    <TeamTimerDisplay teamId={teamId} />
+                  ) : (
+                    <div className="text-gray-500 text-sm">
+                      <div className="flex items-center">
+                        <span className="mr-2">⏱️</span>
+                        <span>No team timer active</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Version Info Footer */}
             <div className="mt-8 px-4 text-center text-xs text-gray-400">

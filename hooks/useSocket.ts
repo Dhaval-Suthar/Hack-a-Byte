@@ -103,6 +103,11 @@ export interface DataMinerExfilEvent { targetTeamId: string; walletAddress: stri
 export interface WalletTransferEvent { fromAddress: string; toAddress: string; amount: number; senderBalance: number; receiverBalance: number; ts: number; }
 export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; reward: number; attempts: number; windowExpires: number; balance: number; ts: number; }
 
+// Team timer events
+export interface TeamTimerStartedEvent { teamId: string; deviceId: string; startTime: number; endTime: number; duration: number; message: string; }
+export interface TeamTimerExpiredEvent { teamId: string; deviceId: string; message: string; }
+export interface TeamTimerStoppedEvent { teamId: string; message: string; }
+
 // Room join caches (dedupe joins per tab + enables auto-rejoin on reconnect)
 const joinedTeamsGlobal = new Set<string>();
 const joinedUsersGlobal = new Set<string>();
@@ -155,6 +160,11 @@ export const useSocket = () => {
   const [dataMinerExfils, setDataMinerExfils] = useState<DataMinerExfilEvent[]>([]);
   const [walletTransfers, setWalletTransfers] = useState<WalletTransferEvent[]>([]);
   const [miningRewards, setMiningRewards] = useState<MiningRewardEvent[]>([]);
+  
+  // Team timer events
+  const [teamTimerStarted, setTeamTimerStarted] = useState<TeamTimerStartedEvent[]>([]);
+  const [teamTimerExpired, setTeamTimerExpired] = useState<TeamTimerExpiredEvent[]>([]);
+  const [teamTimerStopped, setTeamTimerStopped] = useState<TeamTimerStoppedEvent[]>([]);
 
   useEffect(() => {
     // Use the global socket and set up event handlers
@@ -438,6 +448,34 @@ export const useSocket = () => {
       setWalletTransfers(prev => [...prev, data]);
     });
 
+    // Team timer events
+    addHandler('team-timer-started', (dataUnknown: unknown) => {
+      const data = dataUnknown as TeamTimerStartedEvent;
+      setTeamTimerStarted(prev => [...prev, data]);
+      // Auto-remove after 10 seconds to avoid memory buildup
+      setTimeout(() => {
+        setTeamTimerStarted(prev => prev.filter(event => event.startTime !== data.startTime));
+      }, 10000);
+    });
+
+    addHandler('team-timer-expired', (dataUnknown: unknown) => {
+      const data = dataUnknown as TeamTimerExpiredEvent;
+      setTeamTimerExpired(prev => [...prev, data]);
+      // Auto-remove after 30 seconds
+      setTimeout(() => {
+        setTeamTimerExpired(prev => prev.filter(event => event !== data));
+      }, 30000);
+    });
+
+    addHandler('team-timer-stopped', (dataUnknown: unknown) => {
+      const data = dataUnknown as TeamTimerStoppedEvent;
+      setTeamTimerStopped(prev => [...prev, data]);
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        setTeamTimerStopped(prev => prev.filter(event => event !== data));
+      }, 10000);
+    });
+
     return () => {
       // Remove this hook instance's event handlers to avoid duplicates
       if (globalSocket && localHandlers.length) {
@@ -600,6 +638,9 @@ export const useSocket = () => {
     dataMinerExfils,
     walletTransfers,
     miningRewards,
+    teamTimerStarted,
+    teamTimerExpired,
+    teamTimerStopped,
     sendMalwareAttack,
     triggerAttackEffect,
     joinTeam,

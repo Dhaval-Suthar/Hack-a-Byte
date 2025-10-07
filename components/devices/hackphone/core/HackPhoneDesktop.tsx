@@ -15,6 +15,8 @@ import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
 import dynamic from 'next/dynamic';
 import { logger } from '@/lib/logger';
+import TimerExpirationModal from '@/components/timer/TimerExpirationModal';
+import { useSocket } from '@/hooks/useSocket';
 
 // Lazy-load virus popups to avoid SSR issues
 const VirusPopups = dynamic(() => import('@/components/notifications/VirusPopups'), { ssr: false });
@@ -34,6 +36,10 @@ const HackPhoneDesktop = () => {
   const [teamId, setTeamId] = useState<string | undefined>();
   const [teamSize, setTeamSize] = useState<number | undefined>();
   const [isPortrait, setIsPortrait] = useState(true);
+  const [showTimerExpirationModal, setShowTimerExpirationModal] = useState(false);
+
+  // Use socket hook for timer expiration events
+  const { teamTimerExpired } = useSocket();
 
   // Use the navigation hook
   const { currentApp, openApp, closeApp, switchApp } = useAppNavigation();
@@ -181,6 +187,17 @@ const HackPhoneDesktop = () => {
     checkAuth();
   }, [searchParams, router, hasPasscode]);
 
+  // Handle timer expiration events
+  useEffect(() => {
+    if (teamTimerExpired.length > 0 && teamId) {
+      // Check if any of the timer expiration events are for our team
+      const relevantExpiration = teamTimerExpired.find(event => event.teamId === teamId);
+      if (relevantExpiration) {
+        setShowTimerExpirationModal(true);
+      }
+    }
+  }, [teamTimerExpired, teamId]);
+
   const handleAppOpen = (appId: string) => {
     openApp(appId);
   };
@@ -319,6 +336,12 @@ const HackPhoneDesktop = () => {
         <div className="relative z-10 w-[26%] h-[26%] mx-auto my-auto border-2 border-white/90 rounded-[6px] shadow-[0_0_1px_1px_rgba(255,255,255,0.5)]" />
       </button>
       </div>
+
+      {/* Timer Expiration Modal */}
+      <TimerExpirationModal 
+        isOpen={showTimerExpirationModal}
+        onClose={() => setShowTimerExpirationModal(false)}
+      />
     </DeviceStatusGuard>
   );
 };
