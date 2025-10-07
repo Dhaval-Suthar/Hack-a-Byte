@@ -1821,10 +1821,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         <span 
                           className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedDevice.deviceMacAddress);
-                            addNotification(`MAC address copied: ${selectedDevice.deviceMacAddress}`);
+                            navigator.clipboard.writeText(`${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
+                            addNotification(`Device info copied: ${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
                           }}
-                          title="Click to copy MAC address"
+                          title="Click to copy MAC and IP addresses"
                         >
                           {selectedDevice.deviceMacAddress}
                         </span>
@@ -1837,10 +1837,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         <span 
                           className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedDevice.ipAddress);
-                            addNotification(`IP address copied: ${selectedDevice.ipAddress}`);
+                            navigator.clipboard.writeText(`${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
+                            addNotification(`Device info copied: ${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
                           }}
-                          title="Click to copy IP address"
+                          title="Click to copy MAC and IP addresses"
                         >
                           {selectedDevice.ipAddress}
                         </span>
