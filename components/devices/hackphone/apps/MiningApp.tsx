@@ -29,6 +29,7 @@ const MiningApp: React.FC = () => {
   const [message, setMessage] = useState<string>("Arrange numbers in ascending order. Tap two tiles to swap.");
   // balanceDelta removed (unused)
   const [lastReward, setLastReward] = useState<number | null>(null);
+  const [roundClaimed, setRoundClaimed] = useState(false);
   const sortedValues = useMemo(() => [...tiles.map(t => t.value)].sort((a,b)=>a-b), [tiles]);
 
   // Check if player arrangement matches ascending order
@@ -79,6 +80,11 @@ const MiningApp: React.FC = () => {
       setMessage('❌ Not sorted yet. Keep arranging.');
       return;
     }
+    if (roundClaimed) {
+      setMessage('⚠️ Reward already claimed for this round.');
+      return;
+    }
+    setRoundClaimed(true);
     await awardBitcoin();
     // Start next round after short delay
     setTimeout(() => {
@@ -86,6 +92,7 @@ const MiningApp: React.FC = () => {
       setRound(r => r + 1);
       setMessage('Arrange numbers in ascending order.');
       setLastReward(null);
+      setRoundClaimed(false);
     }, 1500);
   };
 
@@ -106,10 +113,10 @@ const MiningApp: React.FC = () => {
           ))}
         </div>
         <div className="flex items-center space-x-4 pt-2">
-          <button disabled={isSubmitting || !isCorrect} onClick={submitRound} className="px-4 py-2 rounded-lg bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-green-500 font-semibold shadow">
-            {isSubmitting ? 'Crediting...' : `Claim ₿${REWARD_PER_ROUND}`}
+          <button disabled={isSubmitting || !isCorrect || roundClaimed} onClick={submitRound} className="px-4 py-2 rounded-lg bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-green-500 font-semibold shadow">
+            {isSubmitting ? 'Crediting...' : roundClaimed ? 'Claimed!' : `Claim ₿${REWARD_PER_ROUND}`}
           </button>
-          <button onClick={()=> { setTiles(generateRound()); setMessage('New numbers generated.'); setSelected(null); }} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium">Shuffle</button>
+          <button onClick={()=> { setTiles(generateRound()); setMessage('New numbers generated.'); setSelected(null); setRoundClaimed(false); }} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium">Shuffle</button>
         </div>
         <div className="text-xs text-gray-500">Round {round}</div>
         {lastReward && <div className="text-sm text-green-400">Last reward: ₿{lastReward}</div>}
