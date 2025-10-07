@@ -1813,6 +1813,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     </div>
                   </div>
                   
+                  
                   {/* Enhanced Device info grid with more hacker data */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="border border-green-900 p-2 bg-black bg-opacity-30">
