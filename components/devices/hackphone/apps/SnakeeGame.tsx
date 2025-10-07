@@ -632,14 +632,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
 
       placeFood();
 
-      // Handle tail removal based on food type
-      // Only remove tail for normal movement (no food eaten)
-      // For food eaten, we want to grow (don't remove tail)
-      if (!state.food) {
-        // No food eaten, remove tail (normal movement)
-        state.snake.shift();
-      }
-      // If food was eaten, don't remove tail (snake grows)
+      // Food was eaten, don't remove tail (snake grows)
     } else {
       // No food eaten, remove tail (normal movement)
       state.snake.shift();
@@ -1119,7 +1112,8 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
         cancelAnimationFrame(stateAtMount.animationId);
       }
     };
-  }, [initGame, draw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (isRunning && !isPaused) {
