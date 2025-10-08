@@ -5,63 +5,8 @@ import Image from "next/image";
 import { APP_REGISTRY, DOCK_APPS, getAppById } from "../shared/AppRegistry";
 import { HomeScreenProps, AppConfig } from "@/types/devices";
 import { useSocket } from '@/hooks/useSocket';
-
-// Permission matrix: teamSize -> role -> [settings, messages, mail, safari, appStore, sentinel, game, mining, stocks, allOthers]
-const PERMISSION_MATRIX: Record<number, Record<string, boolean[]>> = {
-  1: {
-    professor: [true, true, true, true, true, true, true, true, true, true]
-  },
-  2: {
-    professor: [false, false, false, false, true, true, true, true, true, true],
-    berlin: [true, true, true, true, false, false, false, false, false, true]
-  },
-  3: {
-    professor: [false, false, false, false, false, true, true, true, true, true],
-    berlin: [true, true, true, true, false, false, false, false, false, true],
-    rio: [false, false, false, false, true, false, false, false, false, true],
-    tokyo: [false, false, false, false, true, false, false, false, false, true]
-  },
-  4: {
-    professor: [false, false, false, false, false, true, false, false, true, true],
-    berlin: [true, false, false, false, false, false, false, false, false, true],
-    rio: [false, false, false, false, true, false, false, false, false, true],
-    tokyo: [false, false, false, false, true, false, false, false, false, true],
-    nairobi: [false, true, true, true, false, false, true, true, false, true],
-    denver: [false, true, true, true, false, false, true, true, false, true]
-  },
-  5: {
-    professor: [false, false, false, false, false, true, false, false, true, true],
-    berlin: [true, false, false, false, false, false, false, false, false, true],
-    rio: [false, false, false, false, true, false, false, false, false, true],
-    tokyo: [false, false, false, false, true, false, false, false, false, true],
-    nairobi: [false, true, true, true, false, false, true, true, false, true],
-    denver: [false, true, true, true, false, false, true, true, false, true]
-  },
-  6: {
-    professor: [false, false, false, false, false, true, false, false, true, true],
-    berlin: [true, false, false, false, false, false, false, false, false, true],
-    rio: [false, false, false, false, true, false, false, false, false, true],
-    tokyo: [false, false, false, false, true, false, false, false, false, true],
-    nairobi: [false, true, true, true, false, false, true, true, false, true],
-    denver: [false, true, true, true, false, false, true, true, false, true]
-  }
-};
-
-// Special apps in order: settings, messages, mail, safari, appStore, sentinel, game, mining, stocks
-const SPECIAL_APPS = ['settings', 'messages', 'mail', 'safari', 'appStore', 'sentinel', 'game', 'mining', 'stocks'];
-
-function isAppAllowed(appId: string, teamSize: number, role: string): boolean {
-  const normalizedRole = role.toLowerCase();
-  const matrix = PERMISSION_MATRIX[teamSize]?.[normalizedRole];
-  if (!matrix) return true; // default allow if not defined
-
-  const specialIndex = SPECIAL_APPS.indexOf(appId);
-  if (specialIndex !== -1) {
-    return matrix[specialIndex];
-  } else {
-    return matrix[9]; // all others
-  }
-}
+import { isHackPhoneAppAllowed } from '@/lib/role-access-matrix';
+import { getRoleAccessNotification } from '@/lib/role-access-notifications';
 
 const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
   onAppOpen,
@@ -102,12 +47,12 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
     }
   }, [ransomSpawns]);
 
-  // Use the app registry instead of hardcoded apps
+  // Use the app registry and apply role-based access control
   const apps = useMemo(() => {
     if (!user?.role || !teamSize) return APP_REGISTRY; // if no user or teamSize, show all unlocked
     return APP_REGISTRY.map(app => ({
       ...app,
-      isLocked: !isAppAllowed(app.id, teamSize, user.role!)
+      isLocked: !isHackPhoneAppAllowed(app.id, teamSize, user.role!)
     }));
   }, [user?.role, teamSize]);
 
@@ -126,7 +71,24 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
 
   const handleAppClick = (app: AppConfig) => {
     if (app.isLocked) {
-      // Show locked app notification
+      // Show role access notification
+      if (user?.role && teamSize) {
+        const notification = getRoleAccessNotification();
+        notification.show(app.name, user.role, teamSize);
+      } else {
+        // Fallback for when role/team data isn't available
+        console.warn(`Access denied: ${app.name} is restricted for your role.`);
+      }
+      
+      // Optional: Flash the app icon to indicate it's locked
+      const iconElement = document.querySelector(`[data-app-id="${app.id}"]`);
+      if (iconElement) {
+        iconElement.classList.add('animate-pulse');
+        setTimeout(() => {
+          iconElement.classList.remove('animate-pulse');
+        }, 1000);
+      }
+      
       return;
     }
 
@@ -240,10 +202,13 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
                       key={app.id}
                       onClick={() => handleAppClick(app)}
                       className="flex flex-col items-center group"
+                      data-app-id={app.id}
                     >
                       {/* App icon */}
                       <div
-                        className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5`}
+                        className={`w-[clamp(52px,9vw,68px)] h-[clamp(52px,9vw,68px)] rounded-[14px] flex items-center justify-center mb-2 shadow-[0_6px_14px_rgba(0,0,0,0.4)] group-active:scale-95 transition-transform duration-100 relative overflow-hidden bg-white/5 ${
+                          app.isLocked ? 'opacity-50 grayscale' : ''
+                        }`}
                       >
                         <Image
                           src={app.icon}
@@ -255,9 +220,30 @@ const HackPhoneHomeScreen: React.FC<HomeScreenProps> = ({
                         />
                         {/* Optional gloss */}
                         <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" />
+                        
+                        {/* Lock overlay for restricted apps */}
+                        {app.isLocked && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <svg 
+                              className="w-6 h-6 text-red-400" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                strokeWidth={2} 
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" 
+                              />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       {/* App name */}
-                      <span className="text-white text-[11px] font-medium text-center leading-tight max-w-full truncate drop-shadow">
+                      <span className={`text-white text-[11px] font-medium text-center leading-tight max-w-full truncate drop-shadow ${
+                        app.isLocked ? 'opacity-50' : ''
+                      }`}>
                         {app.name}
                       </span>
                     </button>
