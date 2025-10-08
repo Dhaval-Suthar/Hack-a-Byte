@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { logoutDeviceUser } from "@/app/actions/deviceUser";
 import audioManager from "@/components/devices/hackbook-w95/hooks/useAudioManager";
+import { isDesktopAppAllowed } from "@/lib/role-access-matrix";
 
 import Inbox from "@/components/devices/hackbook-w95/apps/Inbox";
 import InternetExplorer from "@/components/devices/hackbook-w95/apps/InternetExplorer";
@@ -148,6 +149,10 @@ const Desktop = () => {
 
   // Database-driven unlocked applications state
   const [unlockedApplications, setUnlockedApplications] = useState<string[]>([]);
+
+  // User role and team size for access control
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [teamSize, setTeamSize] = useState<number | null>(null);
 
   // Set client state after hydration to prevent SSR mismatch
   useEffect(() => {
@@ -467,6 +472,40 @@ const Desktop = () => {
             _id: devId,
             username: "User"
           });
+
+          // Load user role and team size from localStorage or fetch from server
+          try {
+            const storedRole = localStorage.getItem("selectedRole");
+            const storedTeamSize = localStorage.getItem("teamSize");
+            
+            if (storedRole) {
+              setUserRole(storedRole);
+            }
+            
+            if (storedTeamSize) {
+              setTeamSize(parseInt(storedTeamSize, 10));
+            }
+
+            // If we don't have role/team data in localStorage, try to fetch from server
+            if (!storedRole || !storedTeamSize) {
+              const { getDeviceUser } = await import('@/app/actions/deviceUser');
+              const deviceUserData = await getDeviceUser(devId, 'hackbook-w95');
+              
+              if (deviceUserData.isLoggedIn && deviceUserData.user?.role) {
+                setUserRole(deviceUserData.user.role);
+                localStorage.setItem("selectedRole", deviceUserData.user.role);
+              }
+              
+              // Try to get team size from the user's team
+              if (deviceUserData.user?.teamId) {
+                // You might need to implement a way to get team size from team data
+                // For now, we'll use what's in localStorage or default to null
+              }
+            }
+          } catch (error) {
+            logger.warn('Error loading user role/team data:', { error: error instanceof Error ? error.message : 'Unknown error' });
+            // Continue without role-based restrictions if we can't load the data
+          }
 
           // Check if user has seen mission briefing in user-specific storage
           import('./hooks/useUserStorage').then(({ userStorage }) => {
@@ -1076,6 +1115,18 @@ const Desktop = () => {
   // Open an application
   const handleOpenApp = useCallback(
     (app: App) => {
+      // Check role-based access control first
+      if (userRole && !isDesktopAppAllowed(app.name, userRole)) {
+        // Show access denied alert
+        setAlertMessage(
+          `Access Denied: Your role "${userRole}" does not have permission to use "${app.name}". ` +
+          `This application is restricted based on your team role and responsibilities.`
+        );
+        setAlertOpen(true);
+        playSound("error");
+        return;
+      }
+
       // Check if app is Notepad with filePath metadata
       const isNewNotepadFile = app.name === "Notepad" && app.metadata && app.metadata.filePath;
       
@@ -1153,7 +1204,7 @@ const Desktop = () => {
         deSelect();
       }
     },
-    [windowManager, deSelect, playSound, runningApps]
+    [windowManager, deSelect, playSound, runningApps, userRole]
   );
 
   // Listen for development app launch events
@@ -1567,15 +1618,33 @@ const Desktop = () => {
               
               // Always show basic apps (these are unlocked by default)
               const basicApps = ['Notepad', 'Calculator', 'Paint', 'MyComputer', 'Inbox', 'Terminal', 'Recycle Bin', 'Minesweeper', 'CD Player', 'WinTalk 95'];
-              if (basicApps.includes(app.name)) return true;
+              if (basicApps.includes(app.name)) {
+                // Even basic apps should respect role restrictions
+                if (userRole) {
+                  return isDesktopAppAllowed(app.name, userRole);
+                }
+                return true;
+              }
               
               // Special cases - these apps are never shown as desktop icons
               if (app.name === "Solitaire") return false;
               if (app.name === "Emergency Protocol") return false;
               
-              // For mission-specific apps, check database unlock status
+              // For mission-specific apps, check database unlock status AND role permissions
               if (['Network Neighborhood', 'Neural Network Analyzer', 'Secure Vault', 'Dev Tools'].includes(app.name)) {
-                return isUnlocked;
+                if (!isUnlocked) return false;
+                
+                // Check role-based access control
+                if (userRole && !isDesktopAppAllowed(app.name, userRole)) {
+                  return false;
+                }
+                
+                return true;
+              }
+              
+              // For other apps, check role permissions if user role is available
+              if (userRole && !isDesktopAppAllowed(app.name, userRole)) {
+                return false;
               }
               
               return true;
