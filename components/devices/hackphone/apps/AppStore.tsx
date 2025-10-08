@@ -487,6 +487,8 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     try {
       let deploymentMessage = `${deployItem.name} deployed successfully!`;
       let effectMessage = '';
+      // Track whether the attack was successful to determine if malware should be removed
+      let attackSuccess = false;
 
       // Special handling for fake site deployment and worm broadcast scams
       if (deployItem.category === 'worm' && (deployItem.name === 'EmailSpread Pro' || deployItem.name === 'SocialHook' || deployItem.name === 'NetCrawler')) {
@@ -508,6 +510,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           showAlert('Unable to determine your team. Please re-open App Store or rejoin your playspace.', 'error');
           return;
         }
+        
         const wormId = deployItem.name === 'EmailSpread Pro' ? 'worm-001' : deployItem.name === 'NetCrawler' ? 'worm-002' : 'worm-003';
         // Call backend to broadcast to all online hackphones
         const resp = await fetch('/api/attack/scam-broadcast', {
@@ -531,6 +534,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         const sms = Number(json?.sms ?? 0);
         effectMessage = `📡 Broadcast queued to ${recipients} online device(s)${emails?`, ${emails} email(s)`:''}${sms?`, ${sms} SMS`:''}.`;
         deploymentMessage = `${deployItem.name} executed: scam ${wormId==='worm-002'?'emails + SMS':''}${wormId==='worm-001'?'emails':''}${wormId==='worm-003'?'SMS':''} dispatched.`;
+        attackSuccess = true; // Worm broadcasts are always considered successful
       }
       else if (deployItem.name === 'SiteClone Pro' && deployData.targetUrl) {
         // Deploy SiteClone Pro fake site (no steal amount needed - random 10-20 BTC)
@@ -553,6 +557,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
           if (fakeData.success) {
             effectMessage = `🎭 Fake site deployed at ${deployData.targetUrl}! Will steal ${fakeData.targetAmount} BTC from each visitor.`;
             deploymentMessage = `${deployItem.name} successfully deployed fake site!`;
+            attackSuccess = true;
           } else {
             throw new Error(fakeData.error || 'Failed to deploy fake site');
           }
@@ -578,16 +583,47 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         
         const result = await response.json();
         if (response.ok && result.success) {
-          if (result.outcome === 'success') {
+          if (result.outcome === 'deployed') {
             effectMessage = `🔒 CryptoLocker Elite deployed on ${deployData.ipAddress}! Target team must complete typing challenge or face game-ending consequences.`;
+            attackSuccess = true;
           } else {
             effectMessage = `🔒 CryptoLocker Elite failed to penetrate target security defenses.`;
+            attackSuccess = false;
           }
         } else {
           throw new Error(result.error || 'CryptoLocker deployment failed');
         }
       } else if (deployItem.name === 'SystemLock Pro' && deployData.macAddress) {
         // Launch SystemLock Pro PIN cracking interface
+        
+        // First, notify the victim that they're being targeted
+        try {
+          const attackerTeamId = attackerTeamIdProp || user?.teamId;
+          const attackerName = user?.username || 'Unknown Attacker';
+          
+          // Send deployment notification to victim via API
+          const notificationResponse = await fetch('/api/attack/systemlock-pro-deployment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              attackerTeamId,
+              targetMAC: deployData.macAddress,
+              attackerName
+            })
+          });
+          
+          if (notificationResponse.ok) {
+            const notificationData = await notificationResponse.json();
+            if (notificationData.success) {
+              logger.info('SystemLock Pro deployment notification sent successfully');
+            }
+          } else {
+            logger.warn('Failed to send SystemLock Pro deployment notification');
+          }
+        } catch (error) {
+          logger.warn('Failed to send SystemLock Pro deployment notification:', { error });
+        }
+        
         setShowSystemLockProAttack(true);
         setSystemLockProTarget(deployData.macAddress);
         setDeployItem(null); // Close deployment modal
@@ -596,115 +632,124 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         // Regular malware deployment
         if (deployItem.category === 'virus') {
           const attackerTeamId = attackerTeamIdProp || user?.teamId;
-          if (!attackerTeamId) {
-            throw new Error('Attacker team ID not found');
-          }
+        if (!attackerTeamId) {
+          throw new Error('Attacker team ID not found');
+        }
 
-          // Call specific virus APIs
-          if (deployItem.id === 'virus-001') { // SysTrojan Pro
-            const targetDeviceId = deployData.targetDeviceId || deployData.macAddress; // Assume MAC is device ID for now
-            const response = await fetch('/api/attack/systrojan', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ targetDeviceId, attackerTeamId })
-            });
-            const result = await response.json();
-            if (result.success) {
-              if (result.outcome === 'destroyed') {
-                effectMessage = `💥 SysTrojan Pro destroyed target device! Siphoned ${result.siphon} BTC. Device is now under maintenance.`;
-              } else {
-                effectMessage = `🦠 SysTrojan Pro injection failed. Target security too strong.`;
-              }
+        // Call specific virus APIs
+        if (deployItem.id === 'virus-001') { // SysTrojan Pro
+          const targetDeviceId = deployData.targetDeviceId || deployData.macAddress; // Assume MAC is device ID for now
+          const response = await fetch('/api/attack/systrojan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetDeviceId, attackerTeamId })
+          });
+          const result = await response.json();
+          if (result.success) {
+            if (result.outcome === 'destroyed') {
+              effectMessage = `💥 SysTrojan Pro destroyed target device! Siphoned ${result.siphon} BTC. Device is now under maintenance.`;
+              attackSuccess = true;
             } else {
-              throw new Error(result.error || 'SysTrojan attack failed');
-            }
-          } else if (deployItem.id === 'virus-002') { // StealthViral
-            const targetKey = deployData.targetDeviceId || deployData.macAddress || 'unknown-target';
-            // Resolve target teamId via helper endpoint (by device MAC) - fallback to playspace team if not found
-            let targetTeamId: string | undefined;
-            try {
-              if (deployData.macAddress) {
-                const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
-                if (r.ok) {
-                  const j = await r.json();
-                  if (j?.success && j?.teamId) targetTeamId = j.teamId;
-                }
-              }
-            } catch (e) { logger.warn('Resolve target team failed (mac)', { error: e }); }
-            if (!targetTeamId) {
-              try {
-                const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
-                if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
-              } catch (e) { logger.warn('Resolve target team failed (ip)', { error: e }); }
-            }
-            if (!targetTeamId) {
-              showAlert('Could not resolve target team for StealthViral (missing mapping).', 'error');
-              throw new Error('Target team resolution failed');
-            }
-            const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
-              method: 'POST',
-              headers: { 'x-team-id': attackerTeamId, 'x-target-team-id': targetTeamId }
-            });
-            const result = await response.json();
-            if (result.success) {
-              if (result.outcome === 'failed') {
-                effectMessage = `🔍 StealthViral failed to infect target. Security defenses too strong.`;
-              } else {
-                effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
-              }
-            } else {
-              throw new Error(result.error || 'StealthViral deployment failed');
-            }
-          } else if (deployItem.id === 'virus-003') { // DataMiner X
-            const targetDeviceId = deployData.targetDeviceId || deployData.macAddress;
-            // Resolve target team as above
-            let targetTeamId: string | undefined;
-            try {
-              if (deployData.macAddress) {
-                const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
-                if (r.ok) { const j = await r.json(); if (j?.success && j?.teamId) targetTeamId = j.teamId; }
-              }
-            } catch {}
-            if (!targetTeamId) {
-              try {
-                const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
-                if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
-              } catch {}
-            }
-            const response = await fetch('/api/attack/dataminer', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ targetDeviceId, attackerTeamId, targetTeamId })
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
-              if (result.outcome === 'success') {
-                effectMessage = `⛏️ DataMiner X exfiltration successful! Retrieved private key: ${result.privateKey}`;
-              } else {
-                effectMessage = `⛏️ DataMiner X failed to penetrate target security.`;
-              }
-            } else {
-              if (response.status === 429) {
-                const resetTs: number | undefined = result?.reset;
-                const secs = resetTs ? Math.max(0, Math.ceil((resetTs - Date.now()) / 1000)) : undefined;
-                showAlert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`, 'warning');
-              }
-              throw new Error(result.error || 'DataMiner attack failed');
+              effectMessage = `🦠 SysTrojan Pro injection failed. Target security too strong.`;
+              attackSuccess = false;
             }
           } else {
-            effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
+            throw new Error(result.error || 'SysTrojan attack failed');
           }
+        } else if (deployItem.id === 'virus-002') { // StealthViral
+          const targetKey = deployData.targetDeviceId || deployData.macAddress || 'unknown-target';
+          // Resolve target teamId via helper endpoint (by device MAC) - fallback to playspace team if not found
+          let targetTeamId: string | undefined;
+          try {
+            if (deployData.macAddress) {
+              const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
+              if (r.ok) {
+                const j = await r.json();
+                if (j?.success && j?.teamId) targetTeamId = j.teamId;
+              }
+            }
+          } catch (e) { logger.warn('Resolve target team failed (mac)', { error: e }); }
+          if (!targetTeamId) {
+            try {
+              const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
+              if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
+            } catch (e) { logger.warn('Resolve target team failed (ip)', { error: e }); }
+          }
+          if (!targetTeamId) {
+            showAlert('Could not resolve target team for StealthViral (missing mapping).', 'error');
+            throw new Error('Target team resolution failed');
+          }
+          const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`, {
+            method: 'POST',
+            headers: { 'x-team-id': attackerTeamId, 'x-target-team-id': targetTeamId }
+          });
+          const result = await response.json();
+          if (result.success) {
+            if (result.outcome === 'failed') {
+              effectMessage = `🔍 StealthViral failed to infect target. Security defenses too strong.`;
+              attackSuccess = false;
+            } else {
+              effectMessage = `🔍 StealthViral deployed on ${targetKey}! Target must click rapidly to neutralize (${result.clicksRequired} clicks required).`;
+              attackSuccess = true;
+            }
+          } else {
+            throw new Error(result.error || 'StealthViral deployment failed');
+          }
+        } else if (deployItem.id === 'virus-003') { // DataMiner X
+          const targetDeviceId = deployData.targetDeviceId || deployData.macAddress;
+          // Resolve target team as above
+          let targetTeamId: string | undefined;
+          try {
+            if (deployData.macAddress) {
+              const r = await fetch(`/api/device/resolve-team?mac=${encodeURIComponent(deployData.macAddress)}`);
+              if (r.ok) { const j = await r.json(); if (j?.success && j?.teamId) targetTeamId = j.teamId; }
+            }
+          } catch {}
+          if (!targetTeamId) {
+            try {
+              const r2 = await fetch(`/api/device/resolve-team?ip=${encodeURIComponent(deployData.ipAddress||'')}`);
+              if (r2.ok) { const j2 = await r2.json(); if (j2?.success && j2?.teamId) targetTeamId = j2.teamId; }
+            } catch {}
+          }
+          const response = await fetch('/api/attack/dataminer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetDeviceId, attackerTeamId, targetTeamId })
+          });
+          const result = await response.json();
+          if (response.ok && result.success) {
+            if (result.outcome === 'success') {
+              effectMessage = `⛏️ DataMiner X exfiltration successful! Retrieved private key: ${result.privateKey}`;
+              attackSuccess = true;
+            } else {
+              effectMessage = `⛏️ DataMiner X failed to penetrate target security.`;
+              attackSuccess = false;
+            }
+          } else {
+            if (response.status === 429) {
+              const resetTs: number | undefined = result?.reset;
+              const secs = resetTs ? Math.max(0, Math.ceil((resetTs - Date.now()) / 1000)) : undefined;
+              showAlert(`Rate limited for DataMiner X. ${secs !== undefined ? `Try again in ~${secs}s.` : ''}`, 'warning');
+            }
+            throw new Error(result.error || 'DataMiner attack failed');
+          }
+        } else {
+          effectMessage = `🦠 Virus injected into ${targetInfo}. Target device may experience system instability.`;
+          attackSuccess = true; // Default virus success for backward compatibility
+        }
         } else if (deployItem.category === 'worm') {
-          effectMessage = `🕷️ Worm spreading from ${targetInfo}. Network propagation initiated.`;
-        } else if (deployItem.category === 'ransomware') {
-          // Only generic message for other ransomware (not CryptoLocker Elite)
-          if (deployItem.name !== 'CryptoLocker Elite') {
-            effectMessage = `🔒 Ransomware deployed. Target systems encrypted. Payment portal active at ${targetInfo}.`;
-          }
+        effectMessage = `🕷️ Worm spreading from ${targetInfo}. Network propagation initiated.`;
+        attackSuccess = true; // Default worm success for backward compatibility
+      } else if (deployItem.category === 'ransomware') {
+        // Only generic message for other ransomware (not CryptoLocker Elite)
+        if (deployItem.name !== 'CryptoLocker Elite') {
+          effectMessage = `🔒 Ransomware deployed. Target systems encrypted. Payment portal active at ${targetInfo}.`;
+          attackSuccess = true; // Default ransomware success for backward compatibility
         }
       }
+      } // Close the overall else block
 
-      // Remove the deployed malware from purchased list
+      // Remove the deployed malware from purchased list only if attack was successful
       const deployPlayspaceId = getPlayspaceId();
 
       const deployResponse = await fetch('/api/team', {
@@ -716,18 +761,21 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         body: JSON.stringify({
           operation: 'deployMalware',
           malwareId: deployItem.id,
+          success: attackSuccess,
         }),
       });
 
       if (deployResponse.ok) {
         const deployDataResult = await deployResponse.json();
         if (deployDataResult.success) {
-          // Update local state to remove the deployed malware
-          setPurchased(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(deployItem.id);
-            return newSet;
-          });
+          // Only update local state to remove the deployed malware if it was actually removed (successful attack)
+          if (deployDataResult.removed) {
+            setPurchased(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(deployItem.id);
+              return newSet;
+            });
+          }
 
           // Send real-time attack via Socket.IO (except for fake sites which are passive)
           const attackerPlayspaceId = getPlayspaceId();
@@ -786,7 +834,11 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
             });
           }
 
-          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n⚠️ This malware has been consumed and is no longer available for reuse.`, 'info');
+          const successMessage = attackSuccess 
+            ? `⚠️ This malware has been consumed and is no longer available for reuse.`
+            : `✅ Attack failed. Malware is still available for reuse.`;
+          
+          showAlert(`${deploymentMessage}\n\n${effectMessage}\n\n${successMessage}`, attackSuccess ? 'info' : 'warning');
 
           setDeployItem(null);
           setDeployData({});
@@ -1180,7 +1232,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.macAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
                       placeholder="00:1B:44:11:3A:B7"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s MAC address (e.g., 00:1B:44:11:3A:B7)
@@ -1192,7 +1244,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.ipAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                       placeholder="192.168.1.100"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1210,14 +1262,14 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                           value={deployData.emailSubject || ''}
                           onChange={(e) => setDeployData({ ...deployData, emailSubject: e.target.value })}
                           placeholder="Security Notice"
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 mb-2"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 mb-2 text-black"
                         />
                         <label className="block text-[12px] text-[#666] mb-1">Email Content</label>
                         <textarea
                           value={deployData.emailContent || ''}
                           onChange={(e) => setDeployData({ ...deployData, emailContent: e.target.value })}
                           placeholder="We detected unusual activity..."
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[80px]"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[80px] text-black"
                         />
                         <div className="text-[11px] text-[#888] mt-1">Email will be sent to all online hackphone devices.</div>
                       </>
@@ -1229,7 +1281,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                           value={deployData.smsContent || ''}
                           onChange={(e) => setDeployData({ ...deployData, smsContent: e.target.value })}
                           placeholder="Security alert: Suspicious activity detected..."
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[60px]"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[60px] text-black"
                         />
                         <div className="text-[11px] text-[#888] mt-1">SMS will be sent to all online hackphone devices.</div>
                       </>
@@ -1245,7 +1297,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.ipAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                       placeholder="192.168.1.100"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1262,7 +1314,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                         value={deployData.targetUrl || ""}
                         onChange={(e) => setDeployData({ ...deployData, targetUrl: e.target.value })}
                         placeholder="https://fake-crypto-reward.com"
-                        className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                        className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                       />
                       <div className="text-[11px] text-[#888] mt-1">
                         Enter the URL for your fake site (must start with http/https)
@@ -1276,7 +1328,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                             value={deployData.customTitle || ''}
                             onChange={e => setDeployData({ ...deployData, customTitle: e.target.value })}
                             placeholder="Crypto Bonus Portal"
-                            className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                           />
                           <div className="text-[11px] text-[#888] mt-1">Enter a convincing title for your fake site</div>
                         </div>
@@ -1286,7 +1338,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                             value={deployData.customDescription || ''}
                             onChange={e => setDeployData({ ...deployData, customDescription: e.target.value })}
                             placeholder="Limited time crypto rewards - Claim your bonus now!"
-                            className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                           />
                           <div className="text-[11px] text-[#888] mt-1">Enter a convincing description for your fake site</div>
                         </div>
@@ -1308,7 +1360,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     value={deployData.ipAddress || ""}
                     onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                     placeholder="192.168.1.100"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                   />
                   <div className="text-[11px] text-[#888] mt-1">
                     Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1322,7 +1374,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     type="number"
                     min="1"
                     step="1"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                   />
                   <div className="text-[11px] text-[#888] mt-1">
                     Optional: Custom ransom amount in Bitcoin (leave empty for auto-calculation)
@@ -1343,7 +1395,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.domainName || ""}
                       onChange={(e) => setDeployData({ ...deployData, domainName: e.target.value })}
                       placeholder="fake-bank-portal.com"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                     />
                     <div className="text-[11px] text-[#888] mt-1">Enter the domain for the fake payment portal</div>
                   </div>
@@ -1355,7 +1407,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     value={deployData.macAddress || ""}
                     onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
                     placeholder="aa:bb:cc:dd:ee:ff"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
                   />
                   <div className="text-[11px] text-[#888] mt-1">Enter the MAC address of the target device</div>
                 </div>

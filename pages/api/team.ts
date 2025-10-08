@@ -72,23 +72,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // Handle malware deployment (removal after use)
+      // Handle malware deployment (removal after use only on success)
       if (operation === "deployMalware" && malwareId) {
+        const { success: attackSuccess } = req.body;
         
         if (!team.purchasedMalware) {
           team.purchasedMalware = [];
         }
         
-        const malwareIndex = team.purchasedMalware.indexOf(malwareId);
-        if (malwareIndex !== -1) {
-          team.purchasedMalware.splice(malwareIndex, 1);
-          await team.save();
+        // Only remove malware from inventory if the attack was successful
+        if (attackSuccess === true) {
+          const malwareIndex = team.purchasedMalware.indexOf(malwareId);
+          if (malwareIndex !== -1) {
+            team.purchasedMalware.splice(malwareIndex, 1);
+            await team.save();
+          }
         }
         
         return res.status(200).json({
           success: true,
           purchasedMalware: team.purchasedMalware,
-          bitcoinBalance: team.wallet.bitcoinBalance
+          bitcoinBalance: team.wallet.bitcoinBalance,
+          removed: attackSuccess === true && team.purchasedMalware.indexOf(malwareId) === -1
         });
       }
 

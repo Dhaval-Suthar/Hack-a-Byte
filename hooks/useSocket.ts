@@ -88,6 +88,7 @@ export interface RansomwarePaid { targetKey: string; demand: number; defenderBal
 export interface RansomwareUnpaid { targetKey: string; demand: number; ts: number; }
 // SystemLock & SysTrojan events
 export interface SystemLockSuccess { attackerTeamId: string; amount: number; offlineUntil: number; ts: number; }
+export interface SystemLockProDeployment { attackerTeamId: string; attackerTeamName: string; attackerName: string; targetDevice: string; message: string; severity: string; type: string; ts: number; }
 export interface SysTrojanSuccess { targetDeviceId: string; siphon: number; newAttackerBalance: number; ts: number; }
 export interface SysTrojanFailure { targetDeviceId: string; ts: number; }
 export interface BankStateEvent { online: boolean; offlineUntil?: number; reason?: string; ts: number; }
@@ -149,6 +150,7 @@ export const useSocket = () => {
   const [ransomPaid, setRansomPaid] = useState<RansomwarePaid[]>([]);
   const [ransomUnpaid, setRansomUnpaid] = useState<RansomwareUnpaid[]>([]);
   const [systemLockEvents, setSystemLockEvents] = useState<SystemLockSuccess[]>([]);
+  const [systemLockProDeployments, setSystemLockProDeployments] = useState<SystemLockProDeployment[]>([]);
   const [sysTrojanSuccesses, setSysTrojanSuccesses] = useState<SysTrojanSuccess[]>([]);
   const [sysTrojanFailures, setSysTrojanFailures] = useState<SysTrojanFailure[]>([]);
   const [bankEvents, setBankEvents] = useState<BankStateEvent[]>([]);
@@ -321,6 +323,26 @@ export const useSocket = () => {
     addHandler('new-notification', (notificationUnknown: unknown) => {
       const notificationData = notificationUnknown as NotificationData;
       setNotifications(prev => [...prev, notificationData]);
+    });
+
+    // Handle general notification events (from our API)
+    addHandler('notification', (notificationUnknown: unknown) => {
+      const notificationData = notificationUnknown as NotificationData;
+      setNotifications(prev => [...prev, notificationData]);
+    });
+
+    // SystemLock Pro deployment notifications
+    addHandler('systemlock-pro-deployment', (dataUnknown: unknown) => {
+      const data = dataUnknown as SystemLockProDeployment;
+      setSystemLockProDeployments(prev => [...prev, data]);
+      // Also add to virus notifications for display
+      setVirusNotifications(prev => [...prev, {
+        targetKey: data.targetDevice,
+        virusType: 'SystemLock Pro',
+        message: data.message,
+        severity: 'critical' as const,
+        ts: data.ts
+      }]);
     });
 
     // Incoming attack stream (drives attack banner UI)
@@ -627,6 +649,7 @@ export const useSocket = () => {
     ransomPaid,
     ransomUnpaid,
     systemLockEvents,
+    systemLockProDeployments,
     sysTrojanSuccesses,
     sysTrojanFailures,
     bankEvents,
