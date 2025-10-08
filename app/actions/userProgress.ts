@@ -8,6 +8,7 @@ import Device from "@/models/Device";
 import DeviceUser, { MissionProgress, UserGameState } from "@/models/DeviceUser";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { teamTimerService } from '@/lib/teamTimerService';
 import { ROLE_LIMITS } from "@/lib/constants/app-constants";
 import { logger } from '@/lib/logger';
 
@@ -116,6 +117,11 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
       console.log(`Access code ${updatedCodeDocument.code} deleted`);
     }
 
+    // Check if this is the first member to join (BEFORE marking current member as joined)
+    const membersJoinedBefore = members.filter((m: TeamMemberType) => m.accessCodeUsed).length;
+    const isFirstMember = membersJoinedBefore === 0; // Before this member joined
+
+    // Mark current member as joined
     team.teamMembers[memberIndex].username = username;
     team.teamMembers[memberIndex].role = normalizedRole;
     team.teamMembers[memberIndex].accessCodeUsed = true;
@@ -129,6 +135,24 @@ export async function validateAndUseAccessCode(params: { accessCode: string; use
       }
       team.timer.startTime = new Date();
       team.timer.isActive = true;
+    }
+
+    // Start 1-hour auto-offline timer when first member comes online
+    if (isFirstMember && team.deviceId) {
+      try {
+        await teamTimerService.startTeamTimer(
+          team._id.toString(),
+          team.deviceId.toString()
+        );
+        logger.info(`Started 1-hour auto-offline timer for team ${team._id} (first member: ${username})`);
+      } catch (error) {
+        logger.error('Failed to start team auto-offline timer:', { 
+          teamId: team._id.toString(),
+          deviceId: team.deviceId.toString(),
+          username,
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        }, error as Error);
+      }
     }
 
     await team.save();

@@ -1451,8 +1451,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     );
   }
 
-  // Calculate stats for display (only hackphone devices)
-  const hackphoneDevices = devices.filter(d => d.deviceType === 'hackphone');
+  // Calculate stats for display (only hackphone devices that are online)
+  const hackphoneDevices = devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online');
   const cooldownRemaining = lastScanTime ? Math.max(0, SCAN_COOLDOWN_MS - (nowTs - lastScanTime)) : 0;
   const cooldownSeconds = Math.ceil(cooldownRemaining / 1000);
 
@@ -1579,7 +1579,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <HackerRadar 
                     isActive={isScanning} 
                     discoveredDevices={discoveredDevices}
-                    targets={scanCompleted && devices ? devices.filter(d => d.deviceType === 'hackphone').map(d => ({
+                    targets={scanCompleted && devices ? devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online').map(d => ({
                       x: Math.random() * 0.8 - 0.4,
                       y: Math.random() * 0.8 - 0.4,
                       status: d.status
@@ -1737,7 +1737,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     </div>
                   )}
                   <TerminalDeviceList
-                    devices={devices.filter(device => device.deviceType === 'hackphone')}
+                    devices={devices.filter(device => device.deviceType === 'hackphone' && device.status === 'online')}
                     selectedDevice={selectedDevice || undefined}
                     onDeviceSelect={async (device) => {
                       // Prevent selecting any device if one is already locked for this scan session
@@ -1772,7 +1772,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         `0x7FF8: extracting vulnerabilities`
                       ]);
                     }}
-                    lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone').map(d => d.id) : []}
+                    lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online').map(d => d.id) : []}
                     className="mb-4"
                   />
                 </>
@@ -1813,6 +1813,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     </div>
                   </div>
                   
+                  
                   {/* Enhanced Device info grid with more hacker data */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="border border-green-900 p-2 bg-black bg-opacity-30">
@@ -1821,10 +1822,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         <span 
                           className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedDevice.deviceMacAddress);
-                            addNotification(`MAC address copied: ${selectedDevice.deviceMacAddress}`);
+                            navigator.clipboard.writeText(`${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
+                            addNotification(`Device info copied: ${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
                           }}
-                          title="Click to copy MAC address"
+                          title="Click to copy MAC and IP addresses"
                         >
                           {selectedDevice.deviceMacAddress}
                         </span>
@@ -1837,10 +1838,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         <span 
                           className="text-green-500 break-all cursor-pointer hover:text-green-300 transition-colors"
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedDevice.ipAddress);
-                            addNotification(`IP address copied: ${selectedDevice.ipAddress}`);
+                            navigator.clipboard.writeText(`${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
+                            addNotification(`Device info copied: ${selectedDevice.deviceMacAddress} ${selectedDevice.ipAddress}`);
                           }}
-                          title="Click to copy IP address"
+                          title="Click to copy MAC and IP addresses"
                         >
                           {selectedDevice.ipAddress}
                         </span>
