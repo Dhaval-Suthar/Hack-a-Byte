@@ -595,6 +595,35 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       } else if (deployItem.name === 'SystemLock Pro' && deployData.macAddress) {
         // Launch SystemLock Pro PIN cracking interface
+        
+        // First, notify the victim that they're being targeted
+        try {
+          const attackerTeamId = attackerTeamIdProp || user?.teamId;
+          const attackerName = user?.username || 'Unknown Attacker';
+          
+          // Send deployment notification to victim via API
+          const notificationResponse = await fetch('/api/attack/systemlock-pro-deployment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              attackerTeamId,
+              targetMAC: deployData.macAddress,
+              attackerName
+            })
+          });
+          
+          if (notificationResponse.ok) {
+            const notificationData = await notificationResponse.json();
+            if (notificationData.success) {
+              logger.info('SystemLock Pro deployment notification sent successfully');
+            }
+          } else {
+            logger.warn('Failed to send SystemLock Pro deployment notification');
+          }
+        } catch (error) {
+          logger.warn('Failed to send SystemLock Pro deployment notification:', { error });
+        }
+        
         setShowSystemLockProAttack(true);
         setSystemLockProTarget(deployData.macAddress);
         setDeployItem(null); // Close deployment modal
