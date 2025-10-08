@@ -13,6 +13,7 @@ import { APP_ROLE_ACCESS, formatAllowedRoles } from '@/lib/constants/app-constan
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
 import { logger } from '@/lib/logger';
+import { isHackPhoneAppAllowed } from '@/lib/role-access-matrix';
 
 // Lazy load complex app components
 const CalculatorApp = lazy(() => import("../apps/CalculatorApp"));
@@ -120,82 +121,50 @@ const HackPhoneAppsRouter: React.FC<AppRouterProps> = ({
   );
 
   const renderApp = () => {
-    // Centralized role gating
-    let requiredRoles = APP_ROLE_ACCESS[appId];
+    // Use the new centralized role access control
     const normalizedRole = userRole?.toLowerCase() || null;
-    // Client-side mirror of small-team fallback; keep in sync with server logic
-    if (requiredRoles && teamSize) {
-      if (teamSize === 1) {
-        requiredRoles = []; // unrestricted
-      } else if (teamSize === 2) {
-        const onlyAttack = requiredRoles.every(r=>['rio','tokyo'].includes(r));
-        const onlyExtract = requiredRoles.every(r=>['nairobi','denver'].includes(r));
-        if (onlyAttack || onlyExtract) {
-          requiredRoles = [...requiredRoles, 'professor','berlin'];
-        }
-      } else if (teamSize === 3) {
-        const onlyExtract = requiredRoles.every(r=>['nairobi','denver'].includes(r));
-        if (onlyExtract) {
-          requiredRoles = [...requiredRoles, 'professor','rio','tokyo'];
-        }
-      }
+    
+    // Check if the current app is allowed for this user's role and team size
+    if (normalizedRole && teamSize && !isHackPhoneAppAllowed(appId, teamSize, normalizedRole)) {
+      return wrapWithErrorBoundary(
+        <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
+          <div className="text-center px-4">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold text-red-400 mb-4">Access Denied</h2>
+            <p className="text-gray-300 mb-4">
+              Your role <span className="font-semibold text-blue-400">{userRole}</span> in a team of <span className="font-semibold text-blue-400">{teamSize}</span> 
+              {' '}does not have permission to access this application.
+            </p>
+            <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">Role Restrictions</h3>
+              <p className="text-sm text-gray-400">
+                Access to <span className="font-semibold">{appId}</span> is restricted for your current role and team configuration.
+                Contact your team leader or check the role permissions matrix for more information.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>,
+        appId
+      );
     }
-    const isRestricted = Array.isArray(requiredRoles);
 
-    if (isRestricted) {
-      // Still loading role from localStorage
-      if (normalizedRole === null || (requiredRoles && teamSize === null)) {
-        return wrapWithErrorBoundary(
-          <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
-            <div className="text-center px-4">
-              <div className="text-2xl mb-4">⏳</div>
-              <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
-              <p className="text-gray-400 text-sm">Checking access permissions</p>
-            </div>
-          </div>,
-          appId
-        );
-      }
-      // Deny if user's role not allowed
-      if (requiredRoles.length && !requiredRoles.includes(normalizedRole)) {
-        // Special styling for appStore denial to retain prior UX flair
-        if (appId === 'appStore') {
-          return wrapWithErrorBoundary(
-            <div className="w-screen h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-red-900/30 flex flex-col font-sans text-white overflow-hidden relative">
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="text-6xl mb-4">🔒</div>
-                  <h3 className="text-xl font-bold text-red-400 mb-2">ACCESS DENIED</h3>
-                  <p className="text-gray-400 text-sm">Restricted to: {formatAllowedRoles(appId)}</p>
-                  <p className="text-gray-500 text-xs mt-2">Current role: {userRole}</p>
-                  <button 
-                    onClick={onClose}
-                    className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white text-sm transition-colors"
-                  >Return to Desktop</button>
-                </div>
-              </div>
-            </div>,
-            appId
-          );
-        }
-        // Generic denial UI
-        return wrapWithErrorBoundary(
-          <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
-            <div className="text-center px-4 max-w-xs">
-              <div className="text-5xl mb-4">🔒</div>
-              <h3 className="text-lg font-semibold text-white mb-2">Access Restricted</h3>
-              <p className="text-gray-400 text-sm mb-2">This application is limited to specific roles.</p>
-              <p className="text-gray-300 text-xs mb-4">Allowed: {formatAllowedRoles(appId)}</p>
-              <p className="text-gray-500 text-xs mt-2">Your role: {userRole}</p>
-              <button 
-                onClick={onClose}
-                className="mt-4 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-white text-xs"
-              >Return</button>
-            </div>
-          </div>,
-          appId
-        );
-      }
+    // Still loading role from localStorage
+    if (normalizedRole === null || teamSize === null) {
+      return wrapWithErrorBoundary(
+        <div className="w-screen h-screen bg-gray-900 flex items-center justify-center">
+          <div className="text-center px-4">
+            <div className="text-2xl mb-4">⏳</div>
+            <p className="text-gray-300">Loading user permissions...</p>
+          </div>
+        </div>,
+        appId
+      );
     }
 
     switch (appId) {
