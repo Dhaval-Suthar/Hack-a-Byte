@@ -14,6 +14,14 @@ export interface TeamTimer {
   totalPausedTime: number; // ms
 }
 
+export interface AutoOfflineTimer {
+  isActive: boolean;
+  startTime?: Date;
+  endTime?: Date;
+  completedAt?: Date;
+  stoppedAt?: Date;
+}
+
 export interface StockPortfolio {
   symbol: string;
   shares: number;
@@ -47,6 +55,8 @@ export interface EventTeam extends Document {
   teamMembers: TeamMember[];
   // Timer starts when all members join
   timer: TeamTimer;
+  // Auto-offline timer (1 hour after first member joins)
+  autoOfflineTimer: AutoOfflineTimer;
 }
 
 const TeamMemberSchema = new Schema<TeamMember>({
@@ -94,6 +104,14 @@ const TeamSchema = new Schema<EventTeam>(
       startTime: { type: Date },
       elapsedTime: { type: Number, default: 0 },
       totalPausedTime: { type: Number, default: 0 },
+    },
+    // Auto-offline timer
+    autoOfflineTimer: {
+      isActive: { type: Boolean, default: false },
+      startTime: { type: Date },
+      endTime: { type: Date },
+      completedAt: { type: Date },
+      stoppedAt: { type: Date },
     },
   },
   { timestamps: true }
