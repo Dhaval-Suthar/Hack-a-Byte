@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { logger } from '@/lib/logger';
-import { generateCodeSnippet, TerminalDeviceList } from './hackerUtils';
+import { generateCodeSnippet, TerminalDeviceList, shuffleArray } from './hackerUtils';
 import { getPlayspaceId } from '@/lib/playspace-utils';
 
 // Core interfaces - keeping the same data structure
@@ -14,7 +14,7 @@ interface DeviceInfo {
   deviceType: string;
   status: "online" | "offline" | "maintenance";
   ipAddress: string;
-  securityLevel: "low" | "medium" | "high";
+  securityLevel: "low" | "medium" | "high" | "extreme";
   vulnerabilities: string[];
   lastSeen: string;
   teamId?: string;
@@ -1059,8 +1059,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setDevices(result.devices);
-        addNotification(`[SUCCESS] Scan complete - ${result.devices.length} targets identified`);
+        // Randomize device order to confuse users about their own device
+        const randomizedDevices = shuffleArray(result.devices as DeviceInfo[]);
+        setDevices(randomizedDevices);
+        addNotification(`[SUCCESS] Scan complete - ${randomizedDevices.length} targets identified`);
       } else {
         addNotification(`[ERROR] Scan failed: ${result.error || 'Unknown error'}`);
       }
@@ -1135,24 +1137,47 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     setTimeout(() => setShowGlitch(false), 2000);
 
     try {
+      // Get device MAC address from localStorage
+      const deviceMacAddress = localStorage.getItem('device_mac_address');
+      
+      if (!deviceMacAddress) {
+        addNotification("[ERROR] Device MAC address not found");
+        setIsTerminating(false);
+        return;
+      }
+
+      // Get device ID from MAC address
+      const deviceIdResponse = await fetch(`/api/device/get-device-id?deviceMacAddress=${encodeURIComponent(deviceMacAddress)}`);
+      const deviceIdResult = await deviceIdResponse.json();
+
+      if (!deviceIdResponse.ok || !deviceIdResult.success) {
+        addNotification(`[ERROR] Failed to get device ID: ${deviceIdResult.error || 'Unknown error'}`);
+        setIsTerminating(false);
+        return;
+      }
+
+      const deviceId = deviceIdResult.deviceId;
+
+      // Terminate the specific device
       const response = await fetch('/api/admin/terminate-game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ deviceId })
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
         addNotification("[SUCCESS] Game terminated");
-        addNotification("[SYSTEM] All devices offline");
+        addNotification("[SYSTEM] Device offline");
         
         // Trigger local termination state
         setGameTerminated(true);
         
-        // Close the app after successful termination
+        // Redirect to device selection after successful termination
         setTimeout(() => {
-          onClose();
+          window.location.href = '/device-selection';
         }, 3000);
       } else {
         addNotification(`[ERROR] ${result.error || 'Unknown error'}`);
@@ -1289,19 +1314,19 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     vpn?: boolean;
     enc?: boolean;
     ids?: boolean;
-  }): "low" | "medium" | "high" => {
+  }): "low" | "medium" | "high" | "extreme" => {
     // Use provided securitySettings, or deviceSecuritySettings for selected device, or device configuration
     const settings = securitySettings || (selectedDevice?.id === device.id ? deviceSecuritySettings : null) || device.configuration?.securitySettings;
     if (!settings) return "medium"; // Default if no security settings available
 
-    let score = 100; // Start with perfect security
+    let score = 0; // Start with no security
 
-    // Check each security setting and reduce score if disabled
-    if (!settings.firewall) score -= 25;
-    if (!settings.antiVirus) score -= 20;
-    if (!settings.vpn) score -= 15;
-    if (!settings.enc) score -= 20;
-    if (!settings.ids) score -= 20;
+    // Add score for enabled security features
+    if (settings.firewall === true) score += 25;
+    if (settings.antiVirus === true) score += 20;
+    if (settings.vpn === true) score += 15;
+    if (settings.enc === true) score += 20;
+    if (settings.ids === true) score += 20;
 
     // High bitcoin balance indicates valuable target (potentially better secured)
     if (device.bitcoinBalance && device.bitcoinBalance > 50) {
@@ -1318,10 +1343,11 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
       score += 5;
     }
 
-    // Determine level based on score
-    if (score >= 80) return "high";
-    if (score >= 50) return "medium";
-    return "low";
+    // Determine level based on score (max base score is 100, but bonuses can increase it)
+    if (score >= 90) return "extreme"; // All 5 security features + bonuses
+    if (score >= 70) return "high";    // 3-4 security features + bonuses
+    if (score >= 35) return "medium";  // 1-2 security features + bonuses
+    return "low";                      // No security features enabled
   };
 
   // Generate vulnerabilities based on security settings
@@ -1705,7 +1731,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-green-600">Vulnerable:</span>
-                        <span className="text-yellow-400">{hackphoneDevices.filter(d => calculateSecurityLevel(d) === 'low').length}</span>
+                        <span className="text-yellow-400">{hackphoneDevices.filter(d => {
+                          const level = calculateSecurityLevel(d);
+                          return level === 'low' || level === 'medium';
+                        }).length}</span>
                       </div>
                     </div>
                   )}
@@ -1773,6 +1802,45 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       ]);
                     }}
                     lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online').map(d => d.id) : []}
+                    calculateSecurityLevel={(device) => {
+                      // Fetch security settings for this device to calculate dynamic security level
+                      // Check if security features are explicitly enabled (true)
+                      const hasFirewall = device.configuration?.securitySettings?.firewall === true;
+                      const hasAntivirus = device.configuration?.securitySettings?.antiVirus === true;
+                      const hasVpn = device.configuration?.securitySettings?.vpn === true;
+                      const hasEncryption = device.configuration?.securitySettings?.enc === true;
+                      const hasIds = device.configuration?.securitySettings?.ids === true;
+                      
+                      let score = 0; // Start with no security
+                      
+                      // Add score for enabled security features
+                      if (hasFirewall) score += 25;
+                      if (hasAntivirus) score += 20;
+                      if (hasVpn) score += 15;
+                      if (hasEncryption) score += 20;
+                      if (hasIds) score += 20;
+                      
+                      // High bitcoin balance indicates valuable target (potentially better secured)
+                      if (device.bitcoinBalance && device.bitcoinBalance > 50) {
+                        score += 10;
+                      }
+                      
+                      // Bank devices are typically more secure
+                      if (device.isBank) {
+                        score += 15;
+                      }
+                      
+                      // Status affects security
+                      if (device.status === 'online') {
+                        score += 5;
+                      }
+                      
+                      // Determine level based on score (max base score is 100, but bonuses can increase it)
+                      if (score >= 90) return "extreme"; // All 5 security features + bonuses
+                      if (score >= 75) return "high";    // 3-4 security features + bonuses
+                      if (score >= 35) return "medium";  // 1-2 security features + bonuses  
+                      return "low";                       // No security features enabled
+                    }}
                     className="mb-4"
                   />
                 </>
@@ -1913,7 +1981,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       <div className="text-xs text-red-700">
                         {calculateSecurityLevel(selectedDevice, deviceSecuritySettings || undefined) === 'low' ? '(CRITICAL ISSUES FOUND)' : 
                          calculateSecurityLevel(selectedDevice, deviceSecuritySettings || undefined) === 'medium' ? '(POTENTIAL ISSUES FOUND)' :
-                         '(NO CRITICAL ISSUES)'}
+                         calculateSecurityLevel(selectedDevice, deviceSecuritySettings || undefined) === 'high' ? '(MINOR ISSUES FOUND)' :
+                         '(FORTRESS-LEVEL SECURITY)'}
                       </div>
                     </div>
                     
@@ -2092,8 +2161,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     <div className="border-2 border-red-500 p-4 animate-pulse">
                       <div className="text-center text-red-500 font-bold">CONFIRM TERMINATION</div>
                       <div className="text-yellow-500 text-sm mt-2">
-                        This action will immediately terminate all connections, end the game session and redirect 
-                        all users to the game over screen. This action cannot be undone.
+                        This action will immediately terminate this device&apos;s connection, end the game session and redirect 
+                        to device selection. This action cannot be undone.
                       </div>
                     </div>
                     

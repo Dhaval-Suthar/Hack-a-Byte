@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
+// Fisher-Yates shuffle algorithm to randomize device order
+export const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array]; // Create a copy to avoid mutating the original array
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 // Hexadecimal code snippet generator for fake code display
 export const generateCodeSnippet = (): string[] => {
   const lines: string[] = [];
@@ -305,7 +315,7 @@ export const HackerNotification = ({
             className="ml-2 text-green-400 hover:text-green-200 text-lg leading-none"
           >
             ×
-          </button>
+          </button> 
         )}
       </div>
     </div>
@@ -664,7 +674,8 @@ export const TerminalDeviceList = ({
   selectedDevice,
   onDeviceSelect,
   lockedDevices = [],
-  className = ''
+  className = '',
+  calculateSecurityLevel
 }: {
   devices: Array<{
     id: string;
@@ -672,13 +683,23 @@ export const TerminalDeviceList = ({
     deviceType: string;
     status: "online" | "offline" | "maintenance";
     ipAddress: string;
-    securityLevel: "low" | "medium" | "high";
+    securityLevel: "low" | "medium" | "high" | "extreme";
     vulnerabilities: string[];
     lastSeen: string;
     teamId?: string;
     walletAddress?: string;
     bitcoinBalance?: number;
     isBank?: boolean;
+    configuration?: {
+      securitySettings?: {
+        firewall?: boolean;
+        antiVirus?: boolean;
+        vpn?: boolean;
+        enc?: boolean;
+        ids?: boolean;
+        vulnerabilities?: string[];
+      };
+    };
   }>;
   selectedDevice?: {
     id: string;
@@ -686,13 +707,23 @@ export const TerminalDeviceList = ({
     deviceType: string;
     status: "online" | "offline" | "maintenance";
     ipAddress: string;
-    securityLevel: "low" | "medium" | "high";
+    securityLevel: "low" | "medium" | "high" | "extreme";
     vulnerabilities: string[];
     lastSeen: string;
     teamId?: string;
     walletAddress?: string;
     bitcoinBalance?: number;
     isBank?: boolean;
+    configuration?: {
+      securitySettings?: {
+        firewall?: boolean;
+        antiVirus?: boolean;
+        vpn?: boolean;
+        enc?: boolean;
+        ids?: boolean;
+        vulnerabilities?: string[];
+      };
+    };
   };
   onDeviceSelect?: (device: {
     id: string;
@@ -700,48 +731,103 @@ export const TerminalDeviceList = ({
     deviceType: string;
     status: "online" | "offline" | "maintenance";
     ipAddress: string;
-    securityLevel: "low" | "medium" | "high";
+    securityLevel: "low" | "medium" | "high" | "extreme";
     vulnerabilities: string[];
     lastSeen: string;
     teamId?: string;
     walletAddress?: string;
     bitcoinBalance?: number;
     isBank?: boolean;
+    configuration?: {
+      securitySettings?: {
+        firewall?: boolean;
+        antiVirus?: boolean;
+        vpn?: boolean;
+        enc?: boolean;
+        ids?: boolean;
+        vulnerabilities?: string[];
+      };
+    };
   }) => void;
   lockedDevices?: string[];
   className?: string;
-}) => {
-  const formatLastSeen = (lastSeen: string) => {
-    const now = new Date();
-    const lastSeenDate = new Date(lastSeen);
-    const diffMs = now.getTime() - lastSeenDate.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-
-    if (diffMins < 1) return '<1m';
-    if (diffMins < 60) return `${diffMins}m`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d`;
-  };
-
-  const calculateSecurityLevel = (device: {
+  calculateSecurityLevel?: (device: {
     id: string;
     deviceMacAddress: string;
     deviceType: string;
     status: "online" | "offline" | "maintenance";
     ipAddress: string;
-    securityLevel: "low" | "medium" | "high";
+    securityLevel: "low" | "medium" | "high" | "extreme";
     vulnerabilities: string[];
     lastSeen: string;
     teamId?: string;
     walletAddress?: string;
     bitcoinBalance?: number;
     isBank?: boolean;
-  }): "low" | "medium" | "high" => {
-    if (device.vulnerabilities && device.vulnerabilities.length > 2) return 'low';
-    if (device.vulnerabilities && device.vulnerabilities.length > 0) return 'medium';
-    return 'high';
+    configuration?: {
+      securitySettings?: {
+        firewall?: boolean;
+        antiVirus?: boolean;
+        vpn?: boolean;
+        enc?: boolean;
+        ids?: boolean;
+        vulnerabilities?: string[];
+      };
+    };
+  }) => "low" | "medium" | "high" | "extreme";
+}) => {
+  const defaultCalculateSecurityLevel = (device: {
+    id: string;
+    deviceMacAddress: string;
+    deviceType: string;
+    status: "online" | "offline" | "maintenance";
+    ipAddress: string;
+    securityLevel: "low" | "medium" | "high" | "extreme";
+    vulnerabilities: string[];
+    lastSeen: string;
+    teamId?: string;
+    walletAddress?: string;
+    bitcoinBalance?: number;
+    isBank?: boolean;
+    configuration?: {
+      securitySettings?: {
+        firewall?: boolean;
+        antiVirus?: boolean;
+        vpn?: boolean;
+        enc?: boolean;
+        ids?: boolean;
+        vulnerabilities?: string[];
+      };
+    };
+  }): "low" | "medium" | "high" | "extreme" => {
+    // Use firewall settings to calculate dynamic security level
+    const hasFirewall = device.configuration?.securitySettings?.firewall === true;
+    const hasAntivirus = device.configuration?.securitySettings?.antiVirus === true;
+    const hasVpn = device.configuration?.securitySettings?.vpn === true;
+    const hasEncryption = device.configuration?.securitySettings?.enc === true;
+    const hasIds = device.configuration?.securitySettings?.ids === true;
+    
+    let score = 0; // Start with no security
+    
+    // Add score for enabled security features
+    if (hasFirewall) score += 25;
+    if (hasAntivirus) score += 20;
+    if (hasVpn) score += 15;
+    if (hasEncryption) score += 20;
+    if (hasIds) score += 20;
+    
+    // Fallback to vulnerability count if no security settings available
+    if (!device.configuration?.securitySettings) {
+      if (device.vulnerabilities && device.vulnerabilities.length > 2) return 'low';
+      if (device.vulnerabilities && device.vulnerabilities.length > 0) return 'medium';
+      return 'high';
+    }
+    
+    // Determine level based on score (max score is 100 with all features enabled)
+    if (score >= 80) return "extreme"; // 4-5 security features enabled
+    if (score >= 60) return "high";    // 3 security features enabled
+    if (score >= 25) return "medium";  // 1-2 security features enabled
+    return "low";                      // No security features enabled
   };
 
   return (
@@ -759,12 +845,10 @@ export const TerminalDeviceList = ({
 
       {/* Column headers */}
       <div className="px-3 py-2 border-b border-green-900 text-green-400 font-mono text-xs grid grid-cols-12 gap-2">
-        <div className="col-span-2 truncate">STATUS</div>
-        <div className="col-span-2 truncate">TYPE</div>
-        <div className="col-span-3 truncate">IP ADDRESS</div>
-        <div className="col-span-2 truncate">SECURITY</div>
-        <div className="col-span-2 truncate">LAST SEEN</div>
-        <div className="col-span-1 truncate text-center">VULN</div>
+        <div className="col-span-3 truncate">STATUS</div>
+        <div className="col-span-4 truncate">IP ADDRESS</div>
+        <div className="col-span-3 truncate">SECURITY</div>
+        <div className="col-span-2 truncate text-center">VULN</div>
       </div>
 
       {/* Device list */}
@@ -778,7 +862,7 @@ export const TerminalDeviceList = ({
         ) : (
           devices.map((device) => {
             const isLocked = lockedDevices.includes(device.id);
-            const securityLevel = calculateSecurityLevel(device);
+            const securityLevel = calculateSecurityLevel ? calculateSecurityLevel(device) : defaultCalculateSecurityLevel(device);
             const isSelected = selectedDevice?.id === device.id;
             const vulnCount = device.vulnerabilities?.length || 0;
 
@@ -793,7 +877,7 @@ export const TerminalDeviceList = ({
                 onClick={() => !isLocked && onDeviceSelect?.(device)}
               >
                 {/* Status */}
-                <div className="col-span-2 flex items-center">
+                <div className="col-span-3 flex items-center">
                   <span className={`h-2 w-2 rounded-full mr-2 ${
                     device.status === 'online' ? 'bg-green-500 animate-pulse' :
                     device.status === 'maintenance' ? 'bg-yellow-500 animate-ping' :
@@ -806,23 +890,19 @@ export const TerminalDeviceList = ({
                   }>
                     {device.status.toUpperCase()}
                   </span>
-                </div>
-
-                {/* Type */}
-                <div className="col-span-2 flex items-center space-x-1">
-                  <span className="text-green-300 truncate">{device.deviceType.toUpperCase()}</span>
-                  {device.isBank && <span className="text-yellow-500 flex-shrink-0">🏦</span>}
+                  {device.isBank && <span className="text-yellow-500 flex-shrink-0 ml-2">🏦</span>}
                 </div>
 
                 {/* IP Address */}
-                <div className="col-span-3 text-green-400 truncate" title={device.ipAddress}>
+                <div className="col-span-4 text-green-400 truncate" title={device.ipAddress}>
                   {device.ipAddress}
                 </div>
 
                 {/* Security Level */}
-                <div className="col-span-2 truncate">
+                <div className="col-span-3 truncate">
                   <span className={`
-                    ${securityLevel === 'high' ? 'text-red-500' :
+                    ${securityLevel === 'extreme' ? 'text-purple-500' :
+                      securityLevel === 'high' ? 'text-red-500' :
                       securityLevel === 'medium' ? 'text-yellow-500' :
                       'text-green-500'}
                     ${isSelected ? 'font-bold' : ''}
@@ -831,16 +911,14 @@ export const TerminalDeviceList = ({
                     {securityLevel === 'low' && isSelected && (
                       <span className="ml-1 animate-pulse">⚠️</span>
                     )}
+                    {securityLevel === 'extreme' && isSelected && (
+                      <span className="ml-1 animate-pulse">🛡️</span>
+                    )}
                   </span>
                 </div>
 
-                {/* Last Seen */}
-                <div className="col-span-2 text-green-600">
-                  {formatLastSeen(device.lastSeen)}
-                </div>
-
                 {/* Vulnerabilities */}
-                <div className="col-span-1 text-center">
+                <div className="col-span-2 text-center">
                   <span className={`
                     ${vulnCount > 2 ? 'text-red-500' :
                       vulnCount > 0 ? 'text-yellow-500' :

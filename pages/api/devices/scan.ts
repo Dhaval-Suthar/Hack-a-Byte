@@ -14,27 +14,51 @@ interface DeviceResponse {
   deviceType: string;
   status: string;
   ipAddress: string;
-  securityLevel: "low" | "medium" | "high";
+  securityLevel: "low" | "medium" | "high" | "extreme";
   vulnerabilities: string[];
   lastSeen: string;
   teamId?: string;
   bitcoinBalance?: number;
   isBank?: boolean;
+  configuration?: {
+    securitySettings?: {
+      firewall?: boolean;
+      antiVirus?: boolean;
+      vpn?: boolean;
+      enc?: boolean;
+      ids?: boolean;
+      vulnerabilities?: string[];
+    };
+  };
 }
 
 // Helper: build synthetic bank device based on centralized state
 function buildBankDevice(): DeviceResponse | null {
   if (!bankState.online) return null;
+  
+  // Banks typically have all security features enabled
+  const bankSecuritySettings = {
+    firewall: true,
+    antiVirus: true,
+    vpn: true,
+    enc: true,
+    ids: true,
+    vulnerabilities: []
+  };
+  
   return {
     id: 'bank-sim-device',
     deviceMacAddress: 'BA:NK:' + Math.random().toString(16).slice(2, 8).toUpperCase(),
     deviceType: 'bank',
     status: 'online',
     ipAddress: `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}`,
-    securityLevel: 'high',
+    securityLevel: calculateSecurityLevel(bankSecuritySettings),
     vulnerabilities: [],
     lastSeen: new Date().toISOString(),
     isBank: true,
+    configuration: {
+      securitySettings: bankSecuritySettings
+    }
   };
 }
 
@@ -91,7 +115,10 @@ export default async function handler(
         lastSeen: device.createdAt,
         teamId: teamInfo?.teamId,
         bitcoinBalance: teamInfo?.bitcoinBalance,
-        isBank: device.deviceType === 'bank'
+        isBank: device.deviceType === 'bank',
+        configuration: {
+          securitySettings: device.configuration?.securitySettings || {}
+        }
       };
     });
 
@@ -141,17 +168,25 @@ export default async function handler(
 function calculateSecurityLevel(securitySettings?: {
   firewall?: boolean;
   antiVirus?: boolean;
+  vpn?: boolean;
+  enc?: boolean;
+  ids?: boolean;
   vulnerabilities?: string[];
-}): "low" | "medium" | "high" {
+}): "low" | "medium" | "high" | "extreme" {
   if (!securitySettings) return "low";
 
   let score = 0;
 
-  if (securitySettings.firewall) score += 1;
-  if (securitySettings.antiVirus) score += 1;
-  if (!securitySettings.vulnerabilities || securitySettings.vulnerabilities.length === 0) score += 1;
+  // Add score for enabled security features (check if explicitly true)
+  if (securitySettings.firewall === true) score += 25;
+  if (securitySettings.antiVirus === true) score += 20;
+  if (securitySettings.vpn === true) score += 15;
+  if (securitySettings.enc === true) score += 20;
+  if (securitySettings.ids === true) score += 20;
 
-  if (score >= 2) return "high";
-  if (score === 1) return "medium";
-  return "low";
+  // Determine level based on score
+  if (score >= 80) return "extreme"; // 4-5 security features enabled
+  if (score >= 60) return "high";    // 3 security features enabled
+  if (score >= 25) return "medium";  // 1-2 security features enabled
+  return "low";                      // No security features enabled
 }
