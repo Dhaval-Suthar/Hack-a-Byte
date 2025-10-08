@@ -25,33 +25,61 @@ export default async function handler(
   try {
     await connectDb();
 
-    // Update all devices to offline status
-    const updateResult = await Device.updateMany(
-      { status: { $ne: 'offline' } }, // Only update devices that aren't already offline
+    const { deviceId } = req.body;
+
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Device ID is required'
+      });
+    }
+
+    // Terminate specific device by setting it to offline
+    const device = await Device.findByIdAndUpdate(
+      deviceId,
       { 
         status: 'offline',
         lastSeen: new Date().toISOString()
-      }
+      },
+      { new: true }
     );
 
-    const devicesOfflined = updateResult.modifiedCount;
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        error: 'Device not found'
+      });
+    }
 
-    // Emit game over event to all connected clients
+    // Emit socket event to notify only the specific device
     emitScoped(res, {
       scope: 'global',
       event: 'game-terminated',
       payload: {
-        message: 'Game has been terminated by administrator',
-        timestamp: new Date().toISOString(),
-        devicesOfflined
+        deviceId: device._id.toString(),
+        deviceMac: device.deviceMacAddress,
+        reason: 'admin-termination',
+        message: 'Game has been terminated by admin',
+        timestamp: new Date().toISOString()
       }
     });
 
+    // Also emit device status change for real-time updates
+    emitScoped(res, {
+      scope: 'global',
+      event: 'device-status',
+      payload: {
+        deviceId: device.deviceMacAddress,
+        status: 'offline',
+        ts: Date.now(),
+        reason: 'admin-termination',
+      }
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Game terminated successfully',
-      devicesOfflined
+      message: `Device ${device.deviceMacAddress} terminated successfully`,
+      devicesOfflined: 1
     });
 
   } catch (error) {
