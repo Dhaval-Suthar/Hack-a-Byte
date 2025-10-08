@@ -1451,8 +1451,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     );
   }
 
-  // Calculate stats for display (only hackphone devices)
-  const hackphoneDevices = devices.filter(d => d.deviceType === 'hackphone');
+  // Calculate stats for display (only hackphone devices that are online)
+  const hackphoneDevices = devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online');
   const cooldownRemaining = lastScanTime ? Math.max(0, SCAN_COOLDOWN_MS - (nowTs - lastScanTime)) : 0;
   const cooldownSeconds = Math.ceil(cooldownRemaining / 1000);
 
@@ -1579,7 +1579,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <HackerRadar 
                     isActive={isScanning} 
                     discoveredDevices={discoveredDevices}
-                    targets={scanCompleted && devices ? devices.filter(d => d.deviceType === 'hackphone').map(d => ({
+                    targets={scanCompleted && devices ? devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online').map(d => ({
                       x: Math.random() * 0.8 - 0.4,
                       y: Math.random() * 0.8 - 0.4,
                       status: d.status
@@ -1737,7 +1737,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     </div>
                   )}
                   <TerminalDeviceList
-                    devices={devices.filter(device => device.deviceType === 'hackphone')}
+                    devices={devices.filter(device => device.deviceType === 'hackphone' && device.status === 'online')}
                     selectedDevice={selectedDevice || undefined}
                     onDeviceSelect={async (device) => {
                       // Prevent selecting any device if one is already locked for this scan session
@@ -1772,7 +1772,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                         `0x7FF8: extracting vulnerabilities`
                       ]);
                     }}
-                    lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone').map(d => d.id) : []}
+                    lockedDevices={deviceLockedForScan ? devices.filter(d => d.deviceType === 'hackphone' && d.status === 'online').map(d => d.id) : []}
                     className="mb-4"
                   />
                 </>
