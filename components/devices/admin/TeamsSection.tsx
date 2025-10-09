@@ -10,6 +10,29 @@ interface TeamsSectionProps {
   onCreateTeam: (name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderId?: string) => Promise<void>;
   onUpdateTeam: (id: string, updates: { name?: string; description?: string; leaderUserId?: string }) => Promise<void>;
   onDeleteTeam: (id: string) => Promise<void>;
+  onUpdateTeamMoney?: (id: string, amount: number) => Promise<void>;
+  onUpdateTeamTime?: (id: string, totalMinutes: number) => Promise<void>;
+  onGetTeamFinancialData?: (id: string) => Promise<any>;
+  onResetTeamTimer?: (id: string) => Promise<void>;
+}
+
+interface TeamFinancialData {
+  teamId: string;
+  teamName: string;
+  bitcoinBalance: number;
+  timer: {
+    isActive: boolean;
+    startTime?: string;
+    elapsedTime: number;
+    totalPausedTime: number;
+  };
+  autoOfflineTimer: {
+    isActive: boolean;
+    startTime?: string;
+    endTime?: string;
+    remainingTime: number;
+    timeExpired: boolean;
+  };
 }
 
 export default function TeamsSection({
@@ -19,9 +42,17 @@ export default function TeamsSection({
   onCreateTeam,
   onUpdateTeam,
   onDeleteTeam,
+  onUpdateTeamMoney,
+  onUpdateTeamTime,
+  onGetTeamFinancialData,
+  onResetTeamTimer,
 }: TeamsSectionProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [managingTeam, setManagingTeam] = useState<Team | null>(null);
+  const [teamFinancialData, setTeamFinancialData] = useState<TeamFinancialData | null>(null);
+  const [moneyAmount, setMoneyAmount] = useState<string>("");
+  const [timeAmount, setTimeAmount] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -83,6 +114,105 @@ export default function TeamsSection({
   const cancelEdit = () => {
     setEditingTeam(null);
     setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
+  };
+
+  const startManage = async (team: Team) => {
+    setManagingTeam(team);
+    setMoneyAmount("");
+    setTimeAmount("");
+    
+    // Fetch current financial data
+    if (onGetTeamFinancialData) {
+      try {
+        const result = await onGetTeamFinancialData(team._id);
+        if (result.success) {
+          setTeamFinancialData(result.data);
+        }
+      } catch (error) {
+        logger.error('Failed to fetch team financial data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      }
+    }
+  };
+
+  const cancelManage = () => {
+    setManagingTeam(null);
+    setTeamFinancialData(null);
+    setMoneyAmount("");
+    setTimeAmount("");
+  };
+
+  const handleUpdateMoney = async () => {
+    if (!managingTeam || !onUpdateTeamMoney || !moneyAmount.trim()) return;
+    
+    const amount = parseFloat(moneyAmount);
+    if (isNaN(amount) || amount < 0) return;
+
+    try {
+      await onUpdateTeamMoney(managingTeam._id, amount);
+      setMoneyAmount("");
+      // Refresh financial data
+      if (onGetTeamFinancialData) {
+        const result = await onGetTeamFinancialData(managingTeam._id);
+        if (result.success) {
+          setTeamFinancialData(result.data);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to update team money:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+  };
+
+  const handleUpdateTime = async () => {
+    if (!managingTeam || !onUpdateTeamTime || !timeAmount.trim()) return;
+    
+    const minutes = parseInt(timeAmount);
+    if (isNaN(minutes) || minutes < 0) return;
+
+    try {
+      await onUpdateTeamTime(managingTeam._id, minutes);
+      setTimeAmount("");
+      // Refresh financial data
+      if (onGetTeamFinancialData) {
+        const result = await onGetTeamFinancialData(managingTeam._id);
+        if (result.success) {
+          setTeamFinancialData(result.data);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to update team time:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+  };
+
+  const handleResetTimer = async () => {
+    if (!managingTeam || !onResetTeamTimer) return;
+
+    try {
+      await onResetTeamTimer(managingTeam._id);
+      // Refresh financial data
+      if (onGetTeamFinancialData) {
+        const result = await onGetTeamFinancialData(managingTeam._id);
+        if (result.success) {
+          setTeamFinancialData(result.data);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to reset team timer:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+  };
+
+  const formatTime = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
   };
 
   return (
@@ -256,6 +386,108 @@ export default function TeamsSection({
         </div>
       )}
 
+      {managingTeam && (
+        <div className="p-4 bg-neutral-800 rounded space-y-4">
+          <h3 className="text-sm font-semibold text-white">Manage Team: {managingTeam.name}</h3>
+          
+          {teamFinancialData && (
+            <div className="grid grid-cols-2 gap-4 p-3 bg-neutral-700 rounded">
+              <div>
+                <h4 className="text-xs font-semibold text-gray-300 mb-2">Current Status</h4>
+                <div className="space-y-1 text-xs">
+                  <div>Bitcoin Balance: <span className="text-yellow-400">{teamFinancialData.bitcoinBalance}</span></div>
+                  <div>Timer Active: <span className={teamFinancialData.timer.isActive ? "text-green-400" : "text-red-400"}>
+                    {teamFinancialData.timer.isActive ? "Yes" : "No"}
+                  </span></div>
+                  <div>Elapsed Time: <span className="text-blue-400">{formatTime(teamFinancialData.timer.elapsedTime)}</span></div>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-300 mb-2">Auto-Offline Timer</h4>
+                <div className="space-y-1 text-xs">
+                  <div>Status: <span className={teamFinancialData.autoOfflineTimer.isActive ? "text-green-400" : "text-red-400"}>
+                    {teamFinancialData.autoOfflineTimer.isActive ? "Active" : "Inactive"}
+                  </span></div>
+                  {teamFinancialData.autoOfflineTimer.isActive && (
+                    <div>Remaining: <span className={teamFinancialData.autoOfflineTimer.timeExpired ? "text-red-400" : "text-yellow-400"}>
+                      {teamFinancialData.autoOfflineTimer.timeExpired ? "EXPIRED" : formatTime(teamFinancialData.autoOfflineTimer.remainingTime)}
+                    </span></div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Update Money (Bitcoin)</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={moneyAmount}
+                  onChange={(e) => setMoneyAmount(e.target.value)}
+                  placeholder="New balance"
+                  min="0"
+                  step="0.1"
+                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-xs text-white focus:border-yellow-500 focus:outline-none"
+                />
+                <button
+                  onClick={handleUpdateMoney}
+                  disabled={!moneyAmount.trim()}
+                  className="px-3 py-2 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors disabled:bg-neutral-600 disabled:cursor-not-allowed"
+                >
+                  Set
+                </button>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Set Available Time (Minutes)</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={timeAmount}
+                  onChange={(e) => setTimeAmount(e.target.value)}
+                  placeholder="Total minutes (e.g., 30, 20, 1)"
+                  min="0"
+                  className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-xs text-white focus:border-blue-500 focus:outline-none"
+                />
+                <button
+                  onClick={handleUpdateTime}
+                  disabled={!timeAmount.trim()}
+                  className="px-3 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors disabled:bg-neutral-600 disabled:cursor-not-allowed"
+                >
+                  Set
+                </button>
+              </div>
+              <div className="mt-1 text-xs text-gray-400">
+                Quick set: 
+                <button onClick={() => setTimeAmount("30")} className="ml-1 px-1 bg-neutral-600 rounded hover:bg-neutral-500">30m</button>
+                <button onClick={() => setTimeAmount("20")} className="ml-1 px-1 bg-neutral-600 rounded hover:bg-neutral-500">20m</button>
+                <button onClick={() => setTimeAmount("10")} className="ml-1 px-1 bg-neutral-600 rounded hover:bg-neutral-500">10m</button>
+                <button onClick={() => setTimeAmount("5")} className="ml-1 px-1 bg-neutral-600 rounded hover:bg-neutral-500">5m</button>
+                <button onClick={() => setTimeAmount("1")} className="ml-1 px-1 bg-neutral-600 rounded hover:bg-neutral-500">1m</button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleResetTimer}
+              className="px-4 py-2 bg-orange-600 text-white rounded text-xs hover:bg-orange-700 transition-colors"
+            >
+              Reset Timer
+            </button>
+            <button
+              onClick={cancelManage}
+              className="px-4 py-2 bg-neutral-600 text-white rounded text-xs hover:bg-neutral-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
             <table className="w-full text-xs">
         <thead className="bg-neutral-800">
           <tr>
@@ -278,12 +510,18 @@ export default function TeamsSection({
               </td>
               <td className="p-3 text-gray-300">{team.leaderUserId || "None"}</td>
               <td className="p-3">
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   <button
                     onClick={() => startEdit(team)}
                     className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
                   >
                     Edit
+                  </button>
+                  <button
+                    onClick={() => startManage(team)}
+                    className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                  >
+                    Manage
                   </button>
                   <button
                     onClick={() => onDeleteTeam(team._id)}
