@@ -15,6 +15,9 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
   const [attempts, setAttempts] = useState<{ pinGuess: string; timestamp: number }[]>([]);
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
   const [targetMAC, setTargetMAC] = useState(initialTargetMAC || '');
+  const [hints, setHints] = useState<string[]>([]);
+  const [isLoadingHints, setIsLoadingHints] = useState(false);
+  const [showHints, setShowHints] = useState(false);
 
   const handleAttack = useCallback(async () => {
     if (!targetMAC || !pinGuess || isAttacking) return;
@@ -26,6 +29,7 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
 
     setIsAttacking(true);
     setLastResult(null);
+    setShowHints(false); // Hide hints when attempting to crack PIN
 
     try {
       const response = await fetch('/api/attack/systemlock-pro', {
@@ -90,6 +94,55 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
   const handlePinDelete = () => {
     setPinGuess(prev => prev.slice(0, -1));
   };
+
+  const fetchHints = useCallback(async () => {
+    if (!targetMAC || isLoadingHints) return;
+
+    setIsLoadingHints(true);
+
+    try {
+      const response = await fetch('/api/attack/systemlock-pro-hints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attackerTeamId: teamId,
+          targetMAC,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setHints(result.hints || []);
+        setShowHints(true);
+        if (!result.hasPin) {
+          setLastResult({
+            success: true,
+            message: result.message || 'Device has no PIN - any 4-digit guess will work!'
+          });
+        }
+      } else {
+        const errorMsg = result.error || `HTTP ${response.status}: Failed to fetch hints`;
+        setLastResult({
+          success: false,
+          message: errorMsg
+        });
+        logger.warn('SystemLock Pro hints API error:', { status: response.status, result });
+      }
+    } catch (error) {
+      logger.error('SystemLock Pro hints fetch error:', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        targetMAC,
+        teamId 
+      }, error as Error);
+      setLastResult({
+        success: false,
+        message: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsLoadingHints(false);
+    }
+  }, [teamId, targetMAC, isLoadingHints]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50" style={{ zIndex: 9999 }}>
@@ -180,6 +233,19 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
             </button>
           </div>
 
+          {/* Hints Button */}
+          <button
+            onClick={fetchHints}
+            disabled={!targetMAC || isLoadingHints}
+            className={`w-full py-2 rounded font-medium transition-colors mb-2 ${
+              !targetMAC || isLoadingHints
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {isLoadingHints ? 'Analyzing PIN...' : '🔍 Get PIN Hints'}
+          </button>
+
           {/* Attack Button */}
           <button
             onClick={handleAttack}
@@ -192,6 +258,22 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
           >
             {isAttacking ? 'Cracking PIN...' : 'Crack PIN'}
           </button>
+
+          {/* Hints Display */}
+          {showHints && hints.length > 0 && (
+            <div className="bg-blue-900 border border-blue-500 rounded p-3 mb-4">
+              <h4 className="text-blue-300 text-sm font-medium mb-2 flex items-center">
+                🔍 PIN Analysis Results
+              </h4>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {hints.map((hint, index) => (
+                  <div key={index} className="text-blue-200 text-xs">
+                    {hint}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Result Display */}
           {lastResult && (
