@@ -352,7 +352,7 @@ export async function getTeamFinancialData(teamId: string, adminKey?: string) {
   try {
     await connectDb();
 
-    const team = await Team.findById(teamId).select('name wallet timer autoOfflineTimer').lean();
+    const team = await Team.findById(teamId).select('name wallet timer autoOfflineTimer');
     if (!team) {
       return { error: "Team not found" };
     }

@@ -29,7 +29,7 @@ function generatePinHints(pin: string): PinHints {
 
   // Find repeated digits (appearing 2 or more times)
   const repeatedDigits = Array.from(digitCounts.entries())
-    .filter(([_, count]) => count > 1)
+    .filter(([, count]) => count > 1)
     .map(([digit, count]) => ({ digit, count }))
     .sort((a, b) => b.count - a.count); // Sort by count descending
 

@@ -12,7 +12,7 @@ interface TeamsSectionProps {
   onDeleteTeam: (id: string) => Promise<void>;
   onUpdateTeamMoney?: (id: string, amount: number) => Promise<void>;
   onUpdateTeamTime?: (id: string, totalMinutes: number) => Promise<void>;
-  onGetTeamFinancialData?: (id: string) => Promise<any>;
+  onGetTeamFinancialData?: (id: string) => Promise<{ success?: boolean; data?: TeamFinancialData; error?: string | null }>;
   onResetTeamTimer?: (id: string) => Promise<void>;
 }
 
@@ -125,7 +125,7 @@ export default function TeamsSection({
     if (onGetTeamFinancialData) {
       try {
         const result = await onGetTeamFinancialData(team._id);
-        if (result.success) {
+        if (result.success && result.data) {
           setTeamFinancialData(result.data);
         }
       } catch (error) {
@@ -153,7 +153,7 @@ export default function TeamsSection({
       // Refresh financial data
       if (onGetTeamFinancialData) {
         const result = await onGetTeamFinancialData(managingTeam._id);
-        if (result.success) {
+        if (result.success && result.data) {
           setTeamFinancialData(result.data);
         }
       }
@@ -174,7 +174,7 @@ export default function TeamsSection({
       // Refresh financial data
       if (onGetTeamFinancialData) {
         const result = await onGetTeamFinancialData(managingTeam._id);
-        if (result.success) {
+        if (result.success && result.data) {
           setTeamFinancialData(result.data);
         }
       }
@@ -191,7 +191,7 @@ export default function TeamsSection({
       // Refresh financial data
       if (onGetTeamFinancialData) {
         const result = await onGetTeamFinancialData(managingTeam._id);
-        if (result.success) {
+        if (result.success && result.data) {
           setTeamFinancialData(result.data);
         }
       }
