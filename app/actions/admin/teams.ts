@@ -286,3 +286,215 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
     return { error: "Failed to delete team" };
   }
 }
+
+/**
+ * Update team's money (bitcoin balance)
+ * @param teamId The ID of the team
+ * @param amount The new balance amount
+ * @param adminKey Optional admin authentication key
+ * @returns Success status or error message
+ */
+export async function updateTeamMoney(teamId: string, amount: number, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    if (typeof amount !== 'number' || amount < 0) {
+      return { error: "Amount must be a positive number" };
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    const previousBalance = team.wallet.bitcoinBalance;
+    team.wallet.bitcoinBalance = amount;
+    await team.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team money updated successfully",
+      data: {
+        teamId,
+        teamName: team.name,
+        previousBalance,
+        newBalance: amount,
+        change: amount - previousBalance,
+      },
+    };
+  } catch (error) {
+    logger.error('Error updating team money:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update team money" };
+  }
+}
+
+/**
+ * Get team's current money and time information
+ * @param teamId The ID of the team
+ * @param adminKey Optional admin authentication key
+ * @returns Team financial and time data
+ */
+export async function getTeamFinancialData(teamId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const team = await Team.findById(teamId).select('name wallet timer autoOfflineTimer').lean();
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Calculate remaining time for auto-offline timer
+    let remainingTime = 0;
+    let timeExpired = false;
+    
+    if (team.autoOfflineTimer?.isActive && team.autoOfflineTimer?.endTime) {
+      const endTime = new Date(team.autoOfflineTimer.endTime).getTime();
+      const now = Date.now();
+      remainingTime = Math.max(0, endTime - now);
+      timeExpired = remainingTime <= 0;
+    }
+
+    return {
+      success: true,
+      data: {
+        teamId: team._id.toString(),
+        teamName: team.name,
+        bitcoinBalance: team.wallet?.bitcoinBalance || 0,
+        timer: {
+          isActive: team.timer?.isActive || false,
+          startTime: team.timer?.startTime,
+          elapsedTime: team.timer?.elapsedTime || 0,
+          totalPausedTime: team.timer?.totalPausedTime || 0,
+        },
+        autoOfflineTimer: {
+          isActive: team.autoOfflineTimer?.isActive || false,
+          startTime: team.autoOfflineTimer?.startTime,
+          endTime: team.autoOfflineTimer?.endTime,
+          remainingTime,
+          timeExpired,
+        },
+      },
+    };
+  } catch (error) {
+    logger.error('Error fetching team financial data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch team data" };
+  }
+}
+
+/**
+ * Set team's available time (auto-offline timer)
+ * @param teamId The ID of the team
+ * @param totalMinutes Total minutes of available time to set
+ * @param adminKey Optional admin authentication key
+ * @returns Success status or error message
+ */
+export async function updateTeamTime(teamId: string, totalMinutes: number, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    if (typeof totalMinutes !== 'number' || totalMinutes < 0) {
+      return { error: "Total minutes must be a positive number" };
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    const totalMs = totalMinutes * 60 * 1000;
+    const now = new Date();
+
+    // Set new timer with specified total time starting from now
+    team.autoOfflineTimer = {
+      isActive: true,
+      startTime: now,
+      endTime: new Date(now.getTime() + totalMs),
+    };
+
+    await team.save();
+    revalidatePath("/admin");
+
+    const remainingTime = team.autoOfflineTimer.endTime.getTime() - Date.now();
+
+    return {
+      success: true,
+      message: `Set team's available time to ${totalMinutes} minutes`,
+      data: {
+        teamId,
+        teamName: team.name,
+        totalMinutes,
+        newEndTime: team.autoOfflineTimer.endTime,
+        remainingTime: Math.max(0, remainingTime),
+        isActive: team.autoOfflineTimer.isActive,
+      },
+    };
+  } catch (error) {
+    logger.error('Error updating team time:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update team time" };
+  }
+}
+
+/**
+ * Reset team's timer (stop auto-offline timer)
+ * @param teamId The ID of the team
+ * @param adminKey Optional admin authentication key
+ * @returns Success status or error message
+ */
+export async function resetTeamTimer(teamId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Stop the auto-offline timer
+    team.autoOfflineTimer = {
+      isActive: false,
+      stoppedAt: new Date(),
+    };
+
+    await team.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team timer reset successfully",
+      data: {
+        teamId,
+        teamName: team.name,
+        timerReset: true,
+      },
+    };
+  } catch (error) {
+    logger.error('Error resetting team timer:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to reset team timer" };
+  }
+}
