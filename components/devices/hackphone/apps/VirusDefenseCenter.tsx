@@ -5,7 +5,7 @@ import { AppContainer, AppHeader } from '../shared/AppContainer';
 import { useSocket } from '@/hooks/useSocket';
 import { getPlayspaceId } from '@/lib/playspace-utils';
 import DefenderStealthViral from './DefenderStealthViral';
-import { shouldShowVirusNotification } from '@/lib/virus-notifications';
+import { shouldShowVirusNotification } from '@/lib/virus-notifications-client';
 
 interface VirusThreat {
   id: string;

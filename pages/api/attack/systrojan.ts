@@ -2,33 +2,18 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import Team from '@/models/Team';
-import { getServerIo } from '@/lib/socket';
 import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, badRequest, internalError, notFound } from '@/lib/api-errors';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 import { scheduleDeviceRecovery } from '@/lib/deviceRecovery';
 import { emitVirusNotification } from '@/lib/virus-notifications';
+import { emitScoped } from '@/lib/emitter';
 
 /* SysTrojan Pro destructive attack
    POST body: { targetDeviceId, attackerTeamId }
    Logic: 30% base success (reduced by security), on success sets device status=maintenance and broadcasts event; 
    also small bitcoin siphon (up to 10% balance capped 150) credited to attacker.
 */
-
-function emitScoped(res: NextApiResponse, event: string, payload: Record<string, unknown>) {
-  try {
-    const io = getServerIo();
-    if ((payload as { teamId?: string }).teamId) {
-      const teamRoom = `team-${(payload as { teamId: string }).teamId}`;
-      io?.to(teamRoom).emit(event, { ...payload, ts: Date.now() });
-    } else {
-      const reqAny = (res as unknown as { req?: { cookies?: Record<string,string> } }).req;
-      const playspaceId = reqAny?.cookies?.playspaceId;
-      if (playspaceId) io?.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
-      else io?.emit(event, { ...payload, ts: Date.now() });
-    }
-  } catch {}
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);

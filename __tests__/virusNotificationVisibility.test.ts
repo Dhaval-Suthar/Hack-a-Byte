@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { shouldShowVirusNotification } from '@/lib/virus-notifications';
+import { shouldShowVirusNotification } from '@/lib/virus-notifications-client';
 
 describe('Virus Notification Visibility', () => {
   it('should show virus notifications to solo players (team size 1)', () => {
