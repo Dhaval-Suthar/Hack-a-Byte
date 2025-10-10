@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 import { logger } from '@/lib/logger';
+import { emitVirusNotification } from '@/lib/virus-notifications';
 
 // CryptoLocker Elite ransomware
 // POST body: { targetIP, attackerTeamId }
@@ -115,6 +116,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           expires,
           ts: Date.now()
         } 
+      });
+
+      // Send virus notification only to Berlin (defender) or solo players
+      await emitVirusNotification(res, {
+        targetTeamId: String(targetTeam._id),
+        event: 'virus-notification',
+        payload: {
+          targetKey: targetIP,
+          virusType: 'CryptoLocker Elite',
+          message: 'CryptoLocker Elite ransomware detected! Typing defense challenge initiated.',
+          severity: 'critical'
+        }
       });
 
       // Emit attack confirmation to attacker

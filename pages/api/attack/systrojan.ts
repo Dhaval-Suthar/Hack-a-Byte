@@ -7,6 +7,7 @@ import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, badRequest, internalError, notFound } from '@/lib/api-errors';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 import { scheduleDeviceRecovery } from '@/lib/deviceRecovery';
+import { emitVirusNotification } from '@/lib/virus-notifications';
 
 /* SysTrojan Pro destructive attack
    POST body: { targetDeviceId, attackerTeamId }
@@ -61,32 +62,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   scheduleDeviceRecovery(String(device._id), 'trojan');
       
       // Emit success event to attacker
-      emitScoped(res, 'systrojan-success', { targetDeviceId, siphon, newAttackerBalance: attacker.wallet.bitcoinBalance });
+      emitScoped(res, {
+        scope: 'team',
+        id: attackerTeamId,
+        event: 'systrojan-success',
+        payload: { targetDeviceId, siphon, newAttackerBalance: attacker.wallet.bitcoinBalance, ts: Date.now() }
+      });
       
       // Send critical notification to target team before device destruction
       if (targetTeam) {
-        emitScoped(res, 'virus-notification', { 
-          targetKey: targetDeviceId, 
-          virusType: 'SysTrojan Pro',
-          message: 'DEVICE COMPROMISED! SysTrojan Pro has destroyed your device. Redirecting to game over...',
-          severity: 'critical',
-          ts: Date.now()
+        await emitVirusNotification(res, {
+          targetTeamId: String(targetTeam._id),
+          event: 'virus-notification',
+          payload: {
+            targetKey: targetDeviceId, 
+            virusType: 'SysTrojan Pro',
+            message: 'DEVICE COMPROMISED! SysTrojan Pro has destroyed your device. Redirecting to game over...',
+            severity: 'critical'
+          }
         });
         
         // Emit game-over event to target team to force redirection
-        emitScoped(res, 'game-over', { 
-          teamId: String(targetTeam._id),
-          sessionId: String(targetTeam._id), 
-          reason: 'SysTrojan Pro destroyed your device', 
-          redirectTo: 'device-maintenance',
-          ts: Date.now()
+        emitScoped(res, {
+          scope: 'team',
+          id: String(targetTeam._id),
+          event: 'game-over',
+          payload: {
+            teamId: String(targetTeam._id),
+            sessionId: String(targetTeam._id), 
+            reason: 'SysTrojan Pro destroyed your device', 
+            redirectTo: 'device-maintenance',
+            ts: Date.now()
+          }
         });
       }
       
       return res.status(200).json({ success: true, outcome: 'destroyed', siphon, attackerBalance: attacker.wallet.bitcoinBalance, successChance: adjusted });
     } else {
       // failure
-      emitScoped(res, 'systrojan-failure', { targetDeviceId });
+      emitScoped(res, {
+        scope: 'team',
+        id: attackerTeamId,
+        event: 'systrojan-failure',
+        payload: { targetDeviceId, ts: Date.now() }
+      });
       return res.status(200).json({ success: true, outcome: 'failed', successChance: adjusted });
     }
   } catch (e) {

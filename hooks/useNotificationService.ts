@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '@/hooks/useSocket';
+import { shouldShowVirusNotification } from '@/lib/virus-notifications';
 
 interface NotificationData {
   id: string;
@@ -18,6 +19,8 @@ export function useNotificationService(teamId: string | undefined) {
   const lastJoinedTeamRef = useRef<string | undefined>(undefined);
   const processedVirusRef = useRef<Set<number>>(new Set());
   const deviceMacRef = useRef<string | null>(null);
+  const userRoleRef = useRef<string | null>(null);
+  const teamSizeRef = useRef<number>(1);
 
   // Load device MAC once (client only)
   useEffect(() => {
@@ -25,6 +28,22 @@ export function useNotificationService(teamId: string | undefined) {
       deviceMacRef.current = typeof window !== 'undefined' ? localStorage.getItem('device_mac_address') : null;
     } catch {
       deviceMacRef.current = null;
+    }
+  }, []);
+
+  // Load user role and team size (client only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        userRoleRef.current = localStorage.getItem('selectedRole');
+        const cachedTeamSize = localStorage.getItem('teamSize');
+        if (cachedTeamSize) {
+          teamSizeRef.current = parseInt(cachedTeamSize, 10);
+        }
+      } catch {
+        userRoleRef.current = null;
+        teamSizeRef.current = 1;
+      }
     }
   }, []);
 
@@ -67,6 +86,19 @@ export function useNotificationService(teamId: string | undefined) {
       const matchesTeam = teamId && (vn as { targetTeamId?: string }).targetTeamId === teamId;
       const matchesKey = vn.targetKey === teamId || (mac && vn.targetKey === mac);
       if (matchesTeam || matchesKey) {
+        // Check if this user should see virus notifications
+        const shouldShow = shouldShowVirusNotification(
+          userRoleRef.current, 
+          teamSizeRef.current, 
+          vn as unknown as Record<string, unknown>
+        );
+        
+        if (!shouldShow) {
+          // User doesn't have permission to see this virus notification
+          processedVirusRef.current.add(vn.ts); // Mark as processed to avoid showing again
+          continue;
+        }
+        
         processedVirusRef.current.add(vn.ts);
         const title = vn.virusType === 'DataMiner X' ? 'Security Alert: DataMiner X' : `Security Alert: ${vn.virusType}`;
         const body = vn.message ?? 'Threat detected on your device.';
