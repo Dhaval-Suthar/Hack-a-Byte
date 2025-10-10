@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '@/hooks/useSocket';
-import { shouldShowVirusNotification } from '@/lib/virus-notifications';
+import { shouldShowVirusNotification } from '@/lib/virus-notifications-client';
 
 interface NotificationData {
   id: string;

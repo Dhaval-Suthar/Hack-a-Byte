@@ -1,6 +1,6 @@
 import type { NextApiResponse } from 'next';
 import { emitScoped } from '@/lib/emitter';
-import Team from '@/models/Team';
+import Team, { type TeamMember } from '@/models/Team';
 import { logger } from '@/lib/logger';
 
 /**
@@ -31,7 +31,7 @@ export async function emitVirusNotification(
     }
 
     const teamSize = team.numberOfPlayers;
-    const teamMembers = team.teamMembers || [];
+    const teamMembers: TeamMember[] = team.teamMembers || [];
 
     // Check if this is a solo player (team size 1)
     if (teamSize === 1) {
@@ -51,7 +51,7 @@ export async function emitVirusNotification(
     }
 
     // For teams with multiple members, check if Berlin (defender) is present
-    const hasBerlin = teamMembers.some(member => 
+    const hasBerlin = teamMembers.some((member: TeamMember) => 
       member.role && member.role.toLowerCase() === 'berlin'
     );
 
@@ -82,11 +82,11 @@ export async function emitVirusNotification(
         targetTeamId, 
         event, 
         teamSize,
-        memberRoles: teamMembers.map(m => m.role).filter(Boolean)
+        memberRoles: teamMembers.map((m: TeamMember) => m.role).filter(Boolean)
       });
       
       // Optionally, we could fall back to Professor if they exist
-      const hasProfessor = teamMembers.some(member => 
+      const hasProfessor = teamMembers.some((member: TeamMember) => 
         member.role && member.role.toLowerCase() === 'professor'
       );
       
@@ -125,35 +125,4 @@ export async function emitVirusNotification(
       }
     });
   }
-}
-
-/**
- * Helper to determine if a user should see virus notifications based on their role and team size
- * This is used on the client side to filter notifications
- */
-export function shouldShowVirusNotification(
-  userRole: string | null | undefined,
-  teamSize: number,
-  notificationPayload: Record<string, unknown>
-): boolean {
-  // Solo players see everything
-  if (teamSize === 1) {
-    return true;
-  }
-
-  // Check visibility filter in payload
-  const visibilityFilter = notificationPayload.visibilityFilter as string | undefined;
-  
-  if (visibilityFilter === 'berlin_only') {
-    // Only Berlin role can see this
-    return userRole?.toLowerCase() === 'berlin';
-  }
-  
-  if (visibilityFilter === 'professor_fallback') {
-    // Fallback to Professor when no Berlin exists
-    return userRole?.toLowerCase() === 'professor';
-  }
-
-  // Default: all team members can see (for backwards compatibility)
-  return true;
 }
