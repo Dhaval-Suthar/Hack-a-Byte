@@ -152,6 +152,7 @@ const Desktop = () => {
 
   // User role and team size for access control
   const [userRole, setUserRole] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [teamSize, setTeamSize] = useState<number | null>(null);
 
   // Set client state after hydration to prevent SSR mismatch
@@ -494,12 +495,6 @@ const Desktop = () => {
               if (deviceUserData.isLoggedIn && deviceUserData.user?.role) {
                 setUserRole(deviceUserData.user.role);
                 localStorage.setItem("selectedRole", deviceUserData.user.role);
-              }
-              
-              // Try to get team size from the user's team
-              if (deviceUserData.user?.teamId) {
-                // You might need to implement a way to get team size from team data
-                // For now, we'll use what's in localStorage or default to null
               }
             }
           } catch (error) {

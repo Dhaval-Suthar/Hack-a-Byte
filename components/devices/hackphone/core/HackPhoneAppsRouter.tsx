@@ -9,7 +9,6 @@ import { AppErrorBoundary } from "../shared/AppErrorBoundary";
 import { useAppAnalytics } from "../shared/AppAnalytics";
 import { AttackReceiver } from "../shared/AttackReceiver";
 import { AttackEffects } from "../shared/AttackEffects";
-import { APP_ROLE_ACCESS, formatAllowedRoles } from '@/lib/constants/app-constants';
 import { useNotificationService } from "@/hooks/useNotificationService";
 import IOS4Notification from "@/components/ui/IOS4Notification";
 import { logger } from '@/lib/logger';

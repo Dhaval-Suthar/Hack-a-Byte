@@ -24,6 +24,7 @@ import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceTo
 import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
+import { updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 import { logger } from '@/lib/logger';
@@ -327,6 +328,45 @@ export default function MiniAdminDashboard() {
     }
   };
 
+  const handleUpdateTeamMoney = async (id: string, amount: number) => {
+    try {
+      await updateTeamMoney(id, amount, authKey());
+      note({ kind: "ok", msg: "Team money updated" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Update money failed" });
+    }
+  };
+
+  const handleGetTeamFinancialData = async (id: string) => {
+    try {
+      return await getTeamFinancialData(id, authKey());
+    } catch {
+      note({ kind: "err", msg: "Failed to fetch team data" });
+      return { success: false, error: "Failed to fetch team data" };
+    }
+  };
+
+  const handleUpdateTeamTime = async (id: string, totalMinutes: number) => {
+    try {
+      await updateTeamTime(id, totalMinutes, authKey());
+      note({ kind: "ok", msg: "Team time updated" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Update time failed" });
+    }
+  };
+
+  const handleResetTeamTimer = async (id: string) => {
+    try {
+      await resetTeamTimer(id, authKey());
+      note({ kind: "ok", msg: "Team timer reset" });
+      load();
+    } catch {
+      note({ kind: "err", msg: "Reset timer failed" });
+    }
+  };
+
   // Sponsor management functions
   const handleCreateSponsor = async (
     name: string,
@@ -616,6 +656,10 @@ export default function MiniAdminDashboard() {
             onCreateTeam={handleCreateTeam}
             onUpdateTeam={handleUpdateTeam}
             onDeleteTeam={handleDeleteTeam}
+            onUpdateTeamMoney={handleUpdateTeamMoney}
+            onUpdateTeamTime={handleUpdateTeamTime}
+            onGetTeamFinancialData={handleGetTeamFinancialData}
+            onResetTeamTimer={handleResetTeamTimer}
           />
         );
       case "codes":

@@ -83,6 +83,7 @@ const MemoizedHomePage = React.memo<{
   bookmarks: Bookmark[];
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   events: ExtractorEvent[];
+  cooldownTimers: {[key: string]: number};
 }>(({ 
   sites, 
   currentPage, 
@@ -91,48 +92,69 @@ const MemoizedHomePage = React.memo<{
   navigateTo, 
   setShowBookmarks, 
   showBookmarks, 
-  addNotification 
+  addNotification,
+  cooldownTimers
 }) => {
   const totalPages = Math.ceil(sites.length / sitesPerPage);
   const startIndex = (currentPage - 1) * sitesPerPage;
   const endIndex = startIndex + sitesPerPage;
   const currentSites = sites.slice(startIndex, endIndex);
 
-  // Simplified icon function that returns the same generic icon for all sites
-  // to prevent users from identifying site types by their icons
-  const getGenericIcon = useCallback(() => {
-    // Generate a random icon from a set of confusingly similar options
-    const icons = ['🌐', '🌍', '🌎', '🌏', '💫', '✨', '🔮'];
-    // Use a stable random seed based on the current hour - changes every hour
-    const hourSeed = new Date().getHours();
-    const randomIndex = Math.floor((hourSeed * 7919) % icons.length);
+  // Enhanced icon function that returns different icons for each site to make them harder to distinguish
+  const getRandomizedIcon = useCallback((siteId: string) => {
+    // Generate a diverse set of icons that all look potentially valuable/important
+    const icons = ['🌐', '🌍', '🌎', '🌏', '💫', '✨', '🔮', '💎', '🏆', '🎯', '⭐', '🔥', '💰', '🎪', '🎭', '🚀', '🎨', '🎪', '🌟'];
+    // Use site ID as seed to generate consistent but unique icon for each site
+    const hash = siteId.split('').reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+    // Add time variation to make icons change occasionally
+    const timeVariation = Math.floor(Date.now() / (1000 * 60 * 30)); // Changes every 30 minutes
+    const combinedSeed = hash + timeVariation;
+    const randomIndex = Math.abs(combinedSeed) % icons.length;
     return icons[randomIndex];
   }, []);
   
-  // Function to generate exciting random gradients for site icons
+  // Function to generate highly diverse random gradients for site icons
   const getRandomGradient = useCallback((id: string) => {
     // Use site ID as a seed to generate consistent gradient for same site
     const hash = id.split('').reduce((acc, char) => {
       return acc + char.charCodeAt(0);
     }, 0);
     
-    // More iOS 4 inspired gradients with glossy metallic feel
+    // Add time variation to make gradients change occasionally but predictably
+    const timeVariation = Math.floor(Date.now() / (1000 * 60 * 30)); // Changes every 30 minutes
+    const combinedSeed = hash + timeVariation;
+    
+    // Much more diverse gradients - mix of modern, retro, and attractive colors
     const gradients = [
-      'linear-gradient(135deg, #b3bfcb 0%, #8596a9 100%)', // Silver blue
-      'linear-gradient(135deg, #c4d4e0 0%, #89a0b5 100%)', // Light steel blue
-      'linear-gradient(135deg, #d7d7d7 0%, #a9a9a9 100%)', // Silver
-      'linear-gradient(135deg, #ccd9e3 0%, #92a8c0 100%)', // Steel blue
-      'linear-gradient(135deg, #e2e2e2 0%, #b5b5b5 100%)', // Light gray
-      'linear-gradient(135deg, #e9f0f4 0%, #b6c8d6 100%)', // Light blue
-      'linear-gradient(135deg, #d8d8d8 0%, #a0a0a0 100%)', // Gray
-      'linear-gradient(135deg, #e5e9ed 0%, #a7b7c5 100%)', // Soft blue
-      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-      'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // Purple blue
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // Pink magenta
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Blue cyan
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // Green teal
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // Pink yellow
+      'linear-gradient(135deg, #30cfd0 0%, #91a7ff 100%)', // Cyan purple
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', // Mint pink
+      'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', // Coral pink
+      'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)', // Peach orange
+      'linear-gradient(135deg, #ff8a80 0%, #ea6100 100%)', // Red orange
+      'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)', // Purple teal
+      'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)', // Rose pink
+      'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)', // Light blue
+      'linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%)', // Gold teal
+      'linear-gradient(135deg, #e056fd 0%, #f18ca0 100%)', // Purple pink
+      'linear-gradient(135deg, #f8cdda 0%, #1d2b64 100%)', // Pink navy
+      'linear-gradient(135deg, #96fbc4 0%, #f9f586 100%)', // Green yellow
+      'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', // Pink blue
+      'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', // Green blue
+      'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)', // Red yellow
+      'linear-gradient(135deg, #48cae4 0%, #023e8a 100%)', // Light blue navy
+      'linear-gradient(135deg, #b388ff 0%, #8c7ae6 100%)', // Light purple
+      'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)', // Light blue dark blue
+      'linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%)', // Pink orange
     ];
     
-    return gradients[hash % gradients.length];
+    return gradients[Math.abs(combinedSeed) % gradients.length];
   }, []);
 
   return (
@@ -275,11 +297,8 @@ const MemoizedHomePage = React.memo<{
           </div>
           {currentSites.map((site) => {
             // Calculate badge status for both normal and reward sites
-            // Make all sites (including fake ones) look potentially rewarding with similar badges
+            // Show different status based on cooldown state for reward sites
             let rewardStatus = null;
-            
-            // Display a similar-looking reward badge for ALL sites, regardless of if they're actually reward sites
-            // This creates confusion for users who won't know which sites are real rewards vs fake/scam
             
             // For real reward sites with cooldown logic
             if (site.isRewardSite) {
@@ -290,42 +309,55 @@ const MemoizedHomePage = React.memo<{
                 const cooldownPeriod = cooldownMinutes * 60 * 1000;
                 
                 if (timeSinceLastClaim < cooldownPeriod) {
-                  // We don't need to calculate remaining time anymore since we're showing the same badge
+                  // Show cooldown status instead of reward badge with live timer
+                  const remainingSeconds = cooldownTimers[site._id] || Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
+                  const remainingMinutes = Math.floor(remainingSeconds / 60);
+                  const remainingSecondsDisplay = remainingSeconds % 60;
+                  const timeDisplay = remainingMinutes > 0 
+                    ? `${remainingMinutes}:${remainingSecondsDisplay.toString().padStart(2, '0')}`
+                    : `${remainingSecondsDisplay}s`;
+                  
                   rewardStatus = (
-                    <div className="absolute top-0 right-0 h-6 w-6 -mt-2 -mr-2 flex items-center justify-center">
-                      {/* Shiny badge with glow effect */}
+                    <div className="absolute right-3 flex items-center justify-center">
+                      {/* Cooldown badge with live timer */}
                       <div style={{
-                        width: '20px',
-                        height: '20px',
-                        background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+                        width: '24px',
+                        height: '24px',
+                        background: 'linear-gradient(135deg, #6c757d, #495057)',
                         borderRadius: '50%',
-                        boxShadow: '0 0 4px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
-                        border: '1px solid rgba(150, 100, 0, 0.5)',
+                        boxShadow: '0 0 4px 1px rgba(108, 117, 125, 0.4), inset 0 1px 1px rgba(255,255,255,0.3)',
+                        border: '1px solid rgba(73, 80, 87, 0.5)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <span className="text-[10px] font-bold" style={{ 
-                          color: '#5d4300',
-                          textShadow: '0 1px 0 rgba(255,255,255,0.5)'
-                        }}>₿</span>
+                        <span className="text-[8px] font-bold" style={{ 
+                          color: '#fff',
+                          textShadow: '0 1px 0 rgba(0,0,0,0.5)'
+                        }}>⏰</span>
+                      </div>
+                      {/* Live cooldown timer tooltip */}
+                      <div className="absolute -top-6 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-90 pointer-events-none">
+                        {timeDisplay}
                       </div>
                     </div>
                   );
                 } else {
+                  // Available reward badge
                   rewardStatus = (
-                    <div className="absolute top-0 right-0 h-6 w-6 -mt-2 -mr-2 flex items-center justify-center">
-                      {/* Shiny badge with glow effect */}
+                    <div className="absolute right-3 flex items-center justify-center">
+                      {/* Shiny reward badge */}
                       <div style={{
-                        width: '20px',
-                        height: '20px',
+                        width: '24px',
+                        height: '24px',
                         background: 'linear-gradient(135deg, #ffd700, #ff9500)',
                         borderRadius: '50%',
-                        boxShadow: '0 0 4px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
+                        boxShadow: '0 0 6px 1px rgba(255, 215, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.8)',
                         border: '1px solid rgba(150, 100, 0, 0.5)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        animation: 'pulse 2s infinite ease-in-out'
                       }}>
                         <span className="text-[10px] font-bold" style={{ 
                           color: '#5d4300',
@@ -336,10 +368,10 @@ const MemoizedHomePage = React.memo<{
                   );
                 }
               } else {
-                // Standard reward badge - used for both real and fake sites
+                // Standard reward badge for unclaimed sites
                 rewardStatus = (
                   <div className="absolute right-3 flex items-center justify-center">
-                    {/* Shiny badge with glow effect */}
+                    {/* Shiny reward badge */}
                     <div style={{
                       width: '24px',
                       height: '24px',
@@ -349,7 +381,8 @@ const MemoizedHomePage = React.memo<{
                       border: '1px solid rgba(150, 100, 0, 0.5)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      animation: 'pulse 2s infinite ease-in-out'
                     }}>
                       <span className="text-[10px] font-bold" style={{ 
                         color: '#5d4300',
@@ -364,7 +397,7 @@ const MemoizedHomePage = React.memo<{
             else if (Math.random() > 0.6) { // Show reward-like badges on 40% of normal sites too
               rewardStatus = (
                 <div className="absolute right-3 flex items-center justify-center">
-                  {/* Shiny badge with glow effect */}
+                  {/* Fake reward badge to confuse users */}
                   <div style={{
                     width: '24px',
                     height: '24px',
@@ -456,7 +489,7 @@ const MemoizedHomePage = React.memo<{
                     filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
                     opacity: 0.9
                   }}>
-                    {getGenericIcon()}
+                    {getRandomizedIcon(site._id)}
                   </div>
                   
                   {/* Decorative dot pattern in background */}
@@ -648,6 +681,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   const [showHomePage, setShowHomePage] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sitesPerPage] = useState(6);
+  const [cooldownTimers, setCooldownTimers] = useState<{[key: string]: number}>({});
 
   // Notification system
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
@@ -778,6 +812,30 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     if (!rewardSite) {
       addNotification({ type: 'warning', message: 'This site has no active reward.' });
       return false;
+    }
+
+    // Check if site is on cooldown before allowing any reward claims
+    if (rewardSite.rewardClaimed && rewardSite.rewardClaimedAt) {
+      const cooldownMinutes = rewardSite.rewardCooldownMinutes || 60;
+      const claimedTime = new Date(rewardSite.rewardClaimedAt).getTime();
+      const timeSinceLastClaim = Date.now() - claimedTime;
+      const cooldownPeriod = cooldownMinutes * 60 * 1000;
+      
+      if (timeSinceLastClaim < cooldownPeriod) {
+        const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
+        const remainingMinutes = Math.floor(remainingSeconds / 60);
+        const remainingSecondsDisplay = remainingSeconds % 60;
+        const timeDisplay = remainingMinutes > 0 
+          ? `${remainingMinutes}:${remainingSecondsDisplay.toString().padStart(2, '0')}`
+          : `${remainingSecondsDisplay} second${remainingSecondsDisplay !== 1 ? 's' : ''}`;
+          
+        addNotification({ 
+          type: 'warning', 
+          message: `⏰ This site is on cooldown. Try again in ${timeDisplay}.`,
+          duration: 4000
+        });
+        return false;
+      }
     }
 
 
@@ -989,8 +1047,9 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     showBookmarks,
     bookmarks,
     addNotification,
-    events
-  }), [sites, currentPage, setCurrentPage, sitesPerPage, navigateTo, setShowBookmarks, showBookmarks, bookmarks, addNotification, events]);
+    events,
+    cooldownTimers
+  }), [sites, currentPage, setCurrentPage, sitesPerPage, navigateTo, setShowBookmarks, showBookmarks, bookmarks, addNotification, events, cooldownTimers]);
 
   const HomePage = useCallback(() => {
     return <MemoizedHomePage {...homePageProps} />;
@@ -1066,6 +1125,46 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     const id = setInterval(load, 20000);
     return ()=>{ cancelled = true; clearInterval(id); };
   }, [teamId]);
+
+  // Update cooldown timers every second for live countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCooldownTimers(prev => {
+        const newTimers = { ...prev };
+        let hasChanges = false;
+        
+        // Use current sites state via callback to avoid dependency
+        setSites(currentSites => {
+          currentSites.forEach(site => {
+            if (site.isRewardSite && site.rewardClaimed && site.rewardClaimedAt) {
+              const cooldownMinutes = site.rewardCooldownMinutes || 60;
+              const claimedTime = new Date(site.rewardClaimedAt).getTime();
+              const timeSinceLastClaim = Date.now() - claimedTime;
+              const cooldownPeriod = cooldownMinutes * 60 * 1000;
+              
+              if (timeSinceLastClaim < cooldownPeriod) {
+                const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
+                if (newTimers[site._id] !== remainingSeconds) {
+                  newTimers[site._id] = remainingSeconds;
+                  hasChanges = true;
+                }
+              } else {
+                if (newTimers[site._id]) {
+                  delete newTimers[site._id];
+                  hasChanges = true;
+                }
+              }
+            }
+          });
+          return currentSites; // Return unchanged to avoid triggering re-renders
+        });
+        
+        return hasChanges ? newTimers : prev;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array to prevent constant re-creation
 
   // Socket connect for extractor events
   useEffect(()=>{
@@ -1255,44 +1354,79 @@ const SafariApp: React.FC<SafariAppProps> = () => {
                   />
 
                   {/* Add clickable button for reward/scam sites */}
-                  {(currentSite.isRewardSite || currentSite.category === 'fake') && (
-                    <div className="fixed left-4 right-4" style={{ bottom: 'calc(clamp(74px,12vw,92px) + 86px)', zIndex: 60 }}>
-                      <button
-                        onClick={async () => {
-                          if (currentSite.isRewardSite) {
-                            const ok = await checkRewardSite(currentSite.url);
-                            if (ok) {
-                              setTimeout(() => {
-                                setShowHomePage(true);
-                                setAddress("https://www.redmondpie.com/");
-                                setAddressInput("Home");
-                                setCurrentPage(1);
-                              }, 1500);
+                  {(currentSite.isRewardSite || currentSite.category === 'fake') && (() => {
+                    // Check if reward site is on cooldown
+                    if (currentSite.isRewardSite && currentSite.rewardClaimed && currentSite.rewardClaimedAt) {
+                      const cooldownMinutes = currentSite.rewardCooldownMinutes || 60;
+                      const claimedTime = new Date(currentSite.rewardClaimedAt).getTime();
+                      const timeSinceLastClaim = Date.now() - claimedTime;
+                      const cooldownPeriod = cooldownMinutes * 60 * 1000;
+                      
+                      if (timeSinceLastClaim < cooldownPeriod) {
+                        // Show cooldown message with live timer instead of button
+                        const remainingSeconds = cooldownTimers[currentSite._id] || Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
+                        const remainingMinutes = Math.floor(remainingSeconds / 60);
+                        const remainingSecondsDisplay = remainingSeconds % 60;
+                        const timeDisplay = remainingMinutes > 0 
+                          ? `${remainingMinutes}:${remainingSecondsDisplay.toString().padStart(2, '0')}`
+                          : `${remainingSecondsDisplay} second${remainingSecondsDisplay !== 1 ? 's' : ''}`;
+                          
+                        return (
+                          <div className="fixed left-4 right-4" style={{ bottom: 'calc(clamp(74px,12vw,92px) + 86px)', zIndex: 60 }}>
+                            <div className="w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg bg-gray-600 border-2 border-gray-500 text-center">
+                              <div className="flex items-center justify-center space-x-2">
+                                <span>⏰</span>
+                                <span>Site on Cooldown</span>
+                              </div>
+                              <div className="text-sm mt-1 opacity-90">
+                                Try again in {timeDisplay}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    }
+                    
+                    // Show normal button if not on cooldown
+                    return (
+                      <div className="fixed left-4 right-4" style={{ bottom: 'calc(clamp(74px,12vw,92px) + 86px)', zIndex: 60 }}>
+                        <button
+                          onClick={async () => {
+                            if (currentSite.isRewardSite) {
+                              const ok = await checkRewardSite(currentSite.url);
+                              if (ok) {
+                                setTimeout(() => {
+                                  setShowHomePage(true);
+                                  setAddress("https://www.redmondpie.com/");
+                                  setAddressInput("Home");
+                                  setCurrentPage(1);
+                                }, 1500);
+                              }
+                            } else if (currentSite.category === 'fake') {
+                              setSiteOutcome('loss');
+                              setLastScamAmount(0.5);
+                              addNotification({
+                                type: 'warning',
+                                message: `⚠️ Suspicious activity detected on site "${currentSite.title}" (0.5 BTC stolen)`,
+                                duration: 4000
+                              });
                             }
-                          } else if (currentSite.category === 'fake') {
-                            setSiteOutcome('loss');
-                            setLastScamAmount(0.5);
-                            addNotification({
-                              type: 'warning',
-                              message: `⚠️ Suspicious activity detected on site "${currentSite.title}" (0.5 BTC stolen)`,
-                              duration: 4000
-                            });
-                          }
-                        }}
-                        className={`w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg transition-all duration-200 ${
-                          currentSite.isRewardSite
-                            ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
-                            : 'bg-red-500 hover:bg-red-600 active:bg-red-700'
-                        }`}
-                        style={{
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                          border: '2px solid rgba(255,255,255,0.3)'
-                        }}
-                      >
-                        {currentSite.isRewardSite ? '🎁 CLAIM REWARD' : '⚠️ ACCESS SITE'}
-                      </button>
-                    </div>
-                  )}
+                          }}
+                          className={`w-full py-3 px-6 rounded-lg font-bold text-white text-lg shadow-lg transition-all duration-200 ${
+                            currentSite.isRewardSite
+                              ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+                              : 'bg-red-500 hover:bg-red-600 active:bg-red-700'
+                          }`}
+                          style={{
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                            border: '2px solid rgba(255,255,255,0.3)'
+                          }}
+                        >
+                          {currentSite.isRewardSite ? '🎁 CLAIM REWARD' : '⚠️ ACCESS SITE'}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
