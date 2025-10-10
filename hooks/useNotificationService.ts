@@ -30,26 +30,39 @@ export function useNotificationService(teamId: string | undefined) {
 
   useEffect(() => {
     if (!teamId || !isConnected) return;
-    if (lastJoinedTeamRef.current === teamId) return; // avoid duplicate join attempts
-    // Join the team room to receive scoped events
+    if (lastJoinedTeamRef.current === teamId) return;
     joinTeam(teamId);
     lastJoinedTeamRef.current = teamId;
   }, [teamId, joinTeam, isConnected]);
 
+  // Listen for new email/SMS messages via pure socket events
   useEffect(() => {
     if (!socket || !isConnected) return;
-    const handler = (evt: { teamId: string; type: 'sms'|'email'; id: string; content: string; subject?: string; sender?: string; timestamp: number; }) => {
-      if (teamId && evt.teamId !== teamId) return; // extra guard
+    
+    const handler = (evt: { 
+      teamId: string; 
+      type: 'sms' | 'email'; 
+      id: string; 
+      content: string; 
+      subject?: string; 
+      sender?: string; 
+      timestamp: number; 
+    }) => {
+      if (teamId && evt.teamId !== teamId) return;
+      
       const isSms = evt.type === 'sms';
       setNotification({
         id: `${evt.type}-${evt.id}`,
         type: evt.type,
-        title: isSms ? `Text Message from ${evt.sender ?? 'Unknown'}` : (evt.subject ?? 'New Mail'),
-        body: isSms ? (evt.content.length > 60 ? evt.content.substring(0, 60) + '...' : evt.content) : `From: ${evt.sender ?? 'Unknown'}`,
+        title: isSms ? `New Message from ${evt.sender ?? 'Unknown'}` : (evt.subject ?? 'New Email'),
+        body: isSms 
+          ? (evt.content.length > 60 ? evt.content.substring(0, 60) + '...' : evt.content)
+          : `From: ${evt.sender ?? 'Unknown'}`,
         timestamp: new Date(evt.timestamp),
         appIcon: isSms ? 'sms' : 'email',
       });
     };
+    
     socket.on('message-created', handler);
     return () => {
       socket.off('message-created', handler);

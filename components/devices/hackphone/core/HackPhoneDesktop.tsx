@@ -252,8 +252,8 @@ const HackPhoneDesktop = () => {
           </div>
         )}
 
-            {/* iOS 4 Style Notifications on Home Screen */}
-      {notification && !currentApp && (
+            {/* iOS 4 Style Notifications - Show on all screens */}
+      {notification && (
         <>
           <IOS4Notification
             message={notification.body}
