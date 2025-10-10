@@ -146,11 +146,11 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
     }
   }, [teamId]);
 
+  // Pure socket-based updates (no polling)
   useEffect(() => {
     if (teamId) {
       fetchSystemMessages();
       fetchTeamWallet();
-      const interval = setInterval(fetchSystemMessages, 30000);
       // Join socket team room and subscribe to message-created for SMS
       joinTeam(teamId);
       const onCreated = (evt: { teamId: string; type: 'sms'|'email'; id: string; content: string; sender?: string; timestamp: number; }) => {
@@ -162,7 +162,6 @@ const MessagingApp: React.FC<MessagingAppProps> = ({ teamId }) => {
         socket.on('message-created', onCreated);
       }
       return () => {
-        clearInterval(interval);
         if (socket) socket.off('message-created', onCreated);
       };
     }

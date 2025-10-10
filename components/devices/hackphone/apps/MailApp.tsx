@@ -105,16 +105,13 @@ const MailApp: React.FC<MailAppProps> = ({ teamId }) => {
     }
   }, [teamId]);
 
-  // Fetch system emails when component mounts or teamId changes
+  // Fetch system emails when component mounts or teamId changes (pure socket, no polling)
   useEffect(() => {
     if (teamId) {
-    // Proactively join team room for scoped events
-    if (isConnected) joinTeam(teamId);
+      // Proactively join team room for scoped events
+      if (isConnected) joinTeam(teamId);
       fetchSystemEmails();
       fetchTeamWallet();
-      // Set up periodic refresh
-      const interval = setInterval(fetchSystemEmails, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
     }
   }, [teamId, fetchSystemEmails, fetchTeamWallet, isConnected, joinTeam]);
 
