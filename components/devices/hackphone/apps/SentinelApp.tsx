@@ -939,7 +939,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   const [discoveredDevices, setDiscoveredDevices] = useState<number>(0);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'mission' | 'transfers' | 'wallets'>('mission');
-  // const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
+  const [ownTeamBalance, setOwnTeamBalance] = useState<number | null>(null);
   // Store team ID for future use
   const [, setOwnTeamId] = useState<string | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
@@ -1291,7 +1291,14 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
   // Team balance fetch function
   const fetchTeamBalance = useCallback(async () => {
     try {
-      const response = await fetch('/api/team/balance', {
+      // Use explicit teamId if provided, otherwise fall back to playspaceId
+      const playspaceId = getPlayspaceId();
+      const idParam = teamId || playspaceId;
+      if (!idParam) {
+        // If we cannot determine team identification, skip silently
+        return;
+      }
+      const response = await fetch(`/api/team/balance?teamId=${encodeURIComponent(idParam)}` , {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -1299,13 +1306,20 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // setOwnTeamBalance(result.balance);
+        setOwnTeamBalance(typeof result.bitcoinBalance === 'number' ? result.bitcoinBalance : 0);
         setOwnTeamId(result.teamId);
       }
     } catch (error) {
       logger.error('Balance error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
-  }, []);
+  }, [teamId]);
+
+  // Fetch balance on mount and periodically refresh it
+  useEffect(() => {
+    fetchTeamBalance();
+    const id = setInterval(fetchTeamBalance, 15000); // refresh every 15s to keep display current
+    return () => clearInterval(id);
+  }, [fetchTeamBalance]);
 
   // Calculate security level of devices based on security settings
   const calculateSecurityLevel = (device: DeviceInfo, securitySettings?: {
@@ -1556,6 +1570,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
               if (tab.id === 'wallets') {
                 fetchWallets();
               }
+              // Refresh team balance when navigating to mission
+              if (tab.id === 'mission') {
+                fetchTeamBalance();
+              }
             }}
             className={`flex-1 py-2 px-1 sm:px-3 font-mono text-xs sm:text-sm transition-colors relative
               ${activeTab === tab.id ? 'text-green-400 bg-black' : 'text-green-700 hover:text-green-500'}`}
@@ -1586,6 +1604,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                   <div className="font-bold">-- SENTINEL MISSION CONTROL --</div>
                   <div>Date: {new Date().toLocaleDateString()}</div>
                   <div>Time: {time}</div>
+                  <div>Wallet: {ownTeamBalance !== null ? `₿${ownTeamBalance.toFixed(2)}` : 'Loading...'}</div>
                   <div>Status: {scanCompleted ? 'Network Mapped' : 'Awaiting Reconnaissance'}</div>
                 </div>
               )}

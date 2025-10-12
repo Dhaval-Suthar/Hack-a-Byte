@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "No playspace ID found" });
     }
 
-    const team = await Team.findOne({ playspaceId });
+  const team = await Team.findOne({ playspaceId });
     if (!team) {
       return res.status(404).json({ error: "Team not found" });
     }
@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({
         success: true,
         bitcoinBalance: team.wallet.bitcoinBalance,
+        snakeEarnings: (team as any).snakeEarnings ?? 0,
         stockPortfolio: team.stockPortfolio || [],
         purchasedMalware: team.purchasedMalware || [],
         teamName: team.name,

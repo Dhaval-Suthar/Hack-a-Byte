@@ -33,6 +33,16 @@ const axialWrap = (q: number, r: number) => {
   return { q: x, r: z };
 };
 
+// Check if axial coordinate is inside the hex grid bounds (no wrap)
+const isInsideGrid = (q: number, r: number) => {
+  const s = -q - r; // third cube coordinate
+  return (
+    q >= -GRID_RADIUS && q <= GRID_RADIUS &&
+    r >= -GRID_RADIUS && r <= GRID_RADIUS &&
+    s >= -GRID_RADIUS && s <= GRID_RADIUS
+  );
+};
+
 const allCells = () => {
   const cells: Array<{ q: number; r: number }> = [];
   for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
@@ -73,12 +83,17 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
   void time;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const [highScore, setHighScore] = useState(0);
   const [gameStatus, setGameStatus] = useState("Menu");
   const [level, setLevel] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(4);
+  // Track snake-only earnings shown in UI
+  const [snakeEarnings, setSnakeEarnings] = useState<number | null>(null);
+  const [lastReward, setLastReward] = useState<number | null>(null);
+  const teamIdRef = useRef<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -180,6 +195,29 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     ].slice(0, 200); // Limit total particles for performance
   }, []);
   
+  // Fetch current snake-only earnings (not full wallet)
+  const refreshSnakeEarnings = useCallback(async () => {
+    try {
+      const playspaceId = getPlayspaceId();
+      const res = await fetch('/api/team', { headers: { 'x-playspace-id': playspaceId || '' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && typeof data.snakeEarnings === 'number') {
+        setSnakeEarnings(data.snakeEarnings);
+      }
+      if (data && typeof data.teamId === 'string') {
+        teamIdRef.current = data.teamId;
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+  
+  // Load initial snake earnings on mount
+  useEffect(() => {
+    refreshSnakeEarnings();
+  }, [refreshSnakeEarnings]);
+  
   // Update particles
   const updateParticles = useCallback(() => {
     gameStateRef.current.particles = gameStateRef.current.particles
@@ -203,6 +241,11 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       setHighScore(parseInt(savedHighScore));
     }
   }, []);
+
+  // Keep a ref of the latest score for use inside callbacks
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   // Hex coordinate utilities moved to module scope above
 
@@ -377,6 +420,8 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
       }
     }
 
+  // No final reward here; rewards are credited per-apple instantly
+
     setTimeout(() => initGame(), 3000);
   }, [initGame, playSound, createParticles]);
 
@@ -409,7 +454,11 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
     const head = state.snake[state.snake.length - 1];
     const d = DIRECTIONS[state.dirIndex];
     let newHead = { q: head.q + d.q, r: head.r + d.r };
-    newHead = axialWrap(newHead.q, newHead.r);
+    // Wall collision: end game if moving outside grid
+    if (!isInsideGrid(newHead.q, newHead.r)) {
+      gameOver();
+      return;
+    }
     
     // Calculate pixel position for the head for particle effects
     const width = canvasRef.current?.width || 320;
@@ -618,17 +667,26 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
           localStorage.setItem("hexHighScore", newScore.toString());
         }
 
-        // Award 10 bitcoins per successful (positive) point gain only when points > 0
-        if (points > 0) {
+        // Per-point reward removed; final reward is granted on game over
+        return newScore;
+      });
+
+      // Credit instant reward equal to positive points
+      if (points > 0) {
+        try {
           const playspaceId = getPlayspaceId();
           fetch('/api/reward', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-playspace-id': playspaceId || '' },
-            body: JSON.stringify({ amount: 10, reason: 'snake-point' })
-          }).catch(()=>{});
-        }
-        return newScore;
-      });
+            headers: { 'Content-Type': 'application/json', 'x-playspace-id': playspaceId || '', 'x-team-id': teamIdRef.current || '' },
+            body: JSON.stringify({ amount: points, reason: 'snake-apple' })
+          })
+          .then(() => {
+            setLastReward(points);
+            setTimeout(() => { refreshSnakeEarnings(); }, 200);
+          })
+          .catch(() => {});
+        } catch {}
+      }
 
       placeFood();
 
@@ -1692,7 +1750,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
             ></div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 text-center relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center relative z-10">
             <div className="border border-green-500/40 rounded-lg p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/5 relative overflow-hidden group hover:border-green-400/60 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400/5 to-transparent transform -skew-x-12 group-hover:animate-pulse"></div>
               <div className="text-green-400 font-mono text-3xl font-bold animate-pulse relative z-10" style={{textShadow: "0 0 10px rgba(0, 255, 0, 0.5)"}}>{score.toLocaleString()}</div>
@@ -1702,6 +1760,16 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/5 to-transparent transform -skew-x-12 group-hover:animate-pulse"></div>
               <div className="text-yellow-400 font-mono text-3xl font-bold relative z-10" style={{textShadow: "0 0 10px rgba(255, 255, 0, 0.5)"}}>{highScore.toLocaleString()}</div>
               <div className="text-yellow-300 text-xs font-mono tracking-wider relative z-10">HIGH SCORE</div>
+            </div>
+            <div className="border border-cyan-500/40 rounded-lg p-4 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 relative overflow-hidden group hover:border-cyan-400/60 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent transform -skew-x-12 group-hover:animate-pulse"></div>
+              <div className="text-cyan-400 font-mono text-2xl font-bold relative z-10" style={{textShadow: "0 0 10px rgba(0, 255, 255, 0.5)"}}>
+                {snakeEarnings === null ? '—' : `₿${(Number(snakeEarnings) || 0).toFixed(2)}`}
+              </div>
+              <div className="text-cyan-300 text-xs font-mono tracking-wider relative z-10">SNAKE EARNED</div>
+              {lastReward !== null && lastReward > 0 && (
+                <div className="mt-1 text-[10px] text-cyan-200 font-mono opacity-80 relative z-10">+{lastReward.toFixed(2)} BTC added</div>
+              )}
             </div>
           </div>
           

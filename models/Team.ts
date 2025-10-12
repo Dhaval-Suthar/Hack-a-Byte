@@ -47,6 +47,8 @@ export interface EventTeam extends Document {
     publicKey?: string;
     bitcoinBalance: number;
   };
+  // Game-specific earnings (snake only)
+  snakeEarnings?: number;
   // Stock portfolio
   stockPortfolio: StockPortfolio[];
   // Purchased malware from App Store
@@ -90,8 +92,10 @@ const TeamSchema = new Schema<EventTeam>(
       walletAddress: { type: String, required: true },
       privateKey: { type: String, required: true },
       publicKey: { type: String },
-      bitcoinBalance: { type: Number, default: 500 }, // Balanced starting balance for strategic gameplay
+      bitcoinBalance: { type: Number, default: 100 }, // Starting balance per team/user (BTC)
     },
+    // Game-specific earnings
+    snakeEarnings: { type: Number, default: 0 },
     // Stock portfolio
     stockPortfolio: { type: [StockPortfolioSchema], default: [] },
     // Purchased malware from App Store

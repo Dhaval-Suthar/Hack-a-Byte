@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 
@@ -18,6 +18,10 @@ const DeviceStatusGuard: React.FC<DeviceStatusGuardProps> = ({
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Respect server-side rate limiting and avoid spamming reloads
+  const [retryAfterSec, setRetryAfterSec] = useState<number | null>(null);
+  const retryUntilRef = useRef<number | null>(null);
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const checkDeviceStatus = async () => {
@@ -46,14 +50,44 @@ const DeviceStatusGuard: React.FC<DeviceStatusGuardProps> = ({
           return;
         }
 
+        // If we're currently rate-limited, do not call again until allowed
+        if (retryUntilRef.current && Date.now() < retryUntilRef.current) {
+          return;
+        }
+
         // Check device status
-        const response = await fetch(`/api/device/online-sync?deviceId=${encodeURIComponent(macToCheck)}`);
+        const response = await fetch(
+          `/api/device/online-sync?deviceId=${encodeURIComponent(macToCheck)}`,
+          { cache: 'no-store' }
+        );
         
         if (!response.ok) {
           if (response.status === 404) {
             // Device not found - redirect to device selection
             router.push('/device-selection');
             return;
+          }
+          if (response.status === 429) {
+            // Respect Retry-After header if present
+            const retryHeader = response.headers.get('Retry-After');
+            const secs = retryHeader ? parseInt(retryHeader, 10) : NaN;
+            const waitSecs = Number.isFinite(secs) && secs > 0 ? secs : 30;
+            setRetryAfterSec(waitSecs);
+            retryUntilRef.current = Date.now() + waitSecs * 1000;
+            setError(`Status check rate limited. Try again in ~${waitSecs}s`);
+
+            // Start a simple countdown timer for UX
+            if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = setInterval(() => {
+              const remaining = retryUntilRef.current ? Math.max(0, Math.ceil((retryUntilRef.current - Date.now()) / 1000)) : 0;
+              setRetryAfterSec(remaining);
+              if (remaining <= 0 && countdownTimerRef.current) {
+                clearInterval(countdownTimerRef.current);
+                countdownTimerRef.current = null;
+              }
+            }, 1000);
+
+            return; // Don't throw; handled gracefully
           }
           throw new Error(`Status check failed: ${response.statusText}`);
         }
@@ -84,7 +118,10 @@ const DeviceStatusGuard: React.FC<DeviceStatusGuardProps> = ({
     // Set up periodic status checks every 30 seconds
     const interval = setInterval(checkDeviceStatus, 30000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
   }, [deviceId, playspaceId, router]);
 
   // Show loading while checking
@@ -108,10 +145,57 @@ const DeviceStatusGuard: React.FC<DeviceStatusGuardProps> = ({
           <h2 className="text-xl font-bold mb-2">Connection Error</h2>
           <p className="mb-4">{error}</p>
           <button 
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
+            onClick={() => {
+              // Soft retry: re-run status check without reloading the whole app
+              setIsChecking(true);
+              setError(null);
+              // Clear any block so we can try immediately when user taps Retry
+              retryUntilRef.current = null;
+              // Trigger a microtask to run the effect's checker again by toggling state
+              // We rely on the interval check; but kick an immediate check too
+              (async () => {
+                try {
+                  const mac = (typeof window !== 'undefined') ? localStorage.getItem('device_mac_address') || undefined : undefined;
+                  if (!mac && !deviceId) return;
+                  const toCheck = deviceId || mac!;
+                  const resp = await fetch(`/api/device/online-sync?deviceId=${encodeURIComponent(toCheck)}`, { cache: 'no-store' });
+                  if (!resp.ok) {
+                    if (resp.status === 404) {
+                      router.push('/device-selection');
+                      return;
+                    }
+                    if (resp.status === 429) {
+                      const retryHeader = resp.headers.get('Retry-After');
+                      const secs = retryHeader ? parseInt(retryHeader, 10) : NaN;
+                      const waitSecs = Number.isFinite(secs) && secs > 0 ? secs : 30;
+                      setRetryAfterSec(waitSecs);
+                      retryUntilRef.current = Date.now() + waitSecs * 1000;
+                      setError(`Status check rate limited. Try again in ~${waitSecs}s`);
+                      setIsChecking(false);
+                      return;
+                    }
+                    throw new Error(`Status check failed: ${resp.statusText}`);
+                  }
+                  const data = await resp.json();
+                  if (!data.online || data.status === 'offline') {
+                    router.push(`/device-offline?deviceId=${encodeURIComponent(toCheck)}&reason=offline`);
+                    return;
+                  }
+                  if (data.status === 'maintenance') {
+                    router.push(`/device-maintenance?deviceId=${encodeURIComponent(toCheck)}&reason=maintenance`);
+                    return;
+                  }
+                  setIsChecking(false);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Status check failed');
+                  setIsChecking(false);
+                }
+              })();
+            }}
+            className={`px-4 py-2 rounded text-white ${retryAfterSec && retryAfterSec > 0 ? 'bg-blue-900/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            disabled={!!retryAfterSec && retryAfterSec > 0}
           >
-            Retry
+            {retryAfterSec && retryAfterSec > 0 ? `Retry in ${retryAfterSec}s` : 'Retry'}
           </button>
         </div>
       </div>

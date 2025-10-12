@@ -57,7 +57,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Advanced system infiltrator that embeds deep into the target OS. Low success rate but destroys target device if successful.",
-    price: 220,
+    price: 150,
     icon: "🦠",
     requirements: ["Target MAC Address", "Network Access"],
     rating: 4.8,
@@ -73,7 +73,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Polymorphic virus that mutates to avoid detection. Target's Defender gets alert and must click viruses before they cover screen.",
-    price: 250,
+    price: 10,
     icon: "🔍",
     requirements: ["Target MAC Address", "Admin Privileges"],
     rating: 4.6,
@@ -88,7 +88,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Harvests credentials like private key of the target device. Low success rate but steals target team's private key. Defender gets notified but cannot stop it.",
-    price: 120,
+    price: 100,
     icon: "⛏️",
     requirements: ["Target MAC Address"],
     rating: 4.4,
@@ -103,7 +103,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Self-propagating email worm that sends scam emails to all online devices. The recipient can send their wallet address if they found the email legit.",
-    price: 160,
+    price: 25,
     icon: "📧",
     requirements: ["Target IP Address", "SMTP Server"],
     rating: 4.7,
@@ -119,7 +119,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Network-spreading worm that sends scam emails and SMS to all online devices. The recipient can send their wallet address if they found the sms / email legit.",
-    price: 350,
+    price: 100,
     icon: "🕷️",
     requirements: ["Target IP Range", "Port Scanner"],
     rating: 4.9,
@@ -134,7 +134,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Social media worm that spreads through messaging platforms. Sends scam SMS to all online devices. The recipient can send their wallet address if they found the sms legit.",
-    price: 150,
+    price: 50,
     icon: "🪝",
     requirements: ["Target IP Address", "Social Platform Access"],
     rating: 4.2,
@@ -149,7 +149,7 @@ const CATALOG: StoreItem[] = [
     category: "ransomware",
     description:
       "Military-grade file encryption ransomware. Defender must type flashing words quickly to counter. Forces team to pay ransom or game ends immediately.",
-    price: 500,
+    price: 200,
     icon: "🔒",
     requirements: ["Target IP Address"],
     rating: 4.9,
@@ -165,7 +165,7 @@ const CATALOG: StoreItem[] = [
     category: "ransomware",
     description:
       "A single time purchase is required. Used to perform brute force attack on the target device. If the target device do not have any pin set, any combination of pin would work. Once the attack is successful, the target device is locked and defender must pay ransom to unlock.",
-    price: 400,
+    price: 25,
     icon: "🚫",
     requirements: ["Target MAC Address"],
     rating: 4.6,
@@ -180,7 +180,7 @@ const CATALOG: StoreItem[] = [
     category: "ransomware",
     description:
       "Create fake cryptocurrency websites that trick users into sending you Bitcoin. Is hosted till you get 20 visitors.",
-    price: 280,
+    price: 10,
     icon: "🎭",
     requirements: ["Target URL"],
     rating: 4.7,

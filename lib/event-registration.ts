@@ -70,7 +70,8 @@ async function ensureTeamForRegistration(params: {
       walletAddress,
       privateKey,
       publicKey,
-      bitcoinBalance: 1000,
+      // Starting balance aligned with Team model default. Keep in sync if policy changes.
+      bitcoinBalance: 100,
     },
     teamMembers,
     timer: {

@@ -4,7 +4,8 @@ const g = global as unknown as { __mining?: Record<string, MiningWindow> };
 if (!g.__mining) g.__mining = {};
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const DIMINISH = 0.25; // 25% reward reduction each attempt
-const BASE_SORT_REWARD = 25; // per successful sort round - increased for better gameplay
+// Base reward per successful sort round (aligned with MiningApp UI button label)
+const BASE_SORT_REWARD = 5;
 const BASE_SNAKE_UNIT = 3; // per snake length unit - increased for better gameplay
 export function miningSortReward(teamId: string, rounds: number) {
   const now = Date.now();

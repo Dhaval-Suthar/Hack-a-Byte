@@ -16,6 +16,15 @@ interface StockData {
   low24h?: number;
 }
 
+// Base definition to seed stocks; we derive volume/change automatically from price
+interface BaseStock {
+  symbol: string;
+  name: string;
+  price: number;
+  high24h?: number;
+  low24h?: number;
+}
+
 interface Portfolio {
   symbol: string;
   shares: number;
@@ -123,32 +132,59 @@ const StockMarketApp: React.FC = () => {
     }
   }, []);
 
-  const [stocks, setStocks] = useState<StockData[]>([
-    // Indian Stocks (converted to Bitcoin prices - scaled up for better readability)
-    { symbol: "RELIANCE", name: "Reliance Industries", price: 34.4, change: 0.51, changePercent: 1.51, volume: 2850000, high24h: 35.2, low24h: 33.8 },
-    { symbol: "TCS", name: "Tata Consultancy Services", price: 49.7, change: -0.31, changePercent: -0.61, volume: 1240000, high24h: 50.3, low24h: 48.9 },
-    { symbol: "INFY", name: "Infosys Limited", price: 21.6, change: 0.23, changePercent: 1.06, volume: 3920000, high24h: 22.1, low24h: 21.2 },
-    { symbol: "HDFCBANK", name: "HDFC Bank", price: 19.9, change: -0.15, changePercent: -0.73, volume: 5670000, high24h: 20.5, low24h: 19.5 },
-    { symbol: "ADANIENT", name: "Adani Enterprises", price: 39.2, change: 0.95, changePercent: 2.48, volume: 4320000, high24h: 40.1, low24h: 38.5 },
-    
-    // International Stocks (converted to Bitcoin prices - scaled up)
-    { symbol: "AAPL", name: "Apple Inc.", price: 4.39, change: 0.057, changePercent: 1.31, volume: 89500000, high24h: 4.47, low24h: 4.32 },
-    { symbol: "GOOGL", name: "Alphabet Inc.", price: 3.31, change: -0.042, changePercent: -1.24, volume: 34200000, high24h: 3.39, low24h: 3.25 },
-    { symbol: "MSFT", name: "Microsoft Corp.", price: 9.87, change: 0.12, changePercent: 1.24, volume: 52100000, high24h: 10.01, low24h: 9.73 },
-    { symbol: "TSLA", name: "Tesla Inc.", price: 5.55, change: -0.098, changePercent: -3.40, volume: 78900000, high24h: 5.73, low24h: 5.47 },
-    { symbol: "NVDA", name: "NVIDIA Corp.", price: 10.8, change: 0.29, changePercent: 2.73, volume: 67800000, high24h: 10.95, low24h: 10.65 },
-    { symbol: "AMZN", name: "Amazon.com Inc.", price: 4.14, change: 0.073, changePercent: 1.80, volume: 45600000, high24h: 4.21, low24h: 4.08 },
-    
-    // Cryptocurrencies (scaled appropriately)
-    { symbol: "BTC", name: "Bitcoin", price: 1000.0, change: 28.5, changePercent: 2.93, volume: 21000000, high24h: 1034.1, low24h: 967.8 },
-    { symbol: "ETH", name: "Ethereum", price: 62.1, change: -1.05, changePercent: -1.66, volume: 120000000, high24h: 64.1, low24h: 61.2 },
-    { symbol: "BNB", name: "Binance Coin", price: 7.24, change: 0.20, changePercent: 2.88, volume: 890000000, high24h: 7.38, low24h: 7.01 },
-    { symbol: "ADA", name: "Cardano", price: 0.121, change: 0.007, changePercent: 6.12, volume: 45000000000, high24h: 0.125, low24h: 0.115 },
-    { symbol: "SOL", name: "Solana", price: 2.29, change: 0.10, changePercent: 4.58, volume: 2100000000, high24h: 2.37, low24h: 2.21 },
-    { symbol: "DOT", name: "Polkadot", price: 1.73, change: -0.053, changePercent: -3.00, volume: 1500000000, high24h: 1.79, low24h: 1.68 },
-    { symbol: "MATIC", name: "Polygon", price: 0.202, change: 0.012, changePercent: 6.10, volume: 8900000000, high24h: 0.208, low24h: 0.195 },
-    { symbol: "DOGE", name: "Dogecoin", price: 0.185, change: 0.046, changePercent: 2.56, volume: 67000000000, high24h: 0.191, low24h: 0.179 },
-  ]);
+  // Helper to infer a sensible volume from price (lower price => larger volume), with category boost for crypto
+  const inferVolume = (price: number, symbol: string): number => {
+    const base = Math.max(0.01, price);
+    const inverse = 100 / base; // cheaper assets appear more liquid
+    const categoryBoost = ['BTC','ETH','BNB','ADA','SOL','DOT','MATIC','DOGE'].includes(symbol) ? 5 : 1;
+    const raw = 500_000 * inverse * categoryBoost; // base scaling
+    const jitter = 0.9 + Math.random() * 0.2; // ±10%
+    return Math.floor(raw * jitter);
+  };
+
+  // Convert BaseStock to StockData with derived fields
+  const toStockData = (s: BaseStock): StockData => {
+    const high = s.high24h ?? s.price * 1.05;
+    const low = s.low24h ?? s.price * 0.95;
+    return {
+      symbol: s.symbol,
+      name: s.name,
+      price: s.price,
+      change: 0,
+      changePercent: 0,
+      volume: inferVolume(s.price, s.symbol),
+      high24h: high,
+      low24h: low,
+    };
+  };
+
+  // Seed list using the prices and highs/lows you've specified
+  const baseStocks: BaseStock[] = [
+    // Indian
+    { symbol: "RELIANCE", name: "Reliance Industries", price: 18, high24h: 22, low24h: 14 },
+    { symbol: "TCS", name: "Tata Consultancy Services", price: 16, high24h: 20, low24h: 13 },
+    { symbol: "INFY", name: "Infosys Limited", price: 20, high24h: 24, low24h: 16 },
+    { symbol: "HDFCBANK", name: "HDFC Bank", price: 14, high24h: 20, low24h: 10 },
+    { symbol: "ADANIENT", name: "Adani Enterprises", price: 20, high24h: 35, low24h: 5 },
+    // International
+    { symbol: "AAPL", name: "Apple Inc.", price: 5, high24h: 10, low24h: 0.5 },
+    { symbol: "GOOGL", name: "Alphabet Inc.", price: 25, high24h: 30, low24h: 20 },
+    { symbol: "MSFT", name: "Microsoft Corp.", price: 22, high24h: 27, low24h: 18 },
+    { symbol: "TSLA", name: "Tesla Inc.", price: 28, high24h: 35, low24h: 22 },
+    { symbol: "NVDA", name: "NVIDIA Corp.", price: 30, high24h: 38, low24h: 25 },
+    { symbol: "AMZN", name: "Amazon.com Inc.", price: 45, high24h: 75, low24h: 28 },
+    // Crypto
+    { symbol: "BTC", name: "Bitcoin", price: 500, high24h: 1000, low24h: 150 },
+    { symbol: "ETH", name: "Ethereum", price: 45, high24h: 65, low24h: 20 },
+    { symbol: "BNB", name: "Binance Coin", price: 80, high24h: 125, low24h: 35 },
+    { symbol: "ADA", name: "Cardano", price: 0.5, high24h: 1.5, low24h: 0.04 },
+    { symbol: "SOL", name: "Solana", price: 12, high24h: 15, low24h: 9 },
+    { symbol: "DOT", name: "Polkadot", price: 3, high24h: 5.5, low24h: 0.8 },
+    { symbol: "MATIC", name: "Polygon", price: 8, high24h: 10, low24h: 6 },
+    { symbol: "DOGE", name: "Dogecoin", price: 18, high24h: 22, low24h: 6 },
+  ];
+
+  const [stocks, setStocks] = useState<StockData[]>(() => baseStocks.map(toStockData));
 
   // Initialize price history and market stats
   useEffect(() => {
