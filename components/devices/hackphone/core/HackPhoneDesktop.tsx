@@ -1,6 +1,6 @@
  "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getDeviceUser } from "@/app/actions/deviceUser";
 import { getPlayspaceId } from "@/lib/playspace-utils";
@@ -198,17 +198,17 @@ const HackPhoneDesktop = () => {
     }
   }, [teamTimerExpired, teamId]);
 
-  const handleAppOpen = (appId: string) => {
+  const handleAppOpen = useCallback((appId: string) => {
     openApp(appId);
-  };
+  }, [openApp]);
 
-  const handleAppClose = () => {
+  const handleAppClose = useCallback(() => {
     closeApp();
-  };
+  }, [closeApp]);
 
-  const handleAppSwitch = (appId: string) => {
+  const handleAppSwitch = useCallback((appId: string) => {
     switchApp(appId);
-  };
+  }, [switchApp]);
 
   if (isLoading) {
     return <HackPhoneBootScreen />;
