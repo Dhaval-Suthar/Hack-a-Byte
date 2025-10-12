@@ -354,8 +354,8 @@ export default function Page() {
     {
       id: 100,
       title: "Mosaic 2025",
-      date: "2025-09-19",
-      time: "09:00 - 17:00 (19th & 20th September)",
+      date: "2025-10-17",
+      time: "09:00 - 17:00 (17th & 18th October)",
       location: "Offline (ST. FRANCIS INSTITUTE OF TECHNOLOGY (ENGG. COLLEGE), Mount Poinsur, S.V.P. Road, Borivali (West), Mumbai 400 103)",
       description:
         "Mosaic is a two-day cybersecurity competition open to all online, with an exclusive offline experience for SFIT college students. Prize pool for top performers! Offline participants (SFIT only) need just their mobile; online participants need a computer.",
@@ -373,10 +373,10 @@ export default function Page() {
         { time: "13:00", activity: "Lunch Break (Offline)" },
         { time: "14:00", activity: "Competition Continues" },
         { time: "17:00", activity: "Day End & Announcements" },
-        { time: "09:00 (20th)", activity: "Day 2 Kickoff & Competition" },
-        { time: "13:00 (20th)", activity: "Lunch Break (Offline)" },
-        { time: "14:00 (20th)", activity: "Final Rounds & Judging" },
-        { time: "17:00 (20th)", activity: "Prize Distribution & Closing" }
+        { time: "09:00 (18th)", activity: "Day 2 Kickoff & Competition" },
+        { time: "13:00 (18th)", activity: "Lunch Break (Offline)" },
+        { time: "14:00 (18th)", activity: "Final Rounds & Judging" },
+        { time: "17:00 (18th)", activity: "Prize Distribution & Closing" }
       ],
       speakers: [
         { name: "Prof. A. Fernandes", role: "Event Chair", company: "SFIT", avatar: 1 },
