@@ -117,8 +117,12 @@ const joinedTournamentsGlobal = new Set<string>();
 let useSocketCallCount = 0;
 
 export const useSocket = () => {
-  useSocketCallCount++;
-  console.log('🎣 useSocket hook called #', useSocketCallCount);
+  if (process.env.NODE_ENV !== 'production') {
+    useSocketCallCount++;
+    if (useSocketCallCount <= 5 || useSocketCallCount % 50 === 0) {
+      console.log('🎣 useSocket hook called #', useSocketCallCount);
+    }
+  }
   
   const { socket: globalSocket, isConnected: globalIsConnected } = useGlobalSocket();
   const [socket, setSocket] = useState<Socket | null>(null);
