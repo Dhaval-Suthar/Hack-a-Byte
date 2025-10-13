@@ -2,32 +2,18 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import Team from '@/models/Team';
-import { getServerIo } from '@/lib/socket';
 import { assertRoleAccess } from '@/lib/role-access';
 import { roleForbidden, methodNotAllowed, badRequest, internalError, notFound } from '@/lib/api-errors';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 import { scheduleDeviceRecovery } from '@/lib/deviceRecovery';
+import { emitVirusNotification } from '@/lib/virus-notifications';
+import { emitScoped } from '@/lib/emitter';
 
 /* SysTrojan Pro destructive attack
    POST body: { targetDeviceId, attackerTeamId }
    Logic: 30% base success (reduced by security), on success sets device status=maintenance and broadcasts event; 
    also small bitcoin siphon (up to 10% balance capped 150) credited to attacker.
 */
-
-function emitScoped(res: NextApiResponse, event: string, payload: Record<string, unknown>) {
-  try {
-    const io = getServerIo();
-    if ((payload as { teamId?: string }).teamId) {
-      const teamRoom = `team-${(payload as { teamId: string }).teamId}`;
-      io?.to(teamRoom).emit(event, { ...payload, ts: Date.now() });
-    } else {
-      const reqAny = (res as unknown as { req?: { cookies?: Record<string,string> } }).req;
-      const playspaceId = reqAny?.cookies?.playspaceId;
-      if (playspaceId) io?.to(playspaceId).emit(event, { ...payload, ts: Date.now(), playspaceId });
-      else io?.emit(event, { ...payload, ts: Date.now() });
-    }
-  } catch {}
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -61,32 +47,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   scheduleDeviceRecovery(String(device._id), 'trojan');
       
       // Emit success event to attacker
-      emitScoped(res, 'systrojan-success', { targetDeviceId, siphon, newAttackerBalance: attacker.wallet.bitcoinBalance });
+      emitScoped(res, {
+        scope: 'team',
+        id: attackerTeamId,
+        event: 'systrojan-success',
+        payload: { targetDeviceId, siphon, newAttackerBalance: attacker.wallet.bitcoinBalance, ts: Date.now() }
+      });
       
       // Send critical notification to target team before device destruction
       if (targetTeam) {
-        emitScoped(res, 'virus-notification', { 
-          targetKey: targetDeviceId, 
-          virusType: 'SysTrojan Pro',
-          message: 'DEVICE COMPROMISED! SysTrojan Pro has destroyed your device. Redirecting to game over...',
-          severity: 'critical',
-          ts: Date.now()
+        await emitVirusNotification(res, {
+          targetTeamId: String(targetTeam._id),
+          event: 'virus-notification',
+          payload: {
+            targetKey: targetDeviceId, 
+            virusType: 'SysTrojan Pro',
+            message: 'DEVICE COMPROMISED! SysTrojan Pro has destroyed your device. Redirecting to game over...',
+            severity: 'critical'
+          }
         });
         
         // Emit game-over event to target team to force redirection
-        emitScoped(res, 'game-over', { 
-          teamId: String(targetTeam._id),
-          sessionId: String(targetTeam._id), 
-          reason: 'SysTrojan Pro destroyed your device', 
-          redirectTo: 'device-maintenance',
-          ts: Date.now()
+        emitScoped(res, {
+          scope: 'team',
+          id: String(targetTeam._id),
+          event: 'game-over',
+          payload: {
+            teamId: String(targetTeam._id),
+            sessionId: String(targetTeam._id), 
+            reason: 'SysTrojan Pro destroyed your device', 
+            redirectTo: 'device-maintenance',
+            ts: Date.now()
+          }
         });
       }
       
       return res.status(200).json({ success: true, outcome: 'destroyed', siphon, attackerBalance: attacker.wallet.bitcoinBalance, successChance: adjusted });
     } else {
       // failure
-      emitScoped(res, 'systrojan-failure', { targetDeviceId });
+      emitScoped(res, {
+        scope: 'team',
+        id: attackerTeamId,
+        event: 'systrojan-failure',
+        payload: { targetDeviceId, ts: Date.now() }
+      });
       return res.status(200).json({ success: true, outcome: 'failed', successChance: adjusted });
     }
   } catch (e) {

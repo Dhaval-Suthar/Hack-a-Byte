@@ -5,6 +5,7 @@ import { AppContainer, AppHeader } from '../shared/AppContainer';
 import { useSocket } from '@/hooks/useSocket';
 import { getPlayspaceId } from '@/lib/playspace-utils';
 import DefenderStealthViral from './DefenderStealthViral';
+import { shouldShowVirusNotification } from '@/lib/virus-notifications-client';
 
 interface VirusThreat {
   id: string;
@@ -22,6 +23,8 @@ const VirusDefenseCenter: React.FC = () => {
   const playspaceId = getPlayspaceId();
   const [teamId, setTeamId] = useState<string | undefined>();
   const [deviceMac, setDeviceMac] = useState<string | undefined>();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [teamSize, setTeamSize] = useState<number>(1);
 
   // Resolve teamId (used for team-scoped virus notifications whose targetKey may be teamId or device MAC)
   useEffect(() => {
@@ -46,6 +49,19 @@ const VirusDefenseCenter: React.FC = () => {
     } catch {}
   }, []);
 
+  // Load user role and team size from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('selectedRole');
+      setUserRole(role);
+      
+      const cachedTeamSize = localStorage.getItem('teamSize');
+      if (cachedTeamSize) {
+        setTeamSize(parseInt(cachedTeamSize, 10));
+      }
+    }
+  }, []);
+
   // Track active virus threats
   useEffect(() => {
     
@@ -56,7 +72,16 @@ const VirusDefenseCenter: React.FC = () => {
       const n = notification as ExtendedNotif;
       // Match by playspaceId (legacy) or resolved teamId (current) or embedded targetTeamId
       const matches = n.targetKey === playspaceId || n.targetKey === teamId || (teamId && n.targetTeamId === teamId) || (deviceMac && n.targetKey === deviceMac);
+      
       if (matches) {
+        // Check if this user should see this virus notification
+        const shouldShow = shouldShowVirusNotification(userRole, teamSize, notification as unknown as Record<string, unknown>);
+        
+        if (!shouldShow) {
+          // User doesn't have permission to see this virus notification
+          return;
+        }
+        
         const threat: VirusThreat = {
           id: `${notification.virusType}-${notification.ts}`,
           type: notification.virusType,
@@ -75,7 +100,7 @@ const VirusDefenseCenter: React.FC = () => {
         });
       }
     });
-  }, [virusNotifications, playspaceId, teamId, deviceMac]);
+  }, [virusNotifications, playspaceId, teamId, deviceMac, userRole, teamSize]);
 
   // Handle StealthViral defeats
   useEffect(() => {

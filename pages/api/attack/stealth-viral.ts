@@ -4,6 +4,7 @@ import { emitScoped } from '@/lib/emitter';
 import connectDb from '@/db/connectDb';
 import Device from '@/models/Device';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
+import { emitVirusNotification } from '@/lib/virus-notifications';
 
 // In-memory state for StealthViral attacks
 interface StealthViralState {
@@ -95,7 +96,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     setTimeout(() => clearInterval(popupInterval), 60_000);
 
   // Defender notification
-  emitScoped(res, { scope: 'team', id: targetTeamId, event: 'virus-notification', payload: { targetKey, virusType: 'StealthViral', message: 'StealthViral detected! Neutralize before spread!', severity: 'warning' } });
+  await emitVirusNotification(res, {
+    targetTeamId,
+    event: 'virus-notification',
+    payload: {
+      targetKey,
+      virusType: 'StealthViral',
+      message: 'StealthViral detected! Neutralize before spread!',
+      severity: 'warning'
+    }
+  });
 
     // Auto-progress if defender doesn't act
     setTimeout(() => {

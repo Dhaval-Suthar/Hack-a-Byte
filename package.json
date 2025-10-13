@@ -39,6 +39,7 @@
     "react-leaflet": "^5.0.0",
     "react-rnd": "^10.5.2",
     "redis": "^5.8.2",
+    "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "styled-jsx": "^5.1.7",
     "three": "^0.176.0",
