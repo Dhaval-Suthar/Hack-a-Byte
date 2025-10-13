@@ -44,7 +44,47 @@ export const sendRegistrationConfirmationEmail = async (params: RegistrationEmai
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: `Registration Confirmed - ${eventTitle}`,
+      subject: `Registration Confirmed for ${eventTitle}`,
+      headers: {
+        'X-Mailer': 'Hack-a-Byte Mailer',
+        'List-Unsubscribe': '<mailto:unsubscribe@hackabyte.com>', // Optional for transactional
+      },
+      text: `
+Dear Participant,
+
+Thank you for registering for ${eventTitle}! We are pleased to confirm that your registration has been successfully processed and your payment has been received.
+
+Please note that this registration covers ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''}. You may register multiple times if you need additional spots.
+
+Event Details:
+- Event: ${eventTitle}
+- Date: ${eventDate}
+- Time: ${eventTime}
+- Location: ${eventLocation}
+- Playing Device: ${playingDevice === 'smartphone' ? 'Smartphone' : 'PC/Laptop'}
+- Number of Players: ${numberOfPlayers}
+- Email: ${email}
+
+Payment Information:
+- Payment ID: ${paymentId}
+- Fee per Person: ₹${((amount / 100) / numberOfPlayers).toFixed(2)}
+- Total Amount Paid: ₹${(amount / 100).toFixed(2)}
+- Status: PAID
+
+Next Steps:
+- Save this email as your registration confirmation
+- Ensure your device is ready for the event
+- Join our community for updates and announcements
+- Arrive at the venue 30 minutes before the event starts
+
+We look forward to your participation in ${eventTitle}. Prepare yourself for an exceptional cybersecurity competition experience.
+
+Best regards,
+Hack-a-Byte Team
+
+This is an automated confirmation email. Please do not reply to this email.
+If you have any questions, please contact our support team.
+      `,
       html: `
         <!DOCTYPE html>
         <html>
@@ -211,7 +251,46 @@ export const sendAccessCodeEmail = async (params: AccessCodeEmailParams) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: `🎮 Your Access Code for ${eventTitle} - Ready to Hack!`,
+      subject: `Your Access Code for ${eventTitle}`,
+      headers: {
+        'X-Mailer': 'Hack-a-Byte Mailer',
+        'List-Unsubscribe': '<mailto:unsubscribe@hackabyte.com>', // Optional for transactional
+      },
+      text: `
+Welcome! Your registration is confirmed for ${eventTitle}.
+
+Your Access Code: ${accessCode}
+Valid for ${maxUsages} use${maxUsages > 1 ? 's' : ''} • ${numberOfPlayers} player${numberOfPlayers > 1 ? 's' : ''}
+
+${walletAddress && privateKey ? `
+Your Wallet Credentials:
+Address: ${walletAddress}
+Private Key: ${privateKey}
+KEEP THESE CREDENTIALS SECURE!
+` : ''}
+
+Details:
+- Device: ${playingDevice === 'smartphone' ? 'Smartphone' : 'PC/Laptop'}
+- Environment: ${playspaceName}
+${deviceId ? `- Device ID: ${deviceId}` : ''}
+${deviceMacAddress ? `- MAC Address: ${deviceMacAddress}` : ''}
+- Email: ${email}
+
+Quick Start:
+1. Visit the Hack-a-Byte platform
+2. Enter your access code: ${accessCode}
+3. Select your device type
+4. Start your cybersecurity challenge!
+
+Important: Keep your access code secure. Anyone with this code can access your gaming environment.
+
+Good luck and happy hacking!
+
+— Hack-a-Byte Team
+
+Automated email • Do not reply
+Code: ${accessCode} • ${maxUsages} use${maxUsages > 1 ? 's' : ''}
+      `,
       html: `
         <!DOCTYPE html>
         <html lang="en">
