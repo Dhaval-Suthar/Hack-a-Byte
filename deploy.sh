@@ -80,7 +80,7 @@ run_linting() {
 check_environment() {
     print_status "Checking environment variables..."
 
-    required_vars=("MONGODB_URI" "JWT_SECRET" "NEXTAUTH_SECRET" "RAZORPAY_KEY_ID" "RAZORPAY_KEY_SECRET")
+    required_vars=("MONGODB_URI" "JWT_SECRET" "NEXTAUTH_SECRET" "CASHFREE_CLIENT_ID" "CASHFREE_CLIENT_SECRET")
 
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var}" ]]; then
