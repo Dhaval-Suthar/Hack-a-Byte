@@ -172,33 +172,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Check if attacker has enough balance for hint cost (10 BTC)
+    const hintCost = 10;
+    if (attackerTeam.wallet.bitcoinBalance < hintCost) {
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient balance. Need ${hintCost} BTC for hints, but have ${attackerTeam.wallet.bitcoinBalance} BTC`
+      });
+    }
+
     // Check if device has a PIN set
     const hasPin = targetDevice.pin && targetDevice.pin !== null;
     
     if (!hasPin) {
+      // Still charge for the hint attempt even if device has no PIN
+      attackerTeam.wallet.bitcoinBalance -= hintCost;
+      await attackerTeam.save();
+
+      logger.info('SystemLock Pro hints: charged for no-PIN device', {
+        attackerTeamId,
+        targetMAC: normalizedMAC,
+        cost: hintCost,
+        newBalance: attackerTeam.wallet.bitcoinBalance
+      });
+
       return res.status(200).json({
         success: true,
         hasPin: false,
         hints: [],
-        message: 'Device has no PIN - any 4-digit guess will work!'
+        cost: hintCost,
+        newBalance: attackerTeam.wallet.bitcoinBalance,
+        message: `Device has no PIN - any 4-digit guess will work!`
       });
     }
+
+    // Deduct the cost from attacker's wallet
+    attackerTeam.wallet.bitcoinBalance -= hintCost;
+    await attackerTeam.save();
 
     // Generate hints for the PIN
     const hints = generatePinHints(targetDevice.pin);
     const hintMessages = generateHintMessages(hints);
 
+    // Return only one random hint instead of all hints
+    const randomHint = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+
     logger.info('SystemLock Pro hints generated', {
       attackerTeamId,
       targetMAC: normalizedMAC,
-      hintsCount: hintMessages.length
+      totalHintsAvailable: hintMessages.length,
+      selectedHint: randomHint,
+      cost: hintCost,
+      newBalance: attackerTeam.wallet.bitcoinBalance
     });
 
     return res.status(200).json({
       success: true,
       hasPin: true,
-      hints: hintMessages,
-      message: `Generated ${hintMessages.length} hints for device ${normalizedMAC}`
+      hints: [randomHint], // Only return one randomized hint
+      cost: hintCost,
+      newBalance: attackerTeam.wallet.bitcoinBalance,
+      message: `PIN hint obtained for device ${normalizedMAC}`
     });
 
   } catch (error) {

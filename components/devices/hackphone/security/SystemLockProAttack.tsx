@@ -115,10 +115,16 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
       if (response.ok && result.success) {
         setHints(result.hints || []);
         setShowHints(true);
+        const costMessage = result.cost ? ` (Cost: ${result.cost} BTC)` : '';
         if (!result.hasPin) {
           setLastResult({
             success: true,
-            message: result.message || 'Device has no PIN - any 4-digit guess will work!'
+            message: (result.message || 'Device has no PIN - any 4-digit guess will work!') + costMessage
+          });
+        } else {
+          setLastResult({
+            success: true,
+            message: (result.message || `PIN hint obtained for device ${targetMAC}`) + costMessage
           });
         }
       } else {
@@ -145,31 +151,32 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
   }, [teamId, targetMAC, isLoadingHints]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50" style={{ zIndex: 9999 }}>
-      <div className="bg-gray-900 border-2 border-red-500 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 p-2 sm:p-4" style={{ zIndex: 9999 }}>
+      <div className="bg-gray-900 border-2 border-red-500 rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl shadow-2xl max-h-[95vh] overflow-y-auto">
         {/* Debug indicator */}
         <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs rounded">
           VISIBLE
         </div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-red-400 text-xl font-bold flex items-center gap-2">
-            <span className="text-2xl">🚫</span>
-            SystemLock Pro
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-red-400 text-lg sm:text-xl font-bold flex items-center gap-1 sm:gap-2">
+            <span className="text-xl sm:text-2xl">🚫</span>
+            <span className="hidden sm:inline">SystemLock Pro</span>
+            <span className="sm:hidden">SysLock Pro</span>
           </h2>
           <button
             onClick={() => {
               onClose();
             }}
-            className="text-gray-400 hover:text-white text-xl font-bold"
+            className="text-gray-400 hover:text-white text-xl font-bold p-1"
           >
             ×
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Target MAC Address Input */}
           <div>
-            <label className="block text-red-300 text-sm font-medium mb-2">
+            <label className="block text-red-300 text-xs sm:text-sm font-medium mb-1 sm:mb-2">
               Target MAC Address
             </label>
             <input
@@ -177,20 +184,20 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
               value={targetMAC}
               onChange={(e) => setTargetMAC(e.target.value)}
               placeholder="aa:bb:cc:dd:ee:ff"
-              className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+              className="w-full bg-gray-800 border border-gray-600 rounded px-2 sm:px-3 py-2 text-sm sm:text-base text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
             />
           </div>
 
           {/* PIN Display */}
           <div>
-            <label className="block text-red-300 text-sm font-medium mb-2">
+            <label className="block text-red-300 text-xs sm:text-sm font-medium mb-1 sm:mb-2">
               PIN Guess
             </label>
-            <div className="flex justify-center gap-2 mb-4">
+            <div className="flex justify-center gap-1 sm:gap-2 mb-3 sm:mb-4">
               {[0, 1, 2, 3].map((index) => (
                 <div
                   key={index}
-                  className="w-12 h-12 border-2 border-gray-600 rounded flex items-center justify-center text-white text-xl font-mono bg-gray-800"
+                  className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-gray-600 rounded flex items-center justify-center text-white text-lg sm:text-xl font-mono bg-gray-800"
                 >
                   {pinGuess[index] || ''}
                 </div>
@@ -199,13 +206,13 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
           </div>
 
           {/* PIN Keypad */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-3 sm:mb-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
               <button
                 key={digit}
                 onClick={() => handlePinInput(digit.toString())}
                 disabled={pinGuess.length >= 4 || isAttacking}
-                className="h-12 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 border border-gray-600 rounded text-white font-mono text-lg transition-colors"
+                className="h-10 sm:h-12 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 border border-gray-600 rounded text-white font-mono text-base sm:text-lg transition-colors"
               >
                 {digit}
               </button>
@@ -213,21 +220,21 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
             <button
               onClick={handlePinClear}
               disabled={isAttacking}
-              className="h-12 bg-red-700 hover:bg-red-600 disabled:bg-gray-800 border border-gray-600 rounded text-white text-sm transition-colors"
+              className="h-10 sm:h-12 bg-red-700 hover:bg-red-600 disabled:bg-gray-800 border border-gray-600 rounded text-white text-xs sm:text-sm transition-colors"
             >
               Clear
             </button>
             <button
               onClick={() => handlePinInput('0')}
               disabled={pinGuess.length >= 4 || isAttacking}
-              className="h-12 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 border border-gray-600 rounded text-white font-mono text-lg transition-colors"
+              className="h-10 sm:h-12 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 border border-gray-600 rounded text-white font-mono text-base sm:text-lg transition-colors"
             >
               0
             </button>
             <button
               onClick={handlePinDelete}
               disabled={pinGuess.length === 0 || isAttacking}
-              className="h-12 bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 border border-gray-600 rounded text-white text-sm transition-colors"
+              className="h-10 sm:h-12 bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 border border-gray-600 rounded text-white text-xs sm:text-sm transition-colors"
             >
               ←
             </button>
@@ -237,20 +244,20 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
           <button
             onClick={fetchHints}
             disabled={!targetMAC || isLoadingHints}
-            className={`w-full py-2 rounded font-medium transition-colors mb-2 ${
+            className={`w-full py-2 sm:py-3 rounded font-medium transition-colors mb-2 text-sm sm:text-base ${
               !targetMAC || isLoadingHints
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
-            {isLoadingHints ? 'Analyzing PIN...' : '🔍 Get PIN Hints'}
+            {isLoadingHints ? 'Analyzing PIN...' : '🔍 Get PIN Hint (10 BTC)'}
           </button>
 
           {/* Attack Button */}
           <button
             onClick={handleAttack}
             disabled={!targetMAC || pinGuess.length !== 4 || isAttacking}
-            className={`w-full py-3 rounded font-medium transition-colors ${
+            className={`w-full py-2 sm:py-3 rounded font-medium transition-colors text-sm sm:text-base ${
               !targetMAC || pinGuess.length !== 4 || isAttacking
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                 : 'bg-red-600 hover:bg-red-700 text-white'
@@ -261,13 +268,13 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
 
           {/* Hints Display */}
           {showHints && hints.length > 0 && (
-            <div className="bg-blue-900 border border-blue-500 rounded p-3 mb-4">
-              <h4 className="text-blue-300 text-sm font-medium mb-2 flex items-center">
-                🔍 PIN Analysis Results
+            <div className="bg-blue-900 border border-blue-500 rounded p-2 sm:p-3 mb-3 sm:mb-4">
+              <h4 className="text-blue-300 text-xs sm:text-sm font-medium mb-1 sm:mb-2 flex items-center">
+                🔍 PIN Hint
               </h4>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
                 {hints.map((hint, index) => (
-                  <div key={index} className="text-blue-200 text-xs">
+                  <div key={index} className="text-blue-200 text-xs sm:text-sm font-semibold">
                     {hint}
                   </div>
                 ))}
@@ -277,7 +284,7 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
 
           {/* Result Display */}
           {lastResult && (
-            <div className={`p-3 rounded ${
+            <div className={`p-2 sm:p-3 rounded text-xs sm:text-sm ${
               lastResult.success 
                 ? 'bg-green-900 border border-green-500 text-green-300' 
                 : 'bg-red-900 border border-red-500 text-red-300'
@@ -288,11 +295,11 @@ const SystemLockProAttack: React.FC<SystemLockProAttackProps> = ({ teamId, onClo
 
           {/* Attempt History */}
           {attempts.length > 0 && (
-            <div className="bg-gray-800 border border-gray-600 rounded p-3">
-              <h4 className="text-gray-300 text-sm font-medium mb-2">
+            <div className="bg-gray-800 border border-gray-600 rounded p-2 sm:p-3 mt-3 sm:mt-4">
+              <h4 className="text-gray-300 text-xs sm:text-sm font-medium mb-1 sm:mb-2">
                 Recent Attempts ({attempts.length})
               </h4>
-              <div className="space-y-1 max-h-20 overflow-y-auto">
+              <div className="space-y-1 max-h-16 sm:max-h-20 overflow-y-auto">
                 {attempts.slice(-5).map((attempt, index) => (
                   <div key={index} className="text-gray-400 text-xs font-mono">
                     {attempt.pinGuess} - {new Date(attempt.timestamp).toLocaleTimeString()}
