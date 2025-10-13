@@ -157,14 +157,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check cooldown period (migrate legacy long cooldowns >5 mins down to 2-3 mins)
+    // Check cooldown period (migrate legacy long cooldowns >5 mins down to 2-5 mins)
     if (site.rewardCooldownMinutes && site.rewardCooldownMinutes > 5) {
-      site.rewardCooldownMinutes = Math.floor(Math.random() * 2) + 2; // 2 or 3
+      site.rewardCooldownMinutes = Math.floor(Math.random() * 4) + 2; // 2 to 5 minutes
       await site.save();
     }
 
     if (site.rewardClaimed && site.rewardClaimedAt) {
-      const cooldownMinutes = site.rewardCooldownMinutes || 3;
+      const cooldownMinutes = site.rewardCooldownMinutes || 3; // Default 3 minutes within 2-5 range
       const timeSinceLastClaim = Date.now() - site.rewardClaimedAt.getTime();
       const cooldownPeriod = cooldownMinutes * 60 * 1000; // Convert to milliseconds
 
@@ -237,8 +237,8 @@ export async function POST(request: NextRequest) {
     site.rewardClaimed = true;
     site.rewardClaimedBy = team._id; // Store the actual team ObjectId
     site.rewardClaimedAt = new Date();
-    // Set next cooldown window randomly 2-3 minutes
-    site.rewardCooldownMinutes = Math.floor(Math.random() * 2) + 2; // 2 or 3
+    // Set next cooldown window randomly 2-5 minutes
+    site.rewardCooldownMinutes = Math.floor(Math.random() * 4) + 2; // 2 to 5 minutes
     await site.save();
 
     // Safely parse reward amount
