@@ -11,39 +11,7 @@ import RegistrationModal from '../../../components/event/RegistrationModal';
 // Import custom hooks
 import { useEventData } from '../../../hooks/useEventData';
 
-// Razorpay type declarations
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayResponse) => void;
-  prefill: {
-    email: string;
-  };
-  theme: {
-    color: string;
-  };
-  modal: {
-    ondismiss: () => void;
-  };
-}
-
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => {
-      open(): void;
-    };
-  }
-}
+// Cashfree types are declared in lib/cashfree.ts
 
 interface Event {
   id: number;

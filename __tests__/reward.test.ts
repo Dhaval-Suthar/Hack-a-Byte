@@ -1,7 +1,7 @@
 process.env.MONGODB_URI = 'http://localhost'; // dummy for zod url requirement
 process.env.JWT_SECRET = 'x'.repeat(32);
-process.env.RAZORPAY_KEY_ID = 'rkid';
-process.env.RAZORPAY_KEY_SECRET = 'rks';
+process.env.CASHFREE_CLIENT_ID = 'TEST123';
+process.env.CASHFREE_CLIENT_SECRET = 'test_secret';
 process.env.EMAIL_FROM = 'test@example.com';
 process.env.SMTP_HOST = 'smtp';
 process.env.SMTP_PORT = '1025';

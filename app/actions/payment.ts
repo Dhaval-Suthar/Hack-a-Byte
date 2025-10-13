@@ -194,7 +194,7 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 		const paymentSessionId = json.order_token || null; // Cashfree uses order_token, not payment_session_id
 
 		// Save the order id on registration for later verification
-		await EventRegistration.findByIdAndUpdate(registration._id, { razorpayOrderId: returnedOrderId });
+		await EventRegistration.findByIdAndUpdate(registration._id, { cashfreeOrderId: returnedOrderId });
 
 		return {
 			success: true,
@@ -211,6 +211,108 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 	} catch (error: unknown) {
 		logger.error('Create payment order error:', { error: error instanceof Error ? error.message : String(error) });
 		return { success: false, error: 'Failed to create payment order. Please try again.', amount: 0 };
+	}
+}
+
+// Verify Cashfree payment by checking order status
+export async function verifyEventPayment(
+	registrationId: string,
+	paymentData: {
+		order_id?: string;
+		cf_order_id?: string;
+		payment_status?: string;
+	},
+	eventData: {
+		eventId: number;
+		eventTitle: string;
+		eventDate: string;
+		eventTime: string;
+		eventLocation: string;
+	}
+): Promise<{ success: boolean; error?: string; message?: string }> {
+	try {
+		// Find the registration
+		const registration = await EventRegistration.findById(registrationId);
+		if (!registration) {
+			return { success: false, error: 'Registration not found' };
+		}
+
+		if (registration.paymentStatus === 'paid') {
+			return { success: true, message: 'Payment already verified' };
+		}
+
+		// Determine API base URL (same logic as createEventPaymentOrder)
+		const inferredBase = process.env.CASHFREE_API_BASE || (
+			(process.env.CASHFREE_CLIENT_ID && process.env.CASHFREE_CLIENT_ID.startsWith('TEST')) ||
+			(process.env.CASHFREE_CLIENT_SECRET && process.env.CASHFREE_CLIENT_SECRET.includes('test'))
+				? 'https://sandbox.cashfree.com'
+				: 'https://api.cashfree.com'
+		);
+
+		// Get order details from Cashfree
+		const orderId = paymentData.order_id || registration.cashfreeOrderId;
+		if (!orderId) {
+			return { success: false, error: 'Order ID not found' };
+		}
+
+		const orderUrl = `${inferredBase}/pg/orders/${orderId}`;
+		const resp = await fetch(orderUrl, {
+			method: 'GET',
+			headers: {
+				'Accept': 'application/json',
+				'version': process.env.CASHFREE_API_VERSION || '2022-01-01',
+				'x-api-version': process.env.CASHFREE_API_VERSION || '2022-01-01',
+				'x-client-id': process.env.CASHFREE_CLIENT_ID || '',
+				'x-client-secret': process.env.CASHFREE_CLIENT_SECRET || ''
+			}
+		});
+
+		if (!resp.ok) {
+			logger.error('Cashfree order status check failed', { status: resp.status, orderId });
+			return { success: false, error: 'Failed to verify payment status' };
+		}
+
+		const orderData = await resp.json();
+		logger.info('Cashfree order status', { orderId, status: orderData.order_status, amount: orderData.order_amount });
+
+		// Check if payment was successful
+		if (orderData.order_status === 'PAID') {
+			// Update registration status
+			await EventRegistration.findByIdAndUpdate(registrationId, {
+				paymentStatus: 'paid',
+				paymentVerifiedAt: new Date()
+			});
+
+			// Complete the registration pipeline
+			const pipelineResult = await completeRegistrationPipeline({
+				registrationId,
+				eventId: eventData.eventId,
+				eventTitle: eventData.eventTitle,
+				email: registration.email,
+				numberOfPlayers: registration.numberOfPlayers,
+				playingDevice: registration.playingDevice
+			});
+
+			if (!pipelineResult.success) {
+				logger.error('Registration pipeline failed after payment verification', { registrationId, error: pipelineResult.error });
+				return { success: false, error: 'Payment verified but registration completion failed' };
+			}
+
+			return { success: true, message: 'Payment verified and registration completed successfully' };
+		} else if (orderData.order_status === 'FAILED' || orderData.order_status === 'CANCELLED') {
+			// Update registration status to failed
+			await EventRegistration.findByIdAndUpdate(registrationId, {
+				paymentStatus: 'failed'
+			});
+			return { success: false, error: 'Payment failed or was cancelled' };
+		} else {
+			// Payment is still pending
+			return { success: false, error: 'Payment is still processing' };
+		}
+
+	} catch (error: unknown) {
+		logger.error('Payment verification error:', { error: error instanceof Error ? error.message : String(error) });
+		return { success: false, error: 'Payment verification failed' };
 	}
 }
 

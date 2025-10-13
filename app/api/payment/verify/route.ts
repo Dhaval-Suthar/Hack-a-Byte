@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       registrationId,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
+      order_id, // Cashfree order ID
+      cf_order_id, // Cashfree order ID (alternative)
+      payment_status, // Cashfree payment status
       eventId,
       eventTitle,
       eventDate,
@@ -20,13 +20,15 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!registrationId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!registrationId) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required payment verification data'
+        error: 'Missing registration ID'
       }, { status: 400 });
     }
 
+    // For Cashfree, we primarily need the registrationId to look up the order
+    // The order_id and payment_status are optional but helpful
     if (!eventId || !eventTitle) {
       return NextResponse.json({
         success: false,
@@ -37,9 +39,8 @@ export async function POST(request: NextRequest) {
     const result = await verifyEventPayment(
       registrationId,
       {
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature
+        order_id: order_id || cf_order_id,
+        payment_status
       },
       {
         eventId,

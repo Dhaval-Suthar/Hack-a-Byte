@@ -48,7 +48,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
     try {
       // Determine payment method
       const isPaidEvent = event.pricing && event.pricing.normal > 0;
-      const paymentMethod = isPaidEvent ? 'razorpay' : 'wallet';
+      const paymentMethod = isPaidEvent ? 'cashfree' : 'wallet';
 
       // Use the registration hook
       const result = await registerForEvent({

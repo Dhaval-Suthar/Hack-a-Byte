@@ -14,7 +14,7 @@ interface RegistrationData {
 }
 
 interface UseEventRegistrationReturn {
-  registerForEvent: (data: RegistrationData, paymentMethod: 'razorpay' | 'wallet') => Promise<{ success: boolean; message: string }>;
+  registerForEvent: (data: RegistrationData, paymentMethod: 'cashfree' | 'wallet') => Promise<{ success: boolean; message: string }>;
   loading: boolean;
   error: string | null;
 }
@@ -25,13 +25,13 @@ export function useEventRegistration(): UseEventRegistrationReturn {
 
   const handleRegisterForEvent = async (
     data: RegistrationData,
-    paymentMethod: 'razorpay' | 'wallet'
+    paymentMethod: 'cashfree' | 'wallet'
   ): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
       setError(null);
 
-      if (paymentMethod === 'razorpay') {
+      if (paymentMethod === 'cashfree') {
         // Handle Cashfree payment flow
         const paymentResult = await createEventPaymentOrder(data);
 
