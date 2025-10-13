@@ -295,8 +295,8 @@ function RoleSelectionClient() {
         logger.warn("Failed to save playspace data to localStorage/cookies:", { error });
       }
     }
-    // When all joined or not, continue to device selection (device will be online only after all joined)
-    router.push("/device-selection");
+    // When all joined or not, continue to tutorial first, then device selection
+    router.push("/tutorial");
   };
 
   return (

@@ -127,8 +127,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
         const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
         if (meta?.attackerTeamId) {
-          const baseContent = wallet && priv
-            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+          const baseContent = wallet
+            ? `Wallet: ${wallet}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
             : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
           if (messageType === 'sms') {
             const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
@@ -203,8 +203,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
         const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
         if (meta?.attackerTeamId) {
-          const baseContent = wallet && priv
-            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+          const baseContent = wallet
+            ? `Wallet: ${wallet}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
             : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
           if (messageType === 'sms') {
             const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
@@ -275,13 +275,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const loss = Number((updated as { lossAmount?: number } | null)?.lossAmount || 0);
       team.wallet.bitcoinBalance -= loss;
       await team.save();
-      // Forward reply (with wallet+priv if provided)
+      // Forward reply (with wallet address if provided)
       try {
         interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
         const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
         if (meta?.attackerTeamId) {
-          const baseContent = wallet && priv
-            ? `Wallet: ${wallet}\nPrivate Key: ${priv}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
+          const baseContent = wallet
+            ? `Wallet: ${wallet}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
             : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
           if (messageType === 'sms') {
             const createdForward = await (SMSModel as SMSModelType).createSystemSMS({

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { io as rawIo, Socket } from 'socket.io-client';
 import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
@@ -641,7 +641,7 @@ const safariAnimationStyles = `
 }
 `;
 
-const SafariApp: React.FC<SafariAppProps> = () => {
+const SafariAppComponent: React.FC<SafariAppProps> = () => {
   // Add animation styles to head
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -669,7 +669,7 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   // Extraction additions
   const [teamId, setTeamId] = useState<string>('');
   const [events, setEvents] = useState<ExtractorEvent[]>([]);
-  const [socket, setSocket] = useState<Socket|null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [phishWarning, setPhishWarning] = useState<string|null>(null);
   
   // New state for improvements
@@ -1167,32 +1167,50 @@ const SafariApp: React.FC<SafariAppProps> = () => {
   }, []); // Empty dependency array to prevent constant re-creation
 
   // Socket connect for extractor events
-  useEffect(()=>{
-    if (!teamId || socket) return;
-  const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || (typeof window !== 'undefined' ? window.location.origin : '/');
-  const s = rawIo(base, { path: '/api/socketio', transports:['websocket'], timeout: 20000 });
-    s.on('connect', ()=>{/* noop */});
+  useEffect(() => {
+    if (!teamId || socketRef.current) return;
+
+    const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || (typeof window !== 'undefined' ? window.location.origin : '/');
+    const s = rawIo(base, { path: '/api/socketio', transports: ['websocket'], timeout: 20000 });
+
+    socketRef.current = s;
+
+    s.on('connect', () => {
+      // no-op
+    });
     s.on('connect_error', (error) => {
       logger.warn('SafariApp socket connection error:', { error: error.message });
     });
     s.on('connect_timeout', () => {
       logger.warn('SafariApp socket connection timeout');
     });
+
     // Listen for faucet + generic extractor events
-    s.on('extractor-faucet', (p: { teamId:string; reward:number; attempts:number; windowExpires:number; balance:number; ts:number })=>{
+    const faucetHandler = (p: { teamId: string; reward: number; attempts: number; windowExpires: number; balance: number; ts: number }) => {
       if (p.teamId !== teamId) return;
-      const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type:'faucet', outcome:'gain', amount:p.reward, ts:p.ts, detail:`Attempt ${p.attempts}` };
-      setEvents(ev=> [evt, ...ev].slice(0,50));
+      const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type: 'faucet', outcome: 'gain', amount: p.reward, ts: p.ts, detail: `Attempt ${p.attempts}` };
+      setEvents(ev => [evt, ...ev].slice(0, 50));
       addNotification({ type: 'success', message: `Faucet reward: ${p.reward} bitcoins!` });
-    });
-    s.on('extractor-event', (p: { teamId:string; event: ExtractorEvent })=>{
+    };
+
+    const extractorHandler = (p: { teamId: string; event: ExtractorEvent }) => {
       if (p.teamId !== teamId) return;
       const e = p.event;
-      setEvents(ev=> [ { id: e.id || Math.random().toString(36).slice(2), type:e.type, outcome:e.outcome, amount:e.amount, ts:e.ts, detail:e.detail }, ...ev].slice(0,50));
-    });
-    setSocket(s);
-    return ()=>{ s.disconnect(); };
-  }, [teamId, socket, addNotification]);
+      setEvents(ev => [{ id: e.id || Math.random().toString(36).slice(2), type: e.type, outcome: e.outcome, amount: e.amount, ts: e.ts, detail: e.detail }, ...ev].slice(0, 50));
+    };
+
+    s.on('extractor-faucet', faucetHandler);
+    s.on('extractor-event', extractorHandler);
+
+    return () => {
+      s.off('extractor-faucet', faucetHandler);
+      s.off('extractor-event', extractorHandler);
+      s.disconnect();
+      if (socketRef.current === s) {
+        socketRef.current = null;
+      }
+    };
+  }, [teamId, addNotification]);
 
   // UI Components
   const NotificationContainer = () => (
@@ -1458,5 +1476,8 @@ const SafariApp: React.FC<SafariAppProps> = () => {
     </div>
   );
 };
+
+const SafariApp = React.memo(SafariAppComponent);
+SafariApp.displayName = 'SafariApp';
 
 export default SafariApp;

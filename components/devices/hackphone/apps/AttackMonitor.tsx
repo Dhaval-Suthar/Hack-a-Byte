@@ -127,7 +127,7 @@ const AttackMonitor: React.FC = () => {
         targetKey: exfil.targetTeamId,
         status: 'success',
         progress: 100,
-        message: `Private key extracted: ${exfil.walletAddress}`,
+        message: `Private key successfully extracted from target`,
         timestamp: exfil.ts
       };
       

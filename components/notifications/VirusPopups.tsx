@@ -18,6 +18,15 @@ interface VirusPopupsProps {
   onAllCleared?: () => void;
 }
 
+interface PersistedStealthState {
+  popups: Popup[];
+  clickCount: number;
+  clicksRequired: number | null;
+  defeated: boolean;
+  targetKey: string;
+  lastUpdated: number;
+}
+
 // Random helper
 function rand(min: number, max: number) { return Math.random() * (max - min) + min; }
 
@@ -28,12 +37,121 @@ function makeId() {
   return 'xxxxxxx-xxxx'.replace(/[x]/g, () => (Math.random()*16|0).toString(16)) + '-' + Date.now().toString(36);
 }
 
+// Persistence helpers
+function getStorageKey(targetKey: string) {
+  return `stealthviral-state-${targetKey}`;
+}
+
+function saveStealthState(targetKey: string, state: PersistedStealthState) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(getStorageKey(targetKey), JSON.stringify(state));
+    } catch (error) {
+      console.warn('Failed to save StealthViral state:', error);
+    }
+  }
+}
+
+function loadStealthState(targetKey: string): PersistedStealthState | null {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem(getStorageKey(targetKey));
+      if (saved) {
+        const parsed = JSON.parse(saved) as PersistedStealthState;
+        // Only return saved state if it's recent (within 5 minutes)
+        if (Date.now() - parsed.lastUpdated < 5 * 60 * 1000) {
+          return parsed;
+        } else {
+          // Clean up expired state
+          localStorage.removeItem(getStorageKey(targetKey));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load StealthViral state:', error);
+    }
+  }
+  return null;
+}
+
+function clearStealthState(targetKey: string) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(getStorageKey(targetKey));
+    } catch (error) {
+      console.warn('Failed to clear StealthViral state:', error);
+    }
+  }
+}
+
 const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, active, onAllCleared }) => {
   const { stealthDefeated, stealthSpawns } = useSocket();
   const [popups, setPopups] = useState<Popup[]>([]);
   const [defeated, setDefeated] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [clicksRequired, setClicksRequired] = useState<number | null>(null);
+  const [stateRestored, setStateRestored] = useState(false);
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    if (!stateRestored) {
+      const savedState = loadStealthState(targetKey);
+      if (savedState && savedState.targetKey === targetKey) {
+        setPopups(savedState.popups);
+        setClickCount(savedState.clickCount);
+        setClicksRequired(savedState.clicksRequired);
+        setDefeated(savedState.defeated);
+      }
+      setStateRestored(true);
+    }
+  }, [targetKey, stateRestored]);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (stateRestored) {
+      const state: PersistedStealthState = {
+        popups,
+        clickCount,
+        clicksRequired,
+        defeated,
+        targetKey,
+        lastUpdated: Date.now()
+      };
+      saveStealthState(targetKey, state);
+    }
+  }, [popups, clickCount, clicksRequired, defeated, targetKey, stateRestored]);
+
+  // Check server state to verify if attack is still active
+  useEffect(() => {
+    if (stateRestored && !defeated && (popups.length > 0 || clickCount > 0)) {
+      // Verify server state when restoring from localStorage
+      const verifyServerState = async () => {
+        try {
+          const response = await fetch(`/api/attack/stealth-viral?targetKey=${encodeURIComponent(targetKey)}`);
+          const data = await response.json();
+          if (data.success && data.active === false) {
+            // Attack is no longer active on server, clear local state
+            setPopups([]);
+            setClickCount(0);
+            setClicksRequired(null);
+            setDefeated(true);
+            clearStealthState(targetKey);
+          } else if (data.success && data.active && data.clicksRequired && data.clicks !== undefined) {
+            // Sync with server state
+            setClicksRequired(data.clicksRequired);
+            setClickCount(data.clicks);
+            if (data.clicks >= data.clicksRequired) {
+              setDefeated(true);
+              setPopups([]);
+              clearStealthState(targetKey);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to verify StealthViral server state:', error);
+        }
+      };
+      verifyServerState();
+    }
+  }, [stateRestored, targetKey, defeated, popups.length, clickCount]);
 
   // Determine if there is an active spawn targeting this key
   const hasActiveSpawn = useMemo(() => {
@@ -87,6 +205,7 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
         setPopups([]);
         setClickCount(0);
         setClicksRequired(null);
+        clearStealthState(targetKey);
         onAllCleared?.();
       }
     }
@@ -96,9 +215,11 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
   useEffect(() => {
     if (clicksRequired && clickCount >= clicksRequired && !defeated) {
       setPopups([]);
+      setDefeated(true);
+      clearStealthState(targetKey);
       onAllCleared?.();
     }
-  }, [clickCount, clicksRequired, defeated, onAllCleared]);
+  }, [clickCount, clicksRequired, defeated, targetKey, onAllCleared]);
 
   const handleClick = useCallback((id: string) => {
     setPopups(prev => prev.filter(p => p.id !== id));
@@ -111,7 +232,10 @@ const VirusPopups: React.FC<VirusPopupsProps> = ({ targetKey, targetTeamId, acti
     }).catch(()=>{});
   }, [targetKey, targetTeamId]);
 
-  if (!active || defeated || !hasActiveSpawn) return null;
+  if (!active || defeated) return null;
+  
+  // Show popups if we have an active spawn OR if we have restored state with popups
+  if (!hasActiveSpawn && popups.length === 0) return null;
 
   const progressPercent = clicksRequired ? Math.min(100, (clickCount / clicksRequired) * 100) : 0;
   const remaining = clicksRequired ? Math.max(0, clicksRequired - clickCount) : 0;
