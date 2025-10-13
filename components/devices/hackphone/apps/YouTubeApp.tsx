@@ -20,7 +20,57 @@ interface Video {
   videoUrl?: string;
 }
 
-const YouTubeApp: React.FC<YouTubeAppProps> = () => {
+const YouTubeApp: React.FC<YouTubeAppProps> = ({ onClose }) => {
+  // Redirect to real YouTube immediately when app opens
+  React.useEffect(() => {
+    const openYouTube = () => {
+      try {
+        // Check if we're on mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          // For mobile, try YouTube app URL scheme first
+          const youtubeAppURL = 'youtube://';
+          const youtubeWebURL = 'https://m.youtube.com';
+          
+          // Create a hidden iframe to test YouTube app launch
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = youtubeAppURL;
+          document.body.appendChild(iframe);
+          
+          // Fallback to web version after short delay
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            window.open(youtubeWebURL, '_blank', 'noopener,noreferrer');
+          }, 1000);
+        } else {
+          // For desktop, open YouTube in new tab
+          window.open('https://www.youtube.com', '_blank', 'noopener,noreferrer');
+        }
+        
+        // Close the hackphone app after launching YouTube
+        setTimeout(() => {
+          if (onClose) {
+            onClose();
+          }
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Failed to open YouTube:', error);
+        // Final fallback
+        window.open('https://www.youtube.com', '_blank', 'noopener,noreferrer');
+        if (onClose) {
+          setTimeout(onClose, 1000);
+        }
+      }
+    };
+
+    // Small delay to show the loading screen
+    const timer = setTimeout(openYouTube, 800);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
   const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subscriptions' | 'library'>('home');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -422,6 +472,66 @@ const YouTubeApp: React.FC<YouTubeAppProps> = () => {
   );
 
   return (
+    <div className="w-full h-full bg-red-600 flex flex-col items-center justify-center">
+      {/* YouTube Redirect Screen */}
+      <div className="text-center text-white p-8">
+        <div className="mb-6">
+          <Image
+            src="/hackphone/apps/youtube/app-icon.png"
+            alt="YouTube"
+            width={80}
+            height={80}
+            className="mx-auto mb-4"
+          />
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-4">Opening YouTube...</h1>
+        
+        <div className="mb-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-lg">Redirecting to YouTube app</p>
+        </div>
+        
+        <div className="text-sm opacity-80 mb-6">
+          <p>You will be redirected to the official YouTube app or website</p>
+        </div>
+        
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              window.open('https://www.youtube.com', '_blank', 'noopener,noreferrer');
+              if (onClose) onClose();
+            }}
+            className="bg-white text-red-600 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg w-full max-w-xs"
+          >
+            🚀 Open YouTube
+          </button>
+          
+          <button
+            onClick={() => {
+              window.open('https://m.youtube.com', '_blank', 'noopener,noreferrer');
+              if (onClose) onClose();
+            }}
+            className="bg-red-800 text-white px-6 py-2 rounded-full font-semibold hover:bg-red-900 transition-colors border border-white/20"
+          >
+            📱 Mobile YouTube
+          </button>
+        </div>
+        
+        <div className="mt-8">
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white underline text-sm"
+          >
+            ← Back to Phone
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Original app content (kept as fallback, but won't be reached due to redirect)
+  const renderOriginalApp = () => (
     <div className="w-full h-full bg-gray-100 flex flex-col">
       {selectedVideo && renderVideoPlayer()}
       

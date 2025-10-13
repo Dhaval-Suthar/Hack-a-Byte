@@ -49,7 +49,9 @@ export default function TutorialPage() {
     if (isPlaying) {
       video.pause();
     } else {
-      video.play();
+      video.play().catch((error) => {
+        console.error('Error playing video:', error);
+      });
     }
   };
 
@@ -130,6 +132,7 @@ export default function TutorialPage() {
   };
 
   const formatTime = (time: number) => {
+    if (!time || isNaN(time) || time < 0) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -148,7 +151,11 @@ export default function TutorialPage() {
       setIsLoading(false);
     }, 5000); // 5 second timeout
 
-    const updateTime = () => setCurrentTime(video.currentTime);
+    const updateTime = () => {
+      if (video.currentTime >= 0 && !isNaN(video.currentTime)) {
+        setCurrentTime(Math.min(video.currentTime, duration || video.duration || 0));
+      }
+    };
     const updateDuration = () => {
       if (video.duration && !isNaN(video.duration)) {
         setDuration(video.duration);
@@ -178,6 +185,8 @@ export default function TutorialPage() {
     };
     const handleError = (e: Event) => {
       console.error('Video error:', e);
+      console.error('Failed to load video from:', '/videos/sample-3.mp4');
+      setIsLoading(false);
     };
 
     // Keyboard shortcuts
