@@ -87,7 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         payload: { 
           targetKey, 
           targetTeamId: String(targetTeam._id),
-          walletAddress: targetTeam.wallet.walletAddress,
           outcome: 'success'
         } 
       });
@@ -123,8 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ 
         success: true, 
         outcome: 'success',
-        privateKey: targetTeam.wallet.privateKey, 
-        walletAddress: targetTeam.wallet.walletAddress,
+        privateKey: targetTeam.wallet.privateKey,
         successChance 
       });
     } else {
