@@ -7,9 +7,7 @@ export interface IEventRegistration extends Document {
     numberOfPlayers: number;
     pricingType?: "normal" | "extended";
     paymentStatus: "pending" | "paid" | "failed";
-    razorpayPaymentId?: string;
-    razorpayOrderId?: string;
-    razorpaySignature?: string;
+    cashfreeOrderId?: string;
     registrationDate: Date;
     // New fields for access code system
     accessCodeId?: mongoose.Schema.Types.ObjectId;
@@ -48,9 +46,7 @@ const EventRegistrationSchema: Schema = new Schema(
             enum: ["pending", "paid", "failed"],
             default: "pending"
         },
-        razorpayPaymentId: { type: String },
-        razorpayOrderId: { type: String },
-        razorpaySignature: { type: String },
+        cashfreeOrderId: { type: String },
         registrationDate: { type: Date, default: Date.now },
         // New fields for access code system
         accessCodeId: { type: mongoose.Schema.Types.ObjectId, ref: "AccessCode" },

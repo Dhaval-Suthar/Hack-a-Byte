@@ -309,7 +309,7 @@ An example server is scaffolded at `external-socket-server/` (TypeScript + Expre
 - **Database:** MongoDB with Mongoose
 - **Authentication:** JWT, bcrypt for security
 - **Real-time Features:** WebSocket integration
-- **Payment:** Razorpay for tournament fees
+- **Payment:** Cashfree for tournament fees
 
 ### Installation & Development
 
@@ -348,8 +348,8 @@ pnpm start
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MONGODB_URI=mongodb://localhost:27017/hackabyte
 JWT_SECRET=your-jwt-secret
-RAZORPAY_KEY_ID=your-razorpay-key
-RAZORPAY_KEY_SECRET=your-razorpay-secret
+CASHFREE_CLIENT_ID=your-cashfree-client-id
+CASHFREE_CLIENT_SECRET=your-cashfree-client-secret
 ```
 
 ### Project Structure
@@ -633,7 +633,7 @@ For technical support or questions:
 - **Database:** MongoDB with Mongoose
 - **Authentication:** JWT, bcrypt for security
 - **Real-time Features:** WebSocket integration
-- **Payment:** Razorpay for tournament fees
+- **Payment:** Cashfree for tournament fees
 
 ### Installation & Development
 
@@ -672,8 +672,8 @@ pnpm start
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MONGODB_URI=mongodb://localhost:27017/hackabyte
 JWT_SECRET=your-jwt-secret
-RAZORPAY_KEY_ID=your-razorpay-key
-RAZORPAY_KEY_SECRET=your-razorpay-secret
+CASHFREE_CLIENT_ID=your-cashfree-client-id
+CASHFREE_CLIENT_SECRET=your-cashfree-client-secret
 ```
 
 ### Project Structure
@@ -786,7 +786,7 @@ For technical support or questions:
 - **Database:** MongoDB with Mongoose
 - **Authentication:** JWT, bcrypt for security
 - **Real-time Features:** WebSocket integration
-- **Payment:** Razorpay for tournament fees
+- **Payment:** Cashfree for tournament fees
 
 ### Installation & Development
 
@@ -825,8 +825,8 @@ pnpm start
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MONGODB_URI=mongodb://localhost:27017/hackabyte
 JWT_SECRET=your-jwt-secret
-RAZORPAY_KEY_ID=your-razorpay-key
-RAZORPAY_KEY_SECRET=your-razorpay-secret
+CASHFREE_CLIENT_ID=your-cashfree-client-id
+CASHFREE_CLIENT_SECRET=your-cashfree-client-secret
 ```
 
 ### Project Structure

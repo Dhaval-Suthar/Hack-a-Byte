@@ -45,21 +45,21 @@ export interface Event {
   maxTeamMembers?: number;
 }
 
-// Razorpay type declarations
-export interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
+// Cashfree type declarations
+export interface CashfreeResponse {
+  order_id: string;
+  cf_order_id?: string;
+  payment_status?: string;
 }
 
-export interface RazorpayOptions {
+export interface CashfreeOptions {
   key: string;
   amount: number;
   currency: string;
   name: string;
   description: string;
   order_id: string;
-  handler: (response: RazorpayResponse) => void;
+  handler: (response: CashfreeResponse) => void;
   prefill: {
     email: string;
   };
@@ -71,14 +71,7 @@ export interface RazorpayOptions {
   };
 }
 
-// Global Razorpay window declaration
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => {
-      open(): void;
-    };
-  }
-}
+// Cashfree types are declared in lib/cashfree.ts
 
 // Component prop types
 export interface TypingTextProps {
