@@ -32,6 +32,12 @@ export const metadata: Metadata = {
   },
   category: "Technology",
   applicationName: "CryptoHeist: Digital Warfare",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
