@@ -46,6 +46,10 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
     setFormError("");
 
     try {
+      // Determine payment method
+      const isPaidEvent = event.pricing && event.pricing.normal > 0;
+      const paymentMethod = isPaidEvent ? 'razorpay' : 'wallet';
+
       // Use the registration hook
       const result = await registerForEvent({
         eventId: event.id,
@@ -54,17 +58,26 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
         playingDevice,
         numberOfPlayers,
         pricingType: selectedPricing
-      }, event.pricing && event.pricing.normal > 0 ? 'razorpay' : 'wallet');
+      }, paymentMethod);
 
       if (result.success) {
-        onSuccess();
-        onClose();
-        // Reset form
-        setEmail("");
-        setPlayingDevice("smartphone");
-        setNumberOfPlayers(1);
-        // Redirect user to home page to enter access code
-        window.location.href = "/";
+        if (isPaidEvent) {
+          // For paid events, DON'T close the modal or call onSuccess
+          // Keep the modal open with loading state while redirect happens
+          // The redirect will navigate away from this page
+          console.log('Payment redirect initiated, keeping modal open...');
+          // Modal will naturally disappear when page navigates to Cashfree
+        } else {
+          // For free events, complete the flow normally
+          onSuccess();
+          onClose();
+          // Reset form
+          setEmail("");
+          setPlayingDevice("smartphone");
+          setNumberOfPlayers(1);
+          // Redirect user to home page to enter access code
+          window.location.href = "/";
+        }
       } else {
         setFormError(result.message);
       }
@@ -281,7 +294,7 @@ const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationMo
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
-                    Secure payment via Razorpay
+                    Secure payment via Cashfree
                   </p>
                 </div>
               </div>

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { registerForEvent } from '../app/actions/eventRegistration';
 import { createEventPaymentOrder } from '../app/actions/payment';
-import { logger } from '@/lib/logger';
 
 interface RegistrationData {
   eventId: number;
@@ -33,7 +32,7 @@ export function useEventRegistration(): UseEventRegistrationReturn {
       setError(null);
 
       if (paymentMethod === 'razorpay') {
-        // Handle Razorpay payment flow
+        // Handle Cashfree payment flow
         const paymentResult = await createEventPaymentOrder(data);
 
         if (!paymentResult.success) {
@@ -41,75 +40,45 @@ export function useEventRegistration(): UseEventRegistrationReturn {
         }
 
         // Check if this is a paid event (has orderId) or free event
-        if (paymentResult.orderId && paymentResult.amount > 0 && paymentResult.key) {
-          // This is a paid event - we need to integrate with Razorpay SDK
-          return new Promise((resolve) => {
-            // Check if Razorpay is available
-            if (typeof window === 'undefined' || !window.Razorpay) {
-              resolve({ success: false, message: 'Razorpay SDK not loaded. Please refresh the page and try again.' });
-              return;
-            }
-
-            const options = {
-              key: paymentResult.key!,
+        if (paymentResult.orderId && (paymentResult.amount ?? 0) > 0 && paymentResult.key) {
+          // Paid event flow - redirect to Cashfree payment page
+          // Cashfree provides a direct payment_link - use it
+          if (paymentResult.paymentLink) {
+            // Log for debugging
+            console.log('✅ Payment order created:', {
+              orderId: paymentResult.orderId,
               amount: paymentResult.amount,
-              currency: paymentResult.currency,
-              order_id: paymentResult.orderId!,
-              name: 'Hack-A-Byte Event Registration',
-              description: `Registration for Event #${data.eventId}`,
-              handler: async (response: {
-                razorpay_order_id: string;
-                razorpay_payment_id: string;
-                razorpay_signature: string;
-              }) => {
-                try {
-                  // Verify payment on server
-                  const verifyResponse = await fetch('/api/payment/verify', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      registrationId: paymentResult.registrationId,
-                      razorpay_order_id: response.razorpay_order_id,
-                      razorpay_payment_id: response.razorpay_payment_id,
-                      razorpay_signature: response.razorpay_signature,
-                      eventId: data.eventId,
-                      eventTitle: `Event ${data.eventId}`, // You might want to pass the actual title
-                      eventDate: new Date().toISOString().split('T')[0], // Current date as fallback
-                      eventTime: 'TBD',
-                      eventLocation: 'Online'
-                    }),
-                  });
+              paymentLink: paymentResult.paymentLink
+            });
+            console.log('🚀 Redirecting to Cashfree payment link in 100ms...');
+            
+            // Use window.location.replace to ensure the redirect completes
+            // This prevents the back button from returning to the form
+            setTimeout(() => {
+              window.location.replace(paymentResult.paymentLink!);
+            }, 100);
+            
+            // Keep loading state active during redirect
+            return { success: true, message: 'Redirecting to payment gateway...' };
+          }
 
-                  const verifyResult = await verifyResponse.json();
+          // Fallback: construct URL from order token if no payment link
+          if (paymentResult.paymentSessionId) {
+            const checkoutUrl = paymentResult.checkoutMode === 'production' 
+              ? 'https://payments.cashfree.com/order' 
+              : 'https://payments-test.cashfree.com/order';
+            
+            const redirectUrl = `${checkoutUrl}/${paymentResult.paymentSessionId}`;
+            console.log('Redirecting to Cashfree checkout:', redirectUrl);
+            
+            setTimeout(() => {
+              window.location.replace(redirectUrl);
+            }, 100);
+            
+            return { success: true, message: 'Redirecting to payment gateway...' };
+          }
 
-                  if (verifyResult.success) {
-                    resolve({ success: true, message: verifyResult.message || 'Payment successful and registration completed!' });
-                  } else {
-                    resolve({ success: false, message: verifyResult.error || 'Payment verification failed' });
-                  }
-                } catch (error) {
-                  logger.error('Payment verification error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
-                  resolve({ success: false, message: 'Payment verification failed. Please contact support.' });
-                }
-              },
-              prefill: {
-                email: data.email,
-              },
-              theme: {
-                color: '#00ff88',
-              },
-              modal: {
-                ondismiss: () => {
-                  resolve({ success: false, message: 'Payment cancelled by user' });
-                }
-              }
-            };
-
-            const razorpayInstance = new window.Razorpay(options);
-            razorpayInstance.open();
-          });
+          return { success: false, message: 'Unable to initiate payment. Please contact support.' };
         } else if (!paymentResult.key) {
           return { success: false, message: 'Payment configuration error. Please contact support.' };
         } else {
