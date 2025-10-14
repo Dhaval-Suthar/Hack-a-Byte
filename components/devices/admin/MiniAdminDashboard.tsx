@@ -23,8 +23,7 @@ import { getPlayspaces, createPlayspace, updatePlayspace, deletePlayspace } from
 import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
 import { getEvents } from "@/app/actions/admin";
 import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
-import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
-import { updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
+import { getTeams, createTeam, updateTeam, deleteTeam, updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 import { logger } from '@/lib/logger';
@@ -159,6 +158,8 @@ export default function MiniAdminDashboard() {
         description: team.description,
         leaderUserId: team.leaderUserId,
         members: team.members,
+        numberOfPlayers: team.numberOfPlayers,
+        playingDevice: team.playingDevice,
       }));
       setTeams(transformedTeams);
 
