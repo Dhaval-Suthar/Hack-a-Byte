@@ -118,14 +118,25 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 			};
 		}
 
-			// Paid event: create Cashfree order via REST API
-			// Choose base URL: allow override with CASHFREE_API_BASE, otherwise infer sandbox when using test client ids
-			const inferredBase = process.env.CASHFREE_API_BASE || (
-				(process.env.CASHFREE_CLIENT_ID && process.env.CASHFREE_CLIENT_ID.startsWith('TEST')) ||
-				(process.env.CASHFREE_CLIENT_SECRET && process.env.CASHFREE_CLIENT_SECRET.includes('test'))
-					? 'https://sandbox.cashfree.com'
-					: 'https://api.cashfree.com'
-			);
+		// Paid event: create Cashfree order via REST API
+		// Check if Cashfree is configured
+		if (!process.env.CASHFREE_CLIENT_ID || !process.env.CASHFREE_CLIENT_SECRET) {
+			// Cleanup registration on missing Cashfree configuration
+			await EventRegistration.findByIdAndDelete(registration._id);
+			return { 
+				success: false, 
+				error: 'Payment gateway not configured. Please contact support.', 
+				amount: 0 
+			};
+		}
+
+		// Choose base URL: allow override with CASHFREE_API_BASE, otherwise infer sandbox when using test client ids
+		const inferredBase = process.env.CASHFREE_API_BASE || (
+			(process.env.CASHFREE_CLIENT_ID && process.env.CASHFREE_CLIENT_ID.startsWith('TEST')) ||
+			(process.env.CASHFREE_CLIENT_SECRET && process.env.CASHFREE_CLIENT_SECRET.includes('test'))
+				? 'https://sandbox.cashfree.com'
+				: 'https://api.cashfree.com'
+		);
 			const cfUrl = `${inferredBase}/pg/orders`;
 			const customerPhone = process.env.CASHFREE_CUSTOMER_PHONE_DEFAULT || '9999999999';
 
@@ -239,6 +250,11 @@ export async function verifyEventPayment(
 
 		if (registration.paymentStatus === 'paid') {
 			return { success: true, message: 'Payment already verified' };
+		}
+
+		// Check if Cashfree is configured
+		if (!process.env.CASHFREE_CLIENT_ID || !process.env.CASHFREE_CLIENT_SECRET) {
+			return { success: false, error: 'Payment gateway not configured. Please contact support.' };
 		}
 
 		// Determine API base URL (same logic as createEventPaymentOrder)
