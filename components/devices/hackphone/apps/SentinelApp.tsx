@@ -950,6 +950,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     enc?: boolean;
     ids?: boolean;
   } | null>(null);
+  // Mission control display info (MAC and Wallet balance) shown in the mission box
+  const [missionBoxInfo, setMissionBoxInfo] = useState<{ mac: string; wallet: string }>({ mac: '', wallet: '' });
   
   // Scan state
   const SCAN_COOLDOWN_MS = 60_000; // 1 minute
@@ -990,6 +992,27 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     
     return () => clearInterval(intervalId);
   }, []);
+
+  // Populate mission box info from selected device, devices list, localStorage, or wallet data
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+  const macFromStorage = localStorage.getItem('device_mac_address') || '';
+
+  // Prefer selectedDevice MAC, then localStorage, then first hackphone device
+  const fallbackDevice = devices.find(d => d.deviceType === 'hackphone' && d.deviceMacAddress) || devices[0];
+  const mac = selectedDevice?.deviceMacAddress || macFromStorage || fallbackDevice?.deviceMacAddress || 'UNKNOWN';
+
+    // Wallet: show own team balance (formatted). If not available show ₿0.00
+    const ownTeam = walletData.find(w => w.isOwnTeam);
+    const balance = ownTeam?.balance ?? 0;
+    const balanceText = `₿${Number(balance || 0).toFixed(2)}`;
+
+    setMissionBoxInfo({
+      mac,
+      wallet: balanceText
+    });
+  }, [selectedDevice, walletData, devices]);
   
   // Track active keys for shortcuts display
   
@@ -1288,6 +1311,11 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
     }
   }, [addNotification, teamId]);
 
+  // Ensure wallet data is fetched once on mount so mission box can display balance
+  useEffect(() => {
+    fetchWallets();
+  }, [fetchWallets]);
+
   // Team balance fetch function
   const fetchTeamBalance = useCallback(async () => {
     try {
@@ -1584,9 +1612,23 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
               output={(
                 <div className="border border-green-700 p-3 space-y-2">
                   <div className="font-bold">-- SENTINEL MISSION CONTROL --</div>
-                  <div>Date: {new Date().toLocaleDateString()}</div>
-                  <div>Time: {time}</div>
-                  <div>Status: {scanCompleted ? 'Network Mapped' : 'Awaiting Reconnaissance'}</div>
+                  <div>
+                    <TerminalText text={`Date: ${new Date().toLocaleDateString()}`} className="text-green-400" startWithDelay={0} />
+                  </div>
+                  <div>
+                    <TerminalText text={`Time: ${time}`} className="text-green-400" startWithDelay={300} />
+                  </div>
+                  <div>
+                    <TerminalText text={`Status: ${scanCompleted ? 'Network Mapped' : 'Awaiting Reconnaissance'}`} className="text-green-400" startWithDelay={600} />
+                  </div>
+
+                  {/* Mission box sequential info: IP, MAC, WALLET */}
+                  <div>
+                    <TerminalText text={`MAC: ${missionBoxInfo.mac}`} className="text-green-300" startWithDelay={900} />
+                  </div>
+                  <div>
+                    <TerminalText text={`WALLET BALANCE: ${missionBoxInfo.wallet}`} className="text-green-400" startWithDelay={1200} />
+                  </div>
                 </div>
               )}
             />
@@ -1961,8 +2003,8 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                           <div className="font-mono text-xs text-yellow-500 max-w-full overflow-hidden">
                             <div className="overflow-hidden text-ellipsis">WALLET: <span className="break-all">{selectedDevice.walletAddress}</span></div>
                             {selectedDevice.bitcoinBalance && (
-                              <div>BALANCE: <span className="text-yellow-400 font-bold">₿{selectedDevice.bitcoinBalance.toFixed(2)}</span></div>
-                            )}
+                                  <div>BALANCE: <span className="text-green-400 font-bold">₿{selectedDevice.bitcoinBalance.toFixed(2)}</span></div>
+                                )}
                           </div>
                           {selectedDevice.isBank && (
                             <div className="border-2 border-yellow-600 rounded px-2 py-1 text-yellow-500 text-xs animate-pulse ml-2 mt-1">
@@ -2271,7 +2313,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                     </div>
                     
                     {/* Balance */}
-                    <div className="w-24 text-yellow-500 font-mono flex-shrink-0 text-right px-1">
+                    <div className="w-24 text-green-400 font-mono flex-shrink-0 text-right px-1">
                       ₿{wallet.balance.toFixed(2)}
                     </div>
                   </div>
