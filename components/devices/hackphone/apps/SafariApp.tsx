@@ -796,7 +796,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []); // Remove addNotification dependency
+  }, [addNotification]); // Add back addNotification dependency
 
   // Load sites from API - OPTIMIZED to load only once
   useEffect(() => {
@@ -1075,7 +1075,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
     addNotification,
     events,
     cooldownTimers
-  }), [sites, currentPage, sitesPerPage, showBookmarks, bookmarks, events, cooldownTimers]); // Removed callback dependencies to prevent re-creation
+  }), [sites, currentPage, sitesPerPage, showBookmarks, bookmarks, events, cooldownTimers, navigateTo, addNotification]); // Add back callback dependencies
 
   const HomePage = useCallback(() => {
     return <MemoizedHomePage {...homePageProps} />;
@@ -1158,7 +1158,6 @@ const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
   // Update cooldown timers every second for live countdown - OPTIMIZED to prevent re-renders
   useEffect(() => {
     const interval = setInterval(() => {
-      let hasTimerChanges = false;
       const newTimers: {[key: string]: number} = {};
       
       // Calculate all timers at once without triggering state updates
@@ -1172,7 +1171,6 @@ const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
           if (timeSinceLastClaim < cooldownPeriod) {
             const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
             newTimers[site._id] = remainingSeconds;
-            hasTimerChanges = true;
           }
         }
       });
@@ -1240,7 +1238,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
         socketRef.current = null;
       }
     };
-  }, [teamId]); // Remove addNotification from dependencies to prevent re-connection
+  }, [teamId, addNotification]); // Add back addNotification dependency
 
   // UI Components
   const NotificationContainer = () => (

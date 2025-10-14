@@ -1,9 +1,6 @@
 // This file is kept for backward compatibility but Razorpay has been replaced with Cashfree
 // All payment functionality is now handled in lib/cashfree.ts and app/actions/payment.ts
 
-import crypto from "crypto";
-import { logger } from "./logger";
-
 export interface CreateOrderParams {
   amount: number; // Amount in paisa (multiply by 100 for rupees)
   currency: string;
@@ -17,22 +14,24 @@ export interface PaymentVerificationParams {
 }
 
 // Create Razorpay order - DEPRECATED: Use Cashfree instead
-export const createRazorpayOrder = async (params: CreateOrderParams) => {
+export const createRazorpayOrder = async () => {
   throw new Error("Razorpay has been replaced with Cashfree. Use createEventPaymentOrder from app/actions/payment.ts instead.");
 };
 
 // Verify Razorpay payment - DEPRECATED: Use Cashfree instead
-export const verifyRazorpayPayment = (params: PaymentVerificationParams): boolean => {
+export const verifyRazorpayPayment = (): boolean => {
   throw new Error("Razorpay has been replaced with Cashfree. Use verifyEventPayment from app/actions/payment.ts instead.");
 };
 
 // Get payment fee per person for event - DEPRECATED: Use Cashfree pricing
-export const getEventRegistrationFeePerPerson = (eventId: number, pricingType: "normal" | "extended" = "normal"): number => {
+export const getEventRegistrationFeePerPerson = (): number => {
   throw new Error("Razorpay pricing has been replaced with Cashfree. Update your event pricing logic.");
 };
 
-export default {
+const razorpayExports = {
   createRazorpayOrder,
   verifyRazorpayPayment,
   getEventRegistrationFeePerPerson
 };
+
+export default razorpayExports;
