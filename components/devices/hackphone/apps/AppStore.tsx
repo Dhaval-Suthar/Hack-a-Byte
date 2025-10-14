@@ -119,7 +119,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Network-spreading worm that sends scam emails and SMS to all online devices. The recipient can send their wallet address if they found the sms / email legit.",
-    price: 5, // Updated from 350 to 5 BTC
+    price: 25, // Updated from 350 to 5 BTC
     icon: "🕷️",
     requirements: ["Target IP Range", "Port Scanner"],
     rating: 4.9,
@@ -134,7 +134,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Social media worm that spreads through messaging platforms. Sends scam SMS to all online devices. The recipient can send their wallet address if they found the sms legit.",
-    price: 35, // Updated from 150 to 35 BTC
+    price: 10, // Updated from 150 to 35 BTC
     icon: "🪝",
     requirements: ["Target IP Address", "Social Platform Access"],
     rating: 4.2,
