@@ -57,7 +57,7 @@ export default function TeamsSection({
     name: "",
     description: "",
     numberOfPlayers: 1,
-    playingDevice: "pc_laptop" as "smartphone" | "pc_laptop",
+    playingDevice: "smartphone" as "smartphone" | "pc_laptop",
     leaderUserId: "",
   });
 
@@ -77,7 +77,7 @@ export default function TeamsSection({
         formData.playingDevice,
         formData.leaderUserId || undefined
       );
-      setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
+      setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "smartphone", leaderUserId: "" });
       setShowCreateForm(false);
     } catch (error) {
       logger.error('Failed to create team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -94,7 +94,7 @@ export default function TeamsSection({
         leaderUserId: formData.leaderUserId || undefined,
       });
       setEditingTeam(null);
-      setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
+      setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "smartphone", leaderUserId: "" });
     } catch (error) {
       logger.error('Failed to update team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     }
@@ -106,14 +106,14 @@ export default function TeamsSection({
       name: team.name,
       description: team.description,
       numberOfPlayers: team.numberOfPlayers || 1,
-      playingDevice: "pc_laptop", // Default to pc_laptop for editing (could be enhanced to store device type)
+      playingDevice: "smartphone", // Default to smartphone for editing (could be enhanced to store device type)
       leaderUserId: team.leaderUserId || "",
     });
   };
 
   const cancelEdit = () => {
     setEditingTeam(null);
-    setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "pc_laptop", leaderUserId: "" });
+    setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "smartphone", leaderUserId: "" });
   };
 
   const startManage = async (team: Team) => {
