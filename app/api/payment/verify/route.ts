@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       registrationId,
-      order_id, // Cashfree order ID
+      payment_link_id, // Razorpay payment link ID
+      payment_id, // Razorpay payment ID
+      order_id, // Cashfree order ID (for backward compatibility)
       cf_order_id, // Cashfree order ID (alternative)
       payment_status, // Cashfree payment status
       eventId,
@@ -39,6 +41,8 @@ export async function POST(request: NextRequest) {
     const result = await verifyEventPayment(
       registrationId,
       {
+        payment_link_id,
+        payment_id,
         order_id: order_id || cf_order_id,
         payment_status
       },

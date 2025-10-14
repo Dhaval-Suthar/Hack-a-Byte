@@ -32,8 +32,8 @@ function PaymentSuccessContent() {
       }
 
       const registrationId = searchParams.get('registrationId');
-      const orderId = searchParams.get('order_id') || searchParams.get('cf_order_id');
-      const paymentStatus = searchParams.get('payment_status');
+      const paymentLinkId = searchParams.get('razorpay_payment_link_id');
+      const paymentId = searchParams.get('razorpay_payment_id');
 
       if (!registrationId) {
         setStatus({
@@ -54,8 +54,8 @@ function PaymentSuccessContent() {
           },
           body: JSON.stringify({
             registrationId,
-            order_id: orderId,
-            payment_status: paymentStatus,
+            payment_link_id: paymentLinkId,
+            payment_id: paymentId,
             eventId: 100, // Default event ID - you might want to store this in session/localStorage
             eventTitle: 'Event Registration',
             eventDate: new Date().toISOString().split('T')[0],
