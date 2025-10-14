@@ -3016,3 +3016,48 @@ export async function getPublicEvents() {
     return { error: "Failed to fetch events" };
   }
 }
+
+// Combined action to fetch all admin data in one request
+export async function getAllAdminData(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    // Fetch all data in parallel
+    const [accessCodesResult, playspacesResult, devicesResult, eventsResult, sessionsResult, teamsResult, sponsorsResult] = await Promise.all([
+      getAccessCodes(adminKey),
+      getPlayspaces(adminKey),
+      getAllDevices(adminKey),
+      getEvents(adminKey),
+      getGameSessions(adminKey),
+      getTeams(adminKey),
+      getSponsors(adminKey),
+    ]);
+
+    // Check for errors in any of the results
+    if (accessCodesResult.error) return { error: accessCodesResult.error };
+    if (playspacesResult.error) return { error: playspacesResult.error };
+    if (devicesResult.error) return { error: devicesResult.error };
+    if (eventsResult.error) return { error: eventsResult.error };
+    if (sessionsResult.error) return { error: sessionsResult.error };
+    if (teamsResult.error) return { error: teamsResult.error };
+    if (sponsorsResult.error) return { error: sponsorsResult.error };
+
+    // Return combined data
+    return {
+      accessCodes: accessCodesResult.accessCodes || [],
+      playspaces: playspacesResult.playspaces || [],
+      devices: devicesResult.devices || [],
+      events: eventsResult.events || [],
+      sessions: sessionsResult.sessions || [],
+      teams: teamsResult.teams || [],
+      sponsors: sponsorsResult.sponsors || [],
+    };
+  } catch (error) {
+    logger.error('Error fetching all admin data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch admin data" };
+  }
+}

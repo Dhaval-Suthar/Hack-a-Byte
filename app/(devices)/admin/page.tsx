@@ -93,18 +93,14 @@ export default function AdminPage() {
 
   // Show admin dashboard
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key="dashboard"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900"
-      >
-        <ErrorBoundary>
-          <MiniAdminDashboard />
-        </ErrorBoundary>
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900"
+    >
+      <ErrorBoundary>
+        <MiniAdminDashboard />
+      </ErrorBoundary>
+    </motion.div>
   );
 }
