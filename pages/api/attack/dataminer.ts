@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { emitScoped } from '@/lib/emitter';
 import { computeSuccessChance, RawSecuritySettings } from '@/lib/securityModifiers';
 import { logger } from '@/lib/logger';
+import { emitVirusNotification } from '@/lib/virus-notifications';
 
 // Cooldown map to avoid repeated exfil by the same attacker against the same target
 const lastExfil: Record<string, number> = {};
@@ -87,23 +88,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         payload: { 
           targetKey, 
           targetTeamId: String(targetTeam._id),
-          walletAddress: targetTeam.wallet.walletAddress,
           outcome: 'success'
         } 
       });
 
       // Notify target team (Berlin) about the attack (but they can't stop it)
-      emitScoped(res, { 
-        scope: 'team', 
-        id: String(targetTeam._id), 
-        event: 'virus-notification', 
-        payload: { 
+      await emitVirusNotification(res, {
+        targetTeamId: String(targetTeam._id),
+        event: 'virus-notification',
+        payload: {
           targetKey,
           targetTeamId: String(targetTeam._id),
           virusType: 'DataMiner X',
           message: 'DataMiner X detected - credentials compromised! Check wallet security immediately.',
           severity: 'critical'
-        } 
+        }
       });
 
       // Explicit notification that private key was exfiltrated
@@ -123,8 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ 
         success: true, 
         outcome: 'success',
-        privateKey: targetTeam.wallet.privateKey, 
-        walletAddress: targetTeam.wallet.walletAddress,
+        privateKey: targetTeam.wallet.privateKey,
         successChance 
       });
     } else {

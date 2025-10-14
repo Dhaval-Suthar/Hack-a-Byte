@@ -32,6 +32,12 @@ export const metadata: Metadata = {
   },
   category: "Technology",
   applicationName: "CryptoHeist: Digital Warfare",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -129,7 +135,7 @@ export default function RootLayout({
           </div>
         </SocketProvider>
         <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
+          src="https://sdk.cashfree.com/js/v3/cashfree.js"
           strategy="lazyOnload"
         />
         <Analytics />

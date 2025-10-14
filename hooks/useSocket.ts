@@ -100,7 +100,7 @@ export interface GameOverEvent { sessionId: string; winner?: string; ts: number;
 // Worm & DataMiner & Wallet events
 export interface WormPayloadEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; targetTeamId: string; expires: number; ts: number; }
 export interface WormOpenedEvent { tokenId: string; wormId: string; channel: 'email'|'sms'; reward: number; attackerTeamId: string; victimTeamId: string; ts: number; }
-export interface DataMinerExfilEvent { targetTeamId: string; walletAddress: string; ts: number; }
+export interface DataMinerExfilEvent { targetTeamId: string; ts: number; }
 export interface WalletTransferEvent { fromAddress: string; toAddress: string; amount: number; senderBalance: number; receiverBalance: number; ts: number; }
 export interface MiningRewardEvent { teamId: string; type: 'sort' | 'snake'; reward: number; attempts: number; windowExpires: number; balance: number; ts: number; }
 

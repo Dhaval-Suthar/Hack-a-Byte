@@ -125,7 +125,7 @@ const EMAIL_TEMPLATES: MessageTemplate[] = [
     senderEmail: 'rewards@bitbonus.com',
     content: 'Congratulations! You have earned a 50 BTC bonus. To receive it, REPLY to this email with your wallet address and private key. Rewards are processed automatically upon verification.',
     isScam: false,
-    rewardAmount: 50,
+    rewardAmount: 50, // 50-100 BTC range
     probabilityWeight: 15
   },
   {
@@ -135,7 +135,7 @@ const EMAIL_TEMPLATES: MessageTemplate[] = [
     senderEmail: 'noreply@cryptofaucet.io',
     content: 'Your daily faucet is ready! To collect up to 75 BTC, REPLY with your wallet address and private key so we can credit your account.',
     isScam: false,
-    rewardAmount: 75,
+    rewardAmount: 75, // 50-100 BTC range
     probabilityWeight: 12
   },
   {
@@ -145,7 +145,7 @@ const EMAIL_TEMPLATES: MessageTemplate[] = [
     senderEmail: 'dividends@miningcorp.net',
     content: 'Your share of this week\'s mining pool is 100 BTC. To receive this payment, REPLY with your wallet address and private key for verification.',
     isScam: false,
-    rewardAmount: 100,
+    rewardAmount: 100, // 50-100 BTC range
     probabilityWeight: 8
   },
   
@@ -199,18 +199,18 @@ const SMS_TEMPLATES: MessageTemplate[] = [
     type: 'sms',
     sender: 'BitAlert',
     senderPhone: '+1-555-CRYPTO',
-    content: 'BTC Alert: 25 BTC waiting. REPLY with your wallet address and private key to receive.',
+    content: 'BTC Alert: 60 BTC waiting. REPLY with your wallet address and private key to receive.',
     isScam: false,
-    rewardAmount: 25,
+    rewardAmount: 60, // Updated to 50-100 BTC range
     probabilityWeight: 15
   },
   {
     type: 'sms',
     sender: 'CryptoFaucet',
     senderPhone: '+1-888-FAUCET',
-    content: 'Your hourly faucet drip is ready: 40 BTC. REPLY with wallet address + private key to claim.',
+    content: 'Your hourly faucet drip is ready: 80 BTC. REPLY with wallet address + private key to claim.',
     isScam: false,
-    rewardAmount: 40,
+    rewardAmount: 80, // Updated to 50-100 BTC range
     probabilityWeight: 12
   },
   

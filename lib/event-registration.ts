@@ -70,7 +70,7 @@ async function ensureTeamForRegistration(params: {
       walletAddress,
       privateKey,
       publicKey,
-      bitcoinBalance: 1000,
+      bitcoinBalance: 100,
     },
     teamMembers,
     timer: {

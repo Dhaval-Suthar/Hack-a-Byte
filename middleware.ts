@@ -102,12 +102,12 @@ function addSecurityHeaders(response: NextResponse) {
     'Content-Security-Policy',
     "default-src 'self'; " +
       // Allow Vercel Live Preview scripts in preview deployments
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vercel.live https://checkout.razorpay.com; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vercel.live https://sdk.cashfree.com; " +
       // IMPORTANT: Allow WebSocket schemes for Socket.IO (self) and keep required HTTPS endpoints
-      "connect-src 'self' ws: wss: https://va.vercel-scripts.com https://vercel.live https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://nominatim.openstreetmap.org https://server.arcgisonline.com; " +
+      "connect-src 'self' ws: wss: https://va.vercel-scripts.com https://vercel.live https://api.cashfree.com https://sandbox.cashfree.com https://nominatim.openstreetmap.org https://server.arcgisonline.com; " +
       "img-src 'self' data: https: https://api.iconify.design https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://server.arcgisonline.com; " +
       "style-src 'self' 'unsafe-inline'; font-src 'self' data:; " +
-      "frame-src https://checkout.razorpay.com https://api.razorpay.com;"
+      "frame-src https://payments.cashfree.com https://payments-test.cashfree.com;"
   );
 }
 

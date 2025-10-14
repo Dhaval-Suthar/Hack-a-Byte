@@ -57,7 +57,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Advanced system infiltrator that embeds deep into the target OS. Low success rate but destroys target device if successful.",
-    price: 220,
+    price: 150, // Updated from 220 to 150 BTC
     icon: "🦠",
     requirements: ["Target MAC Address", "Network Access"],
     rating: 4.8,
@@ -73,7 +73,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Polymorphic virus that mutates to avoid detection. Target's Defender gets alert and must click viruses before they cover screen.",
-    price: 250,
+    price: 10, // Updated from 250 to 10 BTC (StealthHealth)
     icon: "🔍",
     requirements: ["Target MAC Address", "Admin Privileges"],
     rating: 4.6,
@@ -88,7 +88,7 @@ const CATALOG: StoreItem[] = [
     category: "virus",
     description:
       "Harvests credentials like private key of the target device. Low success rate but steals target team's private key. Defender gets notified but cannot stop it.",
-    price: 120,
+    price: 100, // Updated from 120 to 100 BTC
     icon: "⛏️",
     requirements: ["Target MAC Address"],
     rating: 4.4,
@@ -103,7 +103,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Self-propagating email worm that sends scam emails to all online devices. The recipient can send their wallet address if they found the email legit.",
-    price: 160,
+    price: 15, // Updated from 160 to 15 BTC
     icon: "📧",
     requirements: ["Target IP Address", "SMTP Server"],
     rating: 4.7,
@@ -119,7 +119,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Network-spreading worm that sends scam emails and SMS to all online devices. The recipient can send their wallet address if they found the sms / email legit.",
-    price: 350,
+    price: 5, // Updated from 350 to 5 BTC
     icon: "🕷️",
     requirements: ["Target IP Range", "Port Scanner"],
     rating: 4.9,
@@ -134,7 +134,7 @@ const CATALOG: StoreItem[] = [
     category: "worm",
     description:
       "Social media worm that spreads through messaging platforms. Sends scam SMS to all online devices. The recipient can send their wallet address if they found the sms legit.",
-    price: 150,
+    price: 35, // Updated from 150 to 35 BTC
     icon: "🪝",
     requirements: ["Target IP Address", "Social Platform Access"],
     rating: 4.2,
@@ -149,7 +149,7 @@ const CATALOG: StoreItem[] = [
     category: "ransomware",
     description:
       "Military-grade file encryption ransomware. Defender must type flashing words quickly to counter. Forces team to pay ransom or game ends immediately.",
-    price: 500,
+    price: 200, // Updated from 500 to 200 BTC
     icon: "🔒",
     requirements: ["Target IP Address"],
     rating: 4.9,
@@ -164,8 +164,8 @@ const CATALOG: StoreItem[] = [
     name: "SystemLock Pro",
     category: "ransomware",
     description:
-      "A single time purchase is required. Used to perform brute force attack on the target device. If the target device do not have any pin set, any combination of pin would work. Once the attack is successful, the target device is locked and defender must pay ransom to unlock.",
-    price: 400,
+      "A single time purchase is required. Used to perform brute force attack on the target device. If the target device do not have any pin set, any combination of pin would work. Once the attack is successful, the target device is locked and defender must pay ransom to unlock. 2 minute cooldown.",
+    price: 25, // Updated from 400 to 25 BTC
     icon: "🚫",
     requirements: ["Target MAC Address"],
     rating: 4.6,
@@ -179,8 +179,8 @@ const CATALOG: StoreItem[] = [
     name: "SiteClone Pro",
     category: "ransomware",
     description:
-      "Create fake cryptocurrency websites that trick users into sending you Bitcoin. Is hosted till you get 20 visitors.",
-    price: 280,
+      "Create fake cryptocurrency websites that trick users into sending you Bitcoin. Is hosted till you get 20 visitors. Valid for 1 minute.",
+    price: 10, // Updated from 280 to 10 BTC
     icon: "🎭",
     requirements: ["Target URL"],
     rating: 4.7,
@@ -1035,7 +1035,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search"
-                    className="w-full rounded-[10px] bg-white border border-[#C8C7CC] px-8 py-2 text-[14px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"
+                    className="w-full rounded-[10px] bg-white border border-[#C8C7CC] px-8 py-2 text-[16px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"
                   />
                   <span className="absolute left-3 top-2.5 text-[#8E8E93]">🔍</span>
                 </div>
@@ -1232,7 +1232,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.macAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
                       placeholder="00:1B:44:11:3A:B7"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s MAC address (e.g., 00:1B:44:11:3A:B7)
@@ -1244,7 +1244,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.ipAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                       placeholder="192.168.1.100"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1262,14 +1262,14 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                           value={deployData.emailSubject || ''}
                           onChange={(e) => setDeployData({ ...deployData, emailSubject: e.target.value })}
                           placeholder="Security Notice"
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 mb-2 text-black"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 mb-2 text-black text-[16px]"
                         />
                         <label className="block text-[12px] text-[#666] mb-1">Email Content</label>
                         <textarea
                           value={deployData.emailContent || ''}
                           onChange={(e) => setDeployData({ ...deployData, emailContent: e.target.value })}
                           placeholder="We detected unusual activity..."
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[80px] text-black"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[80px] text-black text-[16px]"
                         />
                         <div className="text-[11px] text-[#888] mt-1">Email will be sent to all online hackphone devices.</div>
                       </>
@@ -1281,7 +1281,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                           value={deployData.smsContent || ''}
                           onChange={(e) => setDeployData({ ...deployData, smsContent: e.target.value })}
                           placeholder="Security alert: Suspicious activity detected..."
-                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[60px] text-black"
+                          className="w-full border border-[#C8C7CC] rounded px-2 py-2 min-h-[60px] text-black text-[16px]"
                         />
                         <div className="text-[11px] text-[#888] mt-1">SMS will be sent to all online hackphone devices.</div>
                       </>
@@ -1297,7 +1297,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.ipAddress || ""}
                       onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                       placeholder="192.168.1.100"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                     />
                     <div className="text-[11px] text-[#888] mt-1">
                       Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1314,7 +1314,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                         value={deployData.targetUrl || ""}
                         onChange={(e) => setDeployData({ ...deployData, targetUrl: e.target.value })}
                         placeholder="https://fake-crypto-reward.com"
-                        className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                        className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                       />
                       <div className="text-[11px] text-[#888] mt-1">
                         Enter the URL for your fake site (must start with http/https)
@@ -1328,7 +1328,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                             value={deployData.customTitle || ''}
                             onChange={e => setDeployData({ ...deployData, customTitle: e.target.value })}
                             placeholder="Crypto Bonus Portal"
-                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                           />
                           <div className="text-[11px] text-[#888] mt-1">Enter a convincing title for your fake site</div>
                         </div>
@@ -1338,7 +1338,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                             value={deployData.customDescription || ''}
                             onChange={e => setDeployData({ ...deployData, customDescription: e.target.value })}
                             placeholder="Limited time crypto rewards - Claim your bonus now!"
-                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                            className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                           />
                           <div className="text-[11px] text-[#888] mt-1">Enter a convincing description for your fake site</div>
                         </div>
@@ -1360,7 +1360,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     value={deployData.ipAddress || ""}
                     onChange={(e) => setDeployData({ ...deployData, ipAddress: e.target.value })}
                     placeholder="192.168.1.100"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                   />
                   <div className="text-[11px] text-[#888] mt-1">
                     Enter the target&apos;s IP address (e.g., 192.168.1.100)
@@ -1374,7 +1374,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     type="number"
                     min="1"
                     step="1"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                   />
                   <div className="text-[11px] text-[#888] mt-1">
                     Optional: Custom ransom amount in Bitcoin (leave empty for auto-calculation)
@@ -1395,7 +1395,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                       value={deployData.domainName || ""}
                       onChange={(e) => setDeployData({ ...deployData, domainName: e.target.value })}
                       placeholder="fake-bank-portal.com"
-                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                      className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                     />
                     <div className="text-[11px] text-[#888] mt-1">Enter the domain for the fake payment portal</div>
                   </div>
@@ -1407,7 +1407,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
                     value={deployData.macAddress || ""}
                     onChange={(e) => setDeployData({ ...deployData, macAddress: e.target.value })}
                     placeholder="aa:bb:cc:dd:ee:ff"
-                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black"
+                    className="w-full border border-[#C8C7CC] rounded px-2 py-2 text-black text-[16px]"
                   />
                   <div className="text-[11px] text-[#888] mt-1">Enter the MAC address of the target device</div>
                 </div>

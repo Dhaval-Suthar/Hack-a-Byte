@@ -95,7 +95,7 @@ const sampleSites = [
     `,
     isRewardSite: true,
     rewardAmount: 25,
-  rewardCooldownMinutes: 3, // short cooldown (minutes)
+  rewardCooldownMinutes: 4, // cooldown 2-5 minutes
     backgroundColor: "#1a1a1a",
     textColor: "#fbbf24"
   },
@@ -141,8 +141,8 @@ const sampleSites = [
       </div>
     `,
     isRewardSite: true,
-    rewardAmount: 18,
-  rewardCooldownMinutes: 3, // short cooldown
+    rewardAmount: 18, // 10-25 BTC range
+  rewardCooldownMinutes: 5, // cooldown 2-5 minutes
     backgroundColor: "#1e3a8a",
     textColor: "#dbeafe"
   },
@@ -182,8 +182,8 @@ const sampleSites = [
       </div>
     `,
     isRewardSite: true,
-    rewardAmount: 15,
-  rewardCooldownMinutes: 2, // short cooldown
+    rewardAmount: 15, // 10-25 BTC range
+  rewardCooldownMinutes: 3, // cooldown 2-5 minutes
     backgroundColor: "#581c87",
     textColor: "#e9d5ff"
   },
@@ -208,7 +208,7 @@ const sampleSites = [
               </div>
               <div class="flex justify-between bg-green-900/30 p-3 rounded">
                 <span>Recovery Amount:</span>
-                <span class="text-green-400 font-bold">30.00000000 BTC</span>
+                <span class="text-green-400 font-bold">25.00000000 BTC</span>
               </div>
               <div class="flex justify-between bg-green-900/30 p-3 rounded">
                 <span>Last Access:</span>
@@ -223,8 +223,8 @@ const sampleSites = [
       </div>
     `,
     isRewardSite: true,
-    rewardAmount: 30,
-  rewardCooldownMinutes: 3, // short cooldown
+    rewardAmount: 25, // 10-25 BTC range (reduced from 30)
+  rewardCooldownMinutes: 4, // cooldown 2-5 minutes
     backgroundColor: "#14532d",
     textColor: "#bbf7d0"
   },
@@ -264,8 +264,8 @@ const sampleSites = [
       </div>
     `,
     isRewardSite: true,
-    rewardAmount: 20,
-  rewardCooldownMinutes: 3, // short cooldown
+    rewardAmount: 20, // 10-25 BTC range
+  rewardCooldownMinutes: 2, // cooldown 2-5 minutes
     backgroundColor: "#9a3412",
     textColor: "#fed7aa"
   },
@@ -305,8 +305,8 @@ const sampleSites = [
       </div>
     `,
     isRewardSite: true,
-    rewardAmount: 12,
-  rewardCooldownMinutes: 2, // short cooldown
+    rewardAmount: 12, // 10-25 BTC range
+  rewardCooldownMinutes: 5, // cooldown 2-5 minutes
     backgroundColor: "#111827",
     textColor: "#f3f4f6"
   },
