@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 
 // Import new components
 import DashboardOverview from "./DashboardOverview";
@@ -18,21 +18,19 @@ import BulkDeleteModal from "./BulkDeleteModal";
 import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team, Sponsor } from "./shared-types";
 
 // Server actions
-import { getAccessCodes, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
-import { getPlayspaces, createPlayspace, updatePlayspace, deletePlayspace } from "@/app/actions/admin";
-import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
-import { getEvents } from "@/app/actions/admin";
-import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
-import { getTeams, createTeam, updateTeam, deleteTeam, updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
+import { getAllAdminData, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
+import { createPlayspace, updatePlayspace, deletePlayspace } from "@/app/actions/admin";
+import { createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
+import { updateGameSessionScore, endGameSession } from "@/app/actions/admin";
+import { createTeam, updateTeam, deleteTeam, updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
+import { createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 import { logger } from '@/lib/logger';
 
 const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
 
-const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
-
 export default function MiniAdminDashboard() {
+  const authKey = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined), []);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -56,6 +54,8 @@ export default function MiniAdminDashboard() {
     playspaceId: "",
   });
 
+  const hasLoaded = useRef(false);
+
   const note = (n: Omit<Note, "id">) => {
     const id = crypto.randomUUID();
     setNotes((p) => [...p, { ...n, id }]);
@@ -63,22 +63,20 @@ export default function MiniAdminDashboard() {
   };
 
   const load = useCallback(async () => {
+    if (loading) return; // Prevent multiple simultaneous calls
     setLoading(true);
     setErr(null);
     try {
       const key = authKey();
-      const [ac, pl, dv, ev, gs, tm, sp] = await Promise.all([
-        getAccessCodes(key),
-        getPlayspaces(key),
-        getAllDevices(key),
-        getEvents(key),
-        getGameSessions(key),
-        getTeams(key),
-        getSponsors(key),
-      ]);
+      const result = await getAllAdminData(key);
+
+      if (result.error) {
+        setErr(result.error);
+        return;
+      }
 
       // Transform access codes to match expected type
-      const transformedCodes = (ac?.accessCodes || []).map(code => ({
+      const transformedCodes = (result.accessCodes || []).map((code: any) => ({
         _id: code._id,
         code: code.code,
         status: code.isActive ? "active" as const : "inactive" as const,
@@ -86,7 +84,7 @@ export default function MiniAdminDashboard() {
       setCodes(transformedCodes);
 
       // Transform playspaces to match expected type
-      const transformedPlays = (pl?.playspaces || []).map(play => ({
+      const transformedPlays = (result.playspaces || []).map((play: any) => ({
         _id: play._id,
         name: play.name,
         description: play.description,
@@ -94,7 +92,7 @@ export default function MiniAdminDashboard() {
       setPlays(transformedPlays);
 
       // Transform devices to match expected type
-      const transformedDevs = (dv?.devices || []).map(dev => ({
+      const transformedDevs = (result.devices || []).map((dev: any) => ({
         _id: dev._id,
         name: dev.deviceMacAddress || "Unknown Device",
         status: dev.status || "unknown",
@@ -104,7 +102,7 @@ export default function MiniAdminDashboard() {
       setDevs(transformedDevs);
 
       // Transform events to match expected type
-      const transformedEvts = (ev?.events || []).map(evt => ({
+      const transformedEvts = (result.events || []).map((evt: any) => ({
         _id: evt._id ? evt._id.toString() : "",
         title: evt.title || "Unknown Event",
         description: evt.description,
@@ -133,7 +131,7 @@ export default function MiniAdminDashboard() {
       setEvts(transformedEvts);
 
       // Transform game sessions to match expected type
-      const transformedSess = (gs?.sessions || []).map(sess => ({
+      const transformedSess = (result.sessions || []).map((sess: any) => ({
         _id: sess._id,
         tournamentId: sess.tournamentId,
         team1Id: sess.team1Id,
@@ -152,7 +150,7 @@ export default function MiniAdminDashboard() {
       setSess(transformedSess);
 
       // Transform teams to match expected type
-      const transformedTeams = (tm?.teams || []).map(team => ({
+      const transformedTeams = (result.teams || []).map((team: any) => ({
         _id: team._id ? team._id.toString() : "",
         name: team.name,
         description: team.description,
@@ -164,7 +162,7 @@ export default function MiniAdminDashboard() {
       setTeams(transformedTeams);
 
       // Transform sponsors to match expected type
-      const transformedSponsors = (sp?.sponsors || []).map(sponsor => ({
+      const transformedSponsors = (result.sponsors || []).map((sponsor: any) => ({
         _id: sponsor._id,
         name: sponsor.name,
         tier: sponsor.tier,
@@ -183,10 +181,13 @@ export default function MiniAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authKey, loading]);
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!hasLoaded.current) {
+      hasLoaded.current = true;
+      load();
+    }
+  }, []); // No dependency on load to prevent re-runs
 
   const bulkDel = async () => {
     if (!bulk) return;
