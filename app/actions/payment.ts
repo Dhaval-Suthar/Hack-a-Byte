@@ -5,6 +5,7 @@ import Event from "@/models/Event";
 import EventRegistration from "@/models/EventRegistration";
 import { completeRegistrationPipeline } from "@/lib/event-registration";
 import { logger } from '@/lib/logger';
+import { createRazorpayOrder, verifyRazorpayPayment } from '@/lib/razorpay';
 
 export interface CreatePaymentOrderData {
 	eventId: number;
@@ -118,10 +119,10 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 			};
 		}
 
-		// Paid event: create Cashfree order via REST API
-		// Check if Cashfree is configured
-		if (!process.env.CASHFREE_CLIENT_ID || !process.env.CASHFREE_CLIENT_SECRET) {
-			// Cleanup registration on missing Cashfree configuration
+		// Paid event: create Razorpay payment link
+		// Check if Razorpay is configured
+		if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+			// Cleanup registration on missing Razorpay configuration
 			await EventRegistration.findByIdAndDelete(registration._id);
 			return { 
 				success: false, 
@@ -130,93 +131,38 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 			};
 		}
 
-		// Choose base URL: allow override with CASHFREE_API_BASE, otherwise infer sandbox when using test client ids
-		const inferredBase = process.env.CASHFREE_API_BASE || (
-			(process.env.CASHFREE_CLIENT_ID && process.env.CASHFREE_CLIENT_ID.startsWith('TEST')) ||
-			(process.env.CASHFREE_CLIENT_SECRET && process.env.CASHFREE_CLIENT_SECRET.includes('test'))
-				? 'https://sandbox.cashfree.com'
-				: 'https://api.cashfree.com'
-		);
-			const cfUrl = `${inferredBase}/pg/orders`;
-			const customerPhone = process.env.CASHFREE_CUSTOMER_PHONE_DEFAULT || '9999999999';
-
-			const isSandbox = inferredBase.includes('sandbox');
-			const body = {
-			order_id: registration._id.toString(),
-			order_amount: Number(amountRupees.toFixed(2)),
-			order_currency: 'INR',
-			customer_details: {
-				customer_id: registration._id.toString(),
-				customer_email: email.toLowerCase(),
-					customer_phone: customerPhone,
+		// Create Razorpay payment link
+		const razorpayResult = await createRazorpayOrder({
+			amount: amountRupees * 100, // Razorpay expects paisa
+			currency: 'INR',
+			receipt: registration._id.toString(),
+			description: `Registration for ${event.title}`,
+			customer: {
+				name: 'Participant', // Could be updated if name is collected
+				email: email.toLowerCase(),
 			},
-			return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?registrationId=${registration._id.toString()}`
-		};
-
-				// Log non-sensitive diagnostics: which base URL we will call and whether credentials are present
-				try {
-					const maskedClientId = process.env.CASHFREE_CLIENT_ID ? `${process.env.CASHFREE_CLIENT_ID.slice(0, 6)}...` : 'MISSING';
-					logger.info('Cashfree request', { base: inferredBase, clientId: maskedClientId });
-					} catch {
-						// ignore logging errors
-					}
-
-					const resp = await fetch(cfUrl, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Accept': 'application/json',
-							// Cashfree requires a version header; include both common variants to be compatible
-							'version': process.env.CASHFREE_API_VERSION || '2022-01-01',
-							'x-api-version': process.env.CASHFREE_API_VERSION || '2022-01-01',
-							'x-client-id': process.env.CASHFREE_CLIENT_ID || '',
-							'x-client-secret': process.env.CASHFREE_CLIENT_SECRET || ''
-						},
-						body: JSON.stringify(body)
-					});
-
-			if (!resp.ok) {
-				// Cleanup registration on failure to create order
-				await EventRegistration.findByIdAndDelete(registration._id);
-				const text = await resp.text();
-				// Provide a clearer message for auth errors
-				if (resp.status === 401) {
-					logger.error('Cashfree order creation failed - authentication error', { status: resp.status, body: text });
-					return { success: false, error: 'Cashfree authentication failed - please check CASHFREE_CLIENT_ID/SECRET and CASHFREE_API_BASE', amount: 0 };
-				}
-
-				logger.error('Cashfree order creation failed', { status: resp.status, body: text });
-				return { success: false, error: 'Failed to create payment order', amount: 0 };
-			}
-
-		const json = await resp.json();
-
-		// Log the full response to see what Cashfree returns
-		logger.info('Cashfree order created', { 
-			orderId: json.order_id, 
-			hasOrderToken: !!json.order_token,
-			hasPaymentLink: !!json.payment_link,
-			orderStatus: json.order_status
+			callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?registrationId=${registration._id.toString()}`
 		});
 
-		// Extract Cashfree response fields
-		const returnedOrderId = json.order_id || registration._id.toString();
-		const paymentLink = json.payment_link || null;
-		const paymentSessionId = json.order_token || null; // Cashfree uses order_token, not payment_session_id
+		if (!razorpayResult.success) {
+			// Cleanup registration on failure
+			await EventRegistration.findByIdAndDelete(registration._id);
+			return { success: false, error: razorpayResult.error || 'Failed to create payment link', amount: 0 };
+		}
 
-		// Save the order id on registration for later verification
-		await EventRegistration.findByIdAndUpdate(registration._id, { cashfreeOrderId: returnedOrderId });
+		// Save the payment link id on registration for later verification
+		await EventRegistration.findByIdAndUpdate(registration._id, { razorpayPaymentLinkId: razorpayResult.paymentLinkId });
 
 		return {
 			success: true,
-			orderId: returnedOrderId,
+			orderId: registration._id.toString(),
 			amount: amountRupees,
 			currency: 'INR',
-			key: process.env.CASHFREE_CLIENT_ID,
+			key: process.env.RAZORPAY_KEY_ID,
 			registrationId: registration._id.toString(),
-			paymentLink,
-			paymentSessionId,
-			checkoutMode: isSandbox ? 'sandbox' : 'production'
+			paymentLink: razorpayResult.paymentLink,
+			paymentSessionId: null,
+			checkoutMode: 'production' // Razorpay payment links don't have sandbox mode distinction here
 		};
 
 	} catch (error: unknown) {
@@ -225,11 +171,13 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 	}
 }
 
-// Verify Cashfree payment by checking order status
+// Verify Razorpay payment by checking payment link status
 export async function verifyEventPayment(
 	registrationId: string,
 	paymentData: {
-		order_id?: string;
+		payment_link_id?: string;
+		payment_id?: string;
+		order_id?: string; // for backward compatibility
 		cf_order_id?: string;
 		payment_status?: string;
 	},
@@ -252,47 +200,29 @@ export async function verifyEventPayment(
 			return { success: true, message: 'Payment already verified' };
 		}
 
-		// Check if Cashfree is configured
-		if (!process.env.CASHFREE_CLIENT_ID || !process.env.CASHFREE_CLIENT_SECRET) {
+		// Check if Razorpay is configured
+		if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
 			return { success: false, error: 'Payment gateway not configured. Please contact support.' };
 		}
 
-		// Determine API base URL (same logic as createEventPaymentOrder)
-		const inferredBase = process.env.CASHFREE_API_BASE || (
-			(process.env.CASHFREE_CLIENT_ID && process.env.CASHFREE_CLIENT_ID.startsWith('TEST')) ||
-			(process.env.CASHFREE_CLIENT_SECRET && process.env.CASHFREE_CLIENT_SECRET.includes('test'))
-				? 'https://sandbox.cashfree.com'
-				: 'https://api.cashfree.com'
-		);
-
-		// Get order details from Cashfree
-		const orderId = paymentData.order_id || registration.cashfreeOrderId;
-		if (!orderId) {
-			return { success: false, error: 'Order ID not found' };
+		// Get payment link id
+		const paymentLinkId = paymentData.payment_link_id || registration.razorpayPaymentLinkId;
+		if (!paymentLinkId) {
+			return { success: false, error: 'Payment link ID not found' };
 		}
 
-		const orderUrl = `${inferredBase}/pg/orders/${orderId}`;
-		const resp = await fetch(orderUrl, {
-			method: 'GET',
-			headers: {
-				'Accept': 'application/json',
-				'version': process.env.CASHFREE_API_VERSION || '2022-01-01',
-				'x-api-version': process.env.CASHFREE_API_VERSION || '2022-01-01',
-				'x-client-id': process.env.CASHFREE_CLIENT_ID || '',
-				'x-client-secret': process.env.CASHFREE_CLIENT_SECRET || ''
-			}
-		});
+		// Verify payment with Razorpay
+		const verifyResult = await verifyRazorpayPayment({ payment_link_id: paymentLinkId });
 
-		if (!resp.ok) {
-			logger.error('Cashfree order status check failed', { status: resp.status, orderId });
+		if (!verifyResult.success) {
 			return { success: false, error: 'Failed to verify payment status' };
 		}
 
-		const orderData = await resp.json();
-		logger.info('Cashfree order status', { orderId, status: orderData.order_status, amount: orderData.order_amount });
+		const status = verifyResult.status;
+		logger.info('Razorpay payment link status', { paymentLinkId, status });
 
 		// Check if payment was successful
-		if (orderData.order_status === 'PAID') {
+		if (status === 'paid') {
 			// Update registration status
 			await EventRegistration.findByIdAndUpdate(registrationId, {
 				paymentStatus: 'paid',
@@ -315,7 +245,7 @@ export async function verifyEventPayment(
 			}
 
 			return { success: true, message: 'Payment verified and registration completed successfully' };
-		} else if (orderData.order_status === 'FAILED' || orderData.order_status === 'CANCELLED') {
+		} else if (status === 'cancelled' || status === 'expired') {
 			// Update registration status to failed
 			await EventRegistration.findByIdAndUpdate(registrationId, {
 				paymentStatus: 'failed'
