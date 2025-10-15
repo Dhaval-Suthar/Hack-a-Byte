@@ -185,7 +185,7 @@ export default function TutorialPage() {
     };
     const handleError = (e: Event) => {
       console.error('Video error:', e);
-      console.error('Failed to load video from:', '/videos/sample-3.mp4');
+      console.error('Failed to load video from:', '/videos/MOSAIC_GAMEPLAY.mp4');
       setIsLoading(false);
     };
 
@@ -253,7 +253,7 @@ export default function TutorialPage() {
       <video
         ref={videoRef}
         className="w-full h-full object-cover cursor-pointer"
-        src="/videos/sample-3.mp4"
+        src="/videos/MOSAIC_GAMEPLAY.mp4"
         preload="auto"
         playsInline
         controls={false}
