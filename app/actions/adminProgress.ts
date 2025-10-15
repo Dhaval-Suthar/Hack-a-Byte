@@ -2,12 +2,17 @@
 
 import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status (simplified)
 async function checkAdminStatus(adminKey?: string) {
   // For now, implement a basic admin check
   // In production, this should validate against a proper admin system
-  const validAdminKey = process.env.ADMIN_KEY || "admin123";
+  const validAdminKey = process.env.ADMIN_KEY;
+  
+  if (!validAdminKey) {
+    return { isAdmin: false, error: "Admin system not configured" };
+  }
   
   if (!adminKey || adminKey !== validAdminKey) {
     return { isAdmin: false, error: "Admin authentication required" };
@@ -100,7 +105,7 @@ export async function getAllDeviceUsersProgress(adminKey?: string) {
       users: processedUsers
     };
   } catch (error) {
-    console.error("Error getting all device users progress:", error);
+    logger.error('Error getting all device users progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get device users progress" };
   }
 }
@@ -186,7 +191,7 @@ export async function getProgressSummaryStats(adminKey?: string) {
       }
     };
   } catch (error) {
-    console.error("Error getting progress summary stats:", error);
+    logger.error('Error getting progress summary stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to get progress summary stats" };
   }
 }
@@ -215,13 +220,14 @@ export async function resetUserProgress(
     // Reset game state to initial values
     user.gameState = {
       unlockedApplications: ['Notepad', 'MyComputer'],
-      skills: new Map(),
-      missions: new Map(),
+      skills: {},
+      missions: {},
       gameStats: {
         totalPlayTime: 0,
         loginCount: user.gameState.gameStats?.loginCount || 0, // Keep login count
         lastLoginDate: user.gameState.gameStats?.lastLoginDate || new Date(),
-        achievementsUnlocked: []
+        achievementsUnlocked: [],
+        wins: 0
       },
       settings: {
         soundEnabled: true,
@@ -237,7 +243,7 @@ export async function resetUserProgress(
       message: `Progress reset for user ${user.username}`
     };
   } catch (error) {
-    console.error("Error resetting user progress:", error);
+    logger.error('Error resetting user progress:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to reset user progress" };
   }
 }

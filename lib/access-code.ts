@@ -1,8 +1,9 @@
 "use server";
 
 import connectDb from "../db/connectDb";
-import { cookies } from "next/headers";
+import { setCookie } from "cookies-next";
 import AccessCodeModel from "../models/AccessCode";
+import { logger } from "./logger";
 
 export const handleAccessCode = async (formData: FormData) => {
   try {
@@ -42,28 +43,15 @@ export const handleAccessCode = async (formData: FormData) => {
       return { success: false, error: "This access code has expired" };
     }
 
-    // Check if code has reached usage limit (usage-limited codes)
-    if (
-      codeDocument.type === "usage-limited" &&
-      codeDocument.maxUsages &&
-      codeDocument.usageCount >= codeDocument.maxUsages
-    ) {
-      return { success: false, error: "This access code has reached its usage limit" };
-    }
+  // For usage-limited team codes, we don't increment here; we handle usage during role selection
 
-    // Increment usage count for all code types
-    codeDocument.usageCount += 1;
-    await codeDocument.save();
-
-    // Set cookies for the user session - use await with cookies()
-    const cookieStore = await cookies();
-
+    // Set cookies for the user session - use setCookie from cookies-next
     // Get the first assigned playspace if available
     const playspaceId = codeDocument.assignedPlayspace.toString();
 
     // Store playspaceId in cookie if available
     if (playspaceId) {
-      cookieStore.set("playspaceId", playspaceId, {
+      setCookie("playspaceId", playspaceId, {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         httpOnly: true,
         path: "/",
@@ -74,12 +62,13 @@ export const handleAccessCode = async (formData: FormData) => {
 
     return {
       success: true,
-      redirect: "/device-selection",
+      // If usage-limited (team) code, go to role selection flow
+      redirect: codeDocument.type === "usage-limited" ? `/role-selection?code=${codeDocument.code}` : "/device-selection",
       userData: codeDocument.userData || {},
       playspaceId: playspaceId,
     };
   } catch (error) {
-    console.error("Database error:", error);
+    logger.error("Database error during access code validation", { error: error instanceof Error ? error.message : String(error) });
     return { success: false, error: "Database connection failed" };
   }
 };
@@ -115,7 +104,7 @@ export const generateAccessCode = async (options = {}) => {
 
     return { success: true, code, document: newCode.toObject() };
   } catch (error) {
-    console.error("Error generating access code:", error);
+    logger.error("Failed to generate access code", { error: error instanceof Error ? error.message : String(error) });
     return { success: false, error: "Failed to generate access code" };
   }
 };

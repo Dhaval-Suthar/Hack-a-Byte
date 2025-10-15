@@ -1,10 +1,21 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { registerForEvent, getAllEventsWithRegistrationCounts } from "@/app/actions/eventRegistration";
+
+// Import extracted components
+import TypingText from '../../../components/event/TypingText';
+import CountdownTimer from '../../../components/event/CountdownTimer';
+import DifficultyMeter from '../../../components/event/DifficultyMeter';
+import RegistrationModal from '../../../components/event/RegistrationModal';
+
+// Import custom hooks
+import { useEventData } from '../../../hooks/useEventData';
+
+// Cashfree types are declared in lib/cashfree.ts
 
 interface Event {
   id: number;
+  objectId?: string; // real Mongo ObjectId
   title: string;
   date: string;
   time: string;
@@ -29,513 +40,84 @@ interface Event {
     time: string;
     activity: string;
   }[];
-}
-
-// Terminal typing effect component
-interface TypingTextProps {
-  text: string;
-  speed?: number;
-  className?: string;
-  onComplete?: () => void;
-}
-
-const TypingText = ({ text, speed = 20, className = "", onComplete = () => {} }: TypingTextProps) => {
-  const [displayedText, setDisplayedText] = useState("");
-  const [index, setIndex] = useState(0);
-  const [completed, setCompleted] = useState(false);
-
-  useEffect(() => {
-    if (index < text.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text.charAt(index));
-        setIndex(index + 1);
-      }, speed);
-      return () => clearTimeout(timeout);
-    } else if (!completed) {
-      setCompleted(true);
-      onComplete();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, text, speed, completed]); // Removed onComplete to prevent potential infinite loop
-
-  return <span className={className}>{displayedText}</span>;
-};
-
-// Countdown timer component
-interface CountdownTimerProps {
-  targetDate: string;
-}
-
-const CountdownTimer = ({ targetDate }: CountdownTimerProps) => {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  });
-  
-  useEffect(() => {
-    const calcTimeLeft = () => {
-      const difference = +new Date(targetDate) - +new Date();
-      
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        });
-      }
+  pricing?: {
+    normal: number;
+    extended?: number;
+  };
+  deviceRequirements?: {
+    types: {
+      mobile: boolean;
+      desktop: boolean;
     };
-    
-    calcTimeLeft();
-    const timer = setInterval(calcTimeLeft, 1000);
-    
-    return () => clearInterval(timer);
-  }, [targetDate]);
-  
-  return (
-    <div className="flex justify-center space-x-4">
-      {Object.entries(timeLeft).map(([unit, value]) => (
-        <div key={unit} className="text-center">
-          <div className="text-3xl md:text-4xl font-bold text-cyber-primary relative">
-            <div className="absolute inset-0 animate-pulse opacity-50 blur-sm bg-cyber-primary rounded-lg"></div>
-            <div className="relative z-10">
-              {value.toString().padStart(2, '0')}
-            </div>
-          </div>
-          <div className="text-xs uppercase text-gray-400 mt-1">{unit}</div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// Interactive difficulty meter component
-interface DifficultyMeterProps {
-  level: "Beginner" | "Intermediate" | "Advanced" | "Expert";
-}
-
-const DifficultyMeter = ({ level }: DifficultyMeterProps) => {
-  const difficultyLevels = ["Beginner", "Intermediate", "Advanced", "Expert"];
-  const levelIndex = difficultyLevels.indexOf(level);
-  
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="text-gray-400">Difficulty</span>
-        <span className="text-cyber-primary">{level}</span>
-      </div>
-      <div className="flex space-x-1">
-        {difficultyLevels.map((_, index) => (
-          <div
-            key={index}
-            className={`h-1.5 flex-1 rounded-full ${
-              index <= levelIndex 
-                ? "bg-gradient-to-r from-cyber-primary to-cyber-secondary" 
-                : "bg-gray-700"
-            }`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Registration Modal Component
-interface RegistrationModalProps {
-  event: Event | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-const RegistrationModal = ({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) => {
-  const [email, setEmail] = useState("");
-  const [isFromSFIT, setIsFromSFIT] = useState(false);
-  const [playingMode, setPlayingMode] = useState<"online" | "offline">("online");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!event) return;
-    
-    setIsLoading(true);
-    setError("");
-    
-    try {
-      const result = await registerForEvent({
-        eventId: event.id,
-        email: email.trim(),
-        isFromSFIT,
-        playingMode
-      });
-      
-      if (result.success) {
-        onSuccess();
-        onClose();
-        // Reset form
-        setEmail("");
-        setIsFromSFIT(false);
-        setPlayingMode("online");
-      } else {
-        setError(result.error || "Registration failed");
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
+    devices: {
+      mobile: string[];
+      desktop: string[];
+    };
   };
-
-  const handleClose = () => {
-    setEmail("");
-    setIsFromSFIT(false);
-    setPlayingMode("online");
-    setError("");
-    onClose();
-  };
-
-  if (!isOpen || !event) return null;
-
-  return (
-    <AnimatePresence>
-      <motion.div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={handleClose}
-      >
-        <motion.div 
-          className="w-full max-w-md bg-black/90 border border-cyber-primary/60 rounded-lg overflow-hidden"
-          initial={{ y: 20, scale: 0.95 }}
-          animate={{ y: 0, scale: 1 }}
-          exit={{ y: 20, scale: 0.9 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="bg-cyber-primary/20 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-cyber-primary">
-              Register for Event
-            </h2>
-            <button 
-              onClick={handleClose}
-              className="text-cyber-primary hover:text-cyber-secondary transition-colors"
-              disabled={isLoading}
-            >
-              ✕
-            </button>
-          </div>
-          
-          {/* Event Info */}
-          <div className="px-6 py-4 border-b border-cyber-primary/30">
-            <h3 className="text-white font-bold mb-1">{event.title}</h3>
-            <div className="text-sm text-gray-400">
-              📅 {event.date} • 🕒 {event.time}
-            </div>
-          </div>
-          
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="mb-4">
-              <label className="block text-cyber-secondary text-sm font-bold mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-black/70 border border-cyber-primary/40 rounded-md px-3 py-2 text-white focus:border-cyber-primary/90 focus:outline-none transition-colors"
-                placeholder="Enter your email address"
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isFromSFIT}
-                  onChange={(e) => setIsFromSFIT(e.target.checked)}
-                  className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 rounded focus:ring-cyber-primary/50 focus:ring-2"
-                  disabled={isLoading}
-                />
-                <span className="text-white text-sm">
-                  I am a member of St. Francis Institute of Engineering
-                </span>
-              </label>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-cyber-secondary text-sm font-bold mb-2">
-                Mode of Playing
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="online"
-                    checked={playingMode === "online"}
-                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
-                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
-                    disabled={isLoading}
-                  />
-                  <span className="text-white text-sm">Online</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="offline"
-                    checked={playingMode === "offline"}
-                    onChange={(e) => setPlayingMode(e.target.value as "online" | "offline")}
-                    className="w-4 h-4 text-cyber-primary bg-black/70 border-cyber-primary/40 focus:ring-cyber-primary/50 focus:ring-2"
-                    disabled={isLoading}
-                  />
-                  <span className="text-white text-sm">Offline</span>
-                </label>
-              </div>
-            </div>
-            
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md">
-                <p className="text-red-400 text-sm">{error}</p>
-              </div>
-            )}
-            
-            <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex-1 bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary/70 py-2 px-4 rounded-md transition-colors"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 cyber-button py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading}
-              >
-                {isLoading ? "Registering..." : "Register"}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
-};
+  minTeamMembers?: number;
+  maxTeamMembers?: number;
+}
 
 export default function Page() {
+  // Use custom hooks for data management
+  const { events: eventsWithCounts, loading, refetch } = useEventData();
+
   const [showIntro, setShowIntro] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedTab, setSelectedTab] = useState("info");
   const [activeView, setActiveView] = useState("upcoming");
   const [scanlines, setScanlines] = useState(true);
   const [eventQuery, setEventQuery] = useState("");
-  const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [registrationCounts, setRegistrationCounts] = useState<Record<number, number>>({});
+  const [currentTime, setCurrentTime] = useState("--:--:--");
   const [registrationModal, setRegistrationModal] = useState<{
     isOpen: boolean;
     event: Event | null;
   }>({ isOpen: false, event: null });
 
-  const today = new Date();
-  const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  
-  // Sample event data
-  // Note: Using future dates since the context mentioned the current date is May 10, 2025
-  const events: Event[] = [
-    {
-      id: 100,
-      title: "Mosaic 2025",
-      date: "2025-10-17",
-      time: "09:00 - 17:00 (17th & 18th October)",
-      location: "Offline (ST. FRANCIS INSTITUTE OF TECHNOLOGY (ENGG. COLLEGE), Mount Poinsur, S.V.P. Road, Borivali (West), Mumbai 400 103)",
-      description:
-        "Mosaic is a two-day cybersecurity competition open to all online, with an exclusive offline experience for SFIT college students. Prize pool for top performers! Offline participants (SFIT only) need just their mobile; online participants need a computer.",
-      type: "Competition",
-      capacity: 500,
-      registered: 0,
-      difficulty: "Intermediate",
-      tags: ["Cybersecurity", "Competition", "Hybrid", "SFIT", "Prize Pool"],
-      prizes: [
-        { position: "Prize Pool", reward: "Exciting rewards for top performers (details announced at event)" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Opening Ceremony & Welcome (Day 1)" },
-        { time: "09:30", activity: "Competition Kickoff (Online & Offline)" },
-        { time: "13:00", activity: "Lunch Break (Offline)" },
-        { time: "14:00", activity: "Competition Continues" },
-        { time: "17:00", activity: "Day End & Announcements" },
-        { time: "09:00 (18th)", activity: "Day 2 Kickoff & Competition" },
-        { time: "13:00 (18th)", activity: "Lunch Break (Offline)" },
-        { time: "14:00 (18th)", activity: "Final Rounds & Judging" },
-        { time: "17:00 (18th)", activity: "Prize Distribution & Closing" }
-      ],
-      speakers: [
-        { name: "Prof. A. Fernandes", role: "Event Chair", company: "SFIT", avatar: 1 },
-        { name: "Industry Expert", role: "Guest Speaker", company: "TBA", avatar: 2 }
-      ]
-    },
-    {
-      id: 1,
-      title: "Crypto Challenge 2025",
-      date: "2025-05-25",
-      time: "10:00 - 18:00",
-      location: "Online | Global",
-      description: "Test your cryptography skills in this intensive challenge covering classical and modern encryption techniques. Compete against the best code-breakers in the world in a series of timed challenges.",
-      type: "Competition",
-      capacity: 500,
-      registered: 347,
-      difficulty: "Advanced",
-      tags: ["Cryptography", "Security", "Algorithms"],
-      prizes: [
-        { position: "1st Place", reward: "$5,000 + Job Interview with NexusTech" },
-        { position: "2nd Place", reward: "$2,500 + Security Certification Voucher" },
-        { position: "3rd Place", reward: "$1,000 + Premium Security Tools Bundle" }
-      ],
-      schedule: [
-        { time: "10:00", activity: "Welcome & Introduction" },
-        { time: "10:30", activity: "Challenge Release: Classical Ciphers" },
-        { time: "12:30", activity: "Break" },
-        { time: "13:30", activity: "Challenge Release: Modern Encryption" },
-        { time: "16:30", activity: "Final Challenge: Quantum Resistant Algorithms" },
-        { time: "17:45", activity: "Winners Announcement" }
-      ],
-      speakers: [
-        { name: "Dr. Elena Rossi", role: "Lead Cryptographer", company: "QuantumBit", avatar: 2 },
-        { name: "Marcus Chen", role: "Security Researcher", company: "NexusTech", avatar: 3 }
-      ]
-    },
-    {
-      id: 2,
-      title: "Network Security Hackathon",
-      date: "2025-06-02",
-      time: "09:00 - 20:00",
-      location: "Hybrid | San Francisco & Online",
-      description: "Build and defend network infrastructure against real-time attacks. Teams will construct secure environments and then attempt to breach other teams' defenses while maintaining their own.",
-      type: "Team Hackathon",
-      capacity: 200,
-      registered: 172,
-      difficulty: "Expert",
-      tags: ["Network", "Defense", "Penetration Testing"],
-      prizes: [
-        { position: "Winning Team", reward: "$10,000 + Security Conference VIP Passes" },
-        { position: "Best Defense", reward: "$3,000 + Security Hardware Package" },
-        { position: "Best Offense", reward: "$3,000 + Advanced Training Course Access" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Team Check-in & Setup" },
-        { time: "10:00", activity: "Network Building Phase" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Attack & Defense Phase Begins" },
-        { time: "19:00", activity: "Attack & Defense Phase Ends" },
-        { time: "19:30", activity: "Results & Awards Ceremony" }
-      ],
-      speakers: [
-        { name: "Alexandra Kim", role: "Network Security Lead", company: "CyberShield", avatar: 4 },
-        { name: "James Rodriguez", role: "Ethical Hacker", company: "ByteDefender", avatar: 3 }
-      ]
-    },
-    {
-      id: 3,
-      title: "AI Defense Workshop",
-      date: "2025-06-12",
-      time: "13:00 - 17:00",
-      location: "Online | Global",
-      description: "Learn how to protect systems from AI-powered attacks and implement defensive AI algorithms. This hands-on workshop will cover the latest techniques in AI security.",
-      type: "Workshop",
-      capacity: 150,
-      registered: 89,
-      difficulty: "Intermediate",
-      tags: ["Artificial Intelligence", "Machine Learning", "Defense"],
-      schedule: [
-        { time: "13:00", activity: "Introduction to AI Security Challenges" },
-        { time: "13:45", activity: "Identifying AI-based Attacks" },
-        { time: "14:30", activity: "Break" },
-        { time: "15:00", activity: "Defensive AI Implementation Lab" },
-        { time: "16:30", activity: "Q&A Session" }
-      ],
-      speakers: [
-        { name: "Dr. Sarah Johnson", role: "AI Research Director", company: "SecureNode", avatar: 2 }
-      ]
-    },
-    {
-      id: 4,
-      title: "Blockchain Security Summit",
-      date: "2025-06-28",
-      time: "10:00 - 18:00",
-      location: "Tokyo & Online",
-      description: "Explore blockchain vulnerabilities and security measures. From smart contract auditing to decentralized security architectures, this summit covers the latest in blockchain protection.",
-      type: "Conference",
-      capacity: 300,
-      registered: 185,
-      difficulty: "Intermediate",
-      tags: ["Blockchain", "Smart Contracts", "DeFi"],
-      schedule: [
-        { time: "10:00", activity: "Keynote: The Future of Blockchain Security" },
-        { time: "11:00", activity: "Smart Contract Vulnerability Panel" },
-        { time: "12:30", activity: "Networking Lunch" },
-        { time: "14:00", activity: "Workshop: Auditing Techniques" },
-        { time: "16:00", activity: "Case Studies: Major Blockchain Breaches" },
-        { time: "17:30", activity: "Closing Remarks & Networking" }
-      ],
-      speakers: [
-        { name: "Hiroshi Tanaka", role: "Blockchain Security Expert", company: "CryptoGuard", avatar: 3 },
-        { name: "Anika Patel", role: "Smart Contract Auditor", company: "DataFortress", avatar: 2 }
-      ]
-    },
-    {
-      id: 5,
-      title: "IoT Security Challenge",
-      date: "2025-07-15",
-      time: "11:00 - 19:00",
-      location: "Online | Global",
-      description: "Identify and exploit vulnerabilities in simulated Internet of Things environments. This challenge tests your ability to secure interconnected devices and sensors.",
-      type: "Competition",
-      capacity: 250,
-      registered: 98,
-      difficulty: "Advanced",
-      tags: ["IoT", "Embedded Systems", "Hardware"],
-      prizes: [
-        { position: "1st Place", reward: "$3,000 + IoT Security Kit" },
-        { position: "2nd Place", reward: "$1,500 + Smart Home Security Package" },
-        { position: "3rd Place", reward: "$750 + IoT Development Board Bundle" }
-      ]
-    },
-    {
-      id: 6,
-      title: "Threat Intelligence Masterclass",
-      date: "2025-04-05",
-      time: "09:00 - 16:00",
-      location: "Berlin & Online",
-      description: "Enhance your ability to collect, analyze and utilize threat intelligence. This masterclass teaches advanced techniques for identifying and responding to emerging threats.",
-      type: "Training",
-      capacity: 100,
-      registered: 100,
-      difficulty: "Expert",
-      tags: ["Threat Intel", "Analysis", "Response"],
-      schedule: [
-        { time: "09:00", activity: "Intelligence Collection Methodologies" },
-        { time: "11:00", activity: "Data Analysis Techniques" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Practical Application Workshop" },
-        { time: "15:30", activity: "Integration with Security Operations" }
-      ]
-    }
-  ];
-  
-  // Create events with real registration counts
-  const eventsWithCounts = events.map(event => ({
-    ...event,
-    registered: registrationCounts[event.id] || 0
-  }));
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+
+  // Update current date on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateDate = () => {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      setCurrentDate(dateStr);
+    };
+    
+    // Update date at midnight
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    const timeout = setTimeout(() => {
+      updateDate();
+      // Set up daily updates
+      setInterval(updateDate, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // Update current time on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    };
+    
+    // Set initial time
+    updateTime();
+    
+    // Update time every second
+    const interval = setInterval(updateTime, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Filter events based on the selected view
   const filteredEvents = eventsWithCounts.filter(event => {
@@ -585,49 +167,16 @@ export default function Page() {
     };
   }, []);
 
-  // Fetch registration counts on component mount
-  useEffect(() => {
-    const fetchRegistrationCounts = async () => {
-      try {
-        const result = await getAllEventsWithRegistrationCounts();
-        if (result.success) {
-          const counts: Record<number, number> = {};
-          Object.entries(result.registrationCounts).forEach(([eventId, data]) => {
-            counts[parseInt(eventId)] = data.total;
-          });
-          setRegistrationCounts(counts);
-        }
-      } catch (error) {
-        console.error("Failed to fetch registration counts:", error);
-      }
-    };
-
-    fetchRegistrationCounts();
-  }, []);
-
   const handleRegister = (event: Event) => {
-    const isRegistered = registeredEvents.includes(event.id);
-    
-    if (isRegistered) {
-      // User is already registered, do nothing (no unregister functionality)
-      return;
-    } else {
-      // Open registration modal
-      setRegistrationModal({ isOpen: true, event });
-    }
+    // Always allow registration (multiple registrations per email allowed)
+    setRegistrationModal({ isOpen: true, event });
   };
 
   const handleRegistrationSuccess = () => {
-    if (registrationModal.event) {
-      setRegisteredEvents(prev => [...prev, registrationModal.event!.id]);
-      // Increment the registration count for this event
-      setRegistrationCounts(prev => ({
-        ...prev,
-        [registrationModal.event!.id]: (prev[registrationModal.event!.id] || 0) + 1
-      }));
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    }
+    // Refetch events data to get updated registration counts
+    refetch();
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const closeRegistrationModal = () => {
@@ -635,7 +184,6 @@ export default function Page() {
   };
 
   const renderEventCard = (event: Event) => {
-    const isRegistered = registeredEvents.includes(event.id);
     const isPast = new Date(event.date) < new Date(currentDate);
     
     return (
@@ -685,6 +233,44 @@ export default function Page() {
           
           <DifficultyMeter level={event.difficulty} />
           
+          {/* Event Requirements */}
+          <div className="mt-4 space-y-2">
+            {/* Team Size */}
+            {event.minTeamMembers && event.maxTeamMembers && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">👥</span>
+                <span>Team: {event.minTeamMembers}-{event.maxTeamMembers} members</span>
+              </div>
+            )}
+            
+            {/* Device Requirements */}
+            {event.deviceRequirements && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">📱</span>
+                <span>
+                  {event.deviceRequirements.types.mobile && event.deviceRequirements.types.desktop 
+                    ? "Mobile & Desktop" 
+                    : event.deviceRequirements.types.mobile 
+                      ? "Mobile Only" 
+                      : event.deviceRequirements.types.desktop 
+                        ? "Desktop Only" 
+                        : "No Device Required"}
+                </span>
+              </div>
+            )}
+            
+            {/* Pricing */}
+            {event.pricing && (
+              <div className="flex items-center text-xs text-gray-400">
+                <span className="mr-1">💰</span>
+                <span>
+                  ₹{event.pricing.normal}
+                  {event.pricing.extended && ` (Extended: ₹${event.pricing.extended})`}
+                </span>
+              </div>
+            )}
+          </div>
+          
           <div className="flex justify-between items-center mt-4">
             <div className="text-sm text-gray-400">
               <span className="text-cyber-secondary">{event.registered}</span>/{event.capacity} registered
@@ -701,23 +287,14 @@ export default function Page() {
               */}
               {!isPast && (
                 <button 
-                  className={`text-xs py-1 px-3 rounded-md transition-all duration-300 relative overflow-hidden group ${
-                    isRegistered
-                      ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary cursor-not-allowed opacity-80"
-                      : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                  }`}
-                  disabled={isRegistered}
+                  className="text-xs py-1 px-3 rounded-md transition-all duration-300 relative overflow-hidden group bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!isRegistered) {
-                      handleRegister(event);
-                    }
+                    handleRegister(event);
                   }}
                 >
-                  <span className="relative z-10">{isRegistered ? "REGISTERED" : "REGISTER"}</span>
-                  {!isRegistered && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                  )}
+                  <span className="relative z-10">REGISTER</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                 </button>
               )}
             </div>
@@ -836,6 +413,41 @@ export default function Page() {
                           <span className="text-cyber-secondary">{selectedEvent.registered} participants</span>
                         </div>
                         
+                        {/* Team Size */}
+                        {selectedEvent.minTeamMembers && selectedEvent.maxTeamMembers && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Team Size</span>
+                            <span className="text-white">{selectedEvent.minTeamMembers}-{selectedEvent.maxTeamMembers} members</span>
+                          </div>
+                        )}
+                        
+                        {/* Device Requirements */}
+                        {selectedEvent.deviceRequirements && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Devices</span>
+                            <span className="text-white">
+                              {selectedEvent.deviceRequirements.types.mobile && selectedEvent.deviceRequirements.types.desktop 
+                                ? "Mobile & Desktop" 
+                                : selectedEvent.deviceRequirements.types.mobile 
+                                  ? "Mobile Only" 
+                                  : selectedEvent.deviceRequirements.types.desktop 
+                                    ? "Desktop Only" 
+                                    : "No Device Required"}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Pricing */}
+                        {selectedEvent.pricing && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Pricing</span>
+                            <span className="text-cyber-secondary">
+                              ₹{selectedEvent.pricing.normal}
+                              {selectedEvent.pricing.extended && ` (Extended: ₹${selectedEvent.pricing.extended})`}
+                            </span>
+                          </div>
+                        )}
+                        
                         <div className="pt-2">
                           <div className="text-xs text-gray-400 flex justify-between mb-1">
                             <span>Registration Status</span>
@@ -873,10 +485,31 @@ export default function Page() {
                       <div className="border-t border-cyber-primary/20 pt-4 mt-4">
                         <h4 className="text-white text-sm font-bold mb-2">Equipment Needed</h4>
                         <ul className="text-gray-300 text-sm space-y-1 list-disc pl-5">
-                          <li>Personal computer with secure internet connection</li>
-                          <li>Required software (provided upon registration)</li>
-                          {selectedEvent.type.includes("Hackathon") && (
-                            <li>Team collaboration tools</li>
+                          {selectedEvent.deviceRequirements ? (
+                            <>
+                              {selectedEvent.deviceRequirements.types.mobile && (
+                                <li>Mobile device required</li>
+                              )}
+                              {selectedEvent.deviceRequirements.types.desktop && (
+                                <li>Desktop/Laptop required</li>
+                              )}
+                              {selectedEvent.deviceRequirements.devices.mobile.length > 0 && (
+                                <li>Mobile: {selectedEvent.deviceRequirements.devices.mobile.join(", ")}</li>
+                              )}
+                              {selectedEvent.deviceRequirements.devices.desktop.length > 0 && (
+                                <li>Desktop: {selectedEvent.deviceRequirements.devices.desktop.join(", ")}</li>
+                              )}
+                              <li>Secure internet connection</li>
+                              <li>Required software (provided upon registration)</li>
+                            </>
+                          ) : (
+                            <>
+                              <li>Personal computer with secure internet connection</li>
+                              <li>Required software (provided upon registration)</li>
+                              {selectedEvent.type.includes("Hackathon") && (
+                                <li>Team collaboration tools</li>
+                              )}
+                            </>
                           )}
                         </ul>
                       </div>
@@ -1006,17 +639,11 @@ export default function Page() {
             <div className="bg-black/50 border-t border-cyber-primary/30 px-6 py-4 flex justify-between">
               {new Date(selectedEvent.date) > new Date(currentDate) && (
                 <button 
-                  className={`py-2 px-6 rounded-md transition-all duration-300 relative overflow-hidden group ${
-                    registeredEvents.includes(selectedEvent.id)
-                      ? "bg-danger/20 text-danger border border-danger hover:bg-danger/30 hover:shadow-lg hover:shadow-danger/20 hover:scale-105"
-                      : "cyber-button hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                  }`}
+                  className="cyber-button py-2 px-6 rounded-md transition-all duration-300 relative overflow-hidden group hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                   onClick={() => handleRegister(selectedEvent)}
                 >
-                  <span className="relative z-10">{registeredEvents.includes(selectedEvent.id) ? "CANCEL REGISTRATION" : "REGISTER NOW"}</span>
-                  {!registeredEvents.includes(selectedEvent.id) && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                  )}
+                  <span className="relative z-10">REGISTER NOW</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                 </button>
               )}
               
@@ -1039,6 +666,16 @@ export default function Page() {
 
   return (
     <div className="min-h-screen w-full pt-20 relative">
+      {/* Loading state */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyber-primary mx-auto mb-4"></div>
+            <p className="text-cyber-primary text-lg">Loading events...</p>
+          </div>
+        </div>
+      )}
+
       {/* Background elements */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-black opacity-95" />
@@ -1126,7 +763,7 @@ export default function Page() {
               <span className="text-cyber-primary">{currentDate}</span>
             </div>
             <div className="text-right text-xs text-gray-500 mt-1">
-              System time: {new Date().toLocaleTimeString()}
+              System time: {currentTime}
             </div>
           </div>
         </div>
@@ -1241,17 +878,11 @@ export default function Page() {
                         */}
                         
                         <button 
-                          className={`py-1 px-5 rounded-md text-sm flex-1 transition-all duration-300 relative overflow-hidden group ${
-                            registeredEvents.includes(filteredEvents[0].id)
-                              ? "bg-cyber-primary/20 text-cyber-primary border border-cyber-primary hover:bg-cyber-primary/30 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                              : "bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
-                          }`}
+                          className="py-1 px-5 rounded-md text-sm flex-1 transition-all duration-300 relative overflow-hidden group bg-black/50 text-gray-300 border border-cyber-primary/30 hover:border-cyber-primary hover:text-cyber-primary hover:bg-cyber-primary/10 hover:shadow-lg hover:shadow-cyber-primary/20 hover:scale-105"
                           onClick={() => handleRegister(filteredEvents[0])}
                         >
-                          <span className="relative z-10">{registeredEvents.includes(filteredEvents[0].id) ? "REGISTERED" : "REGISTER"}</span>
-                          {!registeredEvents.includes(filteredEvents[0].id) && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-                          )}
+                          <span className="relative z-10">REGISTER</span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-primary/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
                         </button>
                       </div>
                     </div>

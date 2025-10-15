@@ -3,8 +3,39 @@
 import connectDb from "@/db/connectDb";
 import DeviceUser from "@/models/DeviceUser";
 import Device from "@/models/Device";
+import Team, { TeamMember } from "@/models/Team";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { logger } from '@/lib/logger';
+// Shared plain user type for safe serialization
+type PlainUser = {
+  _id: unknown;
+  username: string;
+  role?: string;
+  sessionId?: string;
+  gameState?: {
+    unlockedApplications?: string[];
+    skills?: Record<string, number> | Map<string, number>;
+    missions?: Record<string, unknown> | Map<string, unknown>;
+    gameStats?: {
+      totalPlayTime?: number;
+      loginCount?: number;
+      lastLoginDate?: string | Date;
+      achievementsUnlocked?: string[];
+    };
+    settings?: {
+      soundEnabled?: boolean;
+      showHiddenFiles?: boolean;
+      difficulty?: string;
+    };
+  };
+};
+
+function toObjectFromRecordOrMap<T = unknown>(value?: Record<string, T> | Map<string, T>) {
+  if (!value) return {} as Record<string, T>;
+  if (value instanceof Map) return Object.fromEntries(value) as Record<string, T>;
+  return value as Record<string, T>;
+}
 
 // Create a new device user
 export async function createDeviceUser(
@@ -46,12 +77,13 @@ export async function createDeviceUser(
       gameState: {
         unlockedApplications: ['Notepad', 'MyComputer'],
         skills: {},
-        missions: new Map(),
+        missions: {},
         gameStats: {
           totalPlayTime: 0,
           loginCount: 1,
           lastLoginDate: new Date(),
-          achievementsUnlocked: []
+          achievementsUnlocked: [],
+          wins: 0
         },
         settings: {
           soundEnabled: true,
@@ -75,7 +107,7 @@ export async function createDeviceUser(
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: newUser._id.toString(),
+      userId: String(newUser._id),
       username,
       sessionId: newUser.sessionId
     });
@@ -95,22 +127,23 @@ export async function createDeviceUser(
     return { 
       success: true, 
       user: {
-        _id: newUser._id.toString(),
+        _id: String(newUser._id),
         username: newUser.username,
         sessionId: newUser.sessionId,
         progress: {
           unlockedApplications: newUser.gameState.unlockedApplications,
-          skills: Object.fromEntries(newUser.gameState.skills || new Map())
+          skills: newUser.gameState.skills || {}
         },
         gameState: {
           unlockedApplications: newUser.gameState.unlockedApplications,
-          skills: Object.fromEntries(newUser.gameState.skills || new Map()),
-          missions: Object.fromEntries(newUser.gameState.missions || new Map()),
+          skills: newUser.gameState.skills || {},
+          missions: newUser.gameState.missions || {},
           gameStats: {
             totalPlayTime: newUser.gameState.gameStats?.totalPlayTime || 0,
             loginCount: newUser.gameState.gameStats?.loginCount || 0,
             lastLoginDate: newUser.gameState.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: newUser.gameState.gameStats?.achievementsUnlocked || []
+            achievementsUnlocked: newUser.gameState.gameStats?.achievementsUnlocked || [],
+            wins: newUser.gameState.gameStats?.wins || 0
           },
           settings: {
             soundEnabled: newUser.gameState.settings?.soundEnabled ?? true,
@@ -121,7 +154,7 @@ export async function createDeviceUser(
       }
     };
   } catch (error) {
-    console.error("Error creating device user:", error);
+    logger.error('Error creating device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create device user" };
   }
 }
@@ -167,7 +200,8 @@ export async function loginDeviceUser(
         totalPlayTime: 0,
         loginCount: 1,
         lastLoginDate: new Date(),
-        achievementsUnlocked: []
+        achievementsUnlocked: [],
+        wins: 0
       };
     }
 
@@ -177,11 +211,32 @@ export async function loginDeviceUser(
 
     await user.save();
 
+    // Get user's role from team data
+    let userRole: string | undefined;
+    try {
+      const team = await Team.findOne({
+        'teamMembers.username': user.username,
+        'teamMembers.accessCodeUsed': true
+      });
+
+      if (team) {
+        const member = team.teamMembers.find((m: TeamMember) => 
+          m.username === user.username && m.accessCodeUsed
+        );
+        if (member && member.role) {
+          userRole = member.role;
+        }
+      }
+    } catch (error) {
+      logger.error('Error fetching user role:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      // Continue without role if there's an error
+    }
+
     // Set a cookie to remember this user for this device
     const cookieValue = JSON.stringify({
       deviceId,
       deviceType,
-      userId: user._id.toString(),
+      userId: String(user._id),
       username,
       sessionId: user.sessionId
     });
@@ -198,36 +253,39 @@ export async function loginDeviceUser(
       }
     );
 
+    const plain = user.toObject({ flattenMaps: true }) as PlainUser;
+    const settings = plain.gameState?.settings || {};
     return { 
       success: true, 
       user: {
-        _id: user._id.toString(),
-        username: user.username,
-        sessionId: user.sessionId,
+        _id: String(plain._id),
+        username: plain.username,
+        role: userRole,
+        sessionId: plain.sessionId,
         progress: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills)
         },
         gameState: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
-          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills),
+          missions: toObjectFromRecordOrMap(plain.gameState?.missions),
           gameStats: {
-            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
-            loginCount: user.gameState?.gameStats?.loginCount || 0,
-            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+            totalPlayTime: plain.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: plain.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: plain.gameState?.gameStats?.lastLoginDate ? new Date(plain.gameState.gameStats.lastLoginDate).toISOString() : new Date().toISOString(),
+            achievementsUnlocked: plain.gameState?.gameStats?.achievementsUnlocked || []
           },
-          settings: user.gameState?.settings || {
-            soundEnabled: true,
-            showHiddenFiles: false,
-            difficulty: 'medium'
+          settings: {
+            soundEnabled: settings.soundEnabled ?? true,
+            showHiddenFiles: settings.showHiddenFiles ?? false,
+            difficulty: settings.difficulty ?? 'medium'
           }
         }
       }
     };
   } catch (error) {
-    console.error("Error logging in device user:", error);
+    logger.error('Error logging in device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to log in device user" };
   }
 }
@@ -265,36 +323,60 @@ export async function getDeviceUser(
     user.lastActiveTime = new Date();
     await user.save();
 
+    // Get user's role from team data
+    let userRole: string | undefined;
+    try {
+      const team = await Team.findOne({
+        'teamMembers.username': user.username,
+        'teamMembers.accessCodeUsed': true
+      });
+
+      if (team) {
+        const member = team.teamMembers.find((m: TeamMember) => 
+          m.username === user.username && m.accessCodeUsed
+        );
+        if (member && member.role) {
+          userRole = member.role;
+        }
+      }
+    } catch (error) {
+      logger.error('Error fetching user role:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      // Continue without role if there's an error
+    }
+
+    const plain = user.toObject({ flattenMaps: true }) as PlainUser;
+    const settings = plain.gameState?.settings || {};
     return {
       isLoggedIn: true,
       user: {
-        _id: user._id.toString(),
-        username: user.username,
-        sessionId: user.sessionId,
+        _id: String(plain._id),
+        username: plain.username,
+        role: userRole,
+        sessionId: plain.sessionId,
         progress: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {}
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills)
         },
         gameState: {
-          unlockedApplications: user.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
-          skills: user.gameState?.skills ? Object.fromEntries(user.gameState.skills) : {},
-          missions: user.gameState?.missions ? Object.fromEntries(user.gameState.missions) : {},
+          unlockedApplications: plain.gameState?.unlockedApplications || ['Notepad', 'MyComputer'],
+          skills: toObjectFromRecordOrMap<number>(plain.gameState?.skills),
+          missions: toObjectFromRecordOrMap(plain.gameState?.missions),
           gameStats: {
-            totalPlayTime: user.gameState?.gameStats?.totalPlayTime || 0,
-            loginCount: user.gameState?.gameStats?.loginCount || 0,
-            lastLoginDate: user.gameState?.gameStats?.lastLoginDate?.toISOString() || new Date().toISOString(),
-            achievementsUnlocked: user.gameState?.gameStats?.achievementsUnlocked || []
+            totalPlayTime: plain.gameState?.gameStats?.totalPlayTime || 0,
+            loginCount: plain.gameState?.gameStats?.loginCount || 0,
+            lastLoginDate: plain.gameState?.gameStats?.lastLoginDate ? new Date(plain.gameState.gameStats.lastLoginDate).toISOString() : new Date().toISOString(),
+            achievementsUnlocked: plain.gameState?.gameStats?.achievementsUnlocked || []
           },
-          settings: user.gameState?.settings || {
-            soundEnabled: true,
-            showHiddenFiles: false,
-            difficulty: 'medium'
+          settings: {
+            soundEnabled: settings.soundEnabled ?? true,
+            showHiddenFiles: settings.showHiddenFiles ?? false,
+            difficulty: settings.difficulty ?? 'medium'
           }
         }
       }
     };
   } catch (error) {
-    console.error("Error getting device user:", error);
+    logger.error('Error getting device user:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { isLoggedIn: false, error: "Failed to verify user session" };
   }
 }
@@ -337,7 +419,7 @@ export async function getUsersByDeviceId(deviceId: string) {
     return { 
       success: true, 
       users: users.map(user => ({
-        _id: user._id.toString(),
+        _id: String(user._id),
         username: user.username,
         loginTime: user.loginTime,
         lastActiveTime: user.lastActiveTime,
@@ -345,7 +427,7 @@ export async function getUsersByDeviceId(deviceId: string) {
       }))
     };
   } catch (error) {
-    console.error("Error fetching users for device:", error);
+    logger.error('Error fetching users for device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { 
       error: "Failed to fetch users for device",
       details: error instanceof Error ? error.message : String(error)

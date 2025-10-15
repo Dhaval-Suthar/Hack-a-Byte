@@ -1,0 +1,696 @@
+
+"use client";
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import clsx from "clsx";
+import Image from "next/image";
+import { getSessionCreds } from "@/lib/creds";
+import audioManager from "../hooks/useAudioManager";
+import { logger } from '@/lib/logger';
+
+interface Message {
+  id: string;
+  sender: string;
+  content: string;
+  timestamp: Date;
+  isSystem?: boolean;
+}
+
+interface Contact {
+  username: string;
+  status: 'online' | 'offline' | 'away' | 'busy';
+  lastSeen?: Date;
+}
+
+interface WinTalk95Props {
+  onClose: () => void;
+}
+
+const WinTalk95: React.FC<WinTalk95Props> = ({ onClose }) => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  // Get credentials for verification, but don't autofill them
+  const creds = getSessionCreds();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [server, setServer] = useState("secure.ghostnet.corp");
+  const [port, setPort] = useState("2847");
+  const [connectionError, setConnectionError] = useState("");
+  const [showLogin, setShowLogin] = useState(true);
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationSent, setConversationSent] = useState<Set<string>>(new Set());
+  const [contacts] = useState<Contact[]>([
+    { username: "Cipher_Master", status: 'online' },
+    { username: "Shadow_Ops", status: 'away' },
+    { username: "Digital_Ghost", status: 'offline', lastSeen: new Date('1995-11-27') },
+    { username: "Phantom_Net", status: 'busy' }
+  ]);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved state on component mount
+  useEffect(() => {
+    try {
+      const savedState = sessionStorage.getItem('wintalk95State');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        setIsConnected(state.isConnected || false);
+        setShowLogin(!state.isConnected);
+        setUsername(state.username || "");
+        // Reconstruct messages with proper Date objects
+        const reconstructedMessages = (state.messages || []).map((msg: Message) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(reconstructedMessages);
+        setConversationSent(new Set(state.conversationSent || []));
+      }
+    } catch (error) {
+      logger.error('Error loading WinTalk95 state:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      // Reset to default state if there's an error
+      setIsConnected(false);
+      setShowLogin(true);
+      setMessages([]);
+      setConversationSent(new Set());
+    }
+  }, []);
+
+  // Save state when it changes
+  useEffect(() => {
+    if (isConnected) {
+      const state = {
+        isConnected,
+        username,
+        messages,
+        conversationSent: Array.from(conversationSent)
+      };
+      sessionStorage.setItem('wintalk95State', JSON.stringify(state));
+    }
+  }, [isConnected, username, messages, conversationSent]);
+
+  // Play sound effect
+  const playSound = useCallback((soundType: 'connect' | 'message' | 'error' | 'click') => {
+    try {
+      switch (soundType) {
+        case 'connect':
+          audioManager.playSound("/hackbook-W95/sounds/ding.mp3", 0.5);
+          break;
+        case 'message':
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
+          break;
+        case 'error':
+          audioManager.playSound("/hackbook-W95/sounds/error.mp3", 0.5);
+          break;
+        case 'click':
+          audioManager.playSound("/hackbook-W95/sounds/click.mp3", 0.5);
+          break;
+        default:
+          return;
+      }
+    } catch (error) {
+      logger.error('Sound error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    }
+  }, []);
+
+  // Handle login attempt
+  const handleLogin = useCallback(async () => {
+    setIsConnecting(true);
+    setConnectionError("");
+
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Check credentials (from the ZIP file)
+    if (username === creds.username && password === creds.password && server === "secure.ghostnet.corp") {
+      setIsConnected(true);
+      setShowLogin(false);
+      playSound('connect');
+      
+      // Add system connection message only if not already present
+      setMessages(prev => {
+        const hasSystemMessage = prev.some(msg => msg.id === 'system_connect');
+        if (hasSystemMessage) return prev;
+        
+        const systemMessage: Message = {
+          id: 'system_connect',
+          sender: 'System',
+          content: `Connected to ${server}:${port}`,
+          timestamp: new Date(),
+          isSystem: true
+        };
+        return [systemMessage];
+      });
+
+      // Save mission progress
+      import('../hooks/useMissionTracker').then(({ MissionTracker }) => {
+        MissionTracker.completeMission('wintalk_connected');
+      });
+
+    } else {
+      setConnectionError("Invalid username, password, or server address.");
+      playSound('error');
+    }
+
+    setIsConnecting(false);
+  }, [username, password, server, port, playSound, creds.username, creds.password]);
+
+  // Handle contact selection
+  const handleContactSelect = useCallback((contactUsername: string) => {
+    setSelectedContact(contactUsername);
+    playSound('click');
+
+    // If selecting Cipher_Master and haven't sent conversation yet, show their messages
+    if (contactUsername === 'Cipher_Master' && !conversationSent.has(contactUsername)) {
+      // Generate dynamic mission briefing
+      const threats = [
+        {
+          name: "ShadowByte",
+          description: "A rival hacker codenamed 'ShadowByte' has infiltrated our network",
+          specialty: "SSH attacks and encrypted communications on ports 1337 and 31337",
+          expectedIP: "192.168.1.142"
+        },
+        {
+          name: "CyberPhantom",
+          description: "The elusive 'CyberPhantom' has breached our secure channels",
+          specialty: "FTP exploitation and SSL tunneling through proxy servers",
+          expectedIP: "192.168.1.187"
+        },
+        {
+          name: "DarkNet Operative",
+          description: "A DarkNet infiltrator has compromised our communications",
+          specialty: "Tor traffic and IRC command channels with steganographic data",
+          expectedIP: "192.168.1.221"
+        },
+        {
+          name: "Ghost Protocol Agent",
+          description: "A rogue Ghost Protocol agent has turned against the network",
+          specialty: "DNS tunneling and email protocol exploitation",
+          expectedIP: "192.168.1.156"
+        },
+        {
+          name: "Binary Assassin",
+          description: "The notorious 'Binary Assassin' has launched buffer overflow attacks",
+          specialty: "RPC exploits, SMB vulnerabilities, and SQL injection techniques",
+          expectedIP: "192.168.1.199"
+        }
+      ];
+
+      // Randomly select a threat scenario
+      const threat = threats[Math.floor(Math.random() * threats.length)];
+
+      const cipherMasterMessages: Message[] = [
+        {
+          id: 'welcome_back',
+          sender: 'Cipher_Master',
+          content: 'Excellent work on the archive recovery, agent. Your skills impressed the network.',
+          timestamp: new Date('1995-11-29T09:15:00'),
+        },
+        {
+          id: 'urgent_mission',
+          sender: 'Cipher_Master',
+          content: `🚨 URGENT: We have a critical security breach. ${threat.description}.`,
+          timestamp: new Date('1995-11-29T09:15:15'),
+        },
+        {
+          id: 'threat_assessment',
+          sender: 'Cipher_Master',
+          content: 'THREAT LEVEL: HIGH - They\'ve stolen sensitive data and compromised our communication channels.',
+          timestamp: new Date('1995-11-29T09:15:30'),
+        },
+        {
+          id: 'mission_briefing',
+          sender: 'Cipher_Master',
+          content: `Your mission: Use network analysis to locate ${threat.name}'s virtual machine and establish contact.`,
+          timestamp: new Date('1995-11-29T09:15:45'),
+        },
+        {
+          id: 'tool_preparation',
+          sender: 'Cipher_Master',
+          content: 'I\'ll upload specialized tools to your system. These are restricted GHOST network assets.',
+          timestamp: new Date('1995-11-29T09:16:15'),
+        },
+        {
+          id: 'tool_download',
+          sender: 'Cipher_Master',
+          content: '📥 DOWNLOAD: I\'m sending you our Network Neighborhood tool for advanced network analysis.',
+          timestamp: new Date('1995-11-29T09:16:30'),
+        },
+        {
+          id: 'tool_install',
+          sender: 'Cipher_Master',
+          content: '💾 Installing Network Neighborhood on your desktop... Installation complete! Go to your DESKTOP and double-click the new icon to launch the network analysis tool.',
+          timestamp: new Date('1995-11-29T09:16:45'),
+        },
+        {
+          id: 'desktop_navigation',
+          sender: 'Cipher_Master',
+          content: '📋 INSTRUCTIONS: 1) MINIMIZE or CLOSE this WinTalk window 2) Return to your DESKTOP 3) Look for the new "Network Neighborhood" icon 4) Double-click it to start the mission',
+          timestamp: new Date('1995-11-29T09:16:50'),
+        },
+        {
+          id: 'game_instructions',
+          sender: 'Cipher_Master',
+          content: '🎯 HOW TO PLAY: 1) Find the target IP address hidden in the number grid 2) Click 4 numbers in the correct sequence 3) Use the intel hints to identify the correct IP 4) You have only 3 attempts - stealth is critical!',
+          timestamp: new Date('1995-11-29T09:16:55'),
+        },
+        {
+          id: 'intelligence',
+          sender: 'Cipher_Master',
+          content: `INTEL: ${threat.name} specializes in ${threat.specialty}. Decode their location from the intercepted network data!`,
+          timestamp: new Date('1995-11-29T09:17:05'),
+        },
+        {
+          id: 'warning',
+          sender: 'Cipher_Master',
+          content: `⚠️ WARNING: ${threat.name} has advanced security protocols. Failed connection attempts will trigger countermeasures. Study the intelligence reports carefully!`,
+          timestamp: new Date('1995-11-29T09:17:25'),
+        },
+        {
+          id: 'action_reminder',
+          sender: 'Cipher_Master',
+          content: '🖥️ REMINDER: Close this chat window and return to your DESKTOP. The Network Neighborhood tool is waiting for you there. Time is of the essence!',
+          timestamp: new Date('1995-11-29T09:17:35'),
+        },
+        {
+          id: 'closing_mission2',
+          sender: 'Cipher_Master',
+          content: 'Breach their digital fortress and establish contact. Our network security depends on your success. Stay sharp, agent. Ghost out.',
+          timestamp: new Date('1995-11-29T09:17:45'),
+        }
+      ];
+
+      // Mark conversation as sent
+      setConversationSent(prev => new Set(prev).add(contactUsername));
+
+      // Add messages with slight delays to simulate real-time conversation
+      const delay = 1000;
+      cipherMasterMessages.forEach((msg, index) => {
+        setTimeout(() => {
+          setMessages(prev => [...prev, msg]);
+          playSound('message');
+          
+          // Special action for tool installation message
+          if (msg.id === 'tool_install') {
+            setTimeout(() => {
+              // Trigger desktop icon addition notification
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('networkToolInstalled'));
+              }
+            }, 2000);
+          }
+        }, delay + (index * 3000));
+      });
+    }
+  }, [playSound, conversationSent]);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    setIsConnected(false);
+    setShowLogin(true);
+    setSelectedContact(null);
+    setMessages([]);
+    setConversationSent(new Set());
+    setUsername("");
+    setPassword("");
+    sessionStorage.removeItem('wintalk95State');
+    playSound('click');
+  }, [playSound]);
+
+  // Listen for final mission completion to disconnect WinTalk
+  useEffect(() => {
+    const handleFinalMissionComplete = () => {
+      if (isConnected) {
+        // Add a final system message before disconnecting
+        const disconnectMessage: Message = {
+          id: `msg_${Date.now()}`,
+          sender: "SYSTEM",
+          content: "🎯 MISSION ACCOMPLISHED 🎯\n\n🔒 ShadowByte neutralized\n🛡️ Network secured\n📊 All data preserved\n\n🔌 Terminating secure connection...\n\nConnection lost.",
+          timestamp: new Date(),
+          isSystem: true
+        };
+        
+        setMessages(prev => [...prev, disconnectMessage]);
+        playSound('message');
+        
+        // Disconnect after showing the message
+        setTimeout(() => {
+          playSound('error'); // Play disconnect sound
+          handleLogout();
+        }, 4000);
+      }
+    };
+
+    window.addEventListener('finalMissionComplete', handleFinalMissionComplete);
+    return () => {
+      window.removeEventListener('finalMissionComplete', handleFinalMissionComplete);
+    };
+  }, [isConnected, handleLogout, playSound]);
+
+  // Handle page reload/unload - disconnect the app
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear the saved state to force disconnection on reload
+      sessionStorage.removeItem('wintalk95State');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Handle sending message
+  const handleSendMessage = useCallback(() => {
+    if (currentMessage.trim() && selectedContact) {
+      const newMessage: Message = {
+        id: `msg_${Date.now()}`,
+        sender: username,
+        content: currentMessage.trim(),
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+      setCurrentMessage("");
+      playSound('message');
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [currentMessage, selectedContact, username, playSound]);
+
+  // Auto-scroll to bottom when messages change, but only if user is at (or near) the bottom
+  useEffect(() => {
+    const chatContainer = messagesEndRef.current?.parentElement;
+    if (!chatContainer) return;
+    // Calculate if user is at (or near) the bottom (allowing a small threshold)
+    const threshold = 40; // px
+    const isAtBottom =
+      chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < threshold;
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Focus message input when contact is selected
+  useEffect(() => {
+    if (selectedContact && messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  }, [selectedContact]);
+
+  // Format time
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  // Get status color
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'online': return 'text-green-600';
+      case 'away': return 'text-yellow-600';
+      case 'busy': return 'text-red-600';
+      case 'offline': return 'text-gray-500';
+      default: return 'text-gray-500';
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case 'online': return '●';
+      case 'away': return '◐';
+      case 'busy': return '◆';
+      case 'offline': return '○';
+      default: return '○';
+    }
+  };
+
+  return (
+    <div className="w-full h-full bg-[#c0c0c0] flex flex-col">
+      {/* Title Bar */}
+      <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
+        <div className="flex items-center">
+          <Image
+            src="/hackbook-W95/app-icon/wintalk.png"
+            alt="WinTalk icon"
+            width={16}
+            height={16}
+            className="mr-2"
+          />
+          <span className="text-sm font-bold">
+            WinTalk 95 {isConnected ? `- Connected to ${server}` : '- Disconnected'}
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-white hover:bg-red-600 px-2 py-1 text-xs font-bold"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Menu Bar */}
+      <div className="bg-[#c0c0c0] border-b border-[#808080] px-2 py-1">
+        <div className="flex space-x-4 text-sm">
+          {isConnected && (
+            <span 
+              className="hover:bg-[#e0e0e0] px-2 py-1 cursor-pointer text-red-600"
+              onClick={handleLogout}
+            >
+              Disconnect
+            </span>
+          )}
+        </div>
+      </div>
+
+      {showLogin ? (
+        /* Login Screen */
+        <div className="flex-1 bg-white flex items-center justify-center p-4">
+          <div className="bg-[#c0c0c0] border-2 border-[#808080] p-6 max-w-md w-full shadow-lg">
+            <div className="text-center mb-6">
+              <Image
+                src="/hackbook-w95/app-icon/wintalk.png"
+                alt="WinTalk logo"
+                width={48}
+                height={48}
+                className="mx-auto mb-2"
+              />
+              <h2 className="font-bold text-lg">Connect to Secure Network</h2>
+              <p className="text-sm text-gray-600 mt-1">Enter your credentials to access the GHOST network</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Username:</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full border border-[#808080] px-2 py-1"
+                  placeholder="Enter username"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-1">Password:</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-[#808080] px-2 py-1"
+                  placeholder="Enter password"
+                />
+              </div>
+
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <label className="block text-sm font-bold mb-1">Server:</label>
+                  <input
+                    type="text"
+                    value={server}
+                    onChange={(e) => setServer(e.target.value)}
+                    className="w-full border border-[#808080] px-2 py-1"
+                  />
+                </div>
+                <div className="w-20">
+                  <label className="block text-sm font-bold mb-1">Port:</label>
+                  <input
+                    type="text"
+                    value={port}
+                    onChange={(e) => setPort(e.target.value)}
+                    className="w-full border border-[#808080] px-2 py-1"
+                  />
+                </div>
+              </div>
+
+              {connectionError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                  {connectionError}
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <button
+                  onClick={handleLogin}
+                  disabled={isConnecting}
+                  className={clsx(
+                    "px-6 py-2 border-2 font-bold",
+                    {
+                      "bg-[#000080] text-white border-[#000080] hover:bg-[#0000aa]": !isConnecting,
+                      "bg-gray-400 text-gray-600 border-gray-400 cursor-not-allowed": isConnecting
+                    }
+                  )}
+                >
+                  {isConnecting ? "Connecting..." : "Connect"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 text-xs text-gray-600 text-center">
+              <p>Hint: Check the recovered files from the ZIP archive for login credentials.</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Main Chat Interface */
+        <div className="flex-1 flex h-full">
+          {/* Contact List */}
+          <div className="w-1/3 bg-[#c0c0c0] border-r border-[#808080] flex flex-col min-h-0">
+            <div className="bg-[#000080] text-white px-2 py-1 text-sm font-bold">
+              Contacts
+            </div>
+            <div className="flex-1 overflow-auto">
+              {contacts.map((contact) => (
+                <div
+                  key={contact.username}
+                  className={clsx(
+                    "px-3 py-3 border-b border-[#e0e0e0] cursor-pointer flex items-center transition-colors",
+                    {
+                      "bg-[#000080] text-white": selectedContact === contact.username,
+                      "hover:bg-[#e0e0e0]": selectedContact !== contact.username
+                    }
+                  )}
+                  onClick={() => handleContactSelect(contact.username)}
+                >
+                  <span className={clsx("mr-3 text-lg", getStatusColor(contact.status))}>
+                    {getStatusIcon(contact.status)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{contact.username}</div>
+                    <div className="text-xs opacity-75 truncate">
+                      {contact.status === 'offline' && contact.lastSeen 
+                        ? `Last seen ${contact.lastSeen.toLocaleDateString()}`
+                        : contact.status
+                      }
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
+            {selectedContact ? (
+              <>
+                {/* Chat Header */}
+                <div className="bg-[#000080] text-white px-3 py-2 text-sm font-bold">
+                  Conversation with {selectedContact}
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto bg-white p-2 space-y-2">
+                  {messages
+                    .filter(msg => msg.isSystem || msg.sender === selectedContact || msg.sender === username)
+                    .map((message) => (
+                    <div
+                      key={message.id}
+                      className={clsx("flex", {
+                        "justify-end": message.sender === username,
+                        "justify-start": message.sender !== username,
+                        "justify-center": message.isSystem
+                      })}
+                    >
+                      <div
+                        className={clsx("max-w-md px-3 py-2 rounded shadow-sm text-sm", {
+                          "bg-[#000080] text-white": message.sender === username,
+                          "bg-[#e0e0e0] text-black border border-[#808080]": message.sender !== username && !message.isSystem,
+                          "bg-gray-100 text-gray-600 italic text-xs border border-gray-300": message.isSystem
+                        })}
+                      >
+                        <div className="break-words whitespace-pre-wrap">{message.content}</div>
+                        <div className="text-xs opacity-75 mt-1">
+                          {formatTime(message.timestamp)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Message Input */}
+                <div className="bg-[#c0c0c0] border-t border-[#808080] p-2 flex">
+                  <input
+                    ref={messageInputRef}
+                    type="text"
+                    value={currentMessage}
+                    onChange={(e) => setCurrentMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSendMessage();
+                      }
+                    }}
+                    className="flex-1 border border-[#808080] px-2 py-1 mr-2"
+                    placeholder="Type your message..."
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    className="bg-[#000080] text-white px-4 py-1 border-2 border-[#000080] hover:bg-[#0000aa]"
+                  >
+                    Send
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* No Contact Selected */
+              <div className="flex-1 bg-white flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <Image
+                    src="/hackbook-w95/app-icon/wintalk.png"
+                    alt="WinTalk"
+                    width={64}
+                    height={64}
+                    className="mx-auto mb-4 opacity-50"
+                  />
+                  <p>Select a contact to start chatting</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Status Bar */}
+      <div className="bg-[#c0c0c0] border-t border-[#808080] px-2 py-1 text-xs flex justify-between">
+        <span>
+          {isConnected 
+            ? `Connected | ${contacts.filter(c => c.status === 'online').length} online`
+            : "Disconnected"
+          }
+        </span>
+        <span>{new Date().toLocaleTimeString()}</span>
+      </div>
+    </div>
+  );
+};
+
+export default WinTalk95;

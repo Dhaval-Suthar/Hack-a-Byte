@@ -1,52 +1,15 @@
 // filepath: /Users/dhavalsuthar/Desktop/hackabyte/models/Devices.ts
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface FileSystemNode {
-  name: string;
-  type: "file" | "directory";
-  content?: string; // For files
-  metadata?: {
-    createdAt: Date;
-    modifiedAt: Date;
-    size: number;
-    permissions: string; // e.g., 'rwx', 'r--', etc.
-    owner: string;
-    isHidden: boolean;
-    isSystem: boolean;
-    fileType?: string; // e.g., 'txt', 'exe', 'jpg'
-    icon?: string; // Path to icon representation
-  };
-  children?: mongoose.Types.ObjectId[]; // For directories, references to other FileSystemNodes
-}
-
-// Schema for file system nodes (files and directories)
-const FileSystemNodeSchema = new Schema<FileSystemNode>({
-  name: { type: String, required: true },
-  type: { type: String, enum: ["file", "directory"], required: true },
-  content: { type: String }, // Only for files
-  metadata: {
-    createdAt: { type: Date, default: Date.now },
-    modifiedAt: { type: Date, default: Date.now },
-    size: { type: Number, default: 0 },
-    permissions: { type: String, default: "rw-" },
-    owner: { type: String, default: "system" },
-    isHidden: { type: Boolean, default: false },
-    isSystem: { type: Boolean, default: false },
-    fileType: { type: String },
-    icon: { type: String },
-  },
-  children: [{ type: mongoose.Schema.Types.ObjectId, ref: "FileSystemNode" }], // Only for directories
-});
-
 // Device model interface
 export interface Device extends Document {
   deviceMacAddress: string; // Unique identifier for the device instance
   deviceType: string; // e.g., 'hackbook-w95', 'hackdroid', 'hackphone'
   status: "online" | "offline" | "maintenance";
-  playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to 
-
-  // File system root directory
-  fileSystemRoot: mongoose.Schema.Types.ObjectId;
+  playspace: mongoose.Schema.Types.ObjectId; // Reference to the Playspace this device belongs to
+  teamId?: mongoose.Schema.Types.ObjectId; // Reference to the team that owns this device
+  ipAddress?: string; // Shortcut to the device's IP address (for easier queries)
+  lastSeen?: Date; // When the device was last seen online
 
   // Currently logged in users
   currentUsers: {
@@ -73,8 +36,32 @@ export interface Device extends Document {
       firewall: boolean;
       antiVirus: boolean;
       vulnerabilities: string[]; // List of simulated vulnerabilities for CTF scenarios
+      vpn?: boolean;
+      enc?: boolean;
+      ids?: boolean;
     };
   };
+
+  // Additional device settings
+  passcode?: string | null;
+  pin?: string | null;
+  airplaneMode?: boolean;
+  wifiEnabled?: boolean;
+  bluetoothEnabled?: boolean;
+  notifications?: boolean;
+  notificationsEnabled?: boolean;
+  location?: boolean;
+  locationEnabled?: boolean;
+  deviceLock?: boolean;
+  brightness?: number;
+  ringerVolume?: number;
+  vibrateEnabled?: boolean;
+  ringtone?: string;
+  network?: string;
+  darkMode?: boolean;
+  hapticFeedback?: boolean;
+  autoUpdateApps?: boolean;
+  autoBrightness?: boolean;
 
   // Device logs for actions performed
   logs: {
@@ -84,6 +71,13 @@ export interface Device extends Document {
     details: string;
     ipAddress: string;
   }[];
+
+  // Notes app data
+  notes: {
+    id: number;
+    title: string;
+    body?: string;
+  }[];
 }
 
 const DeviceSchema = new Schema<Device>(
@@ -92,8 +86,9 @@ const DeviceSchema = new Schema<Device>(
     deviceType: { type: String, required: true },
     status: { type: String, enum: ["online", "offline", "maintenance"], default: "offline" },
     playspace: { type: mongoose.Schema.Types.ObjectId, ref: "Playspace" },
-
-    fileSystemRoot: { type: mongoose.Schema.Types.ObjectId, ref: "FileSystemNode" },
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+    ipAddress: { type: String },
+    lastSeen: { type: Date, default: Date.now },
 
     currentUsers: [
       {
@@ -120,8 +115,41 @@ const DeviceSchema = new Schema<Device>(
         firewall: { type: Boolean, default: true },
         antiVirus: { type: Boolean, default: true },
         vulnerabilities: [{ type: String }],
+        vpn: { type: Boolean, default: false },
+        enc: { type: Boolean, default: false },
+        ids: { type: Boolean, default: false },
       },
     },
+
+    // Additional device settings
+    passcode: { type: String, default: null },
+    pin: { type: String, default: null },
+    airplaneMode: { type: Boolean, default: false },
+    wifiEnabled: { type: Boolean, default: true },
+    bluetoothEnabled: { type: Boolean, default: true },
+    notifications: { type: Boolean, default: true },
+    notificationsEnabled: { type: Boolean, default: true },
+    location: { type: Boolean, default: true },
+    locationEnabled: { type: Boolean, default: true },
+    deviceLock: { type: Boolean, default: false },
+    brightness: { type: Number, default: 50 },
+    ringerVolume: { type: Number, default: 70 },
+    vibrateEnabled: { type: Boolean, default: true },
+    ringtone: { type: String, default: "Marimba" },
+    network: { type: String, default: "Home WiFi" },
+    darkMode: { type: Boolean, default: false },
+    hapticFeedback: { type: Boolean, default: true },
+    autoUpdateApps: { type: Boolean, default: true },
+    autoBrightness: { type: Boolean, default: true },
+
+    // Notes app data
+    notes: [
+      {
+        id: { type: Number, required: true },
+        title: { type: String, required: true },
+        body: { type: String, default: "" },
+      },
+    ],
 
     logs: [
       {
@@ -137,8 +165,10 @@ const DeviceSchema = new Schema<Device>(
 );
 
 // Create indexes for better query performance
-DeviceSchema.index({ deviceMacAddress: 1 });
+// Note: deviceMacAddress already has unique index from schema definition
 DeviceSchema.index({ deviceType: 1 });
+DeviceSchema.index({ status: 1 });
+DeviceSchema.index({ 'configuration.networkSettings.ipAddress': 1 });
 
 // Helper method to add a log entry
 DeviceSchema.methods.addLogEntry = function (
@@ -222,10 +252,6 @@ DeviceSchema.methods.userLogout = function (userId: mongoose.Types.ObjectId) {
 
   return Promise.resolve(this);
 };
-
-// FileSystemNode model
-export const FileSystemNodeModel =
-  mongoose.models.FileSystemNode || mongoose.model<FileSystemNode>("FileSystemNode", FileSystemNodeSchema);
 
 // Device model
 export default mongoose.models.Device || mongoose.model<Device>("Device", DeviceSchema);

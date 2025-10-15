@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import connectDB from "@/db/connectDb";
 import LeaderboardEntry from "@/models/LeaderboardEntry";
 import DeviceUser from "@/models/DeviceUser";
+import Device from "@/models/Device";
+import { logger } from '@/lib/logger';
 
-// Type for serialized leaderboard entry
-interface SerializedLeaderboardEntry {
+// Type for serialized leaderboard entry (used in return types)
+export interface SerializedLeaderboardEntry {
   _id: string;
   username: string;
   score: number;
@@ -38,8 +40,11 @@ export async function addLeaderboardEntry(
       return { success: false, error: "Device user not found" };
     }
 
+    // Get the device type from Device model
+    const device = await Device.findOne({ deviceMacAddress: deviceId });
+    const deviceType = device?.deviceType || "hackbook-w95";
+
     const username = deviceUser.username || "Anonymous Player";
-    const deviceType = deviceUser.deviceType || "hackbook-w95";
     
     // Create and save the leaderboard entry
     const entry = new LeaderboardEntry({
@@ -72,7 +77,7 @@ export async function addLeaderboardEntry(
       }
     };
   } catch (error) {
-    console.error("Error adding leaderboard entry:", error);
+    logger.error('Error adding leaderboard entry:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to add leaderboard entry" };
   }
 }
@@ -117,7 +122,7 @@ export async function getTopLeaderboardEntries(
     
     return { success: true, entries: serializedEntries };
   } catch (error) {
-    console.error("Error getting leaderboard entries:", error);
+    logger.error('Error getting leaderboard entries:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to get leaderboard entries", entries: [] };
   }
 }
@@ -155,7 +160,7 @@ export async function getUserBestScores(deviceId: string, game: string) {
     
     return { success: true, scores: results };
   } catch (error) {
-    console.error("Error getting user's best scores:", error);
+    logger.error("Error getting user's best scores", { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { success: false, error: "Failed to get user scores", scores: [] };
   }
 }

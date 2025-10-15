@@ -3,6 +3,7 @@
 import connectDb from "@/db/connectDb";
 import SponsorContact from "@/models/SponsorContact";
 import { revalidatePath } from "next/cache";
+import { logger } from '@/lib/logger';
 
 export interface SponsorContactFormData {
   companyName: string;
@@ -86,7 +87,7 @@ export async function submitSponsorContact(
       },
     };
   } catch (error) {
-    console.error("Error submitting sponsor contact:", error);
+    logger.error('Error submitting sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -102,7 +103,8 @@ export async function getSponsorContacts(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check (you can enhance this based on your admin auth system)
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",
@@ -131,7 +133,7 @@ export async function getSponsorContacts(
       data: serializedContacts,
     };
   } catch (error) {
-    console.error("Error fetching sponsor contacts:", error);
+    logger.error('Error fetching sponsor contacts:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -150,7 +152,8 @@ export async function updateSponsorContactStatus(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",
@@ -193,7 +196,7 @@ export async function updateSponsorContactStatus(
       },
     };
   } catch (error) {
-    console.error("Error updating sponsor contact:", error);
+    logger.error('Error updating sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,
@@ -210,7 +213,8 @@ export async function deleteSponsorContact(
 ): Promise<SponsorContactResponse> {
   try {
     // Basic admin check
-    if (adminKey !== "hackabyte-admin-key-2024") {
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024";
+    if (adminKey !== validKey) {
       return {
         success: false,
         message: "Unauthorized access",
@@ -244,7 +248,7 @@ export async function deleteSponsorContact(
       },
     };
   } catch (error) {
-    console.error("Error deleting sponsor contact:", error);
+    logger.error('Error deleting sponsor contact:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     
     return {
       success: false,

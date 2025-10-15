@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { getDevicesByPlayspaceId } from "@/app/actions/admin";
+import { CHARACTER_INFO } from "@/lib/constants/app-constants";
+import { logger } from '@/lib/logger';
 
 interface DeviceOption {
   id: string;
@@ -25,12 +27,18 @@ interface DeviceInstance {
 export default function DeviceSelectionPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [currentPlayspaceId, setCurrentPlayspaceId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<DeviceInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<{ [deviceType: string]: string }>({});
+
+  // Handle hydration
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Detect if user is on mobile
   useEffect(() => {
@@ -80,13 +88,11 @@ export default function DeviceSelectionPage() {
         setSelectedInstances(newSelectedInstances);
 
         // Log the available devices for debugging
-        console.log("Available devices:", result.devices);
-        console.log("Auto-selected instances:", newSelectedInstances);
       }
 
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching devices:", err);
+      logger.error('Error fetching devices:', { error: err instanceof Error ? err.message : 'Unknown error' }, err as Error);
       setError("Failed to load available devices");
       setLoading(false);
     }
@@ -132,15 +138,26 @@ export default function DeviceSelectionPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Polling for device status updates
+  useEffect(() => {
+    if (!currentPlayspaceId) return;
+
+    const interval = setInterval(() => {
+      fetchDevices(currentPlayspaceId);
+    }, 10000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentPlayspaceId, fetchDevices]);
+
  const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        logger.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
   } else {
     document.exitFullscreen().catch((err) => {
-      console.error(`Error attempting to exit fullscreen: ${err.message}`);
+      logger.error(`Error attempting to exit fullscreen: ${err.message}`);
     });
   }
 };
@@ -153,7 +170,7 @@ export default function DeviceSelectionPage() {
       id: "hackbook-w95",
       name: "HackBook W95",
       icon: "/hackbook-W95/app-icon/windows-logo.png",
-      description: "Classic Windows 95 experience, perfect for learning fundamental hacking techniques.",
+      description: "Classic Windows 95 experience with games and extras.",
       path: "/hackbook-w95/login",
       platform: "desktop",
     },
@@ -258,8 +275,18 @@ export default function DeviceSelectionPage() {
     // Apply playspace access filter
     devices = filterByPlayspaceAccess(devices);
 
-    // Apply platform filter (mobile/desktop)
+    // Apply platform filter (mobile/desktop) but prioritize mobile devices
     devices = filterByPlatform(devices);
+
+    // Sort devices to prioritize mobile devices first
+    devices.sort((a, b) => {
+      // Mobile devices come first
+      if (a.platform === "mobile" && b.platform !== "mobile") return -1;
+      if (a.platform !== "mobile" && b.platform === "mobile") return 1;
+
+      // Within the same platform, maintain original order
+      return 0;
+    });
 
     return devices;
   }, [allDeviceOptions, filterByPlayspaceAccess, filterByPlatform]);
@@ -272,6 +299,11 @@ export default function DeviceSelectionPage() {
       // Get the selected device instance for this device type
       const deviceInstance = getSelectedDeviceInstance(deviceId);
       const specificDeviceId = deviceInstance?.id;
+
+      // Store the device MAC address in localStorage
+      if (specificDeviceId) {
+        localStorage.setItem("device_mac_address", specificDeviceId);
+      }
 
       // Small delay to show selection effect before navigating
       setTimeout(() => {
@@ -302,6 +334,49 @@ export default function DeviceSelectionPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 text-center">
         <h1 className="text-4xl font-mono font-bold mb-2">SELECT DEVICE</h1>
         <p className="text-sm opacity-70">Choose your virtual device to begin your hacking journey</p>
+        
+        {/* Display selected character if available */}
+        {(() => {
+          const selectedRole = typeof window !== 'undefined' ? localStorage.getItem('selectedRole') : null;
+          const character = selectedRole ? CHARACTER_INFO[selectedRole as keyof typeof CHARACTER_INFO] : null;
+          
+          if (character) {
+            return (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-6 p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600 rounded-xl backdrop-blur-sm"
+              >
+                <div className="flex items-center justify-center gap-4">
+                  <div className="relative">
+                    <Image 
+                      src={character.image} 
+                      alt={character.name}
+                      width={50}
+                      height={50}
+                      className={`rounded-full border-2 ${character.borderColor}`}
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
+                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-mono text-sm ${character.textColor} font-semibold`}>
+                      Playing as: {character.name}
+                    </p>
+                    <p className="text-gray-400 font-mono text-xs">
+                      {character.role} • {character.specialty}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          }
+          return null;
+        })()}
       </motion.div>
 
       {/* Show loading or error state */}
@@ -328,17 +403,19 @@ export default function DeviceSelectionPage() {
         <div className="text-center my-8">
           <p className="text-yellow-400 font-mono">No devices are available for this playspace.</p>
           {currentPlayspaceId && <p className="text-green-400 font-mono mt-2">Playspace ID: {currentPlayspaceId}</p>}
-          <p className="text-blue-400 font-mono mt-4">
-            {isMobile
-              ? "Try accessing from a desktop device for more options."
-              : "Try accessing from a mobile device for more options."}
-          </p>
+          {isHydrated && (
+            <p className="text-blue-400 font-mono mt-4">
+              {isMobile
+                ? "Try accessing from a desktop device for more options."
+                : "Try accessing from a mobile device for more options."}
+            </p>
+          )}
         </div>
       )}
 
       {/* Devices grid */}
       {!loading && !error && filteredDevices.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mt-4">
+        <div className="flex flex-wrap justify-center gap-6 w-full max-w-6xl mt-4">
           {filteredDevices.map((device: DeviceOption, index: number) => {
             const deviceInstances = getDeviceInstances(device.id);
             const selectedInstance = getSelectedDeviceInstance(device.id);
@@ -349,7 +426,7 @@ export default function DeviceSelectionPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + index * 0.1 }}
-                className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg hover:bg-gray-800 transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                className="bg-gray-900 border-2 border-green-500 p-6 rounded-lg hover:bg-gray-800 transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] w-full max-w-md flex-shrink-0"
               >
                 <div className="flex items-center mb-4">
                   <div className="mr-4">
@@ -475,7 +552,7 @@ export default function DeviceSelectionPage() {
       )}
 
       {/* Footer navigation and controls */}
-      <div className="mt-12 pt-8 border-t border-green-500/20 w-full max-w-4xl">
+      <div className="mt-12 pt-8 border-t border-green-500/20 w-full max-w-6xl">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-xs">
           <button
             onClick={() => router.push('/')}

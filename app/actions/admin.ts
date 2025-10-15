@@ -1,21 +1,23 @@
 "use server";
 
 import connectDb from "@/db/connectDb";
-import User from "@/models/User";
 import AccessCode, { AccessCodeType } from "@/models/AccessCode";
 import Team from "@/models/Team";
 import Playspace from "@/models/Playspace";
 import Device from "@/models/Device";
 import Event from "@/models/Event";
+import Sponsor from "@/models/Sponsor";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
-import { generateMacAddress } from "@/lib/utils";
+import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
+import { generateUniqueIPAddress, generateDeviceMacAddress } from "@/lib/device-utils";
+import { logger } from '@/lib/logger';
 
 // Helper function to check admin status
 async function checkAdminStatus(adminKey?: string) {
   // If admin key is provided, validate it (file upload authentication)
   if (adminKey) {
-    const validKey = "hackabyte-admin-key-2024"; // This should match your admin-key.txt file
+    const validKey = process.env.ADMIN_AUTH_KEY || "hackabyte-admin-key-2024"; // This should match your admin-key.txt file
     if (adminKey.trim() === validKey) {
       return { isAdmin: true, error: null };
     } else {
@@ -31,106 +33,6 @@ async function checkAdminStatus(adminKey?: string) {
     isAdmin: false,
     error: "Authentication key required",
   };
-}
-
-// User Actions
-export async function getUsers(adminKey?: string) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    await connectDb();
-    const users = await User.find({})
-      .select("_id username email isAuthenticated isMentor isAdmin createdAt")
-      .lean() // Use lean() to get plain objects
-      .sort({ createdAt: -1 });
-
-    // Ensure all user objects have the required fields with proper defaults
-    // Also convert MongoDB objects to plain objects to avoid serialization issues
-    const safeUsers = users.map((user) => ({
-      _id: user._id ? user._id.toString() : "",
-      username: user.username || "Unknown",
-      email: user.email || "",
-      isAuthenticated: typeof user.isAuthenticated === "boolean" ? user.isAuthenticated : false,
-      isMentor: typeof user.isMentor === "boolean" ? user.isMentor : false,
-      isAdmin: typeof user.isAdmin === "boolean" ? user.isAdmin : false,
-      createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
-    }));
-
-    return { users: safeUsers };
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return { error: "Failed to fetch users" };
-  }
-}
-
-export async function updateUser(userId: string, action: string, adminKey?: string) {
-  const { isAdmin, error } = await checkAdminStatus(adminKey);
-
-  if (!isAdmin) {
-    return { error };
-  }
-
-  try {
-    if (!userId || !action) {
-      return { error: "Missing user ID or action" };
-    }
-
-    await connectDb();
-
-    // Get the target user
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return { error: "User not found" };
-    }
-
-    // Perform the requested action
-    switch (action) {
-      case "promoteToAdmin":
-        user.isAdmin = true;
-        break;
-      case "removeAdmin":
-        user.isAdmin = false;
-        break;
-      case "promoteToMentor":
-        user.isMentor = true;
-        break;
-      case "removeMentor":
-        user.isMentor = false;
-        break;
-      case "delete":
-        await User.findByIdAndDelete(userId);
-        revalidatePath("/admin");
-        return {
-          success: true,
-          message: "User deleted successfully",
-        };
-      default:
-        return { error: "Invalid action" };
-    }
-
-    await user.save();
-    revalidatePath("/admin");
-
-    return {
-      success: true,
-      message: "User updated successfully",
-      user: {
-        _id: user._id.toString(),
-        username: user.username,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isMentor: user.isMentor,
-      },
-    };
-  } catch (error) {
-    console.error("Error updating user:", error);
-    return { error: "Failed to update user" };
-  }
 }
 
 // Access Code Actions
@@ -177,7 +79,7 @@ export async function getAccessCodes(adminKey?: string) {
 
     return { accessCodes: safeAccessCodes };
   } catch (error) {
-    console.error("Error fetching access codes:", error);
+    logger.error('Error fetching access codes:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch access codes" };
   }
 }
@@ -253,7 +155,7 @@ export async function generateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error generating access code:", error);
+    logger.error('Error generating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to generate access code" };
   }
 }
@@ -335,7 +237,7 @@ export async function createCustomAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error creating custom access code:", error);
+    logger.error('Error creating custom access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create custom access code" };
   }
 }
@@ -380,8 +282,36 @@ export async function toggleAccessCodeStatus(codeId: string, isActive: boolean, 
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
+  }
+}
+
+export async function deleteAccessCode(codeId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const accessCode = await AccessCode.findById(codeId);
+
+    if (!accessCode) {
+      return { error: "Access code not found" };
+    }
+
+    await AccessCode.findByIdAndDelete(codeId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Access code deleted successfully",
+    };
+  } catch (error) {
+    logger.error('Error deleting access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to delete access code" };
   }
 }
 
@@ -395,21 +325,456 @@ export async function getTeams(adminKey?: string) {
 
   try {
     await connectDb();
-    const teams = await Team.find({}).select("_id name description leaderUserId members").lean().sort({ createdAt: -1 });
+    const teams = await Team.find({}).select("_id name description leaderUserId members numberOfPlayers playingDevice").lean().sort({ createdAt: -1 });
 
     // Transform the data to include member count and ensure all fields exist
     const teamsWithMemberCount = teams.map((team) => ({
-      _id: team._id || "",
+      _id: team._id ? team._id.toString() : "",
       name: team.name || "Unknown Team",
       description: team.description || "No description",
       leaderUserId: team.leaderUserId || "",
       members: Array.isArray(team.members) ? team.members.length : 0,
+      numberOfPlayers: team.numberOfPlayers || 1,
+      playingDevice: team.playingDevice || "smartphone", // Default to smartphone if not set
     }));
 
     return { teams: teamsWithMemberCount };
   } catch (error) {
-    console.error("Error fetching teams:", error);
+    logger.error('Error fetching teams:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch teams" };
+  }
+}
+
+export async function createTeam(name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderUserId?: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return { error: "Team name is required" };
+    }
+
+    if (!numberOfPlayers || numberOfPlayers < 1 || numberOfPlayers > 10) {
+      return { error: "Number of players must be between 1 and 10" };
+    }
+
+    // Check if team name already exists
+    const existingTeam = await Team.findOne({ name: name.trim() });
+    if (existingTeam) {
+      return { error: "Team name already exists" };
+    }
+
+    // If leader is specified, we'll just store it as is (no validation since User model is removed)
+    // if (leaderUserId) {
+    //   const leader = await User.findById(leaderUserId);
+    //   if (!leader) {
+    //     return { error: "Specified leader user does not exist" };
+    //   }
+    // }
+
+    // Generate wallet credentials
+    const crypto = await import("crypto");
+    const walletAddress = crypto
+      .createHash("sha256")
+      .update(`${name}:${Date.now()}`)
+      .digest("hex")
+      .slice(0, 42);
+    const privateKey = crypto.randomBytes(32).toString("hex");
+    const publicKey = crypto.createHash("sha256").update(privateKey).digest("hex").slice(0, 66);
+
+    // Initialize member slots
+    const teamMembers = Array.from({ length: numberOfPlayers }, () => ({ accessCodeUsed: false }));
+
+  // Create new team (playspace & access code will be generated just after and then linked back)
+    const newTeam = new Team({
+      name: name.trim(),
+      description: description?.trim() || "",
+      leaderUserId: leaderUserId || null,
+      members: leaderUserId ? [leaderUserId] : [],
+      numberOfPlayers,
+      wallet: {
+        walletAddress,
+        privateKey,
+        publicKey,
+        bitcoinBalance: 100,
+      },
+      teamMembers,
+      timer: {
+        isActive: false,
+        elapsedTime: 0,
+        totalPausedTime: 0,
+      },
+    });
+
+    await newTeam.save();
+
+    // Create playspace and device for the team
+  let generatedAccessCode: string | undefined;
+  try {
+      const playspaceResult = await createAccessCodeAndPlayspace({
+        numberOfPlayers,
+        playingDevice,
+        eventTitle: name.trim(),
+        registrationId: newTeam._id.toString(),
+        codePrefix: '9', // Admin-created teams use '9' prefix
+      });
+
+      if (playspaceResult.success) {
+    generatedAccessCode = playspaceResult.accessCode;
+        // Update team with playspace, device & access code references
+        if (playspaceResult.playspaceId) {
+          newTeam.playspaceId = new mongoose.Types.ObjectId(playspaceResult.playspaceId);
+        }
+        if (playspaceResult.deviceId) {
+          newTeam.deviceId = new mongoose.Types.ObjectId(playspaceResult.deviceId);
+        }
+        if (playspaceResult.accessCodeId) {
+          newTeam.accessCodeId = new mongoose.Types.ObjectId(playspaceResult.accessCodeId);
+        }
+        await newTeam.save();
+      } else {
+        logger.warn('Failed to create playspace and device for team:', { error: playspaceResult.error });
+        // Don't fail the team creation, just log the warning
+      }
+    } catch (error) {
+      logger.error('Error creating playspace and device for team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+      // Don't fail the team creation, just log the error
+    }
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team created successfully",
+      team: {
+        _id: newTeam._id.toString(),
+        name: newTeam.name,
+        description: newTeam.description,
+        leaderUserId: newTeam.leaderUserId,
+        members: newTeam.members.length,
+        numberOfPlayers: newTeam.numberOfPlayers,
+        walletAddress: newTeam.wallet.walletAddress,
+        accessCodeId: newTeam.accessCodeId ? newTeam.accessCodeId.toString() : undefined,
+        playspaceId: newTeam.playspaceId ? newTeam.playspaceId.toString() : undefined,
+        deviceId: newTeam.deviceId ? newTeam.deviceId.toString() : undefined,
+        accessCode: generatedAccessCode,
+      },
+    };
+  } catch (error) {
+    logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to create team" };
+  }
+}
+
+export async function updateTeam(teamId: string, updates: { name?: string; description?: string; leaderUserId?: string }, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the team
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Validate name uniqueness if being updated
+    if (updates.name && updates.name.trim() !== team.name) {
+      const existingTeam = await Team.findOne({ name: updates.name.trim() });
+      if (existingTeam && existingTeam._id.toString() !== teamId) {
+        return { error: "Team name already exists" };
+      }
+      team.name = updates.name.trim();
+    }
+
+    // Update description
+    if (updates.description !== undefined) {
+      team.description = updates.description.trim();
+    }
+
+    // Update leader
+    if (updates.leaderUserId !== undefined) {
+      if (updates.leaderUserId) {
+        // Verify the new leader exists (removed since User model is gone)
+        // const leader = await User.findById(updates.leaderUserId);
+        // if (!leader) {
+        //   return { error: "Specified leader user does not exist" };
+        // }
+        team.leaderUserId = updates.leaderUserId;
+        // Add leader to members if not already there
+        if (!team.members.includes(updates.leaderUserId)) {
+          team.members.push(updates.leaderUserId);
+        }
+      } else {
+        team.leaderUserId = null;
+      }
+    }
+
+    await team.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team updated successfully",
+      team: {
+        _id: team._id.toString(),
+        name: team.name,
+        description: team.description,
+        leaderUserId: team.leaderUserId,
+        members: team.members.length,
+      },
+    };
+  } catch (error) {
+    logger.error('Error updating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update team" };
+  }
+}
+
+export async function deleteTeam(teamId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the team
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return { error: "Team not found" };
+    }
+
+    // Check if team has members
+    if (team.members && team.members.length > 0) {
+      return { error: "Cannot delete team with active members. Please remove all members first." };
+    }
+
+    await Team.findByIdAndDelete(teamId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Team deleted successfully",
+    };
+  } catch (error) {
+    logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to delete team" };
+  }
+}
+
+// Sponsor Actions
+export async function getSponsors(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const sponsors = await Sponsor.find({}).lean().sort({ createdAt: -1 });
+
+    // Transform the data to ensure all fields exist
+    const sponsorsWithFormattedData = sponsors.map((sponsor) => ({
+      _id: sponsor._id ? sponsor._id.toString() : "",
+      name: sponsor.name || "Unknown Sponsor",
+      tier: sponsor.tier || "binary-titans",
+      logo: sponsor.logo || "",
+      description: sponsor.description || "No description",
+      benefits: Array.isArray(sponsor.benefits) ? sponsor.benefits : [],
+      websiteUrl: sponsor.websiteUrl || "",
+      isActive: typeof sponsor.isActive === "boolean" ? sponsor.isActive : true,
+      createdAt: sponsor.createdAt ? new Date(sponsor.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: sponsor.updatedAt ? new Date(sponsor.updatedAt).toISOString() : new Date().toISOString(),
+    }));
+
+    return { sponsors: sponsorsWithFormattedData };
+  } catch (error) {
+    logger.error('Error fetching sponsors:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch sponsors" };
+  }
+}
+
+export async function createSponsor(
+  name: string,
+  tier: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
+  logo: string,
+  description: string,
+  benefits: string[],
+  websiteUrl: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return { error: "Sponsor name is required" };
+    }
+
+    if (!logo || logo.trim().length === 0) {
+      return { error: "Sponsor logo URL is required" };
+    }
+
+    if (!websiteUrl || websiteUrl.trim().length === 0) {
+      return { error: "Sponsor website URL is required" };
+    }
+
+    // Check if sponsor name already exists
+    const existingSponsor = await Sponsor.findOne({ name: name.trim() });
+    if (existingSponsor) {
+      return { error: "Sponsor name already exists" };
+    }
+
+    const newSponsor = new Sponsor({
+      name: name.trim(),
+      tier,
+      logo: logo.trim(),
+      description: description?.trim() || "",
+      benefits: benefits || [],
+      websiteUrl: websiteUrl.trim(),
+      isActive: true,
+    });
+
+    await newSponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor created successfully",
+      sponsor: {
+        _id: newSponsor._id.toString(),
+        name: newSponsor.name,
+        tier: newSponsor.tier,
+        logo: newSponsor.logo,
+        description: newSponsor.description,
+        benefits: newSponsor.benefits,
+        websiteUrl: newSponsor.websiteUrl,
+        isActive: newSponsor.isActive,
+        createdAt: newSponsor.createdAt.toISOString(),
+        updatedAt: newSponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    logger.error('Error creating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to create sponsor" };
+  }
+}
+
+export async function updateSponsor(
+  sponsorId: string,
+  updates: {
+    name?: string;
+    tier?: 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions';
+    logo?: string;
+    description?: string;
+    benefits?: string[];
+    websiteUrl?: string;
+    isActive?: boolean;
+  },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    // Validate name uniqueness if being updated
+    if (updates.name && updates.name.trim() !== sponsor.name) {
+      const existingSponsor = await Sponsor.findOne({ name: updates.name.trim() });
+      if (existingSponsor && existingSponsor._id.toString() !== sponsorId) {
+        return { error: "Sponsor name already exists" };
+      }
+      sponsor.name = updates.name.trim();
+    }
+
+    // Update other fields
+    if (updates.tier !== undefined) sponsor.tier = updates.tier;
+    if (updates.logo !== undefined) sponsor.logo = updates.logo.trim();
+    if (updates.description !== undefined) sponsor.description = updates.description.trim();
+    if (updates.benefits !== undefined) sponsor.benefits = updates.benefits;
+    if (updates.websiteUrl !== undefined) sponsor.websiteUrl = updates.websiteUrl.trim();
+    if (updates.isActive !== undefined) sponsor.isActive = updates.isActive;
+
+    await sponsor.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor updated successfully",
+      sponsor: {
+        _id: sponsor._id.toString(),
+        name: sponsor.name,
+        tier: sponsor.tier,
+        logo: sponsor.logo,
+        description: sponsor.description,
+        benefits: sponsor.benefits,
+        websiteUrl: sponsor.websiteUrl,
+        isActive: sponsor.isActive,
+        createdAt: sponsor.createdAt.toISOString(),
+        updatedAt: sponsor.updatedAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    logger.error('Error updating sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update sponsor" };
+  }
+}
+
+export async function deleteSponsor(sponsorId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find the sponsor
+    const sponsor = await Sponsor.findById(sponsorId);
+    if (!sponsor) {
+      return { error: "Sponsor not found" };
+    }
+
+    await Sponsor.findByIdAndDelete(sponsorId);
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Sponsor deleted successfully",
+    };
+  } catch (error) {
+    logger.error('Error deleting sponsor:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to delete sponsor" };
   }
 }
 
@@ -441,7 +806,7 @@ export async function getPlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching playspaces:", error);
+    logger.error('Error fetching playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspaces" };
   }
 }
@@ -490,7 +855,7 @@ export async function getPlayspaceDetails(playspaceId: string) {
       },
     };
   } catch (error) {
-    console.error("Error fetching playspace details:", error);
+    logger.error('Error fetching playspace details:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch playspace details" };
   }
 }
@@ -537,7 +902,7 @@ export async function createPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error creating playspace:", error);
+    logger.error('Error creating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create playspace" };
   }
 }
@@ -589,7 +954,7 @@ export async function deletePlayspace(playspaceId: string, adminKey?: string) {
       message: "Playspace and all associated resources deleted successfully"
     };
   } catch (error) {
-    console.error("Error deleting playspace:", error);
+    logger.error('Error deleting playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete playspace" };
   }
 }
@@ -656,7 +1021,7 @@ export async function updatePlayspace(
       },
     };
   } catch (error) {
-    console.error("Error updating playspace:", error);
+    logger.error('Error updating playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update playspace" };
   }
 }
@@ -698,7 +1063,7 @@ export async function getDevicesByPlayspaceId(playspaceId: string) {
       })),
     };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       error: "Failed to fetch devices for playspace",
       details: error instanceof Error ? error.message : String(error),
@@ -722,92 +1087,11 @@ export async function verifyAdmin(adminKey?: string) {
     // Return admin status
     return { isAdmin: true };
   } catch (error) {
-    console.error("Error verifying admin status:", error);
+    logger.error('Error verifying admin status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return {
       isAdmin: false,
       error: "Failed to verify admin status",
     };
-  }
-}
-
-export async function initializeAdmin(username: string, email: string, password: string, adminCode: string) {
-  try {
-    // Connect to database
-    await connectDb();
-
-    // Check if admin code is valid (should match env variable)
-    const validAdminCode = process.env.ADMIN_INITIALIZATION_CODE;
-
-    if (!validAdminCode || adminCode !== validAdminCode) {
-      return { error: "Invalid admin code" };
-    }
-
-    // Validate input
-    if (!username || !email || !password) {
-      return { error: "Missing required fields" };
-    }
-
-    // Check if any admin user already exists
-    const existingAdmin = await User.findOne({ isAdmin: true });
-
-    if (existingAdmin) {
-      return {
-        error: "Admin account already initialized. Use the admin dashboard to create additional admin accounts.",
-      };
-    }
-
-    // Check if username or email already exists
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
-    });
-
-    if (existingUser) {
-      if (existingUser.username === username) {
-        return { error: "Username already exists" };
-      }
-      if (existingUser.email === email) {
-        return { error: "Email already exists" };
-      }
-    }
-
-    // Create new admin user
-    const newAdmin = new User({
-      username,
-      email,
-      passwordHash: password, // Will be hashed by pre-save hook
-      isAuthenticated: true,
-      isAdmin: true,
-      progress: {
-        currentChapter: 1,
-        unlockedApplications: ["Notepad", "MyComputer"],
-        skills: {},
-      },
-      bankAccount: {
-        balance: 1000, // Admins start with more credits
-        transactions: [
-          {
-            amount: 1000,
-            description: "Admin account initialization",
-            timestamp: new Date(),
-          },
-        ],
-      },
-    });
-
-    await newAdmin.save();
-
-    // Return success without exposing sensitive information
-    const adminData = newAdmin.toObject();
-    delete adminData.passwordHash;
-
-    return {
-      success: true,
-      message: "Admin account created successfully",
-      admin: adminData,
-    };
-  } catch (error) {
-    console.error("Error creating admin:", error);
-    return { error: "Failed to create admin user" };
   }
 }
 
@@ -895,8 +1179,65 @@ export async function updateAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error updating access code:", error);
+    logger.error('Error updating access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update access code" };
+  }
+}
+
+export async function linkAccessCodeToPlayspace(codeId: string, playspaceId: string | null, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const accessCode = await AccessCode.findById(codeId);
+
+    if (!accessCode) {
+      return { error: "Access code not found" };
+    }
+
+    if (playspaceId) {
+      // Check if playspace already has an access code
+      const existingCode = await AccessCode.findOne({ assignedPlayspace: playspaceId });
+      if (existingCode && existingCode._id.toString() !== codeId) {
+        return { error: "This playspace already has an access code assigned. Each playspace can only have one access code." };
+      }
+
+      // Verify playspace exists
+      const playspace = await Playspace.findById(playspaceId);
+      if (!playspace) {
+        return { error: "Playspace not found" };
+      }
+
+      accessCode.assignedPlayspace = new mongoose.Types.ObjectId(playspaceId);
+    } else {
+      // Unlink from current playspace
+      accessCode.assignedPlayspace = undefined;
+    }
+
+    await accessCode.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: playspaceId ? "Access code linked to playspace successfully" : "Access code unlinked from playspace successfully",
+      accessCode: {
+        _id: accessCode._id.toString(),
+        code: accessCode.code,
+        assignedPlayspace: accessCode.assignedPlayspace ? {
+          _id: accessCode.assignedPlayspace._id ? accessCode.assignedPlayspace._id.toString() : "",
+          name: accessCode.assignedPlayspace.name || "",
+          description: accessCode.assignedPlayspace.description || "",
+        } : null,
+      },
+    };
+  } catch (error) {
+    logger.error('Error linking access code to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to link access code to playspace" };
   }
 }
 
@@ -912,7 +1253,7 @@ export async function getEvents(adminKey?: string) {
     await connectDb();
     const events = await Event.find({})
       .select(
-        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt"
+        "_id title description startDate endDate location category isPublic capacity imageUrl createdAt updatedAt requiredDeviceTypes requiredDevices minTeamMembers maxTeamMembers pricing registrationEnabled"
       )
       .lean() // Use lean() to get plain objects
       .sort({ startDate: 1, createdAt: -1 });
@@ -930,14 +1271,29 @@ export async function getEvents(adminKey?: string) {
       category: event.category || "",
       isPublic: typeof event.isPublic === "boolean" ? event.isPublic : true,
       capacity: typeof event.capacity === "number" ? event.capacity : 0,
+      registrationEnabled: typeof event.registrationEnabled === "boolean" ? event.registrationEnabled : true,
       imageUrl: event.imageUrl || "",
+      requiredDeviceTypes: event.requiredDeviceTypes ? {
+        mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+        desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+      } : { mobile: false, desktop: false },
+      requiredDevices: event.requiredDevices ? {
+        mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+        desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+      } : { mobile: [], desktop: [] },
+      minTeamMembers: typeof event.minTeamMembers === "number" ? event.minTeamMembers : 1,
+      maxTeamMembers: typeof event.maxTeamMembers === "number" ? event.maxTeamMembers : 4,
+      pricing: event.pricing ? {
+        normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+        extended: typeof event.pricing.extended === "number" ? event.pricing.extended : 0,
+      } : { normal: 0, extended: 0 },
       createdAt: event.createdAt ? new Date(event.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: event.updatedAt ? new Date(event.updatedAt).toISOString() : new Date().toISOString(),
     }));
 
     return { events: safeEvents };
   } catch (error) {
-    console.error("Error fetching events:", error);
+    logger.error('Error fetching events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch events" };
   }
 }
@@ -951,6 +1307,12 @@ export async function createEvent(
   category: string,
   isPublic: boolean = true,
   capacity: number = 0,
+  requiredDeviceTypes: { mobile: boolean; desktop: boolean },
+  requiredDevices: { mobile: string[]; desktop: string[] },
+  minTeamMembers: number,
+  maxTeamMembers: number,
+  pricingNormal: number,
+  pricingExtended?: number,
   adminKey?: string
 ) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
@@ -962,6 +1324,15 @@ export async function createEvent(
   try {
     await connectDb();
 
+    // Validate team member range
+    if (minTeamMembers > maxTeamMembers) {
+      return { error: "Minimum team members cannot be greater than maximum team members" };
+    }
+
+    if (minTeamMembers < 1) {
+      return { error: "Minimum team members must be at least 1" };
+    }
+
     // Create the event
     const newEvent = new Event({
       title,
@@ -972,6 +1343,14 @@ export async function createEvent(
       category,
       isPublic,
       capacity,
+      requiredDeviceTypes,
+      requiredDevices,
+      minTeamMembers,
+      maxTeamMembers,
+      pricing: {
+        normal: pricingNormal,
+        ...(pricingExtended !== undefined && { extended: pricingExtended }),
+      },
     });
 
     await newEvent.save();
@@ -989,11 +1368,25 @@ export async function createEvent(
         category: newEvent.category,
         isPublic: newEvent.isPublic,
         capacity: newEvent.capacity,
+        requiredDeviceTypes: newEvent.requiredDeviceTypes ? {
+          mobile: typeof newEvent.requiredDeviceTypes.mobile === "boolean" ? newEvent.requiredDeviceTypes.mobile : false,
+          desktop: typeof newEvent.requiredDeviceTypes.desktop === "boolean" ? newEvent.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: newEvent.requiredDevices ? {
+          mobile: Array.isArray(newEvent.requiredDevices.mobile) ? newEvent.requiredDevices.mobile : [],
+          desktop: Array.isArray(newEvent.requiredDevices.desktop) ? newEvent.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
+        minTeamMembers: newEvent.minTeamMembers,
+        maxTeamMembers: newEvent.maxTeamMembers,
+        pricing: newEvent.pricing ? {
+          normal: typeof newEvent.pricing.normal === "number" ? newEvent.pricing.normal : 0,
+          extended: typeof newEvent.pricing.extended === "number" ? newEvent.pricing.extended : undefined,
+        } : { normal: 0 },
         createdAt: newEvent.createdAt.toISOString(),
       },
     };
   } catch (error) {
-    console.error("Error creating event:", error);
+    logger.error('Error creating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create event" };
   }
 }
@@ -1009,9 +1402,16 @@ export async function updateEvent(
     category?: string;
     isPublic?: boolean;
     capacity?: number;
-  }
+    requiredDeviceTypes?: { mobile: boolean; desktop: boolean };
+    requiredDevices?: { mobile: string[]; desktop: string[] };
+    minTeamMembers?: number;
+    maxTeamMembers?: number;
+    pricingNormal?: number;
+    pricingExtended?: number;
+  },
+  adminKey?: string
 ) {
-  const { isAdmin, error } = await checkAdminStatus();
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
 
   if (!isAdmin) {
     return { error };
@@ -1051,6 +1451,24 @@ export async function updateEvent(
     if (updates.capacity !== undefined) {
       event.capacity = updates.capacity;
     }
+    if (updates.requiredDeviceTypes !== undefined) {
+      event.requiredDeviceTypes = updates.requiredDeviceTypes;
+    }
+    if (updates.requiredDevices !== undefined) {
+      event.requiredDevices = updates.requiredDevices;
+    }
+    if (updates.minTeamMembers !== undefined) {
+      event.minTeamMembers = updates.minTeamMembers;
+    }
+    if (updates.maxTeamMembers !== undefined) {
+      event.maxTeamMembers = updates.maxTeamMembers;
+    }
+    if (updates.pricingNormal !== undefined || updates.pricingExtended !== undefined) {
+      event.pricing = {
+        normal: updates.pricingNormal !== undefined ? updates.pricingNormal : event.pricing?.normal || 0,
+        ...(updates.pricingExtended !== undefined && { extended: updates.pricingExtended }),
+      };
+    }
 
     await event.save();
     revalidatePath("/admin");
@@ -1068,10 +1486,24 @@ export async function updateEvent(
         category: event.category,
         isPublic: event.isPublic,
         capacity: event.capacity,
+        requiredDeviceTypes: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        requiredDevices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
+        minTeamMembers: event.minTeamMembers,
+        maxTeamMembers: event.maxTeamMembers,
+        pricing: event.pricing ? {
+          normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+          extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+        } : { normal: 0 },
       },
     };
   } catch (error) {
-    console.error("Error updating event:", error);
+    logger.error('Error updating event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update event" };
   }
 }
@@ -1093,8 +1525,102 @@ export async function deleteEvent(eventId: string, adminKey?: string) {
       message: "Event deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting event:", error);
+    logger.error('Error deleting event:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete event" };
+  }
+}
+
+export async function toggleEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    // Toggle registration status
+    event.registrationEnabled = !event.registrationEnabled;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: `Event registration ${event.registrationEnabled ? 'enabled' : 'disabled'}`,
+      registrationEnabled: event.registrationEnabled
+    };
+  } catch (error) {
+    logger.error('Error toggling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to toggle event registration" };
+  }
+}
+
+export async function enableEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    event.registrationEnabled = true;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Event registration enabled",
+      registrationEnabled: true
+    };
+  } catch (error) {
+    logger.error('Error enabling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to enable event registration" };
+  }
+}
+
+export async function disableEventRegistration(eventId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    event.registrationEnabled = false;
+    await event.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Event registration disabled",
+      registrationEnabled: false
+    };
+  } catch (error) {
+    logger.error('Error disabling event registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to disable event registration" };
   }
 }
 
@@ -1134,7 +1660,7 @@ export async function getAllDevices(adminKey?: string) {
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices:", error);
+    logger.error('Error fetching devices:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices" };
   }
 }
@@ -1184,15 +1710,15 @@ export async function createDevice(
       osVersion: "1.0.0",
       installedApps: [],
       networkSettings: {
-        ipAddress: "192.168.1.100",
+        ipAddress: await generateUniqueIPAddress(),
         subnet: "255.255.255.0",
         gateway: "192.168.1.1",
         dns: ["8.8.8.8", "8.8.4.4"],
-        isNetworkEnabled: true,
+        isNetworkEnabled: false,
       },
       securitySettings: {
-        firewall: true,
-        antiVirus: true,
+        firewall: false,
+        antiVirus: false,
         vulnerabilities: [],
       },
     };
@@ -1222,7 +1748,7 @@ export async function createDevice(
     }
 
     // Generate a unique device MacAddress
-    const deviceMacAddress = `${generateMacAddress()}`;
+    const deviceMacAddress = await generateDeviceMacAddress();
 
     // Create new device
     const newDevice = new Device({
@@ -1250,14 +1776,14 @@ export async function createDevice(
       },
     };
   } catch (error) {
-    console.error("Error creating device:", error);
+    logger.error('Error creating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to create device" };
   }
 }
 
 /**
  * Assign a device to a playspace
- * @param deviceId The ID of the device to assign
+ * @param deviceId The ID of the device to assign (can be ObjectId or MAC address)
  * @param playspaceId The ID of the playspace
  * @param adminKey Optional admin key for authentication
  * @returns Success response or error
@@ -1276,8 +1802,15 @@ export async function assignDeviceToPlayspace(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1314,14 +1847,14 @@ export async function assignDeviceToPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error assigning device to playspace:", error);
+    logger.error('Error assigning device to playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign device to playspace" };
   }
 }
 
 /**
  * Unassign a device from its current playspace
- * @param deviceId The ID of the device to unassign
+ * @param deviceId The ID of the device to unassign (can be ObjectId or MAC address)
  * @param adminKey Optional admin key for authentication
  * @returns Success response or error
  */
@@ -1338,8 +1871,15 @@ export async function unassignDeviceFromPlayspace(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1366,8 +1906,103 @@ export async function unassignDeviceFromPlayspace(
       },
     };
   } catch (error) {
-    console.error("Error unassigning device from playspace:", error);
+    logger.error('Error unassigning device from playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to unassign device from playspace" };
+  }
+}
+
+/**
+ * Update device details
+ * @param deviceId The ID of the device to update (can be ObjectId or MAC address)
+ * @param updates The fields to update
+ * @param adminKey Optional admin key for authentication
+ * @returns Success response or error
+ */
+export async function updateDevice(
+  deviceId: string,
+  updates: { deviceType?: string; status?: string; playspaceId?: string },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Find device - try ObjectId first, then MAC address if that fails
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try finding by MAC address
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
+    if (!device) {
+      return { error: "Device not found" };
+    }
+
+    // Validate device type if being updated
+    if (updates.deviceType) {
+      const validDeviceTypes = ["hackbook-w95", "hackbook-l", "hackdroid", "hackphone", "admin-console"];
+      if (!validDeviceTypes.includes(updates.deviceType)) {
+        return { error: "Invalid device type" };
+      }
+      device.deviceType = updates.deviceType;
+    }
+
+    // Update status if provided
+    if (updates.status) {
+      const validStatuses = ["online", "offline", "maintenance"];
+      if (!validStatuses.includes(updates.status)) {
+        return { error: "Invalid device status" };
+      }
+      device.status = updates.status;
+    }
+
+    // Update playspace assignment if provided
+    if (updates.playspaceId !== undefined) {
+      if (updates.playspaceId) {
+        // Assign to new playspace
+        const playspace = await Playspace.findById(updates.playspaceId);
+        if (!playspace) {
+          return { error: "Playspace not found" };
+        }
+        device.playspace = new mongoose.Types.ObjectId(updates.playspaceId);
+      } else {
+        // Unassign from current playspace
+        device.playspace = undefined;
+      }
+    }
+
+    await device.save();
+
+    // Populate playspace info for response
+    await device.populate("playspace", "name description");
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Device updated successfully",
+      device: {
+        _id: device._id.toString(),
+        deviceMacAddress: device.deviceMacAddress,
+        deviceType: device.deviceType,
+        status: device.status,
+        playspace: device.playspace ? {
+          _id: device.playspace._id.toString(),
+          name: device.playspace.name,
+          description: device.playspace.description
+        } : null,
+      },
+    };
+  } catch (error) {
+    logger.error('Error updating device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update device" };
   }
 }
 
@@ -1404,7 +2039,7 @@ export async function getDevicesByPlayspace(
 
     return { devices: formattedDevices };
   } catch (error) {
-    console.error("Error fetching devices for playspace:", error);
+    logger.error('Error fetching devices for playspace:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch devices for playspace" };
   }
 }
@@ -1428,8 +2063,15 @@ export async function deleteDevice(
   try {
     await connectDb();
 
-    // Find device
-    const device = await Device.findById(deviceId);
+    // Find device - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1439,8 +2081,13 @@ export async function deleteDevice(
       return { error: "Cannot delete device that is assigned to a playspace. Unassign it first." };
     }
 
-    // Delete device
-    await Device.findByIdAndDelete(deviceId);
+    // Delete device - try ObjectId first, then MAC address
+    try {
+      await Device.findByIdAndDelete(deviceId);
+    } catch {
+      // If ObjectId delete fails, try MAC address delete
+      await Device.findOneAndDelete({ deviceMacAddress: deviceId });
+    }
 
     revalidatePath("/admin");
 
@@ -1449,7 +2096,7 @@ export async function deleteDevice(
       message: "Device deleted successfully",
     };
   } catch (error) {
-    console.error("Error deleting device:", error);
+    logger.error('Error deleting device:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to delete device" };
   }
 }
@@ -1481,8 +2128,15 @@ export async function updateDeviceStatus(
       return { error: "Invalid status. Must be one of: online, offline, maintenance" };
     }
 
-    // Find and update device
-    const device = await Device.findById(deviceId);
+    // Find and update device - try ObjectId first, then MAC address
+    let device;
+    try {
+      device = await Device.findById(deviceId);
+    } catch {
+      // If ObjectId lookup fails, try MAC address lookup
+      device = await Device.findOne({ deviceMacAddress: deviceId });
+    }
+
     if (!device) {
       return { error: "Device not found" };
     }
@@ -1501,7 +2155,7 @@ export async function updateDeviceStatus(
       device: serializedDevice,
     };
   } catch (error) {
-    console.error("Error updating device status:", error);
+    logger.error('Error updating device status:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to update device status" };
   }
 }
@@ -1580,7 +2234,7 @@ export async function assignPlayspaceToAccessCode(
       },
     };
   } catch (error) {
-    console.error("Error assigning playspace to access code:", error);
+    logger.error('Error assigning playspace to access code:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to assign playspace to access code" };
   }
 }
@@ -1617,12 +2271,13 @@ export async function getAvailablePlayspaces(adminKey?: string) {
 
     return { playspaces: formattedPlayspaces };
   } catch (error) {
-    console.error("Error fetching available playspaces:", error);
+    logger.error('Error fetching available playspaces:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
     return { error: "Failed to fetch available playspaces" };
   }
 }
 
-export async function deleteAccessCode(codeId: string, adminKey?: string) {
+// Analytics Actions
+export async function getAnalyticsData(adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
 
   if (!isAdmin) {
@@ -1632,21 +2287,777 @@ export async function deleteAccessCode(codeId: string, adminKey?: string) {
   try {
     await connectDb();
 
-    const accessCode = await AccessCode.findById(codeId);
+    // Get counts for all entities
+    const [
+      totalUsers,
+      totalTeams,
+      totalAccessCodes,
+      totalPlayspaces,
+      totalDevices,
+      totalEvents,
+      activeUsers
+    ] = await Promise.all([
+      Promise.resolve(0), // User model removed
+      Team.countDocuments({}),
+      AccessCode.countDocuments({}),
+      Playspace.countDocuments({}),
+      Device.countDocuments({}),
+      Event.countDocuments({}),
+      // Active users (users who have been active in the last 24 hours) - removed
+      Promise.resolve(0)
+    ]);
 
-    if (!accessCode) {
-      return { error: "Access code not found" };
+    // Get sponsor count safely
+    let totalSponsors = 0;
+    try {
+      totalSponsors = await Sponsor.countDocuments({});
+    } catch (error) {
+      logger.warn('Could not fetch sponsor count:', { error });
     }
 
-    await AccessCode.findByIdAndDelete(codeId);
+    // Get recent activity (last 10 activities across all collections)
+    const recentActivities: Array<{
+      id: string;
+      type: string;
+      description: string;
+      timestamp: string;
+    }> = [];
+
+    // Get recent teams
+    const recentTeams = await Team.find({})
+      .select("name createdAt")
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .lean();
+
+    recentTeams.forEach(team => {
+      recentActivities.push({
+        id: `team-${team._id}`,
+        type: "team",
+        description: `Team '${team.name}' created`,
+        timestamp: team.createdAt.toISOString()
+      });
+    });
+
+    // Get recent devices
+    const recentDevices = await Device.find({})
+      .select("deviceMacAddress deviceType createdAt")
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .lean();
+
+    recentDevices.forEach(device => {
+      recentActivities.push({
+        id: `device-${device._id}`,
+        type: "device",
+        description: `New ${device.deviceType} device registered: ${device.deviceMacAddress}`,
+        timestamp: device.createdAt.toISOString()
+      });
+    });
+
+    // Sort activities by timestamp (most recent first)
+    recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const recentActivity = recentActivities.slice(0, 10);
+
+    // Get system health data (mock for now, can be enhanced with real system monitoring)
+    const systemHealth = {
+      status: 'healthy' as const,
+      uptime: await getSystemUptime(),
+      memoryUsage: await getMemoryUsage(),
+      cpuUsage: await getCpuUsage()
+    };
+
+    return {
+      totalUsers,
+      totalTeams,
+      totalAccessCodes,
+      totalPlayspaces,
+      totalDevices,
+      totalEvents,
+      totalSponsors,
+      activeUsers,
+      recentActivity,
+      systemHealth
+    };
+  } catch (error) {
+    logger.error('Error fetching analytics data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch analytics data" };
+  }
+}
+
+export async function getDeviceStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Get device statistics by type
+    const deviceStats = await Device.aggregate([
+      {
+        $group: {
+          _id: "$deviceType",
+          count: { $sum: 1 },
+          activeCount: {
+            $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+          }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    // Get device status distribution
+    const statusStats = await Device.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return {
+      deviceStats,
+      statusStats
+    };
+  } catch (error) {
+    logger.error('Error fetching device stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch device stats" };
+  }
+}
+
+export async function getAccessCodeStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Get access code statistics
+    const totalCodes = await AccessCode.countDocuments({});
+    const activeCodes = await AccessCode.countDocuments({ isActive: true });
+    const usedCodes = await AccessCode.countDocuments({ usageCount: { $gt: 0 } });
+
+    // Get usage statistics
+    const usageStats = await AccessCode.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUsage: { $sum: "$usageCount" },
+          avgUsage: { $avg: "$usageCount" },
+          maxUsage: { $max: "$usageCount" }
+        }
+      }
+    ]);
+
+    return {
+      totalCodes,
+      activeCodes,
+      usedCodes,
+      usageStats: usageStats[0] || { totalUsage: 0, avgUsage: 0, maxUsage: 0 }
+    };
+  } catch (error) {
+    logger.error('Error fetching access code stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch access code stats" };
+  }
+}
+
+// System monitoring functions (basic implementations)
+async function getSystemUptime(): Promise<string> {
+  try {
+    // In a real application, you might use process.uptime() or external monitoring
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+
+    return `${days}d ${hours}h ${minutes}m`;
+  } catch {
+    return "Unknown";
+  }
+}
+
+async function getMemoryUsage(): Promise<number> {
+  try {
+    const memUsage = process.memoryUsage();
+    const used = memUsage.heapUsed;
+    const total = memUsage.heapTotal;
+    return Math.round((used / total) * 100);
+  } catch {
+    return 0;
+  }
+}
+
+async function getCpuUsage(): Promise<number> {
+  try {
+    // Basic CPU usage estimation
+    const startUsage = process.cpuUsage();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const endUsage = process.cpuUsage(startUsage);
+
+    const totalUsage = endUsage.user + endUsage.system;
+    const usagePercent = (totalUsage / 1000000) * 100; // Convert to percentage
+
+    return Math.min(Math.round(usagePercent), 100);
+  } catch {
+    return 0;
+  }
+}
+
+// Tournament Management Actions
+export async function getTournaments(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock tournament data since we don't have a Tournament model
+    // In a real implementation, you'd query the Tournament collection
+    const mockTournaments = [
+      {
+        _id: "tournament-1",
+        name: "CryptoHeist Championship 2025",
+        description: "The ultimate PvP cryptocurrency tournament",
+        startDate: new Date("2025-09-01T10:00:00Z").toISOString(),
+        endDate: new Date("2025-09-02T18:00:00Z").toISOString(),
+        status: "upcoming" as const,
+        maxTeams: 32,
+        registeredTeams: 24,
+        prizePool: 50000,
+        gameMode: "tournament",
+        createdAt: new Date("2025-08-01T00:00:00Z").toISOString()
+      },
+      {
+        _id: "tournament-2",
+        name: "Quick Heist Challenge",
+        description: "Fast-paced 30-minute matches",
+        startDate: new Date("2025-08-30T14:00:00Z").toISOString(),
+        endDate: new Date("2025-08-30T16:00:00Z").toISOString(),
+        status: "active" as const,
+        maxTeams: 16,
+        registeredTeams: 12,
+        prizePool: 10000,
+        gameMode: "quick",
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      }
+    ];
+
+    return { tournaments: mockTournaments };
+  } catch (error) {
+    logger.error('Error fetching tournaments:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch tournaments" };
+  }
+}
+
+export async function createTournament(
+  name: string,
+  description: string,
+  startDate: string,
+  endDate: string,
+  maxTeams: number,
+  prizePool: number,
+  gameMode: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // Validate input
+    if (!name || !startDate || !endDate) {
+      return { error: "Missing required fields" };
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      return { error: "End date must be after start date" };
+    }
+
+    // In a real implementation, you'd create a Tournament document
+    // For now, we'll return a mock success response
+    const newTournament = {
+      _id: `tournament-${Date.now()}`,
+      name,
+      description,
+      startDate,
+      endDate,
+      status: "upcoming" as const,
+      maxTeams: maxTeams || 16,
+      registeredTeams: 0,
+      prizePool: prizePool || 0,
+      gameMode: gameMode || "standard",
+      createdAt: new Date().toISOString()
+    };
+
     revalidatePath("/admin");
 
     return {
       success: true,
-      message: "Access code deleted successfully",
+      message: "Tournament created successfully",
+      tournament: newTournament
     };
   } catch (error) {
-    console.error("Error deleting access code:", error);
-    return { error: "Failed to delete access code" };
+    logger.error('Error creating tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to create tournament" };
+  }
+}
+
+export async function updateTournament(
+  tournamentId: string,
+  updates: {
+    name?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    maxTeams?: number;
+    prizePool?: number;
+    gameMode?: string;
+    status?: string;
+  },
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd update the Tournament document
+    // For now, we'll return a mock success response
+    const updatedTournament = {
+      _id: tournamentId,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Tournament updated successfully",
+      tournament: updatedTournament
+    };
+  } catch (error) {
+    logger.error('Error updating tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update tournament" };
+  }
+}
+
+export async function deleteTournament(tournamentId: string, adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd delete the Tournament document
+    // For now, we'll return a mock success response
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Tournament deleted successfully"
+    };
+  } catch (error) {
+    logger.error('Error deleting tournament:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to delete tournament" };
+  }
+}
+
+// Game Session Management Actions
+export async function getGameSessions(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const GameSession = (await import('@/models/GameSession')).default;
+    const sessions = await GameSession.find({}).sort({ startTime: -1 }).limit(50);
+
+    return { sessions };
+  } catch (error) {
+    logger.error('Error fetching game sessions:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch game sessions" };
+  }
+}
+
+export async function createGameSession(
+  tournamentId: string,
+  team1Id: string,
+  team2Id: string,
+  team1Name: string,
+  team2Name: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const GameSession = (await import('@/models/GameSession')).default;
+    const newSession = new GameSession({
+      tournamentId,
+      team1Id,
+      team2Id,
+      team1Name,
+      team2Name,
+      status: "waiting",
+      startTime: new Date(),
+      team1Score: 0,
+      team2Score: 0,
+      duration: 0
+    });
+
+    await newSession.save();
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session created successfully",
+      session: newSession
+    };
+  } catch (error) {
+    logger.error('Error creating game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to create game session" };
+  }
+}
+
+export async function updateGameSessionScore(
+  sessionId: string,
+  team1Score: number,
+  team2Score: number,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    const GameSession = (await import('@/models/GameSession')).default;
+    const session = await GameSession.findById(sessionId);
+
+    if (!session) {
+      return { error: "Game session not found" };
+    }
+
+    session.team1Score = team1Score;
+    session.team2Score = team2Score;
+    await session.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session scores updated successfully",
+      session
+    };
+  } catch (error) {
+    logger.error('Error updating game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to update game session" };
+  }
+}
+
+export async function endGameSession(
+  sessionId: string,
+  winnerId: string,
+  adminKey?: string
+) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // In a real implementation, you'd update the GameSession document
+    const GameSession = (await import('@/models/GameSession')).default;
+    const session = await GameSession.findById(sessionId);
+
+    if (!session) {
+      return { error: "Game session not found" };
+    }
+
+    session.status = "completed";
+    session.winner = winnerId;
+    session.endTime = new Date();
+    session.duration = Math.floor((new Date().getTime() - session.startTime.getTime()) / 1000);
+    await session.save();
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Game session ended successfully",
+      session
+    };
+  } catch (error) {
+    logger.error('Error ending game session:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to end game session" };
+  }
+}
+
+// Team Management Actions
+export async function getTournamentTeams(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock team data
+    // In a real implementation, you'd query teams by tournament
+    const mockTeams = [
+      {
+        _id: "team-1",
+        name: "CryptoKings",
+        captain: "user-1",
+        members: ["user-1", "user-2", "user-3"],
+        status: "active" as const,
+        walletAddress: "1A2B3C4D5E6F",
+        currentBalance: 1250,
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      },
+      {
+        _id: "team-2",
+        name: "DigitalThieves",
+        captain: "user-4",
+        members: ["user-4", "user-5", "user-6"],
+        status: "active" as const,
+        walletAddress: "2B3C4D5E6F7G",
+        currentBalance: 980,
+        createdAt: new Date("2025-08-25T00:00:00Z").toISOString()
+      }
+    ];
+
+    return { teams: mockTeams };
+  } catch (error) {
+    logger.error('Error fetching tournament teams:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch tournament teams" };
+  }
+}
+
+// Leaderboard Actions
+export async function getLeaderboards(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock leaderboard data
+    // In a real implementation, you'd aggregate data from games and tournaments
+    const globalLeaderboard = [
+      { rank: 1, teamName: "CryptoKings", totalEarnings: 15420, wins: 12, losses: 2 },
+      { rank: 2, teamName: "DigitalThieves", totalEarnings: 12890, wins: 10, losses: 4 },
+      { rank: 3, teamName: "HackMasters", totalEarnings: 11250, wins: 9, losses: 5 },
+      { rank: 4, teamName: "CodeBreakers", totalEarnings: 9870, wins: 8, losses: 6 },
+      { rank: 5, teamName: "CyberNinjas", totalEarnings: 8760, wins: 7, losses: 7 }
+    ];
+
+    const currentTournamentLeaderboard = [
+      { rank: 1, teamName: "CryptoKings", score: 1250, status: "active" },
+      { rank: 2, teamName: "DigitalThieves", score: 980, status: "active" },
+      { rank: 3, teamName: "HackMasters", score: 750, status: "eliminated" },
+      { rank: 4, teamName: "CodeBreakers", score: 620, status: "waiting" }
+    ];
+
+    return {
+      globalLeaderboard,
+      currentTournamentLeaderboard
+    };
+  } catch (error) {
+    logger.error('Error fetching leaderboards:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch leaderboards" };
+  }
+}
+
+// Wallet/Crypto Management Actions
+export async function getWalletStats(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    await connectDb();
+
+    // For now, we'll return mock wallet statistics
+    // In a real implementation, you'd aggregate wallet data
+    const walletStats = {
+      totalWallets: 156,
+      activeWallets: 89,
+      totalBalance: 456780, // Total crypto across all wallets
+      averageBalance: 2920,
+      topWallets: [
+        { address: "1A2B3C4D5E6F", balance: 15420, owner: "CryptoKings" },
+        { address: "2B3C4D5E6F7G", balance: 12890, owner: "DigitalThieves" },
+        { address: "3C4D5E6F7G8H", balance: 11250, owner: "HackMasters" }
+      ],
+      recentTransactions: [
+        {
+          id: "tx-1",
+          from: "1A2B3C4D5E6F",
+          to: "2B3C4D5E6F7G",
+          amount: 500,
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          type: "transfer"
+        },
+        {
+          id: "tx-2",
+          from: "system",
+          to: "3C4D5E6F7G8H",
+          amount: 1000,
+          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+          type: "mining"
+        }
+      ]
+    };
+
+    return { walletStats };
+  } catch (error) {
+    logger.error('Error fetching wallet stats:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch wallet stats" };
+  }
+}
+
+// Function to get events for public events page
+export async function getPublicEvents() {
+  try {
+    await connectDb();
+
+    const events = await Event.find({ isPublic: true }).sort({ startDate: 1 });
+
+    // Transform database events to match frontend Event interface
+    const transformedEvents = events.map((event, index) => ({
+      // Keep a stable numeric id for UI (fallback index) but also expose real objectId for actions
+      id: parseInt(event._id.toString().slice(-6), 16) || index + 1, // pseudo numeric id for legacy usage
+      objectId: event._id.toString(),
+      title: event.title,
+      date: event.startDate ? event.startDate.toISOString() : new Date().toISOString(),
+      time: event.startDate && event.endDate
+        ? `${event.startDate.toTimeString().slice(0, 5)} - ${event.endDate.toTimeString().slice(0, 5)}`
+        : "TBD",
+      location: event.location || "TBD",
+      description: event.description || "",
+      type: event.category || "Event",
+      capacity: event.capacity || 0,
+      registered: 0, // This will be updated with registration counts
+      registrationEnabled: event.registrationEnabled !== false, // Default to true if not set
+      difficulty: "Intermediate" as const,
+      tags: event.category ? [event.category] : ["Event"],
+      speakers: [],
+      prizes: [],
+      schedule: [],
+      pricing: event.pricing ? {
+        normal: typeof event.pricing.normal === "number" ? event.pricing.normal : 0,
+        extended: typeof event.pricing.extended === "number" ? event.pricing.extended : undefined,
+      } : undefined,
+      deviceRequirements: {
+        types: event.requiredDeviceTypes ? {
+          mobile: typeof event.requiredDeviceTypes.mobile === "boolean" ? event.requiredDeviceTypes.mobile : false,
+          desktop: typeof event.requiredDeviceTypes.desktop === "boolean" ? event.requiredDeviceTypes.desktop : false,
+        } : { mobile: false, desktop: false },
+        devices: event.requiredDevices ? {
+          mobile: Array.isArray(event.requiredDevices.mobile) ? event.requiredDevices.mobile : [],
+          desktop: Array.isArray(event.requiredDevices.desktop) ? event.requiredDevices.desktop : [],
+        } : { mobile: [], desktop: [] },
+      },
+      minTeamMembers: event.minTeamMembers || 1,
+      maxTeamMembers: event.maxTeamMembers || 4,
+    }));
+
+    return { events: transformedEvents };
+  } catch (error) {
+    logger.error('Error fetching public events:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch events" };
+  }
+}
+
+// Combined action to fetch all admin data in one request
+export async function getAllAdminData(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+
+  if (!isAdmin) {
+    return { error };
+  }
+
+  try {
+    // Fetch all data in parallel
+    const [accessCodesResult, playspacesResult, devicesResult, eventsResult, sessionsResult, teamsResult, sponsorsResult] = await Promise.all([
+      getAccessCodes(adminKey),
+      getPlayspaces(adminKey),
+      getAllDevices(adminKey),
+      getEvents(adminKey),
+      getGameSessions(adminKey),
+      getTeams(adminKey),
+      getSponsors(adminKey),
+    ]);
+
+    // Check for errors in any of the results
+    if (accessCodesResult.error) return { error: accessCodesResult.error };
+    if (playspacesResult.error) return { error: playspacesResult.error };
+    if (devicesResult.error) return { error: devicesResult.error };
+    if (eventsResult.error) return { error: eventsResult.error };
+    if (sessionsResult.error) return { error: sessionsResult.error };
+    if (teamsResult.error) return { error: teamsResult.error };
+    if (sponsorsResult.error) return { error: sponsorsResult.error };
+
+    // Return combined data
+    return {
+      accessCodes: accessCodesResult.accessCodes || [],
+      playspaces: playspacesResult.playspaces || [],
+      devices: devicesResult.devices || [],
+      events: eventsResult.events || [],
+      sessions: sessionsResult.sessions || [],
+      teams: teamsResult.teams || [],
+      sponsors: sponsorsResult.sponsors || [],
+    };
+  } catch (error) {
+    logger.error('Error fetching all admin data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+    return { error: "Failed to fetch admin data" };
   }
 }

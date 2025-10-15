@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useMemo } from "react";
 import { handleAccessCode } from "@/lib/access-code";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 export default function Page() {
   const router = useRouter();
@@ -156,13 +156,12 @@ export default function Page() {
         // If there's a playspaceId in the result, store it in localStorage
         if (result.playspaceId) {
           localStorage.setItem("playspaceId", result.playspaceId);
-          console.log("Stored playspaceId in localStorage:", result.playspaceId);
         }
         router.push(result.redirect || "/device-selection");
         try {
           await document.documentElement.requestFullscreen();
         } catch (error) {
-          console.error("Failed to enter fullscreen mode:", error);
+          logger.error('Failed to enter fullscreen mode:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
         }
       } else {
         setError(result.error || "Invalid access code. Please try again.");
@@ -172,7 +171,8 @@ export default function Page() {
         const firstInput = document.getElementById("code-0");
         if (firstInput) firstInput.focus();
       }
-    } catch {
+    } catch (error) {
+      logger.error('Error during team registration:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -239,7 +239,7 @@ export default function Page() {
       alert("All session data, localStorage, and cookies have been cleared. Please refresh the page if needed.");
       
     } catch (error) {
-      console.error("Error clearing session data:", error);
+      logger.error('Error clearing session data:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       alert("Error clearing session data. Check console for details.");
     }
   };
