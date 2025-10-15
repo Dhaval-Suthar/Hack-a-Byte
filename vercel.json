@@ -20,5 +20,11 @@
       "source": "/api/socketio",
       "destination": "/api/socketio"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-handler",
+      "schedule": "*/10 * * * *"
+    }
   ]
 }
