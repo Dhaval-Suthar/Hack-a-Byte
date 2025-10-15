@@ -75,197 +75,49 @@ export default function Page() {
     event: Event | null;
   }>({ isOpen: false, event: null });
 
-  const today = new Date();
-  const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  
-  // Sample event data
-  // Note: Using future dates since the context mentioned the current date is May 10, 2025
-  const events: Event[] = [
-    {
-      id: 100,
-      title: "Mosaic 2025",
-      date: "2025-10-17",
-      time: "09:00 - 17:00 (17th & 18th October)",
-      location: "Offline (ST. FRANCIS INSTITUTE OF TECHNOLOGY (ENGG. COLLEGE), Mount Poinsur, S.V.P. Road, Borivali (West), Mumbai 400 103)",
-      description:
-        "Mosaic is a two-day cybersecurity competition open to all online, with an exclusive offline experience for SFIT college students. Prize pool for top performers! Offline participants (SFIT only) need just their mobile; online participants need a computer.",
-      type: "Competition",
-      capacity: 500,
-      registered: 0,
-      difficulty: "Intermediate",
-      tags: ["Cybersecurity", "Competition", "Hybrid", "SFIT", "Prize Pool"],
-      prizes: [
-        { position: "Prize Pool", reward: "Exciting rewards for top performers (details announced at event)" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Opening Ceremony & Welcome (Day 1)" },
-        { time: "09:30", activity: "Competition Kickoff (Online & Offline)" },
-        { time: "13:00", activity: "Lunch Break (Offline)" },
-        { time: "14:00", activity: "Competition Continues" },
-        { time: "17:00", activity: "Day End & Announcements" },
-        { time: "09:00 (18th)", activity: "Day 2 Kickoff & Competition" },
-        { time: "13:00 (18th)", activity: "Lunch Break (Offline)" },
-        { time: "14:00 (18th)", activity: "Final Rounds & Judging" },
-        { time: "17:00 (18th)", activity: "Prize Distribution & Closing" }
-      ],
-      speakers: [
-        { name: "Prof. A. Fernandes", role: "Event Chair", company: "SFIT", avatar: 1 },
-        { name: "Industry Expert", role: "Guest Speaker", company: "TBA", avatar: 2 }
-      ]
-    },
-    {
-      id: 1,
-      title: "Crypto Challenge 2025",
-      date: "2025-05-25",
-      time: "10:00 - 18:00",
-      location: "Online | Global",
-      description: "Test your cryptography skills in this intensive challenge covering classical and modern encryption techniques. Compete against the best code-breakers in the world in a series of timed challenges.",
-      type: "Competition",
-      capacity: 500,
-      registered: 347,
-      difficulty: "Advanced",
-      tags: ["Cryptography", "Security", "Algorithms"],
-      prizes: [
-        { position: "1st Place", reward: "$5,000 + Job Interview with NexusTech" },
-        { position: "2nd Place", reward: "$2,500 + Security Certification Voucher" },
-        { position: "3rd Place", reward: "$1,000 + Premium Security Tools Bundle" }
-      ],
-      schedule: [
-        { time: "10:00", activity: "Welcome & Introduction" },
-        { time: "10:30", activity: "Challenge Release: Classical Ciphers" },
-        { time: "12:30", activity: "Break" },
-        { time: "13:30", activity: "Challenge Release: Modern Encryption" },
-        { time: "16:30", activity: "Final Challenge: Quantum Resistant Algorithms" },
-        { time: "17:45", activity: "Winners Announcement" }
-      ],
-      speakers: [
-        { name: "Dr. Elena Rossi", role: "Lead Cryptographer", company: "QuantumBit", avatar: 2 },
-        { name: "Marcus Chen", role: "Security Researcher", company: "NexusTech", avatar: 3 }
-      ]
-    },
-    {
-      id: 2,
-      title: "Network Security Hackathon",
-      date: "2025-06-02",
-      time: "09:00 - 20:00",
-      location: "Hybrid | San Francisco & Online",
-      description: "Build and defend network infrastructure against real-time attacks. Teams will construct secure environments and then attempt to breach other teams' defenses while maintaining their own.",
-      type: "Team Hackathon",
-      capacity: 200,
-      registered: 172,
-      difficulty: "Expert",
-      tags: ["Network", "Defense", "Penetration Testing"],
-      prizes: [
-        { position: "Winning Team", reward: "$10,000 + Security Conference VIP Passes" },
-        { position: "Best Defense", reward: "$3,000 + Security Hardware Package" },
-        { position: "Best Offense", reward: "$3,000 + Advanced Training Course Access" }
-      ],
-      schedule: [
-        { time: "09:00", activity: "Team Check-in & Setup" },
-        { time: "10:00", activity: "Network Building Phase" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Attack & Defense Phase Begins" },
-        { time: "19:00", activity: "Attack & Defense Phase Ends" },
-        { time: "19:30", activity: "Results & Awards Ceremony" }
-      ],
-      speakers: [
-        { name: "Alexandra Kim", role: "Network Security Lead", company: "CyberShield", avatar: 4 },
-        { name: "James Rodriguez", role: "Ethical Hacker", company: "ByteDefender", avatar: 3 }
-      ]
-    },
-    {
-      id: 3,
-      title: "AI Defense Workshop",
-      date: "2025-06-12",
-      time: "13:00 - 17:00",
-      location: "Online | Global",
-      description: "Learn how to protect systems from AI-powered attacks and implement defensive AI algorithms. This hands-on workshop will cover the latest techniques in AI security.",
-      type: "Workshop",
-      capacity: 150,
-      registered: 89,
-      difficulty: "Intermediate",
-      tags: ["Artificial Intelligence", "Machine Learning", "Defense"],
-      schedule: [
-        { time: "13:00", activity: "Introduction to AI Security Challenges" },
-        { time: "13:45", activity: "Identifying AI-based Attacks" },
-        { time: "14:30", activity: "Break" },
-        { time: "15:00", activity: "Defensive AI Implementation Lab" },
-        { time: "16:30", activity: "Q&A Session" }
-      ],
-      speakers: [
-        { name: "Dr. Sarah Johnson", role: "AI Research Director", company: "SecureNode", avatar: 2 }
-      ]
-    },
-    {
-      id: 4,
-      title: "Blockchain Security Summit",
-      date: "2025-06-28",
-      time: "10:00 - 18:00",
-      location: "Tokyo & Online",
-      description: "Explore blockchain vulnerabilities and security measures. From smart contract auditing to decentralized security architectures, this summit covers the latest in blockchain protection.",
-      type: "Conference",
-      capacity: 300,
-      registered: 185,
-      difficulty: "Intermediate",
-      tags: ["Blockchain", "Smart Contracts", "DeFi"],
-      schedule: [
-        { time: "10:00", activity: "Keynote: The Future of Blockchain Security" },
-        { time: "11:00", activity: "Smart Contract Vulnerability Panel" },
-        { time: "12:30", activity: "Networking Lunch" },
-        { time: "14:00", activity: "Workshop: Auditing Techniques" },
-        { time: "16:00", activity: "Case Studies: Major Blockchain Breaches" },
-        { time: "17:30", activity: "Closing Remarks & Networking" }
-      ],
-      speakers: [
-        { name: "Hiroshi Tanaka", role: "Blockchain Security Expert", company: "CryptoGuard", avatar: 3 },
-        { name: "Anika Patel", role: "Smart Contract Auditor", company: "DataFortress", avatar: 2 }
-      ]
-    },
-    {
-      id: 5,
-      title: "IoT Security Challenge",
-      date: "2025-07-15",
-      time: "11:00 - 19:00",
-      location: "Online | Global",
-      description: "Identify and exploit vulnerabilities in simulated Internet of Things environments. This challenge tests your ability to secure interconnected devices and sensors.",
-      type: "Competition",
-      capacity: 250,
-      registered: 98,
-      difficulty: "Advanced",
-      tags: ["IoT", "Embedded Systems", "Hardware"],
-      prizes: [
-        { position: "1st Place", reward: "$3,000 + IoT Security Kit" },
-        { position: "2nd Place", reward: "$1,500 + Smart Home Security Package" },
-        { position: "3rd Place", reward: "$750 + IoT Development Board Bundle" }
-      ]
-    },
-    {
-      id: 6,
-      title: "Threat Intelligence Masterclass",
-      date: "2025-04-05",
-      time: "09:00 - 16:00",
-      location: "Berlin & Online",
-      description: "Enhance your ability to collect, analyze and utilize threat intelligence. This masterclass teaches advanced techniques for identifying and responding to emerging threats.",
-      type: "Training",
-      capacity: 100,
-      registered: 100,
-      difficulty: "Expert",
-      tags: ["Threat Intel", "Analysis", "Response"],
-      schedule: [
-        { time: "09:00", activity: "Intelligence Collection Methodologies" },
-        { time: "11:00", activity: "Data Analysis Techniques" },
-        { time: "13:00", activity: "Lunch Break" },
-        { time: "14:00", activity: "Practical Application Workshop" },
-        { time: "15:30", activity: "Integration with Security Operations" }
-      ]
-    }
-  ];
-  
-  // Create events with real registration counts
-  const eventsWithCounts = events.map(event => ({
-    ...event,
-    registered: registrationCounts[event.id] || 0
-  }));
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+
+  // Update current date on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateDate = () => {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      setCurrentDate(dateStr);
+    };
+    
+    // Update date at midnight
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    const timeout = setTimeout(() => {
+      updateDate();
+      // Set up daily updates
+      setInterval(updateDate, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // Update current time on client side to avoid hydration mismatch
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    };
+    
+    // Set initial time
+    updateTime();
+    
+    // Update time every second
+    const interval = setInterval(updateTime, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Filter events based on the selected view
   const filteredEvents = eventsWithCounts.filter(event => {
