@@ -485,7 +485,7 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
     }
 
     try {
-      let deploymentMessage = `${deployItem.name} deployed successfully!`;
+      let deploymentMessage = '';
       let effectMessage = '';
       // Track whether the attack was successful to determine if malware should be removed
       let attackSuccess = false;
@@ -748,6 +748,9 @@ const AppStore: React.FC<AppStoreProps> = ({ time, user, attackerTeamId: attacke
         }
       }
       } // Close the overall else block
+
+      // Set deployment message based on success
+      deploymentMessage = attackSuccess ? `${deployItem.name} deployed successfully!` : `${deployItem.name} deployment failed.`;
 
       // Remove the deployed malware from purchased list only if attack was successful
       const deployPlayspaceId = getPlayspaceId();
