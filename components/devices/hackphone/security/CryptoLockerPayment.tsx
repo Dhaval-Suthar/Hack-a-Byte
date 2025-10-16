@@ -14,7 +14,7 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
   teamId, 
   active = true 
 }) => {
-  const { cryptoLockerPaymentDemands, cryptoLockerPaymentSents, cryptoLockerGameOvers } = useSocket();
+  const { cryptoLockerPaymentDemands, cryptoLockerPaymentSents, cryptoLockerGameOvers, joinTeam, isConnected } = useSocket();
   const [activeDemand, setActiveDemand] = useState<CryptoLockerPaymentDemand | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,6 +40,13 @@ const CryptoLockerPayment: React.FC<CryptoLockerPaymentProps> = ({
     setAlertType(type);
     setAlertVisible(true);
   };
+
+  // Join team socket room to receive CryptoLocker payment events
+  useEffect(() => {
+    if (teamId && isConnected) {
+      joinTeam(teamId);
+    }
+  }, [teamId, isConnected, joinTeam]);
 
   // Check localStorage for persistent payment screen on mount
   useEffect(() => {

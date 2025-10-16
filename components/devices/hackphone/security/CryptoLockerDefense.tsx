@@ -9,21 +9,22 @@ interface CryptoLockerDefenseProps {
   active: boolean;
 }
 
-const DEFENSE_PHRASES = [
-  'AES256',
-  'RSA4096',
-  'ECDH256',
-  'SHA3512',
-  'PBKDF2',
-  'CHACHA',
-  'X25519',
-  'SCRYPT',
-  'ARGON2',
-  'CURVE25519'
+// Phrases for subsequent challenges after the first server-provided phrase
+const FOLLOW_UP_PHRASES = [
+  'AES-256-GCM',
+  'RSA-4096-OAEP', 
+  'ECDHE-SECP256K1',
+  'SHA3-KECCAK-512',
+  'PBKDF2-HMAC-SHA256',
+  'CHACHA20-POLY1305',
+  'X25519-XSALSA20',
+  'SCRYPT-N16384-R8-P1',
+  'ARGON2ID-M65536-T3-P4',
+  'CURVE25519-ED25519'
 ];
 
 const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, active }) => {
-  const { cryptoLockerSpawns } = useSocket();
+  const { cryptoLockerSpawns, joinTeam, isConnected } = useSocket();
   
   // Current mini-game state
   const [isActive, setIsActive] = useState(false);
@@ -44,13 +45,20 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
   
   // Generate a new random phrase that hasn't been used yet
   const generateNewPhrase = useCallback(() => {
-    const availablePhrases = DEFENSE_PHRASES.filter(phrase => !completedPhrases.includes(phrase));
-    if (availablePhrases.length === 0) return DEFENSE_PHRASES[0]; // Fallback
+    const availablePhrases = FOLLOW_UP_PHRASES.filter(phrase => !completedPhrases.includes(phrase));
+    if (availablePhrases.length === 0) return FOLLOW_UP_PHRASES[0]; // Fallback
     
     const randomIndex = Math.floor(Math.random() * availablePhrases.length);
     return availablePhrases[randomIndex];
   }, [completedPhrases]);
   
+  // Join team socket room to receive CryptoLocker events
+  useEffect(() => {
+    if (teamId && isConnected) {
+      joinTeam(teamId);
+    }
+  }, [teamId, isConnected, joinTeam]);
+
   // Check localStorage for persistent attack state on mount
   useEffect(() => {
     if (!teamId) return;
@@ -254,7 +262,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
     if (latestSpawn && Date.now() - latestSpawn.ts < 10000) { // Recent spawn
       
       setIsActive(true);
-      setCurrentPhrase(generateNewPhrase());
+      setCurrentPhrase(latestSpawn.phrase); // Use server-provided phrase
       setUserInput('');
       setTimeLeft(latestSpawn.timeLimit || 45000);
       setSessionKey(latestSpawn.sessionKey);
@@ -264,7 +272,7 @@ const CryptoLockerDefense: React.FC<CryptoLockerDefenseProps> = ({ teamId, activ
       setPhrasesCompleted(0);
       setCompletedPhrases([]);
     }
-  }, [cryptoLockerSpawns, teamId, active, generateNewPhrase]);
+  }, [cryptoLockerSpawns, teamId, active]);
 
   // Countdown timer
   useEffect(() => {
