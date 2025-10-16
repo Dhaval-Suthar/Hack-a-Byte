@@ -8,7 +8,9 @@ export interface IEventRegistration extends Document {
     pricingType?: "normal" | "extended";
     paymentStatus: "pending" | "paid" | "failed";
     cashfreeOrderId?: string;
+    razorpayPaymentLinkId?: string;
     registrationDate: Date;
+    paymentVerifiedAt?: Date;
     // New fields for access code system
     accessCodeId?: mongoose.Schema.Types.ObjectId;
     playspaceId?: mongoose.Schema.Types.ObjectId;
@@ -47,7 +49,9 @@ const EventRegistrationSchema: Schema = new Schema(
             default: "pending"
         },
         cashfreeOrderId: { type: String },
+        razorpayPaymentLinkId: { type: String },
         registrationDate: { type: Date, default: Date.now },
+        paymentVerifiedAt: { type: Date },
         // New fields for access code system
         accessCodeId: { type: mongoose.Schema.Types.ObjectId, ref: "AccessCode" },
         playspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Playspace" },

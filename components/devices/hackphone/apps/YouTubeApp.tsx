@@ -18,7 +18,7 @@ const YouTubeApp: React.FC<YouTubeAppProps> = ({ onClose }) => {
         if (isMobile) {
           // For mobile, try YouTube app URL scheme first
           const youtubeAppURL = 'youtube://';
-          const youtubeWebURL = 'https://m.youtube.com';
+          const youtubeWebURL = 'https://www.youtube.com/playlist?list=PLU0UJ8UlaPYaGpGNc2uwK5YZM6aaFlxaM';
           
           // Create a hidden iframe to test YouTube app launch
           const iframe = document.createElement('iframe');
