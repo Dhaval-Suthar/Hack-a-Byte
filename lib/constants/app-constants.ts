@@ -29,22 +29,20 @@ export const API_ENDPOINTS = {
 
 // Team roles based on team size
 export const TEAM_ROLES = {
-  // For 1-2 players
+  // Example role progressions; actual availability is defined in ROLE_LIMITS below
   SMALL_TEAM: ['professor', 'berlin'],
-  // For 3 players
-  MEDIUM_TEAM: ['professor', 'berlin', 'tokyo', 'rio'],
-  // For 4-6 players
-  LARGE_TEAM: ['professor', 'berlin', 'tokyo', 'rio', 'nairobi', 'denver'],
+  MEDIUM_TEAM: ['professor', 'berlin', 'tokyo'],
+  LARGE_TEAM: ['professor', 'berlin', 'tokyo', 'denver', 'nairobi', 'rio'],
 } as const;
 
 // Role limits per team size
 export const ROLE_LIMITS = {
   1: { professor: 1 },
   2: { professor: 1, berlin: 1 },
-  3: { professor: 1, berlin: 1, tokyo: 1, rio: 1 },
-  4: { professor: 1, berlin: 1, tokyo: 1, rio: 1, nairobi: 1, denver: 1 },
-  5: { professor: 1, berlin: 1, tokyo: 1, rio: 1, nairobi: 1, denver: 1 },
-  6: { professor: 1, berlin: 1, tokyo: 1, rio: 1, nairobi: 1, denver: 1 },
+  3: { professor: 1, berlin: 1, tokyo: 1 },
+  4: { professor: 1, berlin: 1, tokyo: 1, denver: 1 },
+  5: { professor: 1, berlin: 1, tokyo: 1, denver: 1, nairobi: 1 },
+  6: { professor: 1, berlin: 1, tokyo: 1, denver: 1, nairobi: 1, rio: 1 },
 } as const;
 
 // Character information
@@ -122,6 +120,25 @@ export const CHARACTER_INFO = {
     image: "/characters/denver.png",
   },
 } as const;
+
+// Bracketed labels to show next to character names in UI
+export const ROLE_LABELS: Record<string, string> = {
+  professor: "planner",
+  berlin: "defender",
+  rio: "attacker",
+  tokyo: "attacker",
+  nairobi: "extractor",
+  denver: "extractor",
+};
+
+// Get display name like "The Professor (planner)" given a role id key
+export function getCharacterDisplayName(roleId: string): string {
+  const key = roleId?.toLowerCase();
+  const info = (CHARACTER_INFO as Record<string, { name: string }>)[key];
+  const baseName = info?.name ?? roleId;
+  const label = ROLE_LABELS[key];
+  return label ? `${baseName} (${label})` : baseName;
+}
 
 // Role groupings (normalized to lowercase)
 export const ROLE_GROUPS = {

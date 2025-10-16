@@ -80,6 +80,18 @@ export async function createEventPaymentOrder(data: CreatePaymentOrderData): Pro
 		const isPaid = pricePerPersonRupees > 0;
 		const amountRupees = pricePerPersonRupees * numberOfPlayers; // Cashfree expects rupees
 
+		// Check if there's already a pending payment for this email and event
+		if (isPaid) {
+			const existingPending = await EventRegistration.findOne({
+				eventId,
+				email: email.toLowerCase(),
+				paymentStatus: 'pending'
+			});
+			if (existingPending) {
+				return { success: false, error: 'You have a pending payment for this event. Please complete or cancel it first.', amount: 0 };
+			}
+		}
+
 		// Create registration (pending for paid events)
 		const registration = new EventRegistration({
 			eventId,

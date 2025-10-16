@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPlayspaceId } from "@/lib/playspace-utils";
 import { getDevicesByPlayspaceId } from "@/app/actions/admin";
-import { CHARACTER_INFO } from "@/lib/constants/app-constants";
+import { CHARACTER_INFO, getCharacterDisplayName } from "@/lib/constants/app-constants";
 import { logger } from '@/lib/logger';
 
 interface DeviceOption {
@@ -365,7 +365,7 @@ export default function DeviceSelectionPage() {
                   </div>
                   <div className="text-center">
                     <p className={`font-mono text-sm ${character.textColor} font-semibold`}>
-                      Playing as: {character.name}
+                      Playing as: {getCharacterDisplayName(selectedRole as string)}
                     </p>
                     <p className="text-gray-400 font-mono text-xs">
                       {character.role} • {character.specialty}
