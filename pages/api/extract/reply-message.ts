@@ -33,6 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return badRequest(res, 'messageType must be email or sms');
     }
 
+    const clientIP = req.socket?.remoteAddress || (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+
   await connectDb();
 
   // Choose model
@@ -203,9 +205,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         interface AttackerMeta { attackerTeamId?: string; sender?: string; senderPhone?: string; subject?: string }
         const meta = await model.findById(messageId).select('attackerTeamId sender senderPhone subject').lean() as unknown as AttackerMeta | null;
         if (meta?.attackerTeamId) {
-          const baseContent = wallet
-            ? `Wallet: ${wallet}\n\nOriginal sender: ${meta.sender || 'Unknown'}`
-            : `Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
+          const baseContent = `Victim IP: ${clientIP}\n\n${wallet ? `Wallet: ${wallet}\n\n` : ''}Reply: ${String(replyText)}\n\nOriginal sender: ${meta.sender || 'Unknown'}`;
           if (messageType === 'sms') {
             const createdForward = await (SMSModel as SMSModelType).createSystemSMS({
               recipient: new mongoose.Types.ObjectId(String(meta.attackerTeamId)),

@@ -999,9 +999,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
 
   const macFromStorage = localStorage.getItem('device_mac_address') || '';
 
-  // Prefer selectedDevice MAC, then localStorage, then first hackphone device
+  // Use localStorage MAC, then first hackphone device (not selectedDevice since that's the target)
   const fallbackDevice = devices.find(d => d.deviceType === 'hackphone' && d.deviceMacAddress) || devices[0];
-  const mac = selectedDevice?.deviceMacAddress || macFromStorage || fallbackDevice?.deviceMacAddress || 'UNKNOWN';
+  const mac = macFromStorage || fallbackDevice?.deviceMacAddress || 'UNKNOWN';
 
     // Wallet: show own team balance (formatted). If not available show ₿0.00
     const ownTeam = walletData.find(w => w.isOwnTeam);
