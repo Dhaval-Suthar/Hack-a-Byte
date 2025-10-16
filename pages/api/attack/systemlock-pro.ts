@@ -139,17 +139,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         stolenAmount = targetTeam.wallet.bitcoinBalance;
         targetTeam.wallet.bitcoinBalance = 0;
         attackerTeam.wallet.bitcoinBalance += stolenAmount;
-        await targetTeam.save();
+        
+        // Save both teams atomically
+        try {
+          await targetTeam.save();
+          await attackerTeam.save();
+        } catch (saveError) {
+          logger.error('SystemLock Pro: Failed to save team wallet changes', {
+            error: saveError instanceof Error ? saveError.message : 'Unknown error',
+            attackerTeamId,
+            targetTeamId: targetTeam._id.toString(),
+            stolenAmount
+          });
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to process wallet transfer' 
+          });
+        }
         
       } else {
         // No team found anywhere - give a small reward for successful hack
         stolenAmount = 100;
         attackerTeam.wallet.bitcoinBalance += stolenAmount;
+        
+        // Save attacker team
+        try {
+          await attackerTeam.save();
+        } catch (saveError) {
+          logger.error('SystemLock Pro: Failed to save attacker team wallet changes', {
+            error: saveError instanceof Error ? saveError.message : 'Unknown error',
+            attackerTeamId,
+            stolenAmount
+          });
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to process wallet transfer' 
+          });
+        }
       }
-
-      // Save changes
-      await attackerTeam.save();
-      // DO NOT save targetDevice since we're not changing its status
 
       // Emit success events
       emitScoped(res, {
