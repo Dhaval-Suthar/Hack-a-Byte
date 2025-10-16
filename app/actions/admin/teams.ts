@@ -304,33 +304,58 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
       return { error: "Cannot delete team with active members. Please remove all members first." };
     }
 
-    // Capture related resource IDs before deletion
-    const playspaceId = team.playspaceId ? team.playspaceId.toString() : undefined;
-    const accessCodeId = team.accessCodeId ? team.accessCodeId.toString() : undefined;
+    // Cascade delete: Playspace, AccessCode, Device
+    const cascadeErrors: string[] = [];
+    // Playspace
+    if (team.playspaceId) {
+      try {
+        const Playspace = (await import("@/models/Playspace")).default;
+        await Playspace.findByIdAndDelete(team.playspaceId);
+      } catch {
+        cascadeErrors.push("Failed to delete playspace");
+      }
+    }
+    // AccessCode
+    if (team.accessCodeId) {
+      try {
+        const AccessCode = (await import("@/models/AccessCode")).default;
+        await AccessCode.findByIdAndDelete(team.accessCodeId);
+      } catch {
+        cascadeErrors.push("Failed to delete access code");
+      }
+    }
+    // Device
+    if (team.deviceId) {
+      try {
+        const Device = (await import("@/models/Device")).default;
+        await Device.findByIdAndDelete(team.deviceId);
+      } catch {
+        cascadeErrors.push("Failed to delete device");
+      }
+    }
 
-    // Delete the team first
     await Team.findByIdAndDelete(teamId);
 
     // Best-effort cascade cleanup of playspace and access code
     try {
-      if (playspaceId) {
-        await Playspace.findByIdAndDelete(playspaceId);
+      if (team.playspaceId) {
+        await Playspace.findByIdAndDelete(team.playspaceId);
       }
     } catch (e) {
-      logger.warn('Failed to delete playspace during team deletion', { playspaceId, error: e instanceof Error ? e.message : e });
+      logger.warn('Failed to delete playspace during team deletion', { playspaceId: team.playspaceId, error: e instanceof Error ? e.message : e });
     }
     try {
-      if (accessCodeId) {
-        await AccessCode.findByIdAndDelete(accessCodeId);
+      if (team.accessCodeId) {
+        await AccessCode.findByIdAndDelete(team.accessCodeId);
       }
     } catch (e) {
-      logger.warn('Failed to delete access code during team deletion', { accessCodeId, error: e instanceof Error ? e.message : e });
+      logger.warn('Failed to delete access code during team deletion', { accessCodeId: team.accessCodeId, error: e instanceof Error ? e.message : e });
     }
     revalidatePath("/admin");
 
     return {
       success: true,
-      message: "Team and related resources deleted successfully",
+      message: `Team deleted successfully${cascadeErrors.length ? ", but: " + cascadeErrors.join(", ") : ""}`,
     };
   } catch (error) {
     logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
