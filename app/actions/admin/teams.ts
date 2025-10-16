@@ -274,12 +274,42 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
       return { error: "Cannot delete team with active members. Please remove all members first." };
     }
 
+    // Cascade delete: Playspace, AccessCode, Device
+    let cascadeErrors: string[] = [];
+    // Playspace
+    if (team.playspaceId) {
+      try {
+        const Playspace = (await import("@/models/Playspace")).default;
+        await Playspace.findByIdAndDelete(team.playspaceId);
+      } catch (err) {
+        cascadeErrors.push("Failed to delete playspace");
+      }
+    }
+    // AccessCode
+    if (team.accessCodeId) {
+      try {
+        const AccessCode = (await import("@/models/AccessCode")).default;
+        await AccessCode.findByIdAndDelete(team.accessCodeId);
+      } catch (err) {
+        cascadeErrors.push("Failed to delete access code");
+      }
+    }
+    // Device
+    if (team.deviceId) {
+      try {
+        const Device = (await import("@/models/Device")).default;
+        await Device.findByIdAndDelete(team.deviceId);
+      } catch (err) {
+        cascadeErrors.push("Failed to delete device");
+      }
+    }
+
     await Team.findByIdAndDelete(teamId);
     revalidatePath("/admin");
 
     return {
       success: true,
-      message: "Team deleted successfully",
+      message: `Team deleted successfully${cascadeErrors.length ? ", but: " + cascadeErrors.join(", ") : ""}`,
     };
   } catch (error) {
     logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
