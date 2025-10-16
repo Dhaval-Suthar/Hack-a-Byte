@@ -15,9 +15,29 @@ export default function TutorialPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRole, setSelectedRole] = useState<string>('');
   
   // Auto-hide controls timer
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get selected role from localStorage
+  useEffect(() => {
+    const role = localStorage.getItem('selectedRole');
+    if (role) {
+      setSelectedRole(role);
+    } else {
+      // If no role selected, redirect to role selection
+      router.push('/role-selection');
+    }
+  }, [router]);
+
+  // Set video src when selectedRole is available
+  useEffect(() => {
+    if (selectedRole && videoRef.current) {
+      videoRef.current.src = `/videos/${selectedRole}.mp4`;
+      videoRef.current.load(); // Reload the video with new src
+    }
+  }, [selectedRole]);
 
 
 
@@ -185,7 +205,7 @@ export default function TutorialPage() {
     };
     const handleError = (e: Event) => {
       console.error('Video error:', e);
-      console.error('Failed to load video from:', '/videos/MOSAIC_GAMEPLAY.mp4');
+      console.error('Failed to load video from:', `/videos/${selectedRole}.mp4`);
       setIsLoading(false);
     };
 
@@ -253,7 +273,6 @@ export default function TutorialPage() {
       <video
         ref={videoRef}
         className="w-full h-full object-cover cursor-pointer"
-        src="/videos/MOSAIC_GAMEPLAY.mp4"
         preload="auto"
         playsInline
         controls={false}
@@ -281,7 +300,7 @@ export default function TutorialPage() {
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="text-green-400 font-mono text-xl flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
-            <span>Loading Tutorial...</span>
+            <span>Loading {selectedRole ? `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Tutorial` : 'Tutorial'}...</span>
           </div>
         </div>
       )}
