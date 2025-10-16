@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(409).json({ success: false, error: 'Target already in maintenance' });
     }
   const sec = device.configuration?.securitySettings as RawSecuritySettings | undefined;
-  const { finalChance: adjusted } = computeSuccessChance({ baseSuccess: 0.30, security: sec });
+  const { finalChance: adjusted } = computeSuccessChance({ baseSuccess: 0.80, security: sec });
   const roll = Math.random();
   if (roll < adjusted) {
       // success
