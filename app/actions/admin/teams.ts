@@ -1,9 +1,11 @@
 "use server";
 
 import connectDb from "@/db/connectDb";
-import Team from "@/models/Team";
+import Team, { TeamMember } from "@/models/Team";
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
+import Playspace from "@/models/Playspace";
+import AccessCode from "@/models/AccessCode";
 import { createAccessCodeAndPlayspace } from "@/lib/access-code-generation";
 import { logger } from '@/lib/logger';
 
@@ -185,7 +187,7 @@ export async function createTeam(name: string, description: string, numberOfPlay
   }
 }
 
-export async function updateTeam(teamId: string, updates: { name?: string; description?: string; leaderUserId?: string }, adminKey?: string) {
+export async function updateTeam(teamId: string, updates: { name?: string; description?: string; leaderUserId?: string; numberOfPlayers?: number }, adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);
 
   if (!isAdmin) {
@@ -233,6 +235,33 @@ export async function updateTeam(teamId: string, updates: { name?: string; descr
       }
     }
 
+    // Update numberOfPlayers and adjust teamMembers size accordingly
+    if (typeof updates.numberOfPlayers === 'number' && updates.numberOfPlayers !== team.numberOfPlayers) {
+      const newSize = Math.max(1, Math.min(10, updates.numberOfPlayers));
+      // Grow or shrink teamMembers while preserving existing occupied slots
+      const current = Array.isArray(team.teamMembers) ? team.teamMembers : [];
+
+      if (newSize > current.length) {
+        // Add empty slots
+        const toAdd = newSize - current.length;
+        for (let i = 0; i < toAdd; i++) {
+          current.push({ accessCodeUsed: false });
+        }
+      } else if (newSize < current.length) {
+        // If reducing, ensure we don't remove slots that are occupied
+        // Strategy: keep first N slots; but before truncating, check that any slots being dropped are empty
+        const dropping = current.slice(newSize);
+  const hasOccupied = dropping.some((m: TeamMember) => Boolean(m?.username || m?.role || m?.accessCodeUsed));
+        if (hasOccupied) {
+          return { error: "Cannot reduce team size below number of occupied member slots" };
+        }
+        current.length = newSize;
+      }
+
+      team.teamMembers = current;
+      team.numberOfPlayers = newSize;
+    }
+
     await team.save();
     revalidatePath("/admin");
 
@@ -245,6 +274,7 @@ export async function updateTeam(teamId: string, updates: { name?: string; descr
         description: team.description,
         leaderUserId: team.leaderUserId,
         members: team.members.length,
+        numberOfPlayers: team.numberOfPlayers,
       },
     };
   } catch (error) {
@@ -274,12 +304,58 @@ export async function deleteTeam(teamId: string, adminKey?: string) {
       return { error: "Cannot delete team with active members. Please remove all members first." };
     }
 
+    // Cascade delete: Playspace, AccessCode, Device
+    const cascadeErrors: string[] = [];
+    // Playspace
+    if (team.playspaceId) {
+      try {
+        const Playspace = (await import("@/models/Playspace")).default;
+        await Playspace.findByIdAndDelete(team.playspaceId);
+      } catch {
+        cascadeErrors.push("Failed to delete playspace");
+      }
+    }
+    // AccessCode
+    if (team.accessCodeId) {
+      try {
+        const AccessCode = (await import("@/models/AccessCode")).default;
+        await AccessCode.findByIdAndDelete(team.accessCodeId);
+      } catch {
+        cascadeErrors.push("Failed to delete access code");
+      }
+    }
+    // Device
+    if (team.deviceId) {
+      try {
+        const Device = (await import("@/models/Device")).default;
+        await Device.findByIdAndDelete(team.deviceId);
+      } catch {
+        cascadeErrors.push("Failed to delete device");
+      }
+    }
+
     await Team.findByIdAndDelete(teamId);
+
+    // Best-effort cascade cleanup of playspace and access code
+    try {
+      if (team.playspaceId) {
+        await Playspace.findByIdAndDelete(team.playspaceId);
+      }
+    } catch (e) {
+      logger.warn('Failed to delete playspace during team deletion', { playspaceId: team.playspaceId, error: e instanceof Error ? e.message : e });
+    }
+    try {
+      if (team.accessCodeId) {
+        await AccessCode.findByIdAndDelete(team.accessCodeId);
+      }
+    } catch (e) {
+      logger.warn('Failed to delete access code during team deletion', { accessCodeId: team.accessCodeId, error: e instanceof Error ? e.message : e });
+    }
     revalidatePath("/admin");
 
     return {
       success: true,
-      message: "Team deleted successfully",
+      message: `Team deleted successfully${cascadeErrors.length ? ", but: " + cascadeErrors.join(", ") : ""}`,
     };
   } catch (error) {
     logger.error('Error deleting team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);

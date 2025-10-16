@@ -999,9 +999,9 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
 
   const macFromStorage = localStorage.getItem('device_mac_address') || '';
 
-  // Prefer selectedDevice MAC, then localStorage, then first hackphone device
+  // Use localStorage MAC, then first hackphone device (not selectedDevice since that's the target)
   const fallbackDevice = devices.find(d => d.deviceType === 'hackphone' && d.deviceMacAddress) || devices[0];
-  const mac = selectedDevice?.deviceMacAddress || macFromStorage || fallbackDevice?.deviceMacAddress || 'UNKNOWN';
+  const mac = macFromStorage || fallbackDevice?.deviceMacAddress || 'UNKNOWN';
 
     // Wallet: show own team balance (formatted). If not available show ₿0.00
     const ownTeam = walletData.find(w => w.isOwnTeam);
@@ -1084,8 +1084,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
       if (response.ok && result.success) {
         // Randomize device order to confuse users about their own device
         const randomizedDevices = shuffleArray(result.devices as DeviceInfo[]);
-        setDevices(randomizedDevices);
-        addNotification(`[SUCCESS] Scan complete - ${randomizedDevices.length} targets identified`);
+        // Take only 5 random devices
+        const selectedDevices = randomizedDevices.slice(0, 5);
+        setDevices(selectedDevices);
+        addNotification(`[SUCCESS] Scan complete - ${selectedDevices.length} targets identified`);
       } else {
         addNotification(`[ERROR] Scan failed: ${result.error || 'Unknown error'}`);
       }
@@ -2268,7 +2270,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                 output={
                   <div className="text-xs font-mono">
                     <div className="text-green-700">
-                      total {walletData.length} wallets found
+                      total {walletData.length} wallets found (showing top 10)
                     </div>
                   </div>
                 }
@@ -2283,7 +2285,10 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                 </div>
                 
                 {/* Wallet rows */}
-                {walletData.map((wallet) => (
+                {walletData
+                  .sort((a, b) => b.balance - a.balance)
+                  .slice(0, 10)
+                  .map((wallet) => (
                   <div
                     key={wallet.address}
                     className={`flex text-xs border p-2 ${

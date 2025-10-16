@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAvailableRoles, validateAndUseAccessCode } from "@/app/actions/userProgress";
-import { CHARACTER_INFO, ROLE_LIMITS } from "@/lib/constants/app-constants";
+import { CHARACTER_INFO, ROLE_LIMITS, getCharacterDisplayName } from "@/lib/constants/app-constants";
 import { logger } from "@/lib/logger";
 
 // Custom CSS styles for enhanced cyberpunk look
@@ -887,7 +887,7 @@ function RoleSelectionClient() {
                                 animate={isSelected && isAvailable ? { scale: [1, 1.05, 1] } : {}}
                                 transition={{ duration: 2, repeat: isSelected && isAvailable ? Infinity : 0 }}
                               >
-                                {character.name}
+                                {getCharacterDisplayName(characterName)}
                               </motion.h3>
 
                               {/* Role Badge */}
