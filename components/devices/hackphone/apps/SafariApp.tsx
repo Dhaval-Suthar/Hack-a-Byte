@@ -102,38 +102,14 @@ const MemoizedHomePage = React.memo<{
     // Simplified icon function that returns the same generic icon for all sites
     // to prevent users from identifying site types by their icons
     const getGenericIcon = useCallback(() => {
-      // Generate a random icon from a set of confusingly similar options
-      const icons = ["🌐", "🌍", "🌎", "🌏", "💫", "✨", "🔮"];
-      // Use a stable random seed based on the current hour - changes every hour
-      const hourSeed = new Date().getHours();
-      const randomIndex = Math.floor((hourSeed * 7919) % icons.length);
-      return icons[randomIndex];
+      // Return the same icon for all sites
+      return "🌐";
     }, []);
 
-    // Function to generate exciting random gradients for site icons
-    const getRandomGradient = useCallback((id: string) => {
-      // Use site ID as a seed to generate consistent gradient for same site
-      const hash = id.split("").reduce((acc, char) => {
-        return acc + char.charCodeAt(0);
-      }, 0);
-
-      // More iOS 4 inspired gradients with glossy metallic feel
-      const gradients = [
-        "linear-gradient(135deg, #b3bfcb 0%, #8596a9 100%)", // Silver blue
-        "linear-gradient(135deg, #c4d4e0 0%, #89a0b5 100%)", // Light steel blue
-        "linear-gradient(135deg, #d7d7d7 0%, #a9a9a9 100%)", // Silver
-        "linear-gradient(135deg, #ccd9e3 0%, #92a8c0 100%)", // Steel blue
-        "linear-gradient(135deg, #e2e2e2 0%, #b5b5b5 100%)", // Light gray
-        "linear-gradient(135deg, #e9f0f4 0%, #b6c8d6 100%)", // Light blue
-        "linear-gradient(135deg, #d8d8d8 0%, #a0a0a0 100%)", // Gray
-        "linear-gradient(135deg, #e5e9ed 0%, #a7b7c5 100%)", // Soft blue
-        "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-        "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-        "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
-        "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-      ];
-
-      return gradients[hash % gradients.length];
+    // Function to generate the same gradient for all site icons
+    const getRandomGradient = useCallback(() => {
+      // Return the same gradient for all sites
+      return "linear-gradient(135deg, #b3bfcb 0%, #8596a9 100%)"; // Silver blue
     }, []);
 
     return (
@@ -481,7 +457,7 @@ const MemoizedHomePage = React.memo<{
                       height: "42px",
                       minWidth: "42px",
                       borderRadius: "8px",
-                      background: getRandomGradient(site._id),
+                      background: getRandomGradient(),
                       boxShadow: "0 1px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)",
                       border: "1px solid rgba(0,0,0,0.2)",
                       display: "flex",
