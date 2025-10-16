@@ -55,7 +55,7 @@ export interface EventTeam extends Document {
   teamMembers: TeamMember[];
   // Timer starts when all members join
   timer: TeamTimer;
-  // Auto-offline timer (1 hour after first member joins)
+  // Auto-offline timer (30 minutes after first member joins)
   autoOfflineTimer: AutoOfflineTimer;
 }
 
