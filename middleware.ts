@@ -6,7 +6,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 1000000; // Max requests per window
+const RATE_LIMIT_MAX = 100; // Max requests per window
 
 function checkRateLimit(request: NextRequest): NextResponse | null {
   const ip = request.headers.get('x-forwarded-for') ||
