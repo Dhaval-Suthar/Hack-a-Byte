@@ -641,7 +641,7 @@ const safariAnimationStyles = `
 }
 `;
 
-const SafariAppComponent: React.FC<SafariAppProps> = () => {
+const SafariAppComponent: React.FC<SafariAppProps> = React.memo(() => {
   // Add animation styles to head
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -765,16 +765,29 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
     }
   }, [addNotification]);
 
-  // Network status monitoring
+  // Network status monitoring - OPTIMIZED to prevent excessive notifications
   useEffect(() => {
+    let hasShownOfflineMessage = false;
+    
     const handleOnline = () => {
-      setIsOffline(false);
-      addNotification({ type: 'success', message: 'Connection restored' });
+      if (hasShownOfflineMessage) {
+        setIsOffline(false);
+        addNotification({ type: 'success', message: 'Connection restored' });
+        hasShownOfflineMessage = false;
+      }
     };
     const handleOffline = () => {
       setIsOffline(true);
-      addNotification({ type: 'warning', message: 'No internet connection' });
+      if (!hasShownOfflineMessage) {
+        addNotification({ type: 'warning', message: 'No internet connection' });
+        hasShownOfflineMessage = true;
+      }
     };
+
+    // Check initial status
+    if (!navigator.onLine) {
+      setIsOffline(true);
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -783,23 +796,32 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [addNotification]);
+  }, [addNotification]); // Add back addNotification dependency
 
-  // Load sites from API
+  // Load sites from API - OPTIMIZED to load only once
   useEffect(() => {
+    let mounted = true;
+    
     const loadSites = async () => {
       try {
         const response = await fetch('/api/sites');
         const data = await response.json();
-        if (data.success) {
+        if (mounted && data.success) {
           setSites(data.sites);
         }
       } catch (error) {
-        logger.error('Failed to load sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+        if (mounted) {
+          logger.error('Failed to load sites:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
+        }
       }
     };
+    
     loadSites();
-  }, []);
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array - load sites only once on mount
 
   // Check reward site and claim if available
   const checkRewardSite = useCallback(async (url: string): Promise<boolean> => {
@@ -938,11 +960,15 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
     }
   }, [teamId, sites, addNotification]);
 
-  // Load current site when address changes
+  // Load current site when address changes - OPTIMIZED to prevent excessive API calls
   useEffect(() => {
-    const loadCurrentSite = async () => {
-      if (!address || showHomePage) return;
-      
+    if (!address || showHomePage) {
+      setCurrentSite(null);
+      return;
+    }
+    
+    // Debounce site loading to prevent rapid API calls
+    const timeoutId = setTimeout(async () => {
       setLoading(true);
       try {
         const encodedUrl = encodeURIComponent(address);
@@ -973,10 +999,10 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    loadCurrentSite();
-  }, [address, showHomePage, teamId]);
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [address, showHomePage]); // Remove teamId dependency to prevent reload when team changes
 
   const extractTitleFromUrl = (url: string) => {
     try {
@@ -1049,7 +1075,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
     addNotification,
     events,
     cooldownTimers
-  }), [sites, currentPage, setCurrentPage, sitesPerPage, navigateTo, setShowBookmarks, showBookmarks, bookmarks, addNotification, events, cooldownTimers]);
+  }), [sites, currentPage, sitesPerPage, showBookmarks, bookmarks, events, cooldownTimers, navigateTo, addNotification]); // Add back callback dependencies
 
   const HomePage = useCallback(() => {
     return <MemoizedHomePage {...homePageProps} />;
@@ -1081,15 +1107,17 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
   };
 
 
-  // Auto team discovery
+  // Auto team discovery - OPTIMIZED to reduce frequency
   useEffect(()=>{
+    if (teamId) return; // Don't run if we already have a team ID
+    
     let cancelled = false;
     async function load() {
       try {
         // Get current playspace ID using the proper utility
         const playspaceId = getPlayspaceId();
 
-  if (playspaceId && !teamId) {
+        if (playspaceId) {
           // Use /api/team with proper x-playspace-id header like other apps
           const teamResponse = await fetch('/api/team', {
             headers: {
@@ -1099,7 +1127,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
           if (teamResponse.ok) {
             const teamData = await teamResponse.json();
             if (teamData.success && teamData.teamId) {
-              setTeamId(teamData.teamId);
+              if (!cancelled) setTeamId(teamData.teamId);
               return;
             }
           }
@@ -1121,54 +1149,54 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
         logger.error('🎯 Safari team detection error:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
       }
     }
-    load();
-    const id = setInterval(load, 20000);
+    
+    load(); // Run once immediately
+    const id = setInterval(load, 30000); // Reduced frequency from 20s to 30s
     return ()=>{ cancelled = true; clearInterval(id); };
-  }, [teamId]);
+  }, [teamId]); // Add teamId as dependency to stop when found
 
-  // Update cooldown timers every second for live countdown
+  // Update cooldown timers every second for live countdown - OPTIMIZED to prevent re-renders
   useEffect(() => {
     const interval = setInterval(() => {
+      const newTimers: {[key: string]: number} = {};
+      
+      // Calculate all timers at once without triggering state updates
+      sites.forEach(site => {
+        if (site.isRewardSite && site.rewardClaimed && site.rewardClaimedAt) {
+          const cooldownMinutes = site.rewardCooldownMinutes || 60;
+          const claimedTime = new Date(site.rewardClaimedAt).getTime();
+          const timeSinceLastClaim = Date.now() - claimedTime;
+          const cooldownPeriod = cooldownMinutes * 60 * 1000;
+          
+          if (timeSinceLastClaim < cooldownPeriod) {
+            const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
+            newTimers[site._id] = remainingSeconds;
+          }
+        }
+      });
+      
+      // Only update state if there are actual changes
       setCooldownTimers(prev => {
-        const newTimers = { ...prev };
-        let hasChanges = false;
+        const prevKeys = Object.keys(prev);
+        const newKeys = Object.keys(newTimers);
         
-        // Use current sites state via callback to avoid dependency
-        setSites(currentSites => {
-          currentSites.forEach(site => {
-            if (site.isRewardSite && site.rewardClaimed && site.rewardClaimedAt) {
-              const cooldownMinutes = site.rewardCooldownMinutes || 60;
-              const claimedTime = new Date(site.rewardClaimedAt).getTime();
-              const timeSinceLastClaim = Date.now() - claimedTime;
-              const cooldownPeriod = cooldownMinutes * 60 * 1000;
-              
-              if (timeSinceLastClaim < cooldownPeriod) {
-                const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 1000);
-                if (newTimers[site._id] !== remainingSeconds) {
-                  newTimers[site._id] = remainingSeconds;
-                  hasChanges = true;
-                }
-              } else {
-                if (newTimers[site._id]) {
-                  delete newTimers[site._id];
-                  hasChanges = true;
-                }
-              }
-            }
-          });
-          return currentSites; // Return unchanged to avoid triggering re-renders
-        });
+        // Check if keys changed or values changed
+        if (prevKeys.length !== newKeys.length || 
+            newKeys.some(key => prev[key] !== newTimers[key]) ||
+            prevKeys.some(key => !newTimers[key])) {
+          return newTimers;
+        }
         
-        return hasChanges ? newTimers : prev;
+        return prev; // No changes, return same reference to prevent re-render
       });
     }, 1000);
     
     return () => clearInterval(interval);
-  }, []); // Empty dependency array to prevent constant re-creation
+  }, [sites]); // Only re-create when sites change
 
-  // Socket connect for extractor events
+  // Socket connect for extractor events - OPTIMIZED to prevent re-connections
   useEffect(() => {
-    if (!teamId || socketRef.current) return;
+    if (!teamId || socketRef.current?.connected) return;
 
     const base = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim() || (typeof window !== 'undefined' ? window.location.origin : '/');
     const s = rawIo(base, { path: '/api/socketio', transports: ['websocket'], timeout: 20000 });
@@ -1189,14 +1217,14 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
     const faucetHandler = (p: { teamId: string; reward: number; attempts: number; windowExpires: number; balance: number; ts: number }) => {
       if (p.teamId !== teamId) return;
       const evt: ExtractorEvent = { id: Math.random().toString(36).slice(2), type: 'faucet', outcome: 'gain', amount: p.reward, ts: p.ts, detail: `Attempt ${p.attempts}` };
-      setEvents(ev => [evt, ...ev].slice(0, 50));
+      setEvents(prev => [evt, ...prev].slice(0, 50));
       addNotification({ type: 'success', message: `Faucet reward: ${p.reward} bitcoins!` });
     };
 
     const extractorHandler = (p: { teamId: string; event: ExtractorEvent }) => {
       if (p.teamId !== teamId) return;
       const e = p.event;
-      setEvents(ev => [{ id: e.id || Math.random().toString(36).slice(2), type: e.type, outcome: e.outcome, amount: e.amount, ts: e.ts, detail: e.detail }, ...ev].slice(0, 50));
+      setEvents(prev => [{ id: e.id || Math.random().toString(36).slice(2), type: e.type, outcome: e.outcome, amount: e.amount, ts: e.ts, detail: e.detail }, ...prev].slice(0, 50));
     };
 
     s.on('extractor-faucet', faucetHandler);
@@ -1210,7 +1238,7 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
         socketRef.current = null;
       }
     };
-  }, [teamId, addNotification]);
+  }, [teamId, addNotification]); // Add back addNotification dependency
 
   // UI Components
   const NotificationContainer = () => (
@@ -1475,7 +1503,9 @@ const SafariAppComponent: React.FC<SafariAppProps> = () => {
       <NotificationContainer />
     </div>
   );
-};
+});
+
+SafariAppComponent.displayName = 'SafariAppComponent';
 
 const SafariApp = React.memo(SafariAppComponent);
 SafariApp.displayName = 'SafariApp';

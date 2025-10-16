@@ -1133,7 +1133,7 @@ const SettingsApp: React.FC = () => {
                         value={newPin}
                         onChange={(e) => handlePinChange(e.target.value, 'new')}
                         placeholder="Enter 4-digit PIN"
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 transition-colors ${
+                        className={`w-full px-3 py-2 border rounded-md text-base focus:outline-none focus:ring-2 transition-colors ${
                           pinError && newPin ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
                         }`}
                         maxLength={4}
@@ -1163,7 +1163,7 @@ const SettingsApp: React.FC = () => {
                         value={confirmPin}
                         onChange={(e) => handlePinChange(e.target.value, 'confirm')}
                         placeholder="Confirm 4-digit PIN"
-                        className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 transition-colors ${
+                        className={`w-full px-3 py-2 border rounded-md text-base focus:outline-none focus:ring-2 transition-colors ${
                           pinError && confirmPin ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
                         }`}
                         maxLength={4}

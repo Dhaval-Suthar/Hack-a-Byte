@@ -624,7 +624,7 @@ const SnakeeGame: React.FC<SnakeeGameProps> = ({ onClose, time }) => {
           fetch('/api/reward', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-playspace-id': playspaceId || '' },
-            body: JSON.stringify({ amount: 10, reason: 'snake-point' })
+            body: JSON.stringify({ amount: 2, reason: 'snake-point' })
           }).catch(()=>{});
         }
         return newScore;

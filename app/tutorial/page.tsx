@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -42,7 +42,7 @@ export default function TutorialPage() {
     };
   }, [showControls, isPlaying]);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -53,7 +53,7 @@ export default function TutorialPage() {
         console.error('Error playing video:', error);
       });
     }
-  };
+  }, [isPlaying]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
@@ -78,7 +78,7 @@ export default function TutorialPage() {
     setIsMuted(newVolume === 0);
   };
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     
@@ -89,9 +89,9 @@ export default function TutorialPage() {
       video.volume = 0;
       setIsMuted(true);
     }
-  };
+  }, [isMuted, volume]);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -105,13 +105,13 @@ export default function TutorialPage() {
       }
     }
     setIsFullscreen(!isFullscreen);
-  };
+  }, [isFullscreen]);
 
-  const skipTutorial = () => {
+  const skipTutorial = useCallback(() => {
     router.push('/device-selection');
-  };
+  }, [router]);
 
-  const skipForward = () => {
+  const skipForward = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     
@@ -120,16 +120,16 @@ export default function TutorialPage() {
     const newTime = Math.min(video.currentTime + 10, maxTime);
     video.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, []);
 
-  const skipBackward = () => {
+  const skipBackward = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     
     const newTime = Math.max(video.currentTime - 10, 0);
     video.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, []);
 
   const formatTime = (time: number) => {
     if (!time || isNaN(time) || time < 0) return '0:00';
@@ -185,7 +185,7 @@ export default function TutorialPage() {
     };
     const handleError = (e: Event) => {
       console.error('Video error:', e);
-      console.error('Failed to load video from:', '/videos/sample-3.mp4');
+      console.error('Failed to load video from:', '/videos/MOSAIC_GAMEPLAY.mp4');
       setIsLoading(false);
     };
 
@@ -242,7 +242,7 @@ export default function TutorialPage() {
       video.removeEventListener('error', handleError);
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [router, togglePlay, skipBackward, skipForward, toggleFullscreen, toggleMute, skipTutorial]);
+  }, [router, togglePlay, skipBackward, skipForward, toggleFullscreen, toggleMute, skipTutorial, duration]);
 
   return (
     <div 
@@ -253,7 +253,7 @@ export default function TutorialPage() {
       <video
         ref={videoRef}
         className="w-full h-full object-cover cursor-pointer"
-        src="/videos/sample-3.mp4"
+        src="/videos/MOSAIC_GAMEPLAY.mp4"
         preload="auto"
         playsInline
         controls={false}

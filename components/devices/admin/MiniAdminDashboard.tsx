@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 
 // Import new components
 import DashboardOverview from "./DashboardOverview";
@@ -17,23 +17,112 @@ import BulkDeleteModal from "./BulkDeleteModal";
 // Import types
 import { AccessCode, Playspace, Device, EventItem, GameSession, Tab, Note, Team, Sponsor } from "./shared-types";
 
+// Raw data types from server actions
+interface RawAccessCode {
+  _id: string;
+  code: string;
+  isActive: boolean;
+}
+
+interface RawPlayspace {
+  _id: string;
+  name: string;
+  description: string;
+}
+
+interface RawDevice {
+  _id: string;
+  deviceMacAddress: string;
+  deviceType: string;
+  status: string;
+  playspace?: {
+    _id: string;
+    name: string;
+    description: string;
+  } | null;
+}
+
+interface RawEvent {
+  _id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  category: string;
+  isPublic: boolean;
+  capacity: number;
+  registrationEnabled: boolean;
+  requiredDeviceTypes?: {
+    mobile: boolean;
+    desktop: boolean;
+  };
+  requiredDevices?: {
+    mobile: string[];
+    desktop: string[];
+  };
+  minTeamMembers: number;
+  maxTeamMembers: number;
+  pricing?: {
+    normal: number;
+    extended?: number;
+  };
+}
+
+interface RawGameSession {
+  _id: string;
+  tournamentId: string;
+  team1Id: string;
+  team2Id: string;
+  team1Name: string;
+  team2Name: string;
+  status: string;
+  startTime: string;
+  endTime?: string;
+  team1Score: number;
+  team2Score: number;
+  duration: number;
+  winner?: string;
+  deviceId?: string;
+}
+
+interface RawTeam {
+  _id: string;
+  name: string;
+  description: string;
+  leaderUserId?: string;
+  members: number; // Already transformed to count by server action
+  numberOfPlayers: number;
+  playingDevice?: "smartphone" | "pc_laptop";
+}
+
+interface RawSponsor {
+  _id: string;
+  name: string;
+  tier: string;
+  logo: string;
+  description: string;
+  benefits: string[];
+  websiteUrl: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Server actions
-import { getAccessCodes, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
-import { getPlayspaces, createPlayspace, updatePlayspace, deletePlayspace } from "@/app/actions/admin";
-import { getAllDevices, createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
-import { getEvents } from "@/app/actions/admin";
-import { getGameSessions, updateGameSessionScore, endGameSession } from "@/app/actions/admin";
-import { getTeams, createTeam, updateTeam, deleteTeam } from "@/app/actions/admin";
-import { updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
+import { getAllAdminData, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
+import { createPlayspace, updatePlayspace, deletePlayspace } from "@/app/actions/admin";
+import { createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
+import { updateGameSessionScore, endGameSession } from "@/app/actions/admin";
+import { createTeam, updateTeam, deleteTeam, updateTeamMoney, getTeamFinancialData, updateTeamTime, resetTeamTimer } from "@/app/actions/admin/teams";
+import { createSponsor, updateSponsor, deleteSponsor } from "@/app/actions/admin";
 import { logger } from '@/lib/logger';
 
 const TABS: Tab[] = ["dashboard", "teams", "codes", "playspaces", "devices", "events", "sessions", "sponsors", "messaging"];
 
-const authKey = () => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined);
-
 export default function MiniAdminDashboard() {
+  const authKey = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("admin-auth-key") || undefined : undefined), []);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -57,6 +146,8 @@ export default function MiniAdminDashboard() {
     playspaceId: "",
   });
 
+  const hasLoaded = useRef(false);
+
   const note = (n: Omit<Note, "id">) => {
     const id = crypto.randomUUID();
     setNotes((p) => [...p, { ...n, id }]);
@@ -64,22 +155,20 @@ export default function MiniAdminDashboard() {
   };
 
   const load = useCallback(async () => {
+    if (loading) return; // Prevent multiple simultaneous calls
     setLoading(true);
     setErr(null);
     try {
       const key = authKey();
-      const [ac, pl, dv, ev, gs, tm, sp] = await Promise.all([
-        getAccessCodes(key),
-        getPlayspaces(key),
-        getAllDevices(key),
-        getEvents(key),
-        getGameSessions(key),
-        getTeams(key),
-        getSponsors(key),
-      ]);
+      const result = await getAllAdminData(key);
+
+      if (result.error) {
+        setErr(result.error);
+        return;
+      }
 
       // Transform access codes to match expected type
-      const transformedCodes = (ac?.accessCodes || []).map(code => ({
+      const transformedCodes = (result.accessCodes as RawAccessCode[]).map((code: RawAccessCode) => ({
         _id: code._id,
         code: code.code,
         status: code.isActive ? "active" as const : "inactive" as const,
@@ -87,7 +176,7 @@ export default function MiniAdminDashboard() {
       setCodes(transformedCodes);
 
       // Transform playspaces to match expected type
-      const transformedPlays = (pl?.playspaces || []).map(play => ({
+      const transformedPlays = (result.playspaces as RawPlayspace[]).map((play: RawPlayspace) => ({
         _id: play._id,
         name: play.name,
         description: play.description,
@@ -95,7 +184,7 @@ export default function MiniAdminDashboard() {
       setPlays(transformedPlays);
 
       // Transform devices to match expected type
-      const transformedDevs = (dv?.devices || []).map(dev => ({
+      const transformedDevs = (result.devices as RawDevice[]).map((dev: RawDevice) => ({
         _id: dev._id,
         name: dev.deviceMacAddress || "Unknown Device",
         status: dev.status || "unknown",
@@ -105,7 +194,7 @@ export default function MiniAdminDashboard() {
       setDevs(transformedDevs);
 
       // Transform events to match expected type
-      const transformedEvts = (ev?.events || []).map(evt => ({
+      const transformedEvts = (result.events as RawEvent[]).map((evt: RawEvent) => ({
         _id: evt._id ? evt._id.toString() : "",
         title: evt.title || "Unknown Event",
         description: evt.description,
@@ -134,14 +223,14 @@ export default function MiniAdminDashboard() {
       setEvts(transformedEvts);
 
       // Transform game sessions to match expected type
-      const transformedSess = (gs?.sessions || []).map(sess => ({
+      const transformedSess = (result.sessions as RawGameSession[]).map((sess: RawGameSession) => ({
         _id: sess._id,
         tournamentId: sess.tournamentId,
         team1Id: sess.team1Id,
         team2Id: sess.team2Id,
         team1Name: sess.team1Name,
         team2Name: sess.team2Name,
-        status: sess.status,
+        status: sess.status as 'waiting' | 'active' | 'completed' | 'cancelled',
         startTime: sess.startTime,
         endTime: sess.endTime,
         team1Score: sess.team1Score,
@@ -153,20 +242,22 @@ export default function MiniAdminDashboard() {
       setSess(transformedSess);
 
       // Transform teams to match expected type
-      const transformedTeams = (tm?.teams || []).map(team => ({
+      const transformedTeams = (result.teams as RawTeam[]).map((team: RawTeam) => ({
         _id: team._id ? team._id.toString() : "",
         name: team.name,
         description: team.description,
         leaderUserId: team.leaderUserId,
-        members: team.members,
+        members: team.members, // Already a count from server action
+        numberOfPlayers: team.numberOfPlayers,
+        playingDevice: team.playingDevice,
       }));
       setTeams(transformedTeams);
 
       // Transform sponsors to match expected type
-      const transformedSponsors = (sp?.sponsors || []).map(sponsor => ({
+      const transformedSponsors = (result.sponsors as RawSponsor[]).map((sponsor: RawSponsor) => ({
         _id: sponsor._id,
         name: sponsor.name,
-        tier: sponsor.tier,
+        tier: sponsor.tier as 'quantum-guardians' | 'cyber-sentinels' | 'binary-titans' | 'firewall-champions',
         logo: sponsor.logo,
         description: sponsor.description,
         benefits: sponsor.benefits,
@@ -182,10 +273,14 @@ export default function MiniAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authKey, loading]);
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!hasLoaded.current) {
+      hasLoaded.current = true;
+      load();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // No dependency on load to prevent re-runs
 
   const bulkDel = async () => {
     if (!bulk) return;
