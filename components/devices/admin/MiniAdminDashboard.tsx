@@ -401,10 +401,10 @@ export default function MiniAdminDashboard() {
   const handleCreateTeam = async (name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderId?: string) => {
     try {
       const res = await createTeam(name, description, numberOfPlayers, playingDevice, leaderId, authKey());
-      if ((res as any)?.error) {
-        note({ kind: "err", msg: (res as any).error || "Create team failed" });
-      } else if ((res as any)?.success) {
-        const access = (res as any)?.team?.accessCode as string | undefined;
+      if ((res as { error?: string }).error) {
+        note({ kind: "err", msg: (res as { error?: string }).error || "Create team failed" });
+      } else if ((res as { success?: boolean }).success) {
+        const access = (res as { team?: { accessCode?: string } }).team?.accessCode;
         // Open modal centered with copy functionality
         setTeamCreatedModal({ open: true, teamName: name, accessCode: access });
       } else {
@@ -420,8 +420,8 @@ export default function MiniAdminDashboard() {
   const handleUpdateTeam = async (id: string, updates: { name?: string; description?: string; leaderUserId?: string; numberOfPlayers?: number }) => {
     try {
       const result = await updateTeam(id, updates, authKey());
-      if (result && (result as any).error) {
-        note({ kind: "err", msg: (result as any).error || "Update team failed" });
+      if (result && (result as { error?: string }).error) {
+        note({ kind: "err", msg: (result as { error?: string }).error || "Update team failed" });
       } else {
         note({ kind: "ok", msg: "Team updated" });
       }
@@ -434,10 +434,10 @@ export default function MiniAdminDashboard() {
   const handleDeleteTeam = async (id: string) => {
     try {
       const res = await deleteTeam(id, authKey());
-      if ((res as any)?.error) {
-        note({ kind: "err", msg: (res as any).error || "Delete team failed" });
-      } else if ((res as any)?.success) {
-        note({ kind: "ok", msg: (res as any).message || "Team deleted" });
+      if ((res as { error?: string })?.error) {
+        note({ kind: "err", msg: (res as { error?: string }).error || "Delete team failed" });
+      } else if ((res as { success?: boolean })?.success) {
+        note({ kind: "ok", msg: (res as { message?: string }).message || "Team deleted" });
       } else {
         note({ kind: "ok", msg: "Team deleted" });
       }
@@ -863,10 +863,10 @@ export default function MiniAdminDashboard() {
             onClick={async () => {
               try {
                 const res = await cleanupOrphanResources(authKey());
-                if ((res as any)?.error) {
-                  note({ kind: 'err', msg: (res as any).error || 'Cleanup failed' });
+                if ((res as { error?: string })?.error) {
+                  note({ kind: 'err', msg: (res as { error?: string }).error || 'Cleanup failed' });
                 } else {
-                  note({ kind: 'ok', msg: (res as any).message || 'Cleanup done' });
+                  note({ kind: 'ok', msg: (res as { message?: string }).message || 'Cleanup done' });
                 }
                 load();
               } catch {

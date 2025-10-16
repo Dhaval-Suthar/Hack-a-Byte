@@ -1258,9 +1258,6 @@ export async function cleanupOrphanResources(adminKey?: string) {
     const teamPlayspaceIds = new Set<string>(
       teams.map(t => t.playspaceId?.toString()).filter(Boolean) as string[]
     );
-    const teamAccessCodeIds = new Set<string>(
-      teams.map(t => t.accessCodeId?.toString()).filter(Boolean) as string[]
-    );
 
     const devicePlayspaceIds = new Set<string>(
       (await Device.distinct('playspace')).map((id: unknown) => String(id)).filter(Boolean)
@@ -1271,12 +1268,12 @@ export async function cleanupOrphanResources(adminKey?: string) {
       .select('_id assignedPlayspace')
       .lean();
     const orphanCodeIds: string[] = codes
-      .filter(c => !teamPlayspaceIds.has(String((c as any).assignedPlayspace)))
+      .filter(c => !teamPlayspaceIds.has(String(c.assignedPlayspace)))
       .map(c => String(c._id));
 
     // Playspaces: orphaned if not referenced by any team nor any device, and (were paired with a code)
     const playspaceIdsWithCodes = new Set<string>(
-      codes.map(c => String((c as any).assignedPlayspace)).filter(Boolean)
+      codes.map(c => String((c as { assignedPlayspace?: mongoose.Types.ObjectId }).assignedPlayspace)).filter(Boolean)
     );
 
     const playspaces = await Playspace.find({}, { _id: 1 }).lean();
@@ -1292,12 +1289,12 @@ export async function cleanupOrphanResources(adminKey?: string) {
 
     if (orphanCodeIds.length) {
       const result = await AccessCode.deleteMany({ _id: { $in: orphanCodeIds } });
-      deletedCodes = (result as any).deletedCount || 0;
+      deletedCodes = (result as { deletedCount: number }).deletedCount || 0;
     }
 
     if (orphanPlayspaceIds.length) {
       const result = await Playspace.deleteMany({ _id: { $in: orphanPlayspaceIds } });
-      deletedPlayspaces = (result as any).deletedCount || 0;
+      deletedPlayspaces = (result as { deletedCount: number }).deletedCount || 0;
     }
 
     revalidatePath('/admin');
