@@ -16,7 +16,7 @@ interface TeamTimerInfo {
 
 class TeamTimerService extends EventEmitter {
   private activeTimers: Map<string, TeamTimerInfo> = new Map();
-  private readonly ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour (was 5 * 60 * 1000 for testing)
+  private readonly THIRTY_MINUTES_MS = 30 * 60 * 1000; // 30 minutes
 
   constructor() {
     super();
@@ -64,7 +64,7 @@ class TeamTimerService extends EventEmitter {
   }
 
   /**
-   * Start a 1-hour timer for a team when their first member comes online
+   * Start a 30-minute timer for a team when their first member comes online
    */
   async startTeamTimer(teamId: string, deviceId: string): Promise<void> {
     try {
@@ -75,7 +75,7 @@ class TeamTimerService extends EventEmitter {
       }
 
       const startTime = Date.now();
-      const endTime = startTime + this.ONE_HOUR_MS;
+      const endTime = startTime + this.THIRTY_MINUTES_MS;
 
       // Update team in database
       await connectDb();
@@ -88,7 +88,7 @@ class TeamTimerService extends EventEmitter {
       });
 
       // Schedule the device to go offline
-      this.scheduleDeviceOffline(teamId, deviceId, this.ONE_HOUR_MS);
+      this.scheduleDeviceOffline(teamId, deviceId, this.THIRTY_MINUTES_MS);
 
       // Notify team members about timer start
       const io = getServerIo();
@@ -98,12 +98,12 @@ class TeamTimerService extends EventEmitter {
           deviceId,
           startTime,
           endTime,
-          duration: this.ONE_HOUR_MS,
-          message: 'Your team has 1 hour of playtime. Device will go offline automatically when time expires.',
+          duration: this.THIRTY_MINUTES_MS,
+          message: 'Your team has 30 minutes of playtime. Device will go offline automatically when time expires.',
         });
       }
 
-      logger.info(`Started 1-hour timer for team ${teamId}`, {
+      logger.info(`Started 30-minute timer for team ${teamId}`, {
         teamId,
         deviceId,
         endTime: new Date(endTime).toISOString(),
@@ -175,7 +175,7 @@ class TeamTimerService extends EventEmitter {
         io.to(`team-${teamId}`).emit('team-timer-expired', {
           teamId,
           deviceId,
-          message: 'Your 1-hour playtime has expired. The device is now offline.',
+          message: 'Your 30-minute playtime has expired. The device is now offline.',
         });
 
         // Also emit device status change
