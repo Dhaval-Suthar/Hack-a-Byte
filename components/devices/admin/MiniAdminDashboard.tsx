@@ -110,7 +110,7 @@ interface RawSponsor {
 }
 
 // Server actions
-import { getAllAdminData, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace } from "@/app/actions/admin";
+import { getAllAdminData, generateAccessCode, toggleAccessCodeStatus, deleteAccessCode, updateAccessCode, linkAccessCodeToPlayspace, cleanupOrphanResources } from "@/app/actions/admin";
 import { createPlayspace, updatePlayspace, deletePlayspace } from "@/app/actions/admin";
 import { createDevice, updateDevice, deleteDevice, assignDeviceToPlayspace, unassignDeviceFromPlayspace } from "@/app/actions/admin";
 import { createEvent, updateEvent, deleteEvent, toggleEventRegistration } from "@/app/actions/admin";
@@ -145,6 +145,12 @@ export default function MiniAdminDashboard() {
     description: "",
     playspaceId: "",
   });
+  // Modal for Team Created with Access Code
+  const [teamCreatedModal, setTeamCreatedModal] = useState<{
+    open: boolean;
+    teamName?: string;
+    accessCode?: string;
+  }>({ open: false });
 
   const hasLoaded = useRef(false);
 
@@ -394,8 +400,16 @@ export default function MiniAdminDashboard() {
     // Team management functions
   const handleCreateTeam = async (name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderId?: string) => {
     try {
-      await createTeam(name, description, numberOfPlayers, playingDevice, leaderId, authKey());
-      note({ kind: "ok", msg: "Team created" });
+      const res = await createTeam(name, description, numberOfPlayers, playingDevice, leaderId, authKey());
+      if ((res as any)?.error) {
+        note({ kind: "err", msg: (res as any).error || "Create team failed" });
+      } else if ((res as any)?.success) {
+        const access = (res as any)?.team?.accessCode as string | undefined;
+        // Open modal centered with copy functionality
+        setTeamCreatedModal({ open: true, teamName: name, accessCode: access });
+      } else {
+        setTeamCreatedModal({ open: true, teamName: name });
+      }
       load();
     } catch (error) {
       logger.error('Error creating team:', { error: error instanceof Error ? error.message : 'Unknown error' }, error as Error);
@@ -403,10 +417,14 @@ export default function MiniAdminDashboard() {
     }
   };
 
-  const handleUpdateTeam = async (id: string, updates: { name?: string; description?: string; leaderUserId?: string }) => {
+  const handleUpdateTeam = async (id: string, updates: { name?: string; description?: string; leaderUserId?: string; numberOfPlayers?: number }) => {
     try {
-      await updateTeam(id, updates, authKey());
-      note({ kind: "ok", msg: "Team updated" });
+      const result = await updateTeam(id, updates, authKey());
+      if (result && (result as any).error) {
+        note({ kind: "err", msg: (result as any).error || "Update team failed" });
+      } else {
+        note({ kind: "ok", msg: "Team updated" });
+      }
       load();
     } catch {
       note({ kind: "err", msg: "Update team failed" });
@@ -415,8 +433,14 @@ export default function MiniAdminDashboard() {
 
   const handleDeleteTeam = async (id: string) => {
     try {
-      await deleteTeam(id, authKey());
-      note({ kind: "ok", msg: "Team deleted" });
+      const res = await deleteTeam(id, authKey());
+      if ((res as any)?.error) {
+        note({ kind: "err", msg: (res as any).error || "Delete team failed" });
+      } else if ((res as any)?.success) {
+        note({ kind: "ok", msg: (res as any).message || "Team deleted" });
+      } else {
+        note({ kind: "ok", msg: "Team deleted" });
+      }
       load();
     } catch {
       note({ kind: "err", msg: "Delete team failed" });
@@ -834,6 +858,27 @@ export default function MiniAdminDashboard() {
             {t}
           </button>
         ))}
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const res = await cleanupOrphanResources(authKey());
+                if ((res as any)?.error) {
+                  note({ kind: 'err', msg: (res as any).error || 'Cleanup failed' });
+                } else {
+                  note({ kind: 'ok', msg: (res as any).message || 'Cleanup done' });
+                }
+                load();
+              } catch {
+                note({ kind: 'err', msg: 'Cleanup failed' });
+              }
+            }}
+            className="px-3 py-1 rounded text-xs border border-neutral-700 bg-neutral-800 hover:bg-neutral-700"
+            title="Remove access codes and playspaces not linked to any team"
+          >
+            Cleanup Orphans
+          </button>
+        </div>
       </div>
       {loading && <div className="text-xs text-neutral-400">Loading...</div>}
       {err && (
@@ -938,6 +983,58 @@ export default function MiniAdminDashboard() {
                 className="px-4 py-2 bg-neutral-600 hover:bg-neutral-700 rounded text-sm font-medium"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team Created Modal */}
+      {teamCreatedModal.open && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-neutral-900 border border-neutral-700 p-6 rounded-lg w-full max-w-md mx-4 shadow-xl">
+            <h3 className="text-xl font-semibold text-white mb-2 text-center">Team Created</h3>
+            <p className="text-sm text-neutral-300 mb-4 text-center">
+              {teamCreatedModal.teamName ? (
+                <>The team <span className="font-medium text-white">{teamCreatedModal.teamName}</span> has been created successfully.</>
+              ) : (
+                <>Your team has been created successfully.</>
+              )}
+            </p>
+            <div className="bg-neutral-800 border border-neutral-700 rounded p-4 mb-4">
+              <div className="text-xs text-neutral-400 mb-1">Access Code</div>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={teamCreatedModal.accessCode || '—'}
+                  className="flex-1 px-3 py-2 bg-neutral-700 rounded text-sm text-white border border-neutral-600"
+                />
+                <button
+                  onClick={async () => {
+                    try {
+                      const code = teamCreatedModal.accessCode || '';
+                      if (code) {
+                        await navigator.clipboard.writeText(code);
+                        note({ kind: 'ok', msg: 'Access code copied' });
+                      }
+                    } catch {
+                      note({ kind: 'err', msg: 'Copy failed' });
+                    }
+                  }}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                  disabled={!teamCreatedModal.accessCode}
+                  title={teamCreatedModal.accessCode ? 'Copy access code' : 'No code to copy'}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <button
+                onClick={() => setTeamCreatedModal({ open: false })}
+                className="px-5 py-2 bg-neutral-600 hover:bg-neutral-700 rounded text-sm font-medium text-white"
+              >
+                Close
               </button>
             </div>
           </div>

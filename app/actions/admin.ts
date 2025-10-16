@@ -1241,6 +1241,76 @@ export async function linkAccessCodeToPlayspace(codeId: string, playspaceId: str
   }
 }
 
+/**
+ * Remove orphaned resources left after manual deletions or earlier operations without cascading.
+ * - Deletes AccessCodes whose assignedPlayspace is not referenced by any Team
+ * - Deletes Playspaces not referenced by any Team or Device, and that were paired with an AccessCode
+ */
+export async function cleanupOrphanResources(adminKey?: string) {
+  const { isAdmin, error } = await checkAdminStatus(adminKey);
+  if (!isAdmin) return { error };
+
+  try {
+    await connectDb();
+
+    // Collect referenced IDs from Teams and Devices
+    const teams = await Team.find({}, { playspaceId: 1, accessCodeId: 1 }).lean();
+    const teamPlayspaceIds = new Set<string>(
+      teams.map(t => t.playspaceId?.toString()).filter(Boolean) as string[]
+    );
+    const teamAccessCodeIds = new Set<string>(
+      teams.map(t => t.accessCodeId?.toString()).filter(Boolean) as string[]
+    );
+
+    const devicePlayspaceIds = new Set<string>(
+      (await Device.distinct('playspace')).map((id: unknown) => String(id)).filter(Boolean)
+    );
+
+    // Access codes: orphaned if assignedPlayspace exists but not referenced by any team
+    const codes = await AccessCode.find({ assignedPlayspace: { $exists: true, $ne: null } })
+      .select('_id assignedPlayspace')
+      .lean();
+    const orphanCodeIds: string[] = codes
+      .filter(c => !teamPlayspaceIds.has(String((c as any).assignedPlayspace)))
+      .map(c => String(c._id));
+
+    // Playspaces: orphaned if not referenced by any team nor any device, and (were paired with a code)
+    const playspaceIdsWithCodes = new Set<string>(
+      codes.map(c => String((c as any).assignedPlayspace)).filter(Boolean)
+    );
+
+    const playspaces = await Playspace.find({}, { _id: 1 }).lean();
+    const orphanPlayspaceIds: string[] = playspaces
+      .map(p => String(p._id))
+      .filter(id => !teamPlayspaceIds.has(id))
+      .filter(id => !devicePlayspaceIds.has(id))
+      .filter(id => playspaceIdsWithCodes.has(id));
+
+    // Perform deletions (compute before mutating to avoid cross-effects)
+    let deletedCodes = 0;
+    let deletedPlayspaces = 0;
+
+    if (orphanCodeIds.length) {
+      const result = await AccessCode.deleteMany({ _id: { $in: orphanCodeIds } });
+      deletedCodes = (result as any).deletedCount || 0;
+    }
+
+    if (orphanPlayspaceIds.length) {
+      const result = await Playspace.deleteMany({ _id: { $in: orphanPlayspaceIds } });
+      deletedPlayspaces = (result as any).deletedCount || 0;
+    }
+
+    revalidatePath('/admin');
+    return {
+      success: true,
+      message: `Cleaned ${deletedCodes} access code(s) and ${deletedPlayspaces} playspace(s)`
+    };
+  } catch (e) {
+    logger.error('Error cleaning orphaned resources', { error: e instanceof Error ? e.message : String(e) }, e as Error);
+    return { error: 'Failed to clean orphan resources' };
+  }
+}
+
 // Event Actions
 export async function getEvents(adminKey?: string) {
   const { isAdmin, error } = await checkAdminStatus(adminKey);

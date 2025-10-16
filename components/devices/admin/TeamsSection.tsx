@@ -8,7 +8,7 @@ interface TeamsSectionProps {
   q: string;
   setQ: (query: string) => void;
   onCreateTeam: (name: string, description: string, numberOfPlayers: number, playingDevice: "smartphone" | "pc_laptop", leaderId?: string) => Promise<void>;
-  onUpdateTeam: (id: string, updates: { name?: string; description?: string; leaderUserId?: string }) => Promise<void>;
+  onUpdateTeam: (id: string, updates: { name?: string; description?: string; leaderUserId?: string; numberOfPlayers?: number }) => Promise<void>;
   onDeleteTeam: (id: string) => Promise<void>;
   onUpdateTeamMoney?: (id: string, amount: number) => Promise<void>;
   onUpdateTeamTime?: (id: string, totalMinutes: number) => Promise<void>;
@@ -92,6 +92,7 @@ export default function TeamsSection({
         name: formData.name,
         description: formData.description,
         leaderUserId: formData.leaderUserId || undefined,
+        numberOfPlayers: formData.numberOfPlayers,
       });
       setEditingTeam(null);
       setFormData({ name: "", description: "", numberOfPlayers: 1, playingDevice: "smartphone", leaderUserId: "" });
