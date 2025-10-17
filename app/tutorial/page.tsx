@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { ROLE_LABELS } from "@/lib/constants/app-constants";
 
 export default function TutorialPage() {
   const router = useRouter();
@@ -15,31 +16,31 @@ export default function TutorialPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<string>('');
-  
+  const [selectedRole, setSelectedRole] = useState<string>("");
+
   // Auto-hide controls timer
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get selected role from localStorage
   useEffect(() => {
-    const role = localStorage.getItem('selectedRole');
+    const role = localStorage.getItem("selectedRole");
     if (role) {
       setSelectedRole(role);
     } else {
       // If no role selected, redirect to role selection
-      router.push('/role-selection');
+      router.push("/role-selection");
     }
   }, [router]);
 
   // Set video src when selectedRole is available
   useEffect(() => {
     if (selectedRole && videoRef.current) {
-      videoRef.current.src = `/videos/${selectedRole}.mp4`;
+      // Professor uses "professor" as filename, others use their labels
+      const videoLabel = selectedRole === "professor" ? "professor" : ROLE_LABELS[selectedRole] || selectedRole;
+      videoRef.current.src = `/videos/${videoLabel}.mp4`;
       videoRef.current.load(); // Reload the video with new src
     }
   }, [selectedRole]);
-
-
 
   // Auto-hide controls after 3 seconds of inactivity
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function TutorialPage() {
         }
       }, 3000);
     }
-    
+
     return () => {
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
@@ -70,7 +71,7 @@ export default function TutorialPage() {
       video.pause();
     } else {
       video.play().catch((error) => {
-        console.error('Error playing video:', error);
+        console.error("Error playing video:", error);
       });
     }
   }, [isPlaying]);
@@ -78,10 +79,10 @@ export default function TutorialPage() {
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video || !duration || duration === 0) return;
-    
+
     const percentage = parseFloat(e.target.value);
     const newTime = Math.min((percentage / 100) * duration, duration - 0.1);
-    
+
     if (!isNaN(newTime) && newTime >= 0) {
       video.currentTime = newTime;
       setCurrentTime(newTime);
@@ -91,7 +92,7 @@ export default function TutorialPage() {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const newVolume = parseFloat(e.target.value) / 100;
     video.volume = newVolume;
     setVolume(newVolume);
@@ -101,7 +102,7 @@ export default function TutorialPage() {
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isMuted) {
       video.volume = volume || 0.5;
       setIsMuted(false);
@@ -128,13 +129,13 @@ export default function TutorialPage() {
   }, [isFullscreen]);
 
   const skipTutorial = useCallback(() => {
-    router.push('/device-selection');
+    router.push("/device-selection");
   }, [router]);
 
   const skipForward = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     // Add a small buffer (0.1 seconds) before the end to prevent triggering the ended event
     const maxTime = Math.max(video.duration - 0.1, 0);
     const newTime = Math.min(video.currentTime + 10, maxTime);
@@ -145,17 +146,17 @@ export default function TutorialPage() {
   const skipBackward = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const newTime = Math.max(video.currentTime - 10, 0);
     video.currentTime = newTime;
     setCurrentTime(newTime);
   }, []);
 
   const formatTime = (time: number) => {
-    if (!time || isNaN(time) || time < 0) return '0:00';
+    if (!time || isNaN(time) || time < 0) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const handleMouseMove = () => {
@@ -201,74 +202,82 @@ export default function TutorialPage() {
     const handleEnded = () => {
       setIsPlaying(false);
       // Auto-redirect to device selection when video ends
-      router.push('/device-selection');
+      router.push("/device-selection");
     };
     const handleError = (e: Event) => {
-      console.error('Video error:', e);
-      console.error('Failed to load video from:', `/videos/${selectedRole}.mp4`);
+      console.error("Video error:", e);
+      const videoLabel = selectedRole === "professor" ? "professor" : ROLE_LABELS[selectedRole] || selectedRole;
+      console.error("Failed to load video from:", `/videos/${videoLabel}.mp4`);
       setIsLoading(false);
     };
 
     // Keyboard shortcuts
     const handleKeyPress = (e: KeyboardEvent) => {
       switch (e.key) {
-        case ' ':
-        case 'k':
+        case " ":
+        case "k":
           e.preventDefault();
           togglePlay();
           break;
-        case 'ArrowLeft':
+        case "ArrowLeft":
           e.preventDefault();
           skipBackward();
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           e.preventDefault();
           skipForward();
           break;
-        case 'f':
+        case "f":
           e.preventDefault();
           toggleFullscreen();
           break;
-        case 'm':
+        case "m":
           e.preventDefault();
           toggleMute();
           break;
-        case 'Escape':
+        case "Escape":
           e.preventDefault();
           skipTutorial();
           break;
       }
     };
 
-    video.addEventListener('timeupdate', updateTime);
-    video.addEventListener('loadedmetadata', updateDuration);
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('ended', handleEnded);
-    video.addEventListener('error', handleError);
-    document.addEventListener('keydown', handleKeyPress);
+    video.addEventListener("timeupdate", updateTime);
+    video.addEventListener("loadedmetadata", updateDuration);
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+    video.addEventListener("error", handleError);
+    document.addEventListener("keydown", handleKeyPress);
 
     return () => {
       clearTimeout(loadingTimeout);
-      video.removeEventListener('timeupdate', updateTime);
-      video.removeEventListener('loadedmetadata', updateDuration);
-      video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('ended', handleEnded);
-      video.removeEventListener('error', handleError);
-      document.removeEventListener('keydown', handleKeyPress);
+      video.removeEventListener("timeupdate", updateTime);
+      video.removeEventListener("loadedmetadata", updateDuration);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("error", handleError);
+      document.removeEventListener("keydown", handleKeyPress);
     };
-  }, [router, togglePlay, skipBackward, skipForward, toggleFullscreen, toggleMute, skipTutorial, duration]);
+  }, [
+    router,
+    togglePlay,
+    skipBackward,
+    skipForward,
+    toggleFullscreen,
+    toggleMute,
+    skipTutorial,
+    duration,
+    selectedRole,
+  ]);
 
   return (
-    <div 
-      className="relative w-full h-screen bg-black overflow-hidden"
-      onMouseMove={handleMouseMove}
-    >
+    <div className="relative w-full h-screen bg-black overflow-hidden" onMouseMove={handleMouseMove}>
       {/* Video Element */}
       <video
         ref={videoRef}
@@ -277,9 +286,9 @@ export default function TutorialPage() {
         playsInline
         controls={false}
         onClick={togglePlay}
-        onLoadStart={() => console.log('Video load started')}
-        onLoadedData={() => console.log('Video data loaded')}
-        onCanPlay={() => console.log('Video can play')}
+        onLoadStart={() => console.log("Video load started")}
+        onLoadedData={() => console.log("Video data loaded")}
+        onCanPlay={() => console.log("Video can play")}
       />
 
       {/* Skip Button - Always visible in top right */}
@@ -300,7 +309,11 @@ export default function TutorialPage() {
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="text-green-400 font-mono text-xl flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
-            <span>Loading {selectedRole ? `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Tutorial` : 'Tutorial'}...</span>
+            <span>
+              Loading{" "}
+              {selectedRole ? `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Tutorial` : "Tutorial"}
+              ...
+            </span>
           </div>
         </div>
       )}
@@ -327,7 +340,11 @@ export default function TutorialPage() {
                   onChange={handleSeek}
                   className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-green"
                   style={{
-                    background: `linear-gradient(to right, #00ff88 0%, #00ff88 ${duration && duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0}%, #374151 ${duration && duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0}%, #374151 100%)`
+                    background: `linear-gradient(to right, #00ff88 0%, #00ff88 ${
+                      duration && duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0
+                    }%, #374151 ${
+                      duration && duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0
+                    }%, #374151 100%)`,
                   }}
                 />
                 <div className="flex justify-between text-xs text-green-400 font-mono mt-1">
@@ -349,8 +366,12 @@ export default function TutorialPage() {
                   >
                     {/* Double left arrow icon */}
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="absolute">
-                      <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="currentColor"/>
-                      <path d="M11.41 7.41L10 6L4 12L10 18L11.41 16.59L6.83 12L11.41 7.41Z" fill="currentColor" opacity="0.7"/>
+                      <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="currentColor" />
+                      <path
+                        d="M11.41 7.41L10 6L4 12L10 18L11.41 16.59L6.83 12L11.41 7.41Z"
+                        fill="currentColor"
+                        opacity="0.7"
+                      />
                     </svg>
                     {/* 10 second indicator */}
                     <span className="absolute -bottom-1 -right-1 bg-green-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center group-hover:bg-green-300 transition-colors duration-300">
@@ -367,11 +388,11 @@ export default function TutorialPage() {
                   >
                     {isPlaying ? (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                       </svg>
                     ) : (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"/>
+                        <path d="M8 5v14l11-7z" />
                       </svg>
                     )}
                   </motion.button>
@@ -386,8 +407,12 @@ export default function TutorialPage() {
                   >
                     {/* Double right arrow icon */}
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="absolute">
-                      <path d="M8.59 16.59L10 18L16 12L10 6L8.59 7.41L13.17 12L8.59 16.59Z" fill="currentColor"/>
-                      <path d="M12.59 16.59L14 18L20 12L14 6L12.59 7.41L17.17 12L12.59 16.59Z" fill="currentColor" opacity="0.7"/>
+                      <path d="M8.59 16.59L10 18L16 12L10 6L8.59 7.41L13.17 12L8.59 16.59Z" fill="currentColor" />
+                      <path
+                        d="M12.59 16.59L14 18L20 12L14 6L12.59 7.41L17.17 12L12.59 16.59Z"
+                        fill="currentColor"
+                        opacity="0.7"
+                      />
                     </svg>
                     {/* 10 second indicator */}
                     <span className="absolute -bottom-1 -right-1 bg-green-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center group-hover:bg-green-300 transition-colors duration-300">
@@ -412,15 +437,15 @@ export default function TutorialPage() {
                     >
                       {isMuted ? (
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
                         </svg>
                       ) : (
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                         </svg>
                       )}
                     </motion.button>
-                    
+
                     <input
                       type="range"
                       min="0"
@@ -429,7 +454,9 @@ export default function TutorialPage() {
                       onChange={handleVolumeChange}
                       className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-green"
                       style={{
-                        background: `linear-gradient(to right, #00ff88 0%, #00ff88 ${isMuted ? 0 : volume * 100}%, #374151 ${isMuted ? 0 : volume * 100}%, #374151 100%)`
+                        background: `linear-gradient(to right, #00ff88 0%, #00ff88 ${
+                          isMuted ? 0 : volume * 100
+                        }%, #374151 ${isMuted ? 0 : volume * 100}%, #374151 100%)`,
                       }}
                     />
                   </div>
@@ -443,11 +470,11 @@ export default function TutorialPage() {
                   >
                     {isFullscreen ? (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                        <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
                       </svg>
                     ) : (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
                       </svg>
                     )}
                   </motion.button>
@@ -467,7 +494,7 @@ export default function TutorialPage() {
               >
                 <div className="w-24 h-24 flex items-center justify-center bg-black/90 border-2 border-green-400 text-green-400 rounded-full hover:bg-green-400/20 hover:scale-110 hover:shadow-xl hover:shadow-green-400/50 transition-all duration-300 backdrop-blur-md">
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" className="ml-1">
-                    <path d="M8 5v14l11-7z"/>
+                    <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
               </motion.button>
@@ -475,8 +502,6 @@ export default function TutorialPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-
 
       {/* Custom Slider Styles */}
       <style jsx>{`
