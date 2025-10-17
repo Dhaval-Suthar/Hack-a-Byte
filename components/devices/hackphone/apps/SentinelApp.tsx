@@ -2197,7 +2197,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                       onClick={() => setShowTerminateConfirm(true)}
                       className="w-full py-3 bg-black border-2 border-red-500 text-red-500 hover:bg-red-900 hover:bg-opacity-20 font-mono"
                     >
-                      INITIATE GAME TERMINATION SEQUENCE
+                      GAME TERMINATION
                     </button>
                   </div>
                 ) : (
@@ -2228,7 +2228,7 @@ function SentinelApp({ onClose, time, teamId }: SentinelAppProps) {
                             <span>PROCESSING...</span>
                           </div>
                         ) : (
-                          <span>EXECUTE TERMINATION</span>
+                          <span>GAME OVER</span>
                         )}
                       </button>
                     </div>
